@@ -1,9 +1,260 @@
-@article{greenwade93,
-    author  = "George D. Greenwade",
-    title   = "The {C}omprehensive {T}ex {A}rchive {N}etwork ({CTAN})",
-    year    = "1993",
-    journal = "TUGBoat",
-    volume  = "14",
-    number  = "3",
-    pages   = "342--351"
+% --- Foundational definitions / surveys ---
+@phdthesis{opdyke1992refactoring,
+  title        = {Refactoring Object-Oriented Frameworks},
+  author       = {Opdyke, William F.},
+  year         = {1992},
+  school       = {University of Illinois at Urbana-Champaign},
+  address      = {Urbana-Champaign, IL, USA}
+}
+
+@book{fowler1999refactoring,
+  title        = {Refactoring: Improving the Design of Existing Code},
+  author       = {Fowler, Martin},
+  year         = {1999},
+  publisher    = {Addison-Wesley}
+}
+
+@book{fowler2018refactoring,
+  title        = {Refactoring: Improving the Design of Existing Code},
+  author       = {Fowler, Martin},
+  edition      = {2},
+  year         = {2018},
+  publisher    = {Addison-Wesley}
+}
+
+@article{mens2004survey,
+  title        = {A Survey of Software Refactoring},
+  author       = {Mens, Tom and Tourw{\'e}, Tom},
+  journal      = {IEEE Transactions on Software Engineering},
+  volume       = {30},
+  number       = {2},
+  pages        = {126--139},
+  year         = {2004},
+  publisher    = {IEEE}
+}
+
+% --- Outcome-based / search-based refactoring evaluation ---
+% TODO: Fill in complete details for WangTraceabilityRefactoring2018
+@article{wang2018traceability,
+  title        = {TODO: Add title},
+  author       = {Wang, TODO and others},
+  journal      = {TODO: Add journal},
+  year         = {2018},
+  note         = {TODO: Complete this entry - traceability-based refactoring ranking}
+}
+@article{harman2007pareto,
+  title        = {Pareto Optimal Search-Based Refactoring at the Design Level},
+  author       = {Harman, Mark and Tratt, Laurence},
+  journal      = {Journal of Systems and Software},
+  volume       = {80},
+  number       = {4},
+  pages        = {522--534},
+  year         = {2007},
+  publisher    = {Elsevier}
+}
+
+@article{mohan2019manyobjective,
+  title        = {Using a Many-Objective Approach to Investigate Automated Refactoring},
+  author       = {Mohan, M. and Greer, Des},
+  journal      = {Information and Software Technology},
+  year         = {2019},
+  publisher    = {Elsevier}
+}
+% NOTE: add volume/issue/pages once you pull the PDF details.
+
+@article{paixao2017balancing,
+  title        = {An Empirical Study of Cohesion and Coupling: Balancing Optimisation and Disruption},
+  author       = {Paix{\~a}o, Matheus and others},
+  journal      = {IEEE Transactions on Evolutionary Computation},
+  year         = {2017}
+}
+% NOTE: add volume/issue/pages once you have them.
+
+@article{nikolaidis2024metricsbased,
+  title        = {A Metrics-Based Approach for Selecting among Various Refactoring Candidates},
+  author       = {Nikolaidis, Nikolaos and others},
+  journal      = {Empirical Software Engineering},
+  year         = {2024}
+}
+% NOTE: add volume/issue/pages/doi when you have them.
+
+% --- Smells + metric validity / readability ---
+@article{moha2010decor,
+  title        = {DECOR: A Method for the Specification and Detection of Code and Design Smells},
+  author       = {Moha, Naouel and others},
+  journal      = {IEEE Transactions on Software Engineering},
+  year         = {2010}
+}
+% NOTE: add volume/issue/pages once you pull the PDF details.
+
+@article{paiva2017evaluation,
+  title        = {On the Evaluation of Code Smells and Detection Tools},
+  author       = {Paiva, Thiago and others},
+  journal      = {Journal of Software Engineering Research and Development},
+  year         = {2017}
+}
+% NOTE: add volume/issue/pages once you have them.
+
+@inproceedings{arcellifontana2016falsepositives,
+  title        = {Antipattern and Code Smell False Positives: Preliminary Conceptualization and Classification},
+  author       = {Arcelli Fontana, Francesca and others},
+  booktitle    = {Proceedings of a workshop on code smells / antipatterns},
+  year         = {2016}
+}
+% NOTE: fill venue/publisher/pages if you want it fully specified.
+
+@article{scalabrino2018readability,
+  title        = {A Comprehensive Model for Code Readability},
+  author       = {Scalabrino, Simone and others},
+  journal      = {Journal of Systems and Software},
+  year         = {2018}
+}
+% NOTE: add volume/issue/pages once you have them.
+
+% --- Refactoring detection / mining + AST differencing ---
+@article{tsantalis2020refactoringminer,
+  title        = {RefactoringMiner 2.0: A Multi-Language Tool for Automated Refactoring Detection},
+  author       = {Tsantalis, Nikolaos and others},
+  journal      = {IEEE Transactions on Software Engineering},
+  year         = {2020}
+}
+% NOTE: add volume/issue/pages/doi once you pull the PDF details.
+
+@inproceedings{silva2017refdiff,
+  title        = {RefDiff: Detecting Refactorings in Version Histories},
+  author       = {Silva, Danilo and others},
+  booktitle    = {Proceedings of the International Conference on Mining Software Repositories (MSR)},
+  year         = {2017}
+}
+% NOTE: add pages/publisher/doi once you have them.
+
+@inproceedings{falleri2014gumtree,
+  title        = {Fine-Grained and Accurate Source Code Differencing},
+  author       = {Falleri, Jean-R{\'e}my and Morandat, Flor{\'e}al and Blanc, Xavier and Martinez, Matias and Monperrus, Martin},
+  booktitle    = {Proceedings of the International Conference on Automated Software Engineering (ASE)},
+  year         = {2014}
+}
+% NOTE: GumTree is commonly cited via this paper; some cite ICSE/TOSEM follow-ups.
+
+% --- Refactoring synthesis / navigation ---
+@inproceedings{raychev2013resynth,
+  title        = {Refactoring with Synthesis},
+  author       = {Raychev, Veselin and Sch{\"a}fer, Max and Sridharan, Manu and Vechev, Martin},
+  booktitle    = {Proceedings of the ACM International Conference on Object-Oriented Programming, Systems, Languages, and Applications (OOPSLA)},
+  year         = {2013}
+}
+% NOTE: add pages/doi once you have them.
+
+@inproceedings{lin2016navigator,
+  title        = {Interactive and Guided Architectural Refactoring with Search-Based Recommendation},
+  author       = {Lin, Yu and others},
+  booktitle    = {Proceedings of the ACM Joint Meeting on European Software Engineering Conference and Symposium on the Foundations of Software Engineering (ESEC/FSE)},
+  year         = {2016}
+}
+% NOTE: add pages/doi once you have them.
+
+% --- Process realism (floss / tangled / mixed-intent) ---
+@inproceedings{murphyhill2009floss,
+  title        = {Better Refactoring Tools for a Better Refactoring Strategy},
+  author       = {Murphy-Hill, Emerson and others},
+  booktitle    = {Workshop / technical report version; often cited for floss vs root canal refactoring},
+  year         = {2009}
+}
+% NOTE: This one has multiple forms (TR/chapter). We can normalise once you choose the canonical source.
+
+@inproceedings{kim2011api,
+  title        = {An Empirical Investigation into the Role of API-Level Refactorings in Software Evolution},
+  author       = {Kim, Miryung and others},
+  booktitle    = {Proceedings of the International Conference on Software Engineering (ICSE)},
+  year         = {2011}
+}
+% NOTE: your notes said 2012; ICSE version is 2011. We'll verify once you pull the PDF.
+
+% --- Recommendation / search / synthesis (counterfactual generation) ---
+
+@inproceedings{rolim2017refazer,
+  title        = {Learning Syntactic Program Transformations from Examples},
+  author       = {Rolim, Reudismam and Soares, Gustavo and D'Antoni, Loris and Polozov, Oleksandr and Gulwani, Sumit and Ge, Sherry and Rungta, Neha},
+  booktitle    = {Proceedings of the 39th International Conference on Software Engineering (ICSE)},
+  pages        = {404--415},
+  year         = {2017},
+  publisher    = {IEEE},
+  doi          = {10.1109/ICSE.2017.44}
+}
+
+@article{alizadeh2020interactive,
+  title        = {An Interactive and Dynamic Search-Based Approach to Software Refactoring Recommendations},
+  author       = {Alizadeh, Vahid and Kessentini, Marouane and Ouni, Ali and Mkaouer, Mohamed Wiem and {\'O} Cinn{\'e}ide, Mel and Cai, Yuanfang},
+  journal      = {IEEE Transactions on Software Engineering},
+  volume       = {46},
+  number       = {9},
+  pages        = {932--961},
+  year         = {2020},
+  publisher    = {IEEE},
+  doi          = {10.1109/TSE.2018.2872711}
+}
+
+% --- Process realism: tangled / mixed-intent / code review refactoring ---
+
+@inproceedings{herzig2013tangled,
+  title        = {The Impact of Tangled Code Changes},
+  author       = {Herzig, Kim and Zeller, Andreas},
+  booktitle    = {Proceedings of the 10th Working Conference on Mining Software Repositories (MSR)},
+  pages        = {121--130},
+  year         = {2013},
+  publisher    = {IEEE},
+  doi          = {10.1109/MSR.2013.6624018}
+}
+
+@inproceedings{paixao2020intents,
+  title        = {Behind the Intents: An In-Depth Empirical Study on Software Refactoring in Modern Code Review},
+  author       = {Paix{\~a}o, Matheus and Ucha, Vitor and Bibiano, Ana Carla and Oliveira, Daniel and Garcia, Alessandro and Krinke, Jens and Arnaoudova, Venera},
+  booktitle    = {Proceedings of the 17th International Conference on Mining Software Repositories (MSR)},
+  pages        = {125--136},
+  year         = {2020},
+  publisher    = {ACM},
+  doi          = {10.1145/3379597.3387475}
+}
+
+@inproceedings{bagheri2022goodegg,
+  title        = {Is Refactoring Always a Good Egg? Exploring the Interconnection Between Bugs and Refactorings},
+  author       = {Bagheri, Amirreza and Heged{\H{u}}s, P{\'e}ter},
+  booktitle    = {Proceedings of the 19th International Conference on Mining Software Repositories (MSR)},
+  pages        = {117--121},
+  year         = {2022},
+  publisher    = {ACM},
+  doi          = {10.1145/3524842.3528034}
+}
+
+% --- IDE / developer action logging & traces ---
+
+@article{damevski2017usagesmells,
+  title        = {Mining Sequences of Developer Interactions in Visual Studio for Usage Smells},
+  author       = {Damevski, Kostadin and Fritz, Thomas and Shepherd, David},
+  journal      = {IEEE Transactions on Software Engineering},
+  volume       = {43},
+  number       = {4},
+  pages        = {359--371},
+  year         = {2017},
+  publisher    = {IEEE},
+  doi          = {10.1109/TSE.2016.2592905}
+}
+
+@inproceedings{foutsekh2018interactiontraces,
+  title        = {Developer Interaction Traces Backed by IDE Screen Recordings from Think-Aloud Sessions},
+  author       = {Foutsekh, Said and Yamashita, Aiko and Petrillo, Fabio and Khomh, Mourad and Gu{\'e}h{\'e}neuc, Yann-Ga{\"e}l},
+  booktitle    = {Proceedings of the 15th International Conference on Mining Software Repositories (MSR) (Data Showcase)},
+  year         = {2018},
+  publisher    = {ACM},
+  note         = {Dataset paper providing IDE interaction traces with synchronized screen recordings}
+}
+
+@inproceedings{poncin2011processmining,
+  title        = {Process Mining Software Development Workflows},
+  author       = {Poncin, Wouter and Serebrenik, Alexander and van den Brand, Mark},
+  booktitle    = {Proceedings of the 15th European Conference on Software Maintenance and Reengineering (CSMR)},
+  pages        = {379--382},
+  year         = {2011},
+  publisher    = {IEEE},
+  doi          = {10.1109/CSMR.2011.50}
 }

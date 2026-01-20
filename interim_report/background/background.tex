@@ -1,1 +1,234 @@
-\chapter{Background}
+\chapter{Background and Related Work}
+\label{ch:background}
+
+This chapter surveys the research foundations required to evaluate \emph{refactoring processes} rather than only refactoring outcomes. It first grounds the discussion in established definitions of refactoring and the notion of refactoring sequences (\S\ref{sec:def-framing}). It then reviews the dominant outcome-based paradigm for evaluating refactoring (\S\ref{sec:outcome-eval}), before examining the quality signals typically used to operationalise ``better code'', including code smells and static metrics (\S\ref{sec:smells-metrics}). Finally, it surveys techniques for detecting and mining refactorings from code changes (\S\ref{sec:refactoring-mining}), which underpin the practical ability to extract actions and traces from real development histories.
+
+\section{Definitions and framing}
+\label{sec:def-framing}
+
+\subsection{Refactoring as behaviour-preserving transformation}
+Refactoring is commonly defined as a change to a program's internal structure intended to improve design qualities (e.g., readability, maintainability) while preserving externally observable behaviour. Canonical definitions emphasise that refactorings are applied as small, semantics-preserving steps and that safety is ensured through preconditions and/or validation (e.g., testing) \cite{opdyke1992refactoring,fowler1999refactoring,fowler2018refactoring}. Opdyke's foundational work formalises refactorings as program transformations equipped with applicability conditions (preconditions) designed to preserve behaviour under a static approximation \cite{opdyke1992refactoring}. Fowler's catalogue popularises refactoring as an incremental activity performed by composing many small operator applications, grounded in developer-facing mechanics and motivations \cite{fowler1999refactoring,fowler2018refactoring}. Mens and Tourw\'e provide a systematic survey of refactoring research, consolidating definitions, taxonomies, and tool support, and highlighting the role of precondition checking and program analysis in automated refactoring \cite{mens2004survey}.
+
+In practice, the behavioural intent of refactoring is frequently complicated by real development context: refactorings are interleaved with feature and bug-fix work, may be partially performed, and may be mixed with behaviour-changing edits. Consequently, whether a change is ``pure refactoring'' is often ambiguous when viewed only through version history. This motivates treating behaviour preservation as an \emph{intended property} of refactoring steps, while acknowledging that empirical traces can contain mixed-intent transitions.
+
+\subsection{Atomic refactorings, smells, and sequences}
+Refactoring research often assumes a set of \emph{operators} (also described as atomic refactorings) such as \textsc{Extract Method}, \textsc{Move Method}, or \textsc{Rename} that can be composed into larger transformations \cite{fowler1999refactoring,mens2004survey}. These operator sets provide (i) an action vocabulary for tool support and (ii) a basis for reasoning about refactoring sequences. Closely related is the notion of \emph{code smells}: heuristic indicators that suggest potential design problems and thus potential refactoring opportunities \cite{fowler1999refactoring,fowler2018refactoring}. While smells are not formal correctness criteria, they provide a widely-used bridge between developer intuition and measurable signals (further discussed in \S\ref{sec:smells-metrics}).
+
+A key distinction for this thesis is between evaluating refactoring as an \emph{endpoint mapping} (before/after) and evaluating refactoring as a \emph{trajectory} (a sequence of intermediate states). Even if two trajectories share the same start and end states, they may differ substantially in intermediate degradation, churn, or disruption, which may be consequential for productivity and risk during evolution.
+
+\subsection{State--action--trace formalism}
+To explicitly represent refactoring as a process, this thesis adopts a state/action/trace framing aligned with the view of refactoring as sequential operator application \cite{fowler1999refactoring,mens2004survey}. Let a codebase snapshot be a \emph{state} $s \in \mathcal{S}$ (e.g., the repository at a particular revision). Let an \emph{action} $a \in \mathcal{A}$ denote a developer-performed edit step, which may correspond to an IDE-supported refactoring operator, a manually performed transformation, or a mixed edit. A refactoring process is then a \emph{trace}
+\[
+\tau = (s_0, a_0, s_1, a_1, \dots, a_{T-1}, s_T),
+\]
+where each $a_t$ transforms state $s_t$ into $s_{t+1}$. Under this framing, ``process quality'' can be treated as a property of $\tau$ (and potentially its prefixes), rather than a property only of $(s_0, s_T)$.
+
+Two practical issues arise immediately. First, the granularity of steps (what constitutes one $a_t$) is not fixed: steps may be commits, IDE events, or developer-defined checkpoints. Second, action labels may be partially observed or inferred (e.g., via refactoring detection tools). These issues motivate the later review of refactoring mining (\S\ref{sec:refactoring-mining}) and inform the design of process-quality metrics (\S\ref{sec:smells-metrics}).
+
+\section{Outcome-based refactoring evaluation}
+\label{sec:outcome-eval}
+
+\subsection{Endpoint-centric quality improvement}
+A dominant paradigm evaluates refactoring by comparing quality indicators computed on a ``before'' snapshot and an ``after'' snapshot. Under this view, refactoring is successful if it improves a chosen set of quality proxies (e.g., reduced coupling, increased cohesion, reduced complexity, fewer smells). This perspective appears in both empirical studies of refactoring impact and in automated recommendation systems that rank refactoring candidates by predicted improvement.
+
+A representative family is \emph{search-based refactoring}, which formulates refactoring as an optimisation problem over sequences or sets of refactoring operators. Harman and Tratt demonstrate multi-objective search at the design level, explicitly treating coupling and cohesion as competing objectives and producing Pareto-optimal trade-offs \cite{harman2007pareto}. Subsequent work extends these formulations to many-objective settings and adds constraints or preferences that reflect practical considerations such as coverage or prioritisation \cite{mohan2019manyobjective}. These approaches make explicit that ``better'' is multi-dimensional and that optimising a single scalar quality score can be overly restrictive.
+
+Outcome-based ranking also appears in recommender systems that evaluate alternative refactoring solutions. For example, some approaches extend beyond structural metrics by incorporating additional information such as requirements traceability, arguing that designs can be ``better'' not only in structural properties but also in maintainability tasks like impact analysis \cite{wang2018traceability}. More recently, work has revisited the problem of selecting among large sets of refactoring candidates and investigated which code characteristics correlate with positive or negative impacts in practice \cite{nikolaidis2024metricsbased}.
+
+\subsection{What endpoint evaluation captures---and what it misses}
+Endpoint-based evaluation is well-suited to questions of the form: ``is the end state better than the start state under metric $Q$?'' It provides a clear operationalisation for automated recommendation (choose the candidate that maximises $\Delta Q$) and for empirical analysis (associate refactoring events with changes in quality proxies). It also aligns with the fact that many quality metrics are defined as functions of a single snapshot.
+
+However, this paradigm largely treats the refactoring process as an implementation detail, and therefore cannot distinguish between trajectories that reach the same endpoint. In real refactoring, intermediate states can temporarily degrade in ways that matter: code may become harder to understand, modular structure may be disrupted, or build/test stability may regress before improving again. Moreover, the \emph{cost} of reaching an improved endpoint is not solely captured by endpoint quality: disruptive changes can increase churn, complicate review, and introduce integration risk even if final static metrics improve. Empirical work on modularity improvement has highlighted tensions between optimisation and disruption, suggesting that metric improvement can entail substantial structural disturbance \cite{paixao2017balancing}. Such findings motivate evaluating not only the final quality but also the \emph{trajectory cost} and stability properties of the path taken.
+
+These limitations are central to the thesis: the goal is not to replace outcome-based notions of quality, but to embed them within a process-level evaluation that can represent intermediate degradation, rework, churn, and stability as first-class terms in a process-quality objective.
+
+\section{Code smell detection and quality metrics}
+\label{sec:smells-metrics}
+
+\subsection{Smell detection as operationalising design issues}
+Code smells provide a widely-used conceptual link between qualitative design concerns and measurable indicators \cite{fowler1999refactoring}. Smell detectors typically operationalise smells through rules or learned models built from structural properties (e.g., size, coupling, cohesion) and, increasingly, lexical or semantic features. A prominent rule-based approach is DECOR, which specifies smells and design anti-patterns via a vocabulary of measurable symptoms and detection rules \cite{moha2010decor}. DECOR is frequently used in empirical studies because it provides explicit definitions and can be executed efficiently at scale.
+
+Despite their utility, smell detectors are not ground truth. Comparative studies show substantial disagreement between tools in both precision and recall, and variability across systems and smell types \cite{paiva2017evaluation}. This disagreement arises from differences in operational definitions, thresholds, feature sets, and implementation details. Furthermore, detectors may produce false positives: entities flagged as ``smelly'' that do not exhibit clear negative impact or that reflect acceptable design trade-offs \cite{arcellifontana2016falsepositives}. For process evaluation, these issues imply that smell counts should be treated as noisy signals, potentially requiring smoothing, calibration, or combination with other evidence rather than being used as a sole objective.
+
+\subsection{Quality metrics: structural and readability-oriented signals}
+Static metrics provide an alternative operationalisation of design quality at class, method, or package granularity. Classic metric families quantify coupling, cohesion, complexity, and size, and are widely used as proxies for maintainability. Recent work has also argued for incorporating readability-oriented signals that capture aspects not well-modelled by purely structural measures. For example, comprehensive readability models combine structural features (e.g., line structure) with textual features (e.g., identifier patterns) and show improved alignment with human judgements of readability \cite{scalabrino2018readability}. Such signals are particularly relevant for refactoring evaluation because readability and understandability are frequent motivations for refactoring and are often affected by intermediate states.
+
+\subsection{Implications for process-quality metric construction}
+The intended process-quality metric $J(\tau)$ in this thesis will draw on these signals, but must account for their limitations. The literature supports three key design principles:
+\begin{enumerate}
+  \item \textbf{Use multiple signals.} No single metric or smell detector provides reliable ground truth across contexts \cite{paiva2017evaluation,arcellifontana2016falsepositives}. Combining complementary signals can reduce sensitivity to tool-specific noise.
+  \item \textbf{Differentiate endpoint improvement from trajectory cost.} Outcome-based improvements remain valuable, but disruption and intermediate degradation can be material even if the final snapshot is improved \cite{paixao2017balancing}.
+  \item \textbf{Prefer interpretable components.} For a process critique to be actionable, the metric should decompose into terms that can be explained (e.g., readability dip, churn spike, smell increase), rather than an opaque scalar.
+\end{enumerate}
+
+Table~\ref{tab:metric-candidates} summarises candidate signals, their typical benefits and limitations, and representative tooling availability in the Java ecosystem. The purpose of the table is not to fix a final metric, but to motivate a process metric that is explicitly multi-term and robust to noise.
+
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabular}{p{0.19\textwidth} p{0.26\textwidth} p{0.28\textwidth} p{0.19\textwidth}}
+\hline
+\textbf{Signal} & \textbf{Pros} & \textbf{Cons / threats} & \textbf{Typical tooling} \\
+\hline
+Structural metrics (coupling/cohesion/complexity/size) &
+Widely used; efficient; interpretable at class/method granularity &
+Proxy validity varies by context; may incentivise disruptive restructuring; metric interactions & 
+Static analysis metric extractors; IDE/CI integrations \\
+\hline
+Smell counts / severity (rule-based) &
+Directly targets design issues; aligns with refactoring motivations &
+Detector disagreement and false positives; threshold sensitivity; context dependence &
+DECOR-style detectors \cite{moha2010decor}; other smell tools \cite{paiva2017evaluation} \\
+\hline
+Readability models &
+Closer to human comprehension than structural-only metrics; captures lexical aspects &
+Model generalisation and dataset bias; may be language/style dependent &
+Readability predictors \cite{scalabrino2018readability} \\
+\hline
+Churn / disruption (LOC changed, file moves/renames) &
+Captures cost and instability of change; naturally trajectory-oriented &
+Churn may be necessary for large refactors; can penalise required restructuring &
+VCS mining; diff statistics \\
+\hline
+Build/test preservation proxies &
+Direct safety signal; aligns with ``behaviour-preserving intent'' &
+Requires runnable builds/tests; noisy due to flaky tests; environment dependence &
+CI logs; local build/test runs \\
+\hline
+Traceability-augmented signals &
+Reflects maintenance tasks beyond code structure; complements metric-only ranking &
+Requires trace links (often unavailable); domain-specific assumptions &
+Traceability-based ranking methods \cite{wang2018traceability} \\
+\hline
+\end{tabular}
+\caption{Candidate signals for constructing a process-quality objective. The thesis aims to combine endpoint quality change with trajectory-oriented cost/stability terms, rather than relying on a single indicator.}
+\label{tab:metric-candidates}
+\end{table}
+
+\section{Refactoring detection and mining from code changes}
+\label{sec:refactoring-mining}
+
+\subsection{From diffs to refactoring actions}
+To evaluate a process trace in practice, one must either (i) capture developer actions directly (e.g., IDE event logs) or (ii) infer actions from changes between snapshots (e.g., commits). A large body of work addresses the latter problem: given two versions of a program, infer whether a refactoring occurred and, if so, which refactoring types.
+
+A key technical enabler is \emph{structured code differencing}, typically based on abstract syntax trees (ASTs), which allows detection of moves, renames, and other non-local edits that defeat line-based diffs. GumTree is a representative AST differencing approach that constructs fine-grained mappings between AST nodes and yields edit scripts that better align with developer-intended structural edits \cite{falleri2014gumtree}. Such differencing is commonly used as a substrate for refactoring detection.
+
+Building on these foundations, modern refactoring miners detect refactoring instances by combining structural mappings with refactoring-specific heuristics. RefactoringMiner is a prominent tool that detects a wide range of refactoring types by analysing successive revisions, using structured matching to relate program entities across versions \cite{tsantalis2020refactoringminer}. RefDiff provides a related approach that detects well-known refactoring types in version histories using similarity heuristics and static analysis \cite{silva2017refdiff}. These tools enable large-scale mining studies and can provide an \emph{action vocabulary} for traces, for example by labelling a transition $s_t \rightarrow s_{t+1}$ with a multiset of detected refactoring operations.
+
+\subsection{Representation, coverage, and typical failure modes}
+Refactoring detection tools typically output refactoring instances using a taxonomy of operator types (e.g., \textsc{Move Method}, \textsc{Extract Class}) and the program entities involved. This representation is valuable because it aligns with the operator-based view of refactoring used in catalogues and surveys \cite{fowler1999refactoring,mens2004survey}. However, several limitations are repeatedly observed in the literature and are particularly important for process evaluation.
+
+\paragraph{Mixed and tangled changes.}
+Version control commits often mix refactoring and functional edits, or combine multiple unrelated activities. In such cases, a commit-level transition may contain both behaviour-preserving and behaviour-changing edits, and refactoring detection may return partial or ambiguous results. This threatens the interpretability of actions extracted from snapshots and motivates careful trace construction (e.g., finer checkpoints) and robustness to noisy labels.
+
+\paragraph{Incomplete coverage and composition effects.}
+Detectors have finite operator coverage, and refactorings can be composed (e.g., move+rename) in ways that complicate matching. Some refactorings are performed manually without tool support and may not match the patterns expected by detectors. For process evaluation, this implies that ``actions'' should be treated as partially observed: detected refactorings can be used as informative features, but not as exhaustive descriptions of developer intent.
+
+\paragraph{Behaviour preservation is not verified.}
+Detection is typically structural: it infers that a change \emph{resembles} a refactoring, but does not prove behaviour preservation. Consequently, downstream evaluation should avoid equating ``detected refactoring'' with ``safe refactoring'', and should incorporate independent safety proxies (e.g., build/test preservation where available).
+
+\subsection{Tie-in to this thesis}
+Refactoring mining is critical infrastructure for building traces and for characterising actions at scale \cite{tsantalis2020refactoringminer,silva2017refdiff}. Nevertheless, the contribution of this thesis is not to improve refactoring detection accuracy. Instead, mined refactorings are used as part of the observational layer: they provide labels and features describing transitions between states, which can support the construction of a process-quality metric and the generation of reference trajectories. The next part of this background (not covered in this excerpt) builds from these foundations to discuss prior work on refactoring sequence generation and navigation, which is directly relevant to constructing higher-scoring reference trajectories under a chosen objective.
+
+
+% =========================
+% Background (continued)
+% Sections 2.5--2.7
+% =========================
+
+\section{Refactoring recommendation and search/synthesis}
+\label{sec:recommendation-synthesis}
+
+The preceding sections motivate two requirements for process-level refactoring evaluation: (i) a way to represent and score a developer trace, and (ii) a way to construct counterfactual \emph{alternative} trajectories for comparison. A substantial body of work already generates refactoring suggestions and sequences, but typically with objectives that differ from evaluating a developer's process. Broadly, existing approaches fall into three overlapping families: (a) \emph{synthesis} approaches that reconstruct or complete refactoring sequences from examples or partial edits; (b) \emph{search-based} approaches that optimise refactoring sequences under quality objectives; and (c) \emph{interactive} approaches that adapt recommendations based on developer feedback. This section reviews these families and clarifies how they support, but do not directly solve, process-quality evaluation.
+
+\subsection{Synthesis and path completion from partial edits}
+One way to generate counterfactual alternatives is to treat refactoring as a program transformation problem: given a start program and a target (or partially edited) program, synthesise a sequence of refactoring operators that realises the transformation. ReSynth is a representative system in this space \cite{raychev2013resynth}. It offers an interactive workflow in which a developer performs some edits manually and then requests the tool to complete the transformation by synthesising a sequence of IDE-supported refactorings consistent with those edits. Technically, ReSynth constrains the search by focusing on edited entities and searching for operator sequences that transform the original program to a version that matches the developer's partial edits. This demonstrates two important points for the current thesis: first, that refactoring can be treated as a structured search problem over refactoring operators; and second, that the search space can be constrained using evidence from the developer trace itself, rather than enumerating all refactoring sequences naively.
+
+A closely related line of work generalises ``from examples'' synthesis beyond classical refactorings. REFAZER learns program transformations from input-output examples of code edits \cite{rolim2017refazer}. Rather than assuming a fixed refactoring catalogue, it synthesises AST-level rewrite rules from a small number of examples and can apply them to automate repetitive edits. While REFAZER is not a refactoring miner in the narrow Fowler sense, it is relevant to counterfactual generation in two ways: (i) it provides a mechanism to infer candidate transformations without predefining an exhaustive operator set; and (ii) it highlights that ``plausible alternatives'' can be derived from edit evidence, potentially helping bridge the gap between IDE-supported refactorings and manually performed edits.
+
+\paragraph{Relevance and limitations for process evaluation.}
+Synthesis systems primarily aim to \emph{reach} a target program (or a class of targets consistent with partial edits) and to do so using sequences that satisfy refactoring preconditions \cite{raychev2013resynth}. The objective is therefore reachability and consistency, not evaluation of the quality of a developer's chosen trajectory. In particular, synthesis does not address whether the developer's intermediate decisions were efficient, low-churn, or risk-minimising under a chosen process objective. Nonetheless, synthesis is useful as a source of \emph{candidate alternative trajectories}: it provides a principled way to generate sequences that are likely to be feasible and realistic in a development environment.
+
+\subsection{Search-based optimisation of refactoring sequences}
+A second family casts refactoring recommendation as an optimisation problem. Search-based refactoring methods explore sequences or sets of refactorings and select those that optimise one or more objective functions derived from quality metrics \cite{harman2007pareto}. Harman and Tratt explicitly argue for multi-objective formulations (e.g., coupling vs.\ cohesion) and produce Pareto fronts of trade-offs rather than collapsing design quality into a single scalar \cite{harman2007pareto}. These methods are attractive because they operationalise ``better'' in measurable terms and can produce many candidate solutions that expose trade-offs.
+
+Later work extends these formulations to more realistic settings with additional objectives. For example, many-objective approaches incorporate not only quality improvements but also concerns such as prioritisation and distribution of refactoring effort across the codebase \cite{mohan2019manyobjective}. Such objectives are adjacent to process evaluation because they begin to encode costs and constraints that arise during development (e.g., avoiding overly concentrated refactoring, or respecting priorities), rather than treating refactoring as a purely structural optimisation.
+
+Search-based techniques also appear in work that studies the tension between metric improvement and disruption. Empirical studies of modularity optimisation show that maximising cohesion/coupling improvements can induce substantial disruption relative to the original modular structure \cite{paixao2017balancing}. This is particularly relevant to process evaluation: even if an endpoint configuration is ``better'' under structural metrics, the path to reach it can be highly disruptive, and disruption itself may be a cost term that process evaluation should capture.
+
+\paragraph{Relevance and limitations for process evaluation.}
+Search-based refactoring provides two key ingredients: an explicit objective function and a mechanism to generate candidate sequences. However, most work evaluates the \emph{recommended} refactoring sequence, not a human trace. The algorithm's output is treated as the solution, and success is measured by the improvement it produces (or by user study preference for the recommendation). This differs from the present thesis, where the goal is to evaluate a developer's observed trajectory \emph{relative to} alternative trajectories under an objective defined to capture process quality. Nevertheless, search-based methods provide a natural way to construct a \emph{reference trajectory}: given a start state (and potentially an end constraint), produce a plausible trajectory that scores highly under the chosen process objective and can serve as a baseline for comparison.
+
+\subsection{Goal-directed navigation and architectural refactoring}
+A third family focuses on guiding refactoring toward a target design. Refactoring Navigator is representative: it takes a current system and a desired target architecture/design and recommends a sequence of refactoring steps using a search-based strategy, presented through a navigation metaphor \cite{lin2016navigator}. The key idea is to guide developers step-by-step toward a goal rather than merely ranking isolated refactorings. Controlled evaluations show substantial reductions in task time and manual edits compared to unguided refactoring \cite{lin2016navigator}, suggesting that sequence-level guidance can influence how developers actually refactor.
+
+Goal-directed refactoring is particularly relevant for the ``grand scheme'' view of this thesis: it is natural to compare an observed developer trajectory to a higher-scoring ``reference'' trajectory that reaches a comparable end state. Navigation systems demonstrate feasibility in producing such stepwise trajectories and in mapping high-level goals to low-level refactoring actions.
+
+\paragraph{Relevance and limitations for process evaluation.}
+Navigation systems typically optimise toward reaching a target design and may use design metrics to guide progress \cite{lin2016navigator}. They are not designed to evaluate a human's process quality, nor do they attempt to explain where a human trace diverged from a better trajectory. However, they provide strong evidence that (i) refactoring can be treated as a sequential decision problem, and (ii) sequence-level suggestions can be computed and presented in ways that developers can use.
+
+\subsection{Interactive and developer-in-the-loop recommendation}
+Purely automatic optimisation can be misaligned with developer intent, constraints, or context. Interactive refactoring recommenders address this by incorporating user feedback during the search process. Alizadeh and Kessentini propose an interactive and dynamic search-based approach that presents refactoring recommendations iteratively and updates the search based on developer decisions \cite{alizadeh2018interactive}. This emphasises that refactoring recommendation is not just about identifying a high-scoring sequence under static metrics; it also involves aligning recommendations with developer preferences and constraints as they evolve during a task.
+
+\paragraph{Relevance and limitations for process evaluation.}
+Interactive recommenders are not evaluation tools, but they are closely aligned with the instrumentation and delivery mechanism envisioned in this thesis: if process evaluation is ultimately delivered in an IDE, feedback must be understandable, minimally disruptive, and sensitive to developer context. Interactive recommendation work provides prior art for presenting sequence-level suggestions and for incorporating feedback loops \cite{alizadeh2018interactive}. The remaining open problem is to shift from ``recommend to optimise'' to ``compare and evaluate an observed trajectory relative to counterfactuals''.
+
+\subsection{Beyond structural metrics: alternative objectives for ranking refactorings}
+A recurring theme in recommendation research is that structural metrics alone may be insufficient to capture what makes a refactoring ``good''. One illustration is ranking refactoring candidates using requirements traceability alongside code metrics. Approaches that incorporate traceability treat ``quality'' as partly determined by how well requirements map to code, motivated by maintenance tasks such as impact analysis and comprehension \cite{wangtraceability2018}. This strengthens the argument that process-quality objectives should not be assumed to be purely structural: the relevant costs and benefits of refactoring may include non-structural properties and context-specific constraints.
+
+Recent work also explores developer motivations for refactoring and seeks to align recommendations with what developers are likely to prioritise. Studies that mine refactoring operations and repository history investigate product/process signals that correlate with refactoring activity and with developer intent, including proposals that use LLMs to infer motivations from commit artefacts \cite{whydevelopersrefactor2020,metricsmotivation2024}. While these works are primarily about \emph{when} and \emph{why} refactoring occurs, rather than \emph{how well} it is performed as a process, they suggest that developer-aligned objectives may require incorporating process signals and contextual information.
+
+\subsection{Synthesis: what sequence-generation work enables, and what remains missing}
+Sequence generation and recommendation systems establish that it is feasible to:
+\begin{itemize}
+  \item generate refactoring sequences that realise a transformation or reach a target (synthesis/navigation) \cite{raychev2013resynth,lin2016navigator},
+  \item optimise sequences under explicit metric objectives (search-based refactoring) \cite{harman2007pareto,mohan2019manyobjective},
+  \item incorporate developer feedback into iterative suggestion mechanisms (interactive recommendation) \cite{alizadeh2018interactive},
+  \item and broaden ``quality'' beyond structural metrics where additional artefacts exist (e.g., traceability) \cite{wangtraceability2018}.
+\end{itemize}
+However, these systems do not directly answer the two central questions posed by process-level evaluation:
+\begin{enumerate}
+  \item \emph{Was the developer's observed trajectory good under an explicit process-quality criterion?}
+  \item \emph{Where did the developer's trajectory diverge from a higher-quality trajectory, and can that divergence be explained?}
+\end{enumerate}
+The distinction is subtle but important. Recommendation and synthesis work typically treats the algorithm's output as the primary object and evaluates its outcome or usefulness. Process evaluation instead treats the \emph{developer trace} as the primary object and seeks to compare it against counterfactual trajectories constructed under a process-quality objective.
+
+\section{Process-aware work and IDE trace capture}
+\label{sec:process-aware-logging}
+
+Evaluating a refactoring process requires access to traces: sequences of intermediate states and actions. Two broad sources of traces are (i) version control histories (commits/checkpoints), and (ii) IDE-level interaction logs that capture finer-grained behaviour. This section focuses on IDE logging and process-aware studies, since they justify the feasibility of capturing refactoring traces at useful granularity and highlight practical limitations that shape evaluation design.
+
+\subsection{Logging developer interactions in IDEs}
+Several studies have collected large-scale logs of developer interactions to mine workflows and behavioural patterns. Damevski et al.\ present an approach to mining sequences of developer interactions in Visual Studio using telemetry-like event streams, focusing on discovering frequent usage patterns without necessarily recording the full code content \cite{damevski2014visualstudio}. This is particularly relevant for trace collection because it demonstrates that useful traces can be captured as structured events (e.g., commands, navigation actions, edits) while still supporting privacy-preserving data collection.
+
+Poncin et al.\ adapt IDE instrumentation (e.g., Eclipse plugins) to collect detailed event logs and apply process mining techniques to infer developer workflows \cite{poncin2011rabbiteclipse}. This provides concrete precedent for converting low-level interaction events into higher-level activity models, such as sequences of edits, navigation, compilation, and tool invocations. It also illustrates challenges: event streams are noisy, developers multitask, and mapping raw events to semantically meaningful steps requires careful segmentation and interpretation.
+
+Datasets that combine event logs with richer ground truth also exist. Foutsekh et al.\ provide developer interaction traces backed by IDE screen recordings and commentary for subsets of sessions \cite{foutsekh2019traces}. Such datasets are valuable for evaluation methodology: they show how to validate interpretations of low-level logs and how to assess whether inferred episodes correspond to meaningful developer tasks. For the present thesis, this suggests a pathway for validating the mapping from recorded actions to the trace elements used in process evaluation.
+
+\subsection{Granularity, segmentation, and semantic interpretation}
+IDE logging raises the question of what constitutes a ``step'' in a refactoring process. At commit granularity, steps are coarse and often tangled with non-refactoring changes. At event granularity, steps are extremely fine and require aggregation into coherent actions. The literature on process mining and interaction analysis highlights that segmentation into tasks/episodes is non-trivial \cite{poncin2011rabbiteclipse,damevski2014visualstudio}. For refactoring in particular, a single conceptual refactoring may comprise several micro-actions (navigate, edit, run refactoring tool, adjust code, run tests). Conversely, a burst of edits may correspond to multiple conceptual actions.
+
+A process-evaluation system must therefore choose a step definition that is both (i) practical to extract reliably and (ii) meaningful enough to support interpretation and explanation. A common pragmatic design is to operate at a checkpoint level (commits or user-defined checkpoints) while enriching each checkpoint transition with features derived from both code differencing (refactoring mining) and IDE events (commands, test runs). This hybrid view mitigates some issues: checkpoints define states reliably, while event logs provide evidence for interpreting transitions.
+
+\subsection{Privacy and ethical constraints as design constraints}
+IDE logs can contain sensitive information: code, identifiers, navigation targets, timestamps, and behavioural signals. Prior work often adopts design choices to minimise risk, such as logging only event metadata (command types, timestamps) rather than raw source code \cite{damevski2014visualstudio}, or collecting richer artefacts only with explicit consent and anonymisation \cite{foutsekh2019traces}. These constraints are not merely ``ethics section'' considerations; they shape what data is available and therefore what process metrics can be computed. For example, if code content cannot be recorded, the system must reconstruct intermediate states from repository snapshots rather than from keystroke-level logs.
+
+For the present thesis, these constraints motivate a design in which the IDE plugin can capture trace structure (checkpoints, refactoring commands, build/test outcomes) while the heavy static analyses (smells, metrics, refactoring mining) are computed from snapshots stored in the repository. This reduces the need to store sensitive raw interaction data while still enabling process evaluation.
+
+\section{Summary and positioning: toward process-quality evaluation}
+\label{sec:background-summary}
+
+The literature surveyed in \S\ref{sec:def-framing}--\S\ref{sec:process-aware-logging} establishes strong foundations for modelling and measuring refactoring, but also clarifies an open space for process-level evaluation.
+
+First, refactoring is well-defined as a behaviour-preserving restructuring activity supported by catalogues of operators and by tool-based precondition checking \cite{opdyke1992refactoring,fowler1999refactoring,mens2004survey}. Second, most evaluation work remains endpoint-centric: it assesses refactoring success by changes in quality indicators between start and end snapshots, including structural metrics and smell-based proxies \cite{harman2007pareto,moha2010decor}. While valuable, these signals are imperfect and sometimes disagree across tools, motivating robust multi-signal approaches \cite{paiva2017evaluation,arcellifontana2016falsepositives,scalabrino2018readability}. Third, refactoring mining and AST differencing provide practical means to infer refactoring actions from code changes, enabling trace construction from repository histories \cite{tsantalis2020refactoringminer,falleri2014gumtree}. Fourth, recommendation and synthesis systems demonstrate that it is feasible to generate refactoring sequences and plan toward goals \cite{raychev2013resynth,lin2016navigator,alizadeh2018interactive}, and that ``quality'' may need to incorporate contextual objectives beyond structural metrics \cite{wangtraceability2018,whydevelopersrefactor2020,metricsmotivation2024}. Finally, IDE logging research shows that fine-grained traces can be captured and analysed, but highlights challenges in segmentation, interpretation, and privacy \cite{poncin2011rabbiteclipse,damevski2014visualstudio,foutsekh2019traces}.
+
+Taken together, these bodies of work suggest a gap: while the field can \emph{detect} refactorings, \emph{recommend} refactorings, and \emph{synthesise} refactoring sequences, there is comparatively little work that explicitly evaluates the \emph{quality of a developer's refactoring trajectory} between a known start and end state. In particular, existing approaches generally do not (i) define and validate a criterion for ``good refactoring process'' that penalises intermediate degradation, disruption, or instability, nor (ii) provide a principled method to compare an observed developer trajectory against counterfactual, higher-quality trajectories and to explain divergence points.
+
+This thesis positions itself to address this gap by treating refactoring as a trajectory optimisation and comparison problem: given a start state, an end state (or end constraint), and an observed trace, define a process-quality objective and construct a plausible higher-scoring reference trajectory for comparison. This framing yields the following research questions, which guide the design and evaluation:
+\begin{description}
+  \item[RQ1 (Process-quality metric).] Can a process-quality metric be defined such that it distinguishes trajectories that reach the same endpoint but differ in intermediate degradation, disruption, and stability, and does it align with expert judgement?
+  \item[RQ2 (Reference trajectory construction).] Given a start state and constraints induced by the end state, can the system construct a plausible higher-scoring reference trajectory using a constrained search/synthesis space informed by refactoring operators and observed edits?
+  \item[RQ3 (Divergence explanations).] Can the system identify a small set of divergence points that account for most of the quality gap between the developer trajectory and the reference trajectory, and present these explanations in a way that developers judge as actionable?
+\end{description}
+
+The next chapters build on this positioning by detailing the proposed approach, implementation plan, and evaluation methodology for assessing both metric validity and the usefulness of trajectory-level comparisons.
