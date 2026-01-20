@@ -2,47 +2,53 @@ This is BibTeX, Version 0.99d (TeX Live 2025)
 Capacity: max_strings=200000, hash_size=200000, hash_prime=170003
 The top-level auxiliary file: main.aux
 The style file: alpha.bst
-I found no \citation commands---while reading file main.aux
 Database file #1: bibs/sample.bib
-You've used 0 entries,
+Warning--I didn't find a database entry for "alizadeh2018interactive"
+Warning--I didn't find a database entry for "wangtraceability2018"
+Warning--I didn't find a database entry for "whydevelopersrefactor2020"
+Warning--I didn't find a database entry for "metricsmotivation2024"
+Warning--I didn't find a database entry for "damevski2014visualstudio"
+Warning--I didn't find a database entry for "poncin2011rabbiteclipse"
+Warning--I didn't find a database entry for "foutsekh2019traces"
+You've used 19 entries,
             2543 wiz_defined-function locations,
-            558 strings with 4438 characters,
-and the built_in function-call counts, 24 in all, are:
-= -- 0
-> -- 0
-< -- 0
-+ -- 0
-- -- 0
-* -- 2
-:= -- 10
-add.period$ -- 0
-call.type$ -- 0
-change.case$ -- 0
-chr.to.int$ -- 0
-cite$ -- 0
-duplicate$ -- 0
-empty$ -- 1
-format.name$ -- 0
-if$ -- 2
-int.to.chr$ -- 1
+            656 strings with 7723 characters,
+and the built_in function-call counts, 6873 in all, are:
+= -- 665
+> -- 382
+< -- 4
++ -- 131
+- -- 126
+* -- 434
+:= -- 1206
+add.period$ -- 59
+call.type$ -- 19
+change.case$ -- 109
+chr.to.int$ -- 18
+cite$ -- 19
+duplicate$ -- 288
+empty$ -- 487
+format.name$ -- 136
+if$ -- 1384
+int.to.chr$ -- 2
 int.to.str$ -- 0
-missing$ -- 0
-newline$ -- 3
-num.names$ -- 0
-pop$ -- 0
+missing$ -- 20
+newline$ -- 100
+num.names$ -- 57
+pop$ -- 117
 preamble$ -- 1
-purify$ -- 0
+purify$ -- 130
 quote$ -- 0
-skip$ -- 2
+skip$ -- 251
 stack$ -- 0
-substring$ -- 0
-swap$ -- 0
-text.length$ -- 0
-text.prefix$ -- 0
+substring$ -- 219
+swap$ -- 34
+text.length$ -- 4
+text.prefix$ -- 3
 top$ -- 0
-type$ -- 0
+type$ -- 144
 warning$ -- 0
-while$ -- 0
-width$ -- 0
-write$ -- 2
-(There was 1 error message)
+while$ -- 61
+width$ -- 23
+write$ -- 240
+(There were 7 warnings)
