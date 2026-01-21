@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.10.5)  21 JAN 2026 14:28
+This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.10.5)  21 JAN 2026 14:32
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1313,17 +1313,7 @@ Chapter 2.
 
 [10]
 Underfull \hbox (badness 10000) in paragraph at lines 75--75
-[]\T1/cmr/m/n/9 Structural
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 75--75
-\T1/cmr/m/n/9 met-rics (cou-
- []
-
-
-Overfull \hbox (48.74695pt too wide) in paragraph at lines 75--75
-\T1/cmr/m/n/9 pling/cohesion/complexity/size)| 
+[]\T1/cmr/m/n/9 Structural met-rics
  []
 
 
@@ -1678,7 +1668,7 @@ nts/type1/public/cm-super/sfrm1200.pfb></usr/local/texlive/2025/texmf-dist/font
 s/type1/public/cm-super/sfti0900.pfb></usr/local/texlive/2025/texmf-dist/fonts/
 type1/public/cm-super/sfti1000.pfb></usr/local/texlive/2025/texmf-dist/fonts/ty
 pe1/public/cm-super/sfti1200.pfb>
-Output written on main.pdf (25 pages, 487859 bytes).
+Output written on main.pdf (25 pages, 487855 bytes).
 PDF statistics:
  595 PDF objects out of 1000 (max. 8388607)
  509 compressed objects within 6 object streams
