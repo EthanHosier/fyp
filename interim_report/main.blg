@@ -3,44 +3,49 @@ Capacity: max_strings=200000, hash_size=200000, hash_prime=170003
 The top-level auxiliary file: main.aux
 The style file: unsrt.bst
 Database file #1: bibs/sample.bib
-You've used 30 entries,
+Warning--I didn't find a database entry for "poncin2011rabbiteclipse"
+Warning--I didn't find a database entry for "damevski2014visualstudio"
+Warning--empty title in wang2018traceability
+Warning--empty journal in wang2018traceability
+You've used 28 entries,
             1791 wiz_defined-function locations,
-            588 strings with 8930 characters,
-and the built_in function-call counts, 6530 in all, are:
-= -- 571
-> -- 303
-< -- 6
-+ -- 112
+            586 strings with 8799 characters,
+and the built_in function-call counts, 6559 in all, are:
+= -- 584
+> -- 299
+< -- 7
++ -- 110
 - -- 82
-* -- 319
-:= -- 1030
-add.period$ -- 98
-call.type$ -- 30
-change.case$ -- 28
+* -- 353
+:= -- 1011
+add.period$ -- 90
+call.type$ -- 28
+change.case$ -- 25
 chr.to.int$ -- 0
 cite$ -- 30
-duplicate$ -- 341
-empty$ -- 662
+duplicate$ -- 335
+empty$ -- 657
 format.name$ -- 82
-if$ -- 1508
+if$ -- 1520
 int.to.chr$ -- 0
-int.to.str$ -- 30
-missing$ -- 30
-newline$ -- 157
-num.names$ -- 30
-pop$ -- 121
+int.to.str$ -- 28
+missing$ -- 28
+newline$ -- 143
+num.names$ -- 28
+pop$ -- 116
 preamble$ -- 1
 purify$ -- 0
 quote$ -- 0
-skip$ -- 178
+skip$ -- 179
 stack$ -- 0
-substring$ -- 267
-swap$ -- 95
-text.length$ -- 6
+substring$ -- 324
+swap$ -- 101
+text.length$ -- 7
 text.prefix$ -- 0
 top$ -- 0
 type$ -- 0
-warning$ -- 0
-while$ -- 54
-width$ -- 32
-write$ -- 327
+warning$ -- 2
+while$ -- 57
+width$ -- 30
+write$ -- 302
+(There were 4 warnings)
