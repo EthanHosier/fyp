@@ -38,7 +38,9 @@
 \contentsline {subsection}{\numberline {2.6.1}Logging developer interactions in IDEs}{15}{subsection.2.6.1}%
 \contentsline {subsection}{\numberline {2.6.2}Granularity, segmentation, and semantic interpretation}{16}{subsection.2.6.2}%
 \contentsline {section}{\numberline {2.7}Summary and positioning: toward process-quality evaluation}{16}{section.2.7}%
-\contentsline {chapter}{\numberline {3}PROJECT X}{17}{chapter.3}%
-\contentsline {section}{\numberline {3.1}Evaluation plan}{17}{section.3.1}%
+\contentsline {chapter}{\numberline {3}Project Plan and Timetable (Jan--Jun 2026)}{17}{chapter.3}%
+\contentsline {paragraph}{Work completed so far (as of 21 Jan 2026).}{17}{section*.13}%
+\contentsline {paragraph}{Timeline in 5 phases (Jan $\rightarrow $ end of June).}{17}{section*.14}%
 \contentsline {chapter}{\numberline {4}Conclusion}{18}{chapter.4}%
-\contentsline {chapter}{\numberline {A}First Appendix}{19}{appendix.A}%
+\contentsline {chapter}{\numberline {5}Ethical Issues and Data Handling Plan}{19}{chapter.5}%
+\contentsline {chapter}{\numberline {A}First Appendix}{20}{appendix.A}%
