@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.10.5)  21 JAN 2026 14:08
+This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.10.5)  21 JAN 2026 14:28
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1310,149 +1310,186 @@ Chapter 2.
 ]
 
 [9]
-Underfull \hbox (badness 10000) in paragraph at lines 73--73
+
+[10]
+Underfull \hbox (badness 10000) in paragraph at lines 75--75
 []\T1/cmr/m/n/9 Structural
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 73--73
+Underfull \hbox (badness 10000) in paragraph at lines 75--75
 \T1/cmr/m/n/9 met-rics (cou-
  []
 
 
-Overfull \hbox (48.74695pt too wide) in paragraph at lines 73--73
+Overfull \hbox (48.74695pt too wide) in paragraph at lines 75--75
 \T1/cmr/m/n/9 pling/cohesion/complexity/size)| 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 76--77
+Underfull \hbox (badness 10000) in paragraph at lines 78--79
 []\T1/cmr/m/n/9 Static anal-y-sis
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 76--77
+Underfull \hbox (badness 10000) in paragraph at lines 78--79
 \T1/cmr/m/n/9 met-ric ex-trac-tors;
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 76--77
+Underfull \hbox (badness 10000) in paragraph at lines 78--79
 \T1/cmr/m/n/9 IDE/CI in-te-gra-
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 78--78
+Underfull \hbox (badness 10000) in paragraph at lines 80--80
 []\T1/cmr/m/n/9 Smell counts /
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 78--78
+Underfull \hbox (badness 10000) in paragraph at lines 80--80
 \T1/cmr/m/n/9 sever-ity (rule-
  []
 
 
-Underfull \hbox (badness 4366) in paragraph at lines 80--80
+Underfull \hbox (badness 4366) in paragraph at lines 82--82
 []\T1/cmr/m/n/9 Detector dis-agree-ment and
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 81--82
+Underfull \hbox (badness 10000) in paragraph at lines 83--84
 []\T1/cmr/m/n/9 DECOR-style de-
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 81--82
+Underfull \hbox (badness 10000) in paragraph at lines 83--84
 \T1/cmr/m/n/9 tec-tors [[]];
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 81--82
+Underfull \hbox (badness 10000) in paragraph at lines 83--84
 \T1/cmr/m/n/9 other smell tools
  []
 
 
-Underfull \hbox (badness 7832) in paragraph at lines 84--84
+Underfull \hbox (badness 7832) in paragraph at lines 86--86
 \T1/cmr/m/n/9 hen-sion than structural-
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 85--85
+Underfull \hbox (badness 10000) in paragraph at lines 87--87
 []\T1/cmr/m/n/9 Model gen-er-al-i-sa-tion and
  []
 
 
-Underfull \hbox (badness 1577) in paragraph at lines 85--85
+Underfull \hbox (badness 1577) in paragraph at lines 87--87
 \T1/cmr/m/n/9 dataset bias; may be lan-
  []
 
 
-Underfull \hbox (badness 1584) in paragraph at lines 86--87
+Underfull \hbox (badness 1584) in paragraph at lines 88--89
 []\T1/cmr/m/n/9 Readability pre-dic-
  []
 
 
-Underfull \hbox (badness 1584) in paragraph at lines 89--89
+Underfull \hbox (badness 1584) in paragraph at lines 91--91
 []\T1/cmr/m/n/9 Captures cost and in-sta-
  []
 
 
-Underfull \hbox (badness 3849) in paragraph at lines 91--92
+Underfull \hbox (badness 3849) in paragraph at lines 93--94
 []\T1/cmr/m/n/9 VCS min-ing; diff
  []
 
 
 Underfull \hbox (badness 10000) in paragraph at lines 95--95
+[]\T1/cmr/m/n/9 Process length /
+ []
+
+
+Underfull \hbox (badness 5802) in paragraph at lines 95--95
+\T1/cmr/m/n/9 ef-fort (num-ber of
+ []
+
+
+Underfull \hbox (badness 1292) in paragraph at lines 95--95
+\T1/cmr/m/n/9 steps; edit mag-ni-
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 96--96
+[]\T1/cmr/m/n/9 Trajectory-native cost
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 96--96
+\T1/cmr/m/n/9 sig-nal; dis-cour-ages de-
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 96--96
+\T1/cmr/m/n/9 tours/rework; easy to
+ []
+
+
+Underfull \hbox (badness 1496) in paragraph at lines 97--97
+\T1/cmr/m/n/9 IDE events); may pe-nalise
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 98--99
+[]\T1/cmr/m/n/9 VCS check-points;
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 102--102
 []\T1/cmr/m/n/9 Requires runnable
  []
 
 
-Underfull \hbox (badness 3009) in paragraph at lines 95--95
+Underfull \hbox (badness 3009) in paragraph at lines 102--102
 \T1/cmr/m/n/9 builds/tests; noisy due to
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 95--95
+Underfull \hbox (badness 10000) in paragraph at lines 102--102
 \T1/cmr/m/n/9 flaky tests; en-vi-ron-ment
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 96--97
+Underfull \hbox (badness 10000) in paragraph at lines 103--104
 []\T1/cmr/m/n/9 CI logs; lo-cal
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 98--98
+Underfull \hbox (badness 10000) in paragraph at lines 105--105
 []\T1/cmr/m/n/9 Traceability-
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 99--99
+Underfull \hbox (badness 10000) in paragraph at lines 106--106
 \T1/cmr/m/n/9 be-yond code struc-ture;
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 99--99
+Underfull \hbox (badness 10000) in paragraph at lines 106--106
 \T1/cmr/m/n/9 com-ple-ments metric-only
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 101--102
+Underfull \hbox (badness 10000) in paragraph at lines 108--109
 []\T1/cmr/m/n/9 Traceability-based
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 101--102
+Underfull \hbox (badness 10000) in paragraph at lines 108--109
 \T1/cmr/m/n/9 rank-ing meth-ods
  []
 
 
-Overfull \hbox (13.85587pt too wide) in paragraph at lines 69--104
+Overfull \hbox (13.85587pt too wide) in paragraph at lines 71--111
  [][] 
  []
-
-
-
-[10]
-Underfull \vbox (badness 1062) has occurred while \output is active []
 
 
 
@@ -1463,140 +1500,141 @@ Underfull \vbox (badness 1062) has occurred while \output is active []
 [13]
 
 LaTeX Warning: Citation `alizadeh2018interactive' on page 14 undefined on input
- line 171.
+ line 179.
 
 
 LaTeX Warning: Citation `alizadeh2018interactive' on page 14 undefined on input
- line 174.
+ line 182.
 
 
-Overfull \hbox (2.70354pt too wide) in paragraph at lines 176--176
+Overfull \hbox (2.70354pt too wide) in paragraph at lines 184--184
 []\T1/cmr/bx/n/12 Beyond struc-tural met-rics: al-ter-na-tive ob-jec-tives for 
 rank-ing refac-
  []
 
 
 LaTeX Warning: Citation `wangtraceability2018' on page 14 undefined on input li
-ne 177.
+ne 185.
 
 
 LaTeX Warning: Citation `whydevelopersrefactor2020' on page 14 undefined on inp
-ut line 179.
+ut line 187.
 
 
 LaTeX Warning: Citation `metricsmotivation2024' on page 14 undefined on input l
-ine 179.
+ine 187.
 
 
-Overfull \hbox (24.29907pt too wide) in paragraph at lines 184--185
+
+[14]
+Overfull \hbox (24.29907pt too wide) in paragraph at lines 192--193
 []\T1/cmr/m/n/10 generate refac-tor-ing se-quences that re-alise a trans-for-ma
 -tion or reach a tar-get (syn-the-sis/navigation)
  []
 
 
-LaTeX Warning: Citation `alizadeh2018interactive' on page 14 undefined on input
- line 186.
+LaTeX Warning: Citation `alizadeh2018interactive' on page 15 undefined on input
+ line 194.
 
 
-LaTeX Warning: Citation `wangtraceability2018' on page 14 undefined on input li
-ne 187.
+LaTeX Warning: Citation `wangtraceability2018' on page 15 undefined on input li
+ne 195.
 
-
-
-[14{/usr/local/texlive/2025/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.en
-c}]
 
 LaTeX Warning: Citation `damevski2014visualstudio' on page 15 undefined on inpu
-t line 202.
+t line 210.
 
 
 LaTeX Warning: Citation `poncin2011rabbiteclipse' on page 15 undefined on input
- line 204.
-
-
-LaTeX Warning: Citation `foutsekh2019traces' on page 15 undefined on input line
- 206.
-
-
-LaTeX Warning: Citation `poncin2011rabbiteclipse' on page 15 undefined on input
- line 209.
-
-
-LaTeX Warning: Citation `damevski2014visualstudio' on page 15 undefined on inpu
-t line 209.
-
-
-LaTeX Warning: Citation `damevski2014visualstudio' on page 15 undefined on inpu
-t line 214.
+ line 212.
 
 
 LaTeX Warning: Citation `foutsekh2019traces' on page 15 undefined on input line
  214.
 
 
-
-[15]
-
-LaTeX Warning: Citation `alizadeh2018interactive' on page 16 undefined on input
- line 223.
+LaTeX Warning: Citation `poncin2011rabbiteclipse' on page 15 undefined on input
+ line 217.
 
 
-LaTeX Warning: Citation `wangtraceability2018' on page 16 undefined on input li
-ne 223.
+LaTeX Warning: Citation `damevski2014visualstudio' on page 15 undefined on inpu
+t line 217.
 
 
-LaTeX Warning: Citation `whydevelopersrefactor2020' on page 16 undefined on inp
-ut line 223.
 
-
-LaTeX Warning: Citation `metricsmotivation2024' on page 16 undefined on input l
-ine 223.
-
-
-LaTeX Warning: Citation `poncin2011rabbiteclipse' on page 16 undefined on input
- line 223.
-
+[15{/usr/local/texlive/2025/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.en
+c}]
 
 LaTeX Warning: Citation `damevski2014visualstudio' on page 16 undefined on inpu
-t line 223.
+t line 222.
 
 
 LaTeX Warning: Citation `foutsekh2019traces' on page 16 undefined on input line
- 223.
+ 222.
 
-) (./project/project.tex
 
-[16]
+LaTeX Warning: Citation `alizadeh2018interactive' on page 16 undefined on input
+ line 231.
+
+
+LaTeX Warning: Citation `wangtraceability2018' on page 16 undefined on input li
+ne 231.
+
+
+LaTeX Warning: Citation `whydevelopersrefactor2020' on page 16 undefined on inp
+ut line 231.
+
+
+LaTeX Warning: Citation `metricsmotivation2024' on page 16 undefined on input l
+ine 231.
+
+
+LaTeX Warning: Citation `poncin2011rabbiteclipse' on page 16 undefined on input
+ line 231.
+
+
+LaTeX Warning: Citation `damevski2014visualstudio' on page 16 undefined on inpu
+t line 231.
+
+
+LaTeX Warning: Citation `foutsekh2019traces' on page 16 undefined on input line
+ 231.
+
+
+
+[16]) (./project/project.tex
+
+[17]
 Chapter 3.
 ) (./evaluation/evaluation.tex
 
-[17
+[18
 
 ]
 Chapter 4.
 ) (./conclusion/conclusion.tex
 
-[18
+[19
 
 ]
 Chapter 5.
 ) (./appendix/appendix.tex
 
-[19
+[20
 
 ]
 Appendix A.
 ) (./main.bbl
 
-[20
+[21
 
 ]
 
-[21
+[22
 
 ])
 
-[22] (./main.aux)
+[23] (./main.aux)
  ***********
 LaTeX2e <2024-11-01> patch level 2
 L3 programming layer <2025-01-18>
@@ -1609,9 +1647,9 @@ Package rerunfilecheck Info: File `main.out' has not changed.
 (rerunfilecheck)             Checksum: AAA266C2B10A862B771FA775B0A5C08E;9502.
  ) 
 Here is how much of TeX's memory you used:
- 23659 strings out of 473190
- 441187 string characters out of 5715800
- 841382 words of memory out of 5000000
+ 23660 strings out of 473190
+ 441194 string characters out of 5715800
+ 840382 words of memory out of 5000000
  46383 multiletter control sequences out of 15000+600000
  575914 words of font info for 66 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
@@ -1640,10 +1678,10 @@ nts/type1/public/cm-super/sfrm1200.pfb></usr/local/texlive/2025/texmf-dist/font
 s/type1/public/cm-super/sfti0900.pfb></usr/local/texlive/2025/texmf-dist/fonts/
 type1/public/cm-super/sfti1000.pfb></usr/local/texlive/2025/texmf-dist/fonts/ty
 pe1/public/cm-super/sfti1200.pfb>
-Output written on main.pdf (24 pages, 486587 bytes).
+Output written on main.pdf (25 pages, 487859 bytes).
 PDF statistics:
- 588 PDF objects out of 1000 (max. 8388607)
- 503 compressed objects within 6 object streams
- 101 named destinations out of 1000 (max. 500000)
+ 595 PDF objects out of 1000 (max. 8388607)
+ 509 compressed objects within 6 object streams
+ 102 named destinations out of 1000 (max. 500000)
  319 words of extra memory for PDF output out of 10000 (max. 10000000)
 
