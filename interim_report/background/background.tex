@@ -74,16 +74,16 @@ Table~\ref{tab:metric-candidates} summarises candidate signals, their typical be
 \hline
 Structural metrics (coupling/cohesion/\newline complexity/size) &
 Widely used; efficient; interpretable at class/method granularity &
-Proxy validity varies by context; may incentivise disruptive restructuring; metric interactions &
+Proxy validity depends on context; may incentivise disruptive restructuring; metric interactions &
 Static analysis metric extractors; IDE/CI integrations \\
 \hline
 Smell counts / severity (rule-based) &
-Directly targets design issues; aligns with refactoring motivations &
+Directly targets design issues; aligns with developer's motivations &
 Detector disagreement and false positives; threshold sensitivity; context dependence &
 DECOR-style detectors \cite{moha2010decor}; other smell tools \cite{paiva2017evaluation} \\
 \hline
 Readability models &
-Closer to human comprehension than structural-only metrics; captures lexical aspects &
+Closer to human comprehension than structural-only metrics; captures lexical/style clues &
 Model generalisation and dataset bias; may be language/style dependent &
 Readability predictors \cite{scalabrino2018readability} \\
 \hline
@@ -108,7 +108,7 @@ Requires trace links (often unavailable); domain-specific assumptions &
 Traceability-based ranking methods \cite{wang2018traceability} \\
 \hline
 \end{tabular}
-\caption{Candidate signals for constructing a process-quality objective. The thesis aims to combine endpoint quality change with trajectory-oriented cost/stability terms, rather than relying on a single indicator.}
+\caption{Candidate signals for constructing a process-quality objective. The thesis combines endpoint quality change with trajectory-oriented cost and stability terms, rather than relying on any single indicator.}
 \label{tab:metric-candidates}
 \end{table}
 
