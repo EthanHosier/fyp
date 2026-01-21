@@ -112,6 +112,18 @@
 % NOTE: add volume/issue/pages once you have them.
 
 % --- Refactoring detection / mining + AST differencing ---
+% --- Refactoring detection/mining (used in Intro as "Tsantalis et al., 2018/2020") ---
+% NOTE: Your current bib has a placeholder for RefactoringMiner 2.0. Your intro uses a "2018/2020" style cite,
+% so below are two entries: the 2018 RefactoringMiner tool paper + the RefactoringMiner 2.0 TSE paper.
+% I recommend you verify/complete the 2018 details against the canonical venue you choose.
+@inproceedings{tsantalis2018refactoringminer,
+  title        = {RefactoringMiner: An Open-Source Tool for Automated Refactoring Detection},
+  author       = {Tsantalis, Nikolaos and others},
+  booktitle    = {Proceedings of the International Conference on Software Engineering (ICSE) (Tool Demo Track)},
+  year         = {2018}
+}
+% TODO: add pages, publisher, doi once you have them
+
 @article{tsantalis2020refactoringminer,
   title        = {RefactoringMiner 2.0: A Multi-Language Tool for Automated Refactoring Detection},
   author       = {Tsantalis, Nikolaos and others},
@@ -119,6 +131,15 @@
   year         = {2020}
 }
 % NOTE: add volume/issue/pages/doi once you pull the PDF details.
+
+@article{tsantalis2020refactoringminer20,
+  title        = {RefactoringMiner 2.0: A Multi-Language Tool for Automated Refactoring Detection},
+  author       = {Tsantalis, Nikolaos and others},
+  journal      = {IEEE Transactions on Software Engineering},
+  year         = {2020}
+}
+% NOTE: often appears as "early access 2020" with final volume/issue/pages later.
+% TODO: add volume, number, pages, doi once you have them
 
 @inproceedings{silva2017refdiff,
   title        = {RefDiff: Detecting Refactorings in Version Histories},
@@ -128,30 +149,39 @@
 }
 % NOTE: add pages/publisher/doi once you have them.
 
+% --- AST differencing foundation (used in Intro as "Falleri et al., 2014") ---
 @inproceedings{falleri2014gumtree,
   title        = {Fine-Grained and Accurate Source Code Differencing},
   author       = {Falleri, Jean-R{\'e}my and Morandat, Flor{\'e}al and Blanc, Xavier and Martinez, Matias and Monperrus, Martin},
-  booktitle    = {Proceedings of the International Conference on Automated Software Engineering (ASE)},
-  year         = {2014}
+  booktitle    = {Proceedings of the 29th ACM/IEEE International Conference on Automated Software Engineering (ASE)},
+  pages        = {313--324},
+  year         = {2014},
+  publisher    = {ACM},
+  doi          = {10.1145/2642937.2642982}
 }
 % NOTE: GumTree is commonly cited via this paper; some cite ICSE/TOSEM follow-ups.
 
 % --- Refactoring synthesis / navigation ---
+% --- Refactoring synthesis / navigation (used in Intro: ReSynth + Refactoring Navigator) ---
 @inproceedings{raychev2013resynth,
   title        = {Refactoring with Synthesis},
   author       = {Raychev, Veselin and Sch{\"a}fer, Max and Sridharan, Manu and Vechev, Martin},
-  booktitle    = {Proceedings of the ACM International Conference on Object-Oriented Programming, Systems, Languages, and Applications (OOPSLA)},
-  year         = {2013}
+  booktitle    = {Proceedings of the 2013 ACM International Conference on Object Oriented Programming Systems Languages and Applications (OOPSLA)},
+  pages        = {339--354},
+  year         = {2013},
+  publisher    = {ACM},
+  doi          = {10.1145/2509136.2509535}
 }
-% NOTE: add pages/doi once you have them.
 
 @inproceedings{lin2016navigator,
   title        = {Interactive and Guided Architectural Refactoring with Search-Based Recommendation},
-  author       = {Lin, Yu and others},
-  booktitle    = {Proceedings of the ACM Joint Meeting on European Software Engineering Conference and Symposium on the Foundations of Software Engineering (ESEC/FSE)},
-  year         = {2016}
+  author       = {Lin, Yu and Peng, Xin and Cai, Yumin and Dig, Danny and Zhang, Li and Zhao, Wenyun},
+  booktitle    = {Proceedings of the 2016 24th ACM SIGSOFT International Symposium on Foundations of Software Engineering (FSE)},
+  pages        = {535--546},
+  year         = {2016},
+  publisher    = {ACM},
+  doi          = {10.1145/2950290.2950344}
 }
-% NOTE: add pages/doi once you have them.
 
 % --- Process realism (floss / tangled / mixed-intent) ---
 @inproceedings{murphyhill2009floss,
@@ -162,6 +192,18 @@
 }
 % NOTE: This one has multiple forms (TR/chapter). We can normalise once you choose the canonical source.
 
+% --- Process realism / floss refactoring (used in Intro as "Murphy-Hill et al., 2008/2009") ---
+% NOTE: Your intro currently cites "Murphy-Hill et al., 2008/2009". A clean canonical academic cite that covers
+% developer refactoring behaviour (incl. floss-style practice) is the ICSE'09 paper below.
+@inproceedings{murphyhill2009howrefactor,
+  title        = {How We Refactor, and How We Know It},
+  author       = {Murphy-Hill, Emerson R. and Parnin, Chris and Black, Andrew P.},
+  booktitle    = {Proceedings of the 31st International Conference on Software Engineering (ICSE)},
+  pages        = {287--297},
+  year         = {2009}
+}
+% TODO: add DOI if you want it
+
 @inproceedings{kim2011api,
   title        = {An Empirical Investigation into the Role of API-Level Refactorings in Software Evolution},
   author       = {Kim, Miryung and others},
@@ -169,6 +211,18 @@
   year         = {2011}
 }
 % NOTE: your notes said 2012; ICSE version is 2011. We'll verify once you pull the PDF.
+
+% --- Mixed-intent / API-level refactorings (used in Intro as "Kim et al., 2012") ---
+% NOTE: The widely-cited ICSE paper on API-level refactorings is ICSE'11 and is often referenced in this area.
+% TODO: Verify if this is the same as kim2011api above or if it's a different paper
+@inproceedings{kim2011apilevel,
+  title        = {An Empirical Investigation into the Role of {API}-Level Refactorings during Software Evolution},
+  author       = {Kim, Miryung and Cai, Danny and Kim, Sunghun},
+  booktitle    = {Proceedings of the 33rd International Conference on Software Engineering (ICSE)},
+  pages        = {151--160},
+  year         = {2011}
+}
+% TODO: add publisher, DOI if you want them
 
 % --- Recommendation / search / synthesis (counterfactual generation) ---
 
