@@ -37,9 +37,8 @@
 \contentsline {section}{\numberline {2.6}Process-aware work and IDE trace capture}{15}{section.2.6}%
 \contentsline {subsection}{\numberline {2.6.1}Logging developer interactions in IDEs}{15}{subsection.2.6.1}%
 \contentsline {subsection}{\numberline {2.6.2}Granularity, segmentation, and semantic interpretation}{16}{subsection.2.6.2}%
-\contentsline {subsection}{\numberline {2.6.3}Privacy and ethical constraints as design constraints}{16}{subsection.2.6.3}%
 \contentsline {section}{\numberline {2.7}Summary and positioning: toward process-quality evaluation}{16}{section.2.7}%
-\contentsline {chapter}{\numberline {3}PROJECT X}{18}{chapter.3}%
-\contentsline {chapter}{\numberline {4}Evaluation}{19}{chapter.4}%
-\contentsline {chapter}{\numberline {5}Conclusion}{20}{chapter.5}%
-\contentsline {chapter}{\numberline {A}First Appendix}{21}{appendix.A}%
+\contentsline {chapter}{\numberline {3}PROJECT X}{17}{chapter.3}%
+\contentsline {section}{\numberline {3.1}Evaluation plan}{17}{section.3.1}%
+\contentsline {chapter}{\numberline {4}Conclusion}{18}{chapter.4}%
+\contentsline {chapter}{\numberline {A}First Appendix}{19}{appendix.A}%
