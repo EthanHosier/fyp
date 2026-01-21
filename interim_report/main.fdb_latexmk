@@ -1,13 +1,13 @@
 # Fdb version 4
-["bibtex main"] 1769003807.95508 "main.aux" "main.bbl" "main" 1769004352.47519 0
+["bibtex main"] 1769003807.95508 "main.aux" "main.bbl" "main" 1769004524.99586 0
   "./bibs/sample.bib" 1769002530.22249 13969 2799493da7b9bd2337cc5085fdb2464c ""
   "/usr/local/texlive/2025/texmf-dist/bibtex/bst/base/alpha.bst" 1292289607 23907 a5f93555796fb564b924339521f10a7c ""
-  "main.aux" 1769004352.22169 13356 2a9bee7f4a594ae2a72f4cab31afebf0 "pdflatex"
+  "main.aux" 1769004524.74433 13356 2a9bee7f4a594ae2a72f4cab31afebf0 "pdflatex"
   (generated)
   "main.bbl"
   "main.blg"
   (rewritten before read)
-["pdflatex"] 1769004351.69893 "main.tex" "main.pdf" "main" 1769004352.4753 0
+["pdflatex"] 1769004524.21508 "main.tex" "main.pdf" "main" 1769004524.99595 0
   "/usr/local/texlive/2025/texmf-dist/fonts/enc/dvips/cm-super/cm-super-t1.enc" 1136849721 2971 def0b6c1f0b107b3b936def894055589 ""
   "/usr/local/texlive/2025/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc" 1136849721 2900 1537cc8184ad1792082cd229ecc269f4 ""
   "/usr/local/texlive/2025/texmf-dist/fonts/map/fontname/texfonts.map" 1577235249 3524 cb3e574dea2d1052e39280babc910dc8 ""
@@ -160,6 +160,7 @@
   "/usr/local/texlive/2025/texmf-dist/tex/latex/caption/caption3.sty" 1696191071 72619 ee90b6612147680fd73c3b1406a74245 ""
   "/usr/local/texlive/2025/texmf-dist/tex/latex/epstopdf-pkg/epstopdf-base.sty" 1579991033 13886 d1306dcf79a944f6988e688c1785f9ce ""
   "/usr/local/texlive/2025/texmf-dist/tex/latex/etoolbox/etoolbox.sty" 1739306980 46850 d87daedc2abdc653769a6f1067849fe0 ""
+  "/usr/local/texlive/2025/texmf-dist/tex/latex/float/float.sty" 1137110151 6749 16d2656a1984957e674b149555f1ea1d ""
   "/usr/local/texlive/2025/texmf-dist/tex/latex/geometry/geometry.sty" 1578002852 41601 9cf6c5257b1bc7af01a58859749dd37a ""
   "/usr/local/texlive/2025/texmf-dist/tex/latex/graphics-cfg/color.cfg" 1459978653 1213 620bba36b25224fa9b7e1ccb4ecb76fd ""
   "/usr/local/texlive/2025/texmf-dist/tex/latex/graphics-cfg/graphics.cfg" 1465944070 1224 978390e9c2234eab29404bc21b268d1e ""
@@ -207,14 +208,14 @@
   "conclusion/conclusion.tex" 1768926776 20 62fe8ebce78c4d50a9606c96530c0c05 ""
   "evaluation/evaluation.tex" 1768926776 20 b9bf1a6cc1f320bfe01b8d488d2ded14 ""
   "introduction/divergence_diagram.png" 1768936449.25919 61745 d2075585b040459d55aa99682c67edc1 ""
-  "introduction/introduction.tex" 1769004349.88036 8955 095c7723f1f131e67a4a85d7f2c7c63b ""
-  "main.aux" 1769004352.22169 13356 2a9bee7f4a594ae2a72f4cab31afebf0 "pdflatex"
+  "introduction/introduction.tex" 1769004512.93211 8952 e8d670655e39b32bacf911561957e04e ""
+  "main.aux" 1769004524.74433 13356 2a9bee7f4a594ae2a72f4cab31afebf0 "pdflatex"
   "main.bbl" 1769003808.02181 5845 c1eb7b8acfd807452e546586594f5389 "bibtex main"
-  "main.lof" 1769004352.22331 497 7df59196b42d712de27db33b9f6fb9f5 "pdflatex"
-  "main.lot" 1769004352.22334 433 d1e4bfa4c0017b45fa1f8c69fa5704f9 "pdflatex"
-  "main.out" 1769004352.22302 9502 aaa266c2b10a862b771fa775b0a5c08e "pdflatex"
-  "main.tex" 1768940636.28593 1106 2331d30707d0618725e489d16573694a ""
-  "main.toc" 1769004352.22325 4482 38a73e6279f1333cee0f1d65703d0f14 "pdflatex"
+  "main.lof" 1769004524.74574 497 7df59196b42d712de27db33b9f6fb9f5 "pdflatex"
+  "main.lot" 1769004524.74577 433 d1e4bfa4c0017b45fa1f8c69fa5704f9 "pdflatex"
+  "main.out" 1769004524.74543 9502 aaa266c2b10a862b771fa775b0a5c08e "pdflatex"
+  "main.tex" 1769004511.62225 1125 315ebbd2f1d1e00ce318fbc0928bc07f ""
+  "main.toc" 1769004524.74567 4482 38a73e6279f1333cee0f1d65703d0f14 "pdflatex"
   "project/project.tex" 1768926776 19 847d4ea94b9ad3c838c0415ffc893a07 ""
   "title/logo.eps" 1768926776 1035249 ff185f9b2455dc5949d7beacddc11a17 ""
   "title/title.tex" 1768926776 2442 f37c80dd6e1d5785c23bf061d1de2782 ""
