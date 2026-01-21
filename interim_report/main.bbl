@@ -1,5 +1,5 @@
 \newcommand{\etalchar}[1]{$^{#1}$}
-\begin{thebibliography}{MHPB09}
+\begin{thebibliography}{AKO{\etalchar{+}}20}
 
 \bibitem[AF{\etalchar{+}}16]{arcellifontana2016falsepositives}
 Francesca Arcelli~Fontana et~al.
@@ -7,6 +7,28 @@ Francesca Arcelli~Fontana et~al.
   conceptualization and classification.
 \newblock In {\em Proceedings of a workshop on code smells / antipatterns},
   2016.
+
+\bibitem[AKO{\etalchar{+}}20]{alizadeh2020interactive}
+Vahid Alizadeh, Marouane Kessentini, Ali Ouni, Mohamed~Wiem Mkaouer, Mel
+  {\'O}~Cinn{\'e}ide, and Yuanfang Cai.
+\newblock An interactive and dynamic search-based approach to software
+  refactoring recommendations.
+\newblock {\em IEEE Transactions on Software Engineering}, 46(9):932--961,
+  2020.
+
+\bibitem[DSF17]{damevski2014visualstudio}
+Kostadin Damevski, David Shepherd, and Thomas Fritz.
+\newblock Mining sequences of developer interactions in visual studio for usage
+  smells.
+\newblock {\em IEEE Transactions on Software Engineering}, 2017.
+
+\bibitem[F{\etalchar{+}}18]{foutsekh2019traces}
+TODO Foutsekh et~al.
+\newblock Todo: Developer interaction traces with ide screen recordings
+  (dataset/study).
+\newblock In {\em TODO: Add venue}, 2018.
+\newblock TODO: Your note suggests you already have
+  foutsekh2018interactiontraces; easiest fix is to change the cite key.
 
 \bibitem[FMB{\etalchar{+}}14]{falleri2014gumtree}
 Jean-R{\'e}my Falleri, Flor{\'e}al Morandat, Xavier Blanc, Matias Martinez, and
@@ -80,6 +102,14 @@ William~F. Opdyke.
 \newblock PhD thesis, University of Illinois at Urbana-Champaign,
   Urbana-Champaign, IL, USA, 1992.
 
+\bibitem[P{\etalchar{+}}11]{poncin2011rabbiteclipse}
+Wouter Poncin et~al.
+\newblock Todo: Ide interaction logging / process mining with eclipse (rabbit
+  plug-in).
+\newblock In {\em TODO: Add venue}, 2011.
+\newblock TODO: You likely already have this as poncin2011processmining;
+  easiest fix is to change the cite key.
+
 \bibitem[P{\etalchar{+}}17a]{paiva2017evaluation}
 Thiago Paiva et~al.
 \newblock On the evaluation of code smells and detection tools.
@@ -90,6 +120,18 @@ Matheus Paix{\~a}o et~al.
 \newblock An empirical study of cohesion and coupling: Balancing optimisation
   and disruption.
 \newblock {\em IEEE Transactions on Evolutionary Computation}, 2017.
+
+\bibitem[PZS{\etalchar{+}}20]{whydevelopersrefactor2020}
+Valentina Pantiuchina, Fiorella Zampetti, Simone Scalabrino, et~al.
+\newblock Why developers refactor source code: A mining-based study.
+\newblock {\em ACM Transactions on Software Engineering and Methodology},
+  29(4), 2020.
+
+\bibitem[RGC{\etalchar{+}}25]{metricsmotivation2024}
+Germ{\'a}n Robredo, Isabel Gonzales, Yania Crespo, et~al.
+\newblock What were you thinking? an llm-driven large-scale study of
+  refactoring motivations in open-source projects, 2025.
+\newblock arXiv:2509.07763.
 
 \bibitem[RSD{\etalchar{+}}17]{rolim2017refazer}
 Reudismam Rolim, Gustavo Soares, Loris D'Antoni, Oleksandr Polozov, Sumit
@@ -135,10 +177,17 @@ Nikolaos Tsantalis et~al.
   detection.
 \newblock {\em IEEE Transactions on Software Engineering}, 2020.
 
-\bibitem[W{\etalchar{+}}18]{wang2018traceability}
+\bibitem[W{\etalchar{+}}18a]{wang2018traceability}
 TODO Wang et~al.
 \newblock Todo: Add title.
 \newblock {\em TODO: Add journal}, 2018.
 \newblock TODO: Complete this entry - traceability-based refactoring ranking.
+
+\bibitem[W{\etalchar{+}}18b]{wangtraceability2018}
+TODO Wang et~al.
+\newblock Todo: Traceability-augmented ranking of refactoring solutions.
+\newblock {\em TODO: Add journal}, 2018.
+\newblock TODO: You already have a placeholder entry wang2018traceability;
+  simplest fix is to change the cite key in the text to wang2018traceability.
 
 \end{thebibliography}

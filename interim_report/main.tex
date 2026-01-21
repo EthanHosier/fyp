@@ -12,9 +12,13 @@
 \usepackage{amsmath}
 \usepackage{graphicx}
 \usepackage{float}
+\usepackage{array}
+\usepackage{ragged2e}
 \usepackage[font=small,labelfont=it,textfont=it]{caption}
 \usepackage[colorinlistoftodos]{todonotes}
 \usepackage[colorlinks=true, allcolors=blue]{hyperref}
+
+\newcolumntype{L}[1]{>{\RaggedRight\arraybackslash}p{#1}}
 
 \title{Project Title}
 \author{John Smith}
