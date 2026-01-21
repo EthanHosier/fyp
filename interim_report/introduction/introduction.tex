@@ -24,7 +24,7 @@ The proposed approach targets real-world refactoring as it occurs in development
 
 The system is intended to comprise (i) an IDE plugin for capturing refactoring traces and presenting feedback, and (ii) an analysis component that scores the observed refactoring process and constructs higher-scoring alternative trajectories between the same start and end states under a chosen process-quality metric. Rather than attempting to enumerate all possible refactoring operators or to compute globally optimal plans, the goal is to produce a plausible, metric-improving reference trajectory and to explain the principal points at which the developer’s trajectory diverged from it (e.g., where an earlier restructuring could have avoided churn, reduced temporary quality degradation, or preserved build/test stability).
 
-\begin{figure}[htbp]
+\begin{figure}[H]
 \centering
 \includegraphics[width=0.8\textwidth]{introduction/divergence_diagram.png}
 \caption{Illustration of refactoring trajectories scored by process-quality metric $J$: the solid line shows the observed developer trajectory, while the dashed line shows a higher-scoring reference trajectory that diverges at an intermediate state and converges near the end.}
