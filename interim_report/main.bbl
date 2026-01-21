@@ -1,65 +1,68 @@
-\newcommand{\etalchar}[1]{$^{#1}$}
-\begin{thebibliography}{AKO{\etalchar{+}}20}
+\begin{thebibliography}{10}
 
-\bibitem[AF{\etalchar{+}}16]{arcellifontana2016falsepositives}
-Francesca Arcelli~Fontana et~al.
-\newblock Antipattern and code smell false positives: Preliminary
-  conceptualization and classification.
-\newblock In {\em Proceedings of a workshop on code smells / antipatterns},
-  2016.
+\bibitem{opdyke1992refactoring}
+William~F. Opdyke.
+\newblock {\em Refactoring Object-Oriented Frameworks}.
+\newblock PhD thesis, University of Illinois at Urbana-Champaign,
+  Urbana-Champaign, IL, USA, 1992.
 
-\bibitem[AKO{\etalchar{+}}20]{alizadeh2020interactive}
-Vahid Alizadeh, Marouane Kessentini, Ali Ouni, Mohamed~Wiem Mkaouer, Mel
-  {\'O}~Cinn{\'e}ide, and Yuanfang Cai.
-\newblock An interactive and dynamic search-based approach to software
-  refactoring recommendations.
-\newblock {\em IEEE Transactions on Software Engineering}, 46(9):932--961,
-  2020.
-
-\bibitem[DSF17]{damevski2014visualstudio}
-Kostadin Damevski, David Shepherd, and Thomas Fritz.
-\newblock Mining sequences of developer interactions in visual studio for usage
-  smells.
-\newblock {\em IEEE Transactions on Software Engineering}, 2017.
-
-\bibitem[F{\etalchar{+}}18]{foutsekh2019traces}
-TODO Foutsekh et~al.
-\newblock Todo: Developer interaction traces with ide screen recordings
-  (dataset/study).
-\newblock In {\em TODO: Add venue}, 2018.
-\newblock TODO: Your note suggests you already have
-  foutsekh2018interactiontraces; easiest fix is to change the cite key.
-
-\bibitem[FMB{\etalchar{+}}14]{falleri2014gumtree}
-Jean-R{\'e}my Falleri, Flor{\'e}al Morandat, Xavier Blanc, Matias Martinez, and
-  Martin Monperrus.
-\newblock Fine-grained and accurate source code differencing.
-\newblock In {\em Proceedings of the 29th ACM/IEEE International Conference on
-  Automated Software Engineering (ASE)}, pages 313--324. ACM, 2014.
-
-\bibitem[Fow99]{fowler1999refactoring}
+\bibitem{fowler1999refactoring}
 Martin Fowler.
 \newblock {\em Refactoring: Improving the Design of Existing Code}.
 \newblock Addison-Wesley, 1999.
 
-\bibitem[Fow18]{fowler2018refactoring}
+\bibitem{fowler2018refactoring}
 Martin Fowler.
 \newblock {\em Refactoring: Improving the Design of Existing Code}.
 \newblock Addison-Wesley, 2 edition, 2018.
 
-\bibitem[HT07]{harman2007pareto}
-Mark Harman and Laurence Tratt.
-\newblock Pareto optimal search-based refactoring at the design level.
-\newblock {\em Journal of Systems and Software}, 80(4):522--534, 2007.
+\bibitem{mens2004survey}
+Tom Mens and Tom Tourw{\'e}.
+\newblock A survey of software refactoring.
+\newblock {\em IEEE Transactions on Software Engineering}, 30(2):126--139,
+  2004.
 
-\bibitem[KCK11]{kim2011apilevel}
+\bibitem{murphyhill2009howrefactor}
+Emerson~R. Murphy-Hill, Chris Parnin, and Andrew~P. Black.
+\newblock How we refactor, and how we know it.
+\newblock In {\em Proceedings of the 31st International Conference on Software
+  Engineering (ICSE)}, pages 287--297, 2009.
+
+\bibitem{kim2011apilevel}
 Miryung Kim, Danny Cai, and Sunghun Kim.
 \newblock An empirical investigation into the role of {API}-level refactorings
   during software evolution.
 \newblock In {\em Proceedings of the 33rd International Conference on Software
   Engineering (ICSE)}, pages 151--160, 2011.
 
-\bibitem[LPC{\etalchar{+}}16]{lin2016navigator}
+\bibitem{tsantalis2018refactoringminer}
+Nikolaos Tsantalis et~al.
+\newblock Refactoringminer: An open-source tool for automated refactoring
+  detection.
+\newblock In {\em Proceedings of the International Conference on Software
+  Engineering (ICSE) (Tool Demo Track)}, 2018.
+
+\bibitem{tsantalis2020refactoringminer20}
+Nikolaos Tsantalis et~al.
+\newblock Refactoringminer 2.0: A multi-language tool for automated refactoring
+  detection.
+\newblock {\em IEEE Transactions on Software Engineering}, 2020.
+
+\bibitem{falleri2014gumtree}
+Jean-R{\'e}my Falleri, Flor{\'e}al Morandat, Xavier Blanc, Matias Martinez, and
+  Martin Monperrus.
+\newblock Fine-grained and accurate source code differencing.
+\newblock In {\em Proceedings of the 29th ACM/IEEE International Conference on
+  Automated Software Engineering (ASE)}, pages 313--324. ACM, 2014.
+
+\bibitem{raychev2013resynth}
+Veselin Raychev, Max Sch{\"a}fer, Manu Sridharan, and Martin Vechev.
+\newblock Refactoring with synthesis.
+\newblock In {\em Proceedings of the 2013 ACM International Conference on
+  Object Oriented Programming Systems Languages and Applications (OOPSLA)},
+  pages 339--354. ACM, 2013.
+
+\bibitem{lin2016navigator}
 Yu~Lin, Xin Peng, Yumin Cai, Danny Dig, Li~Zhang, and Wenyun Zhao.
 \newblock Interactive and guided architectural refactoring with search-based
   recommendation.
@@ -67,42 +70,110 @@ Yu~Lin, Xin Peng, Yumin Cai, Danny Dig, Li~Zhang, and Wenyun Zhao.
   Symposium on Foundations of Software Engineering (FSE)}, pages 535--546. ACM,
   2016.
 
-\bibitem[M{\etalchar{+}}10]{moha2010decor}
-Naouel Moha et~al.
-\newblock Decor: A method for the specification and detection of code and
-  design smells.
-\newblock {\em IEEE Transactions on Software Engineering}, 2010.
+\bibitem{harman2007pareto}
+Mark Harman and Laurence Tratt.
+\newblock Pareto optimal search-based refactoring at the design level.
+\newblock {\em Journal of Systems and Software}, 80(4):522--534, 2007.
 
-\bibitem[MG19]{mohan2019manyobjective}
+\bibitem{mohan2019manyobjective}
 M.~Mohan and Des Greer.
 \newblock Using a many-objective approach to investigate automated refactoring.
 \newblock {\em Information and Software Technology}, 2019.
 
-\bibitem[MHPB09]{murphyhill2009howrefactor}
-Emerson~R. Murphy-Hill, Chris Parnin, and Andrew~P. Black.
-\newblock How we refactor, and how we know it.
-\newblock In {\em Proceedings of the 31st International Conference on Software
-  Engineering (ICSE)}, pages 287--297, 2009.
+\bibitem{wang2018traceability}
+TODO Wang et~al.
+\newblock Todo: Add title.
+\newblock {\em TODO: Add journal}, 2018.
+\newblock TODO: Complete this entry - traceability-based refactoring ranking.
 
-\bibitem[MT04]{mens2004survey}
-Tom Mens and Tom Tourw{\'e}.
-\newblock A survey of software refactoring.
-\newblock {\em IEEE Transactions on Software Engineering}, 30(2):126--139,
-  2004.
-
-\bibitem[N{\etalchar{+}}24]{nikolaidis2024metricsbased}
+\bibitem{nikolaidis2024metricsbased}
 Nikolaos Nikolaidis et~al.
 \newblock A metrics-based approach for selecting among various refactoring
   candidates.
 \newblock {\em Empirical Software Engineering}, 2024.
 
-\bibitem[Opd92]{opdyke1992refactoring}
-William~F. Opdyke.
-\newblock {\em Refactoring Object-Oriented Frameworks}.
-\newblock PhD thesis, University of Illinois at Urbana-Champaign,
-  Urbana-Champaign, IL, USA, 1992.
+\bibitem{paixao2017balancing}
+Matheus Paix{\~a}o et~al.
+\newblock An empirical study of cohesion and coupling: Balancing optimisation
+  and disruption.
+\newblock {\em IEEE Transactions on Evolutionary Computation}, 2017.
 
-\bibitem[P{\etalchar{+}}11]{poncin2011rabbiteclipse}
+\bibitem{moha2010decor}
+Naouel Moha et~al.
+\newblock Decor: A method for the specification and detection of code and
+  design smells.
+\newblock {\em IEEE Transactions on Software Engineering}, 2010.
+
+\bibitem{paiva2017evaluation}
+Thiago Paiva et~al.
+\newblock On the evaluation of code smells and detection tools.
+\newblock {\em Journal of Software Engineering Research and Development}, 2017.
+
+\bibitem{arcellifontana2016falsepositives}
+Francesca Arcelli~Fontana et~al.
+\newblock Antipattern and code smell false positives: Preliminary
+  conceptualization and classification.
+\newblock In {\em Proceedings of a workshop on code smells / antipatterns},
+  2016.
+
+\bibitem{scalabrino2018readability}
+Simone Scalabrino et~al.
+\newblock A comprehensive model for code readability.
+\newblock {\em Journal of Systems and Software}, 2018.
+
+\bibitem{tsantalis2020refactoringminer}
+Nikolaos Tsantalis et~al.
+\newblock Refactoringminer 2.0: A multi-language tool for automated refactoring
+  detection.
+\newblock {\em IEEE Transactions on Software Engineering}, 2020.
+
+\bibitem{silva2017refdiff}
+Danilo Silva et~al.
+\newblock Refdiff: Detecting refactorings in version histories.
+\newblock In {\em Proceedings of the International Conference on Mining
+  Software Repositories (MSR)}, 2017.
+
+\bibitem{rolim2017refazer}
+Reudismam Rolim, Gustavo Soares, Loris D'Antoni, Oleksandr Polozov, Sumit
+  Gulwani, Sherry Ge, and Neha Rungta.
+\newblock Learning syntactic program transformations from examples.
+\newblock In {\em Proceedings of the 39th International Conference on Software
+  Engineering (ICSE)}, pages 404--415. IEEE, 2017.
+
+\bibitem{alizadeh2020interactive}
+Vahid Alizadeh, Marouane Kessentini, Ali Ouni, Mohamed~Wiem Mkaouer, Mel
+  {\'O}~Cinn{\'e}ide, and Yuanfang Cai.
+\newblock An interactive and dynamic search-based approach to software
+  refactoring recommendations.
+\newblock {\em IEEE Transactions on Software Engineering}, 46(9):932--961,
+  2020.
+
+\bibitem{wangtraceability2018}
+TODO Wang et~al.
+\newblock Todo: Traceability-augmented ranking of refactoring solutions.
+\newblock {\em TODO: Add journal}, 2018.
+\newblock TODO: You already have a placeholder entry wang2018traceability;
+  simplest fix is to change the cite key in the text to wang2018traceability.
+
+\bibitem{whydevelopersrefactor2020}
+Valentina Pantiuchina, Fiorella Zampetti, Simone Scalabrino, et~al.
+\newblock Why developers refactor source code: A mining-based study.
+\newblock {\em ACM Transactions on Software Engineering and Methodology},
+  29(4), 2020.
+
+\bibitem{metricsmotivation2024}
+Germ{\'a}n Robredo, Isabel Gonzales, Yania Crespo, et~al.
+\newblock What were you thinking? an llm-driven large-scale study of
+  refactoring motivations in open-source projects, 2025.
+\newblock arXiv:2509.07763.
+
+\bibitem{damevski2014visualstudio}
+Kostadin Damevski, David Shepherd, and Thomas Fritz.
+\newblock Mining sequences of developer interactions in visual studio for usage
+  smells.
+\newblock {\em IEEE Transactions on Software Engineering}, 2017.
+
+\bibitem{poncin2011rabbiteclipse}
 Wouter Poncin et~al.
 \newblock Todo: Ide interaction logging / process mining with eclipse (rabbit
   plug-in).
@@ -110,84 +181,12 @@ Wouter Poncin et~al.
 \newblock TODO: You likely already have this as poncin2011processmining;
   easiest fix is to change the cite key.
 
-\bibitem[P{\etalchar{+}}17a]{paiva2017evaluation}
-Thiago Paiva et~al.
-\newblock On the evaluation of code smells and detection tools.
-\newblock {\em Journal of Software Engineering Research and Development}, 2017.
-
-\bibitem[P{\etalchar{+}}17b]{paixao2017balancing}
-Matheus Paix{\~a}o et~al.
-\newblock An empirical study of cohesion and coupling: Balancing optimisation
-  and disruption.
-\newblock {\em IEEE Transactions on Evolutionary Computation}, 2017.
-
-\bibitem[PZS{\etalchar{+}}20]{whydevelopersrefactor2020}
-Valentina Pantiuchina, Fiorella Zampetti, Simone Scalabrino, et~al.
-\newblock Why developers refactor source code: A mining-based study.
-\newblock {\em ACM Transactions on Software Engineering and Methodology},
-  29(4), 2020.
-
-\bibitem[RGC{\etalchar{+}}25]{metricsmotivation2024}
-Germ{\'a}n Robredo, Isabel Gonzales, Yania Crespo, et~al.
-\newblock What were you thinking? an llm-driven large-scale study of
-  refactoring motivations in open-source projects, 2025.
-\newblock arXiv:2509.07763.
-
-\bibitem[RSD{\etalchar{+}}17]{rolim2017refazer}
-Reudismam Rolim, Gustavo Soares, Loris D'Antoni, Oleksandr Polozov, Sumit
-  Gulwani, Sherry Ge, and Neha Rungta.
-\newblock Learning syntactic program transformations from examples.
-\newblock In {\em Proceedings of the 39th International Conference on Software
-  Engineering (ICSE)}, pages 404--415. IEEE, 2017.
-
-\bibitem[RSSV13]{raychev2013resynth}
-Veselin Raychev, Max Sch{\"a}fer, Manu Sridharan, and Martin Vechev.
-\newblock Refactoring with synthesis.
-\newblock In {\em Proceedings of the 2013 ACM International Conference on
-  Object Oriented Programming Systems Languages and Applications (OOPSLA)},
-  pages 339--354. ACM, 2013.
-
-\bibitem[S{\etalchar{+}}17]{silva2017refdiff}
-Danilo Silva et~al.
-\newblock Refdiff: Detecting refactorings in version histories.
-\newblock In {\em Proceedings of the International Conference on Mining
-  Software Repositories (MSR)}, 2017.
-
-\bibitem[S{\etalchar{+}}18]{scalabrino2018readability}
-Simone Scalabrino et~al.
-\newblock A comprehensive model for code readability.
-\newblock {\em Journal of Systems and Software}, 2018.
-
-\bibitem[T{\etalchar{+}}18]{tsantalis2018refactoringminer}
-Nikolaos Tsantalis et~al.
-\newblock Refactoringminer: An open-source tool for automated refactoring
-  detection.
-\newblock In {\em Proceedings of the International Conference on Software
-  Engineering (ICSE) (Tool Demo Track)}, 2018.
-
-\bibitem[T{\etalchar{+}}20a]{tsantalis2020refactoringminer20}
-Nikolaos Tsantalis et~al.
-\newblock Refactoringminer 2.0: A multi-language tool for automated refactoring
-  detection.
-\newblock {\em IEEE Transactions on Software Engineering}, 2020.
-
-\bibitem[T{\etalchar{+}}20b]{tsantalis2020refactoringminer}
-Nikolaos Tsantalis et~al.
-\newblock Refactoringminer 2.0: A multi-language tool for automated refactoring
-  detection.
-\newblock {\em IEEE Transactions on Software Engineering}, 2020.
-
-\bibitem[W{\etalchar{+}}18a]{wang2018traceability}
-TODO Wang et~al.
-\newblock Todo: Add title.
-\newblock {\em TODO: Add journal}, 2018.
-\newblock TODO: Complete this entry - traceability-based refactoring ranking.
-
-\bibitem[W{\etalchar{+}}18b]{wangtraceability2018}
-TODO Wang et~al.
-\newblock Todo: Traceability-augmented ranking of refactoring solutions.
-\newblock {\em TODO: Add journal}, 2018.
-\newblock TODO: You already have a placeholder entry wang2018traceability;
-  simplest fix is to change the cite key in the text to wang2018traceability.
+\bibitem{foutsekh2019traces}
+TODO Foutsekh et~al.
+\newblock Todo: Developer interaction traces with ide screen recordings
+  (dataset/study).
+\newblock In {\em TODO: Add venue}, 2018.
+\newblock TODO: Your note suggests you already have
+  foutsekh2018interactiontraces; easiest fix is to change the cite key.
 
 \end{thebibliography}

@@ -41,6 +41,6 @@
 \contentsline {chapter}{\numberline {3}Project Plan and Timetable (Jan--Jun 2026)}{17}{chapter.3}%
 \contentsline {paragraph}{Work completed so far (as of 21 Jan 2026).}{17}{section*.13}%
 \contentsline {paragraph}{Timeline in 5 phases (Jan $\rightarrow $ end of June).}{17}{section*.14}%
-\contentsline {chapter}{\numberline {4}Conclusion}{18}{chapter.4}%
+\contentsline {chapter}{\numberline {4}Evaluation Plan}{18}{chapter.4}%
 \contentsline {chapter}{\numberline {5}Ethical Issues and Data Handling Plan}{19}{chapter.5}%
 \contentsline {chapter}{\numberline {A}First Appendix}{20}{appendix.A}%
