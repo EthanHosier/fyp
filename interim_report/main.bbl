@@ -1,5 +1,5 @@
 \newcommand{\etalchar}[1]{$^{#1}$}
-\begin{thebibliography}{FMB{\etalchar{+}}14}
+\begin{thebibliography}{MHPB09}
 
 \bibitem[AF{\etalchar{+}}16]{arcellifontana2016falsepositives}
 Francesca Arcelli~Fontana et~al.
@@ -12,8 +12,8 @@ Francesca Arcelli~Fontana et~al.
 Jean-R{\'e}my Falleri, Flor{\'e}al Morandat, Xavier Blanc, Matias Martinez, and
   Martin Monperrus.
 \newblock Fine-grained and accurate source code differencing.
-\newblock In {\em Proceedings of the International Conference on Automated
-  Software Engineering (ASE)}, 2014.
+\newblock In {\em Proceedings of the 29th ACM/IEEE International Conference on
+  Automated Software Engineering (ASE)}, pages 313--324. ACM, 2014.
 
 \bibitem[Fow99]{fowler1999refactoring}
 Martin Fowler.
@@ -30,13 +30,20 @@ Mark Harman and Laurence Tratt.
 \newblock Pareto optimal search-based refactoring at the design level.
 \newblock {\em Journal of Systems and Software}, 80(4):522--534, 2007.
 
-\bibitem[L{\etalchar{+}}16]{lin2016navigator}
-Yu~Lin et~al.
+\bibitem[KCK11]{kim2011apilevel}
+Miryung Kim, Danny Cai, and Sunghun Kim.
+\newblock An empirical investigation into the role of {API}-level refactorings
+  during software evolution.
+\newblock In {\em Proceedings of the 33rd International Conference on Software
+  Engineering (ICSE)}, pages 151--160, 2011.
+
+\bibitem[LPC{\etalchar{+}}16]{lin2016navigator}
+Yu~Lin, Xin Peng, Yumin Cai, Danny Dig, Li~Zhang, and Wenyun Zhao.
 \newblock Interactive and guided architectural refactoring with search-based
   recommendation.
-\newblock In {\em Proceedings of the ACM Joint Meeting on European Software
-  Engineering Conference and Symposium on the Foundations of Software
-  Engineering (ESEC/FSE)}, 2016.
+\newblock In {\em Proceedings of the 2016 24th ACM SIGSOFT International
+  Symposium on Foundations of Software Engineering (FSE)}, pages 535--546. ACM,
+  2016.
 
 \bibitem[M{\etalchar{+}}10]{moha2010decor}
 Naouel Moha et~al.
@@ -48,6 +55,12 @@ Naouel Moha et~al.
 M.~Mohan and Des Greer.
 \newblock Using a many-objective approach to investigate automated refactoring.
 \newblock {\em Information and Software Technology}, 2019.
+
+\bibitem[MHPB09]{murphyhill2009howrefactor}
+Emerson~R. Murphy-Hill, Chris Parnin, and Andrew~P. Black.
+\newblock How we refactor, and how we know it.
+\newblock In {\em Proceedings of the 31st International Conference on Software
+  Engineering (ICSE)}, pages 287--297, 2009.
 
 \bibitem[MT04]{mens2004survey}
 Tom Mens and Tom Tourw{\'e}.
@@ -88,9 +101,9 @@ Reudismam Rolim, Gustavo Soares, Loris D'Antoni, Oleksandr Polozov, Sumit
 \bibitem[RSSV13]{raychev2013resynth}
 Veselin Raychev, Max Sch{\"a}fer, Manu Sridharan, and Martin Vechev.
 \newblock Refactoring with synthesis.
-\newblock In {\em Proceedings of the ACM International Conference on
-  Object-Oriented Programming, Systems, Languages, and Applications (OOPSLA)},
-  2013.
+\newblock In {\em Proceedings of the 2013 ACM International Conference on
+  Object Oriented Programming Systems Languages and Applications (OOPSLA)},
+  pages 339--354. ACM, 2013.
 
 \bibitem[S{\etalchar{+}}17]{silva2017refdiff}
 Danilo Silva et~al.
@@ -103,7 +116,20 @@ Simone Scalabrino et~al.
 \newblock A comprehensive model for code readability.
 \newblock {\em Journal of Systems and Software}, 2018.
 
-\bibitem[T{\etalchar{+}}20]{tsantalis2020refactoringminer}
+\bibitem[T{\etalchar{+}}18]{tsantalis2018refactoringminer}
+Nikolaos Tsantalis et~al.
+\newblock Refactoringminer: An open-source tool for automated refactoring
+  detection.
+\newblock In {\em Proceedings of the International Conference on Software
+  Engineering (ICSE) (Tool Demo Track)}, 2018.
+
+\bibitem[T{\etalchar{+}}20a]{tsantalis2020refactoringminer20}
+Nikolaos Tsantalis et~al.
+\newblock Refactoringminer 2.0: A multi-language tool for automated refactoring
+  detection.
+\newblock {\em IEEE Transactions on Software Engineering}, 2020.
+
+\bibitem[T{\etalchar{+}}20b]{tsantalis2020refactoringminer}
 Nikolaos Tsantalis et~al.
 \newblock Refactoringminer 2.0: A multi-language tool for automated refactoring
   detection.
