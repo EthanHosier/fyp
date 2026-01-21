@@ -42,7 +42,7 @@ Nikolaos Tsantalis et~al.
 \newblock In {\em Proceedings of the International Conference on Software
   Engineering (ICSE) (Tool Demo Track)}, 2018.
 
-\bibitem{tsantalis2020refactoringminer20}
+\bibitem{tsantalis2020refactoringminer}
 Nikolaos Tsantalis et~al.
 \newblock Refactoringminer 2.0: A multi-language tool for automated refactoring
   detection.
@@ -81,10 +81,8 @@ M.~Mohan and Des Greer.
 \newblock {\em Information and Software Technology}, 2019.
 
 \bibitem{wang2018traceability}
-TODO Wang et~al.
-\newblock Todo: Add title.
-\newblock {\em TODO: Add journal}, 2018.
-\newblock TODO: Complete this entry - traceability-based refactoring ranking.
+Wang et~al.
+\newblock 2018.
 
 \bibitem{nikolaidis2024metricsbased}
 Nikolaos Nikolaidis et~al.
@@ -121,12 +119,6 @@ Simone Scalabrino et~al.
 \newblock A comprehensive model for code readability.
 \newblock {\em Journal of Systems and Software}, 2018.
 
-\bibitem{tsantalis2020refactoringminer}
-Nikolaos Tsantalis et~al.
-\newblock Refactoringminer 2.0: A multi-language tool for automated refactoring
-  detection.
-\newblock {\em IEEE Transactions on Software Engineering}, 2020.
-
 \bibitem{silva2017refdiff}
 Danilo Silva et~al.
 \newblock Refdiff: Detecting refactorings in version histories.
@@ -148,13 +140,6 @@ Vahid Alizadeh, Marouane Kessentini, Ali Ouni, Mohamed~Wiem Mkaouer, Mel
 \newblock {\em IEEE Transactions on Software Engineering}, 46(9):932--961,
   2020.
 
-\bibitem{wangtraceability2018}
-TODO Wang et~al.
-\newblock Todo: Traceability-augmented ranking of refactoring solutions.
-\newblock {\em TODO: Add journal}, 2018.
-\newblock TODO: You already have a placeholder entry wang2018traceability;
-  simplest fix is to change the cite key in the text to wang2018traceability.
-
 \bibitem{whydevelopersrefactor2020}
 Valentina Pantiuchina, Fiorella Zampetti, Simone Scalabrino, et~al.
 \newblock Why developers refactor source code: A mining-based study.
@@ -167,26 +152,27 @@ Germ{\'a}n Robredo, Isabel Gonzales, Yania Crespo, et~al.
   refactoring motivations in open-source projects, 2025.
 \newblock arXiv:2509.07763.
 
-\bibitem{damevski2014visualstudio}
-Kostadin Damevski, David Shepherd, and Thomas Fritz.
+\bibitem{damevski2017usagesmells}
+Kostadin Damevski, Thomas Fritz, and David Shepherd.
 \newblock Mining sequences of developer interactions in visual studio for usage
   smells.
-\newblock {\em IEEE Transactions on Software Engineering}, 2017.
+\newblock {\em IEEE Transactions on Software Engineering}, 43(4):359--371,
+  2017.
 
-\bibitem{poncin2011rabbiteclipse}
-Wouter Poncin et~al.
-\newblock Todo: Ide interaction logging / process mining with eclipse (rabbit
-  plug-in).
-\newblock In {\em TODO: Add venue}, 2011.
-\newblock TODO: You likely already have this as poncin2011processmining;
-  easiest fix is to change the cite key.
+\bibitem{poncin2011processmining}
+Wouter Poncin, Alexander Serebrenik, and Mark van~den Brand.
+\newblock Process mining software development workflows.
+\newblock In {\em Proceedings of the 15th European Conference on Software
+  Maintenance and Reengineering (CSMR)}, pages 379--382. IEEE, 2011.
 
-\bibitem{foutsekh2019traces}
-TODO Foutsekh et~al.
-\newblock Todo: Developer interaction traces with ide screen recordings
-  (dataset/study).
-\newblock In {\em TODO: Add venue}, 2018.
-\newblock TODO: Your note suggests you already have
-  foutsekh2018interactiontraces; easiest fix is to change the cite key.
+\bibitem{foutsekh2018interactiontraces}
+Said Foutsekh, Aiko Yamashita, Fabio Petrillo, Mourad Khomh, and Yann-Ga{\"e}l
+  Gu{\'e}h{\'e}neuc.
+\newblock Developer interaction traces backed by ide screen recordings from
+  think-aloud sessions.
+\newblock In {\em Proceedings of the 15th International Conference on Mining
+  Software Repositories (MSR) (Data Showcase)}. ACM, 2018.
+\newblock Dataset paper providing IDE interaction traces with synchronized
+  screen recordings.
 
 \end{thebibliography}
