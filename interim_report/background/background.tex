@@ -61,6 +61,8 @@ The intended process-quality metric $J(\tau)$ in this thesis will draw on these 
   \item \textbf{Prefer interpretable components.} For a process critique to be actionable, the metric should decompose into terms that can be explained (e.g., readability dip, churn spike, smell increase), rather than an opaque scalar.
 \end{enumerate}
 
+A further practical implication is that process evaluation should include an explicit notion of \textbf{effort}, such as the length of the trajectory (number of steps) and/or the magnitude of edits required between successive states. While fewer steps are not inherently better (e.g., small ``micro-steps'' may reduce risk), step count and edit effort provide a natural regulariser against unnecessary detours and rework, complementing quality-improvement terms and disruption measures. Such cost terms are commonly treated as optimisation objectives alongside structural quality goals in search-based refactoring and recommendation settings (e.g., minimising change while improving quality), and are therefore suitable candidates for trajectory-level scoring \cite{harman2007pareto,mohan2019manyobjective}.
+
 Table~\ref{tab:metric-candidates} summarises candidate signals, their typical benefits and limitations, and representative tooling availability in the Java ecosystem. The purpose of the table is not to fix a final metric, but to motivate a process metric that is explicitly multi-term and robust to noise.
 
 \begin{table}[htbp]
@@ -72,7 +74,7 @@ Table~\ref{tab:metric-candidates} summarises candidate signals, their typical be
 \hline
 Structural metrics (coupling/cohesion/complexity/size) &
 Widely used; efficient; interpretable at class/method granularity &
-Proxy validity varies by context; may incentivise disruptive restructuring; metric interactions & 
+Proxy validity varies by context; may incentivise disruptive restructuring; metric interactions &
 Static analysis metric extractors; IDE/CI integrations \\
 \hline
 Smell counts / severity (rule-based) &
@@ -90,6 +92,11 @@ Captures cost and instability of change; naturally trajectory-oriented &
 Churn may be necessary for large refactors; can penalise required restructuring &
 VCS mining; diff statistics \\
 \hline
+Process length / effort (number of steps; edit magnitude) &
+Trajectory-native cost signal; discourages detours/rework; easy to compute &
+Sensitive to step granularity (commits vs.\ checkpoints vs.\ IDE events); may penalise safe micro-steps; requires calibration &
+VCS checkpoints; IDE logs; diff/AST edit size \\
+\hline
 Build/test preservation proxies &
 Direct safety signal; aligns with ``behaviour-preserving intent'' &
 Requires runnable builds/tests; noisy due to flaky tests; environment dependence &
@@ -104,6 +111,7 @@ Traceability-based ranking methods \cite{wang2018traceability} \\
 \caption{Candidate signals for constructing a process-quality objective. The thesis aims to combine endpoint quality change with trajectory-oriented cost/stability terms, rather than relying on a single indicator.}
 \label{tab:metric-candidates}
 \end{table}
+
 
 \section{Refactoring detection and mining from code changes}
 \label{sec:refactoring-mining}
