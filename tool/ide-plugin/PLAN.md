@@ -44,7 +44,7 @@ com.github.ethanhosier.ideplugin/
 ---
 
 ## Stage 1 — Data Model Layer
-**Status:** [ ] Not started
+**Status:** [x] Complete
 
 **build.gradle.kts changes:**
 - Add `kotlin("plugin.serialization")` plugin
