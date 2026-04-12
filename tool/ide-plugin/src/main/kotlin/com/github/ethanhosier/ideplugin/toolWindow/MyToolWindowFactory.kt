@@ -1,4 +1,4 @@
-package com.github.ethanhosier.intellijplatformplugintemplate1.toolWindow
+package com.github.ethanhosier.ideplugin.toolWindow
 
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.thisLogger
@@ -8,15 +8,15 @@ import com.intellij.openapi.wm.ToolWindowFactory
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBPanel
 import com.intellij.ui.content.ContentFactory
-import com.github.ethanhosier.intellijplatformplugintemplate1.MyBundle
-import com.github.ethanhosier.intellijplatformplugintemplate1.services.MyProjectService
+import com.github.ethanhosier.ideplugin.MyBundle
+import com.github.ethanhosier.ideplugin.services.MyProjectService
 import javax.swing.JButton
 
 
 class MyToolWindowFactory : ToolWindowFactory {
 
     init {
-        thisLogger().warn("Don't forget to remove all non-needed sample code files with their corresponding registration entries in `plugin.xml`.")
+        thisLogger().warn("3. Don't forget to remove all non-needed sample code files with their corresponding registration entries in `plugin.xml`.")
     }
 
     override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
@@ -38,6 +38,7 @@ class MyToolWindowFactory : ToolWindowFactory {
             add(JButton(MyBundle.message("shuffle")).apply {
                 addActionListener {
                     label.text = MyBundle.message("randomLabel", service.getRandomNumber())
+                    thisLogger().warn("shuffling!!")
                 }
             })
         }

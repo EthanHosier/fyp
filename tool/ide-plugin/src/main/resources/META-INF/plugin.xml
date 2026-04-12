@@ -1,7 +1,7 @@
 <!-- Plugin Configuration File. Read more: https://plugins.jetbrains.com/docs/intellij/plugin-configuration-file.html -->
 <idea-plugin>
-    <id>com.github.ethanhosier.intellijplatformplugintemplate1</id>
-    <name>intellij-platform-plugin-template-1</name>
+    <id>com.github.ethanhosier.ideplugin</id>
+    <name>ide-plugin</name>
     <vendor>ethanhosier</vendor>
 
     <depends>com.intellij.modules.platform</depends>
@@ -9,7 +9,7 @@
     <resource-bundle>messages.MyBundle</resource-bundle>
 
     <extensions defaultExtensionNs="com.intellij">
-        <toolWindow factoryClass="com.github.ethanhosier.intellijplatformplugintemplate1.toolWindow.MyToolWindowFactory" id="MyToolWindow"/>
-        <postStartupActivity implementation="com.github.ethanhosier.intellijplatformplugintemplate1.startup.MyProjectActivity" />
+        <toolWindow factoryClass="com.github.ethanhosier.ideplugin.toolWindow.MyToolWindowFactory" id="MyToolWindow"/>
+        <postStartupActivity implementation="com.github.ethanhosier.ideplugin.startup.MyProjectActivity" />
     </extensions>
 </idea-plugin>
