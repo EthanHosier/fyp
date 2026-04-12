@@ -5,6 +5,7 @@
     <vendor>ethanhosier</vendor>
 
     <depends>com.intellij.modules.platform</depends>
+    <depends>com.intellij.modules.java</depends>
 
     <resource-bundle>messages.MyBundle</resource-bundle>
 
@@ -12,4 +13,31 @@
         <toolWindow factoryClass="com.github.ethanhosier.ideplugin.toolWindow.MyToolWindowFactory" id="MyToolWindow"/>
         <postStartupActivity implementation="com.github.ethanhosier.ideplugin.startup.MyProjectActivity" />
     </extensions>
+
+    <applicationListeners>
+        <!-- VFS structural changes: create / delete / rename / move -->
+        <listener class="com.github.ethanhosier.ideplugin.listeners.VfsListener"
+                  topic="com.intellij.openapi.vfs.newvfs.BulkFileListener"/>
+        <!-- Editor created / released + document changes -->
+        <listener class="com.github.ethanhosier.ideplugin.listeners.EditorEventListener"
+                  topic="com.intellij.openapi.editor.event.EditorFactoryListener"/>
+        <!-- File save -->
+        <listener class="com.github.ethanhosier.ideplugin.listeners.FileSaveListener"
+                  topic="com.intellij.openapi.fileEditor.FileDocumentManagerListener"/>
+        <!-- Build lifecycle -->
+        <listener class="com.github.ethanhosier.ideplugin.listeners.BuildListener"
+                  topic="com.intellij.compiler.server.BuildManagerListener"/>
+    </applicationListeners>
+
+    <projectListeners>
+        <!-- File editor focus / open / close -->
+        <listener class="com.github.ethanhosier.ideplugin.listeners.FileEditorListener"
+                  topic="com.intellij.openapi.fileEditor.FileEditorManagerListener"/>
+        <!-- IntelliJ refactoring operations -->
+        <listener class="com.github.ethanhosier.ideplugin.listeners.RefactoringListener"
+                  topic="com.intellij.refactoring.listeners.RefactoringEventListener"/>
+    </projectListeners>
+
+    <!-- TestRunListener subscribed dynamically in MyProjectActivity (SMTRunnerEventsListener requires per-project subscription) -->
+
 </idea-plugin>

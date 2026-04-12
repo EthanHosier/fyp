@@ -62,7 +62,7 @@ com.github.ethanhosier.ideplugin/
 ---
 
 ## Stage 3a — Stub Listeners
-**Status:** [ ] Not started
+**Status:** [x] Complete
 
 Wire all listeners in `plugin.xml`. Each listener only calls `thisLogger().info(...)` to confirm the event fires. No service calls yet.
 

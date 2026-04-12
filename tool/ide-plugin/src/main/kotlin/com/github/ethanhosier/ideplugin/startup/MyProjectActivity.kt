@@ -1,5 +1,7 @@
 package com.github.ethanhosier.ideplugin.startup
 
+import com.github.ethanhosier.ideplugin.listeners.TestRunListener
+import com.intellij.execution.testframework.sm.runner.SMTRunnerEventsListener
 import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.startup.ProjectActivity
@@ -7,6 +9,9 @@ import com.intellij.openapi.startup.ProjectActivity
 class MyProjectActivity : ProjectActivity {
 
     override suspend fun execute(project: Project) {
-        thisLogger().warn("1. Don't forget to remove all non-needed sample code files with their corresponding registration entries in `plugin.xml`.")
+        thisLogger().info("RefactoringTracer: plugin starting for project=${project.name}")
+
+        // SMTRunnerEventsListener must be subscribed dynamically per project.
+        project.messageBus.connect().subscribe(SMTRunnerEventsListener.TEST_STATUS, TestRunListener())
     }
 }
