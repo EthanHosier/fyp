@@ -1,4 +1,4 @@
-package com.github.ethanhosier.intellijplatformplugintemplate1
+package com.github.ethanhosier.ideplugin
 
 import com.intellij.DynamicBundle
 import org.jetbrains.annotations.NonNls
