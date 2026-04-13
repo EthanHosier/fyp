@@ -3,6 +3,7 @@ package com.github.ethanhosier.ideplugin.services
 import com.github.ethanhosier.ideplugin.model.EventType
 import com.github.ethanhosier.ideplugin.model.FileChangeType
 import com.github.ethanhosier.ideplugin.model.FileSnapshot
+import com.github.ethanhosier.ideplugin.model.TraceEvent
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
@@ -10,6 +11,7 @@ import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.editor.event.DocumentEvent
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
+import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledFuture
@@ -47,6 +49,9 @@ class EditBurstTracker(private val project: Project) : Disposable {
         // Captured from event.document.text on every change — reflects the exact in-memory
         // state at the time of the last edit in this burst.
         var latestContents: String? = null,
+        // Timestamp of the last edit — used as the event timestamp so it reflects when the
+        // activity actually happened, not when the debounce timer fires.
+        var latestTimestamp: Long = System.currentTimeMillis(),
     )
 
     fun onDocumentChanged(vFile: VirtualFile, event: DocumentEvent) {
@@ -63,10 +68,19 @@ class EditBurstTracker(private val project: Project) : Disposable {
             acc.regionStart = minOf(acc.regionStart, event.offset)
             acc.regionEnd = maxOf(acc.regionEnd, regionEnd)
             acc.latestContents = currentText
+            acc.latestTimestamp = System.currentTimeMillis()
             acc
         }
 
         // Reset the debounce timer.
+        // Known race: if flush(key) is already executing when cancel(false) is called, the
+        // cancel returns false and flush proceeds. A concurrent onDocumentChanged call may then
+        // write new data into accumulators and schedule a new future. flush() will subsequently
+        // remove that new data via accumulators.remove(key), causing the new future to fire with
+        // nothing to flush — silently dropping one event. The window is the duration of flush()
+        // itself (a single ConcurrentHashMap remove + addEvent call), so in practice this is
+        // extremely unlikely. Acceptable for thesis data collection; fix by serialising all
+        // mutations through the scheduler thread if stronger guarantees are ever needed.
         futures.remove(key)?.cancel(false)
         if (!scheduler.isShutdown) {
             futures[key] = scheduler.schedule({ flush(key) }, DEBOUNCE_MS, TimeUnit.MILLISECONDS)
@@ -87,15 +101,21 @@ class EditBurstTracker(private val project: Project) : Disposable {
             )
         )
 
+        val sessionId = project.service<SessionService>().getSessionId() ?: return
         project.service<SessionService>().addEvent(
-            type = EventType.EDIT_BURST,
-            changedFiles = changedFiles,
-            payload = mapOf(
-                "charsInserted" to acc.charsInserted.toString(),
-                "charsDeleted" to acc.charsDeleted.toString(),
-                "regionStart" to acc.regionStart.toString(),
-                "regionEnd" to acc.regionEnd.toString(),
-            ),
+            TraceEvent(
+                id = UUID.randomUUID().toString(),
+                type = EventType.EDIT_BURST,
+                timestamp = acc.latestTimestamp,
+                sessionId = sessionId,
+                changedFiles = changedFiles,
+                payload = mapOf(
+                    "charsInserted" to acc.charsInserted.toString(),
+                    "charsDeleted" to acc.charsDeleted.toString(),
+                    "regionStart" to acc.regionStart.toString(),
+                    "regionEnd" to acc.regionEnd.toString(),
+                ),
+            )
         )
         thisLogger().info(
             "RefactoringTracer: EDIT_BURST path=${acc.filePath} " +

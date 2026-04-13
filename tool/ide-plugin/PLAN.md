@@ -28,8 +28,9 @@ com.github.ethanhosier.ideplugin/
 2. **Stage 3a** — Stub listeners
 3. **Stage 2** — Core services
 4. **Stage 3b** — Real listener implementations
-5. **Stage R** — Refactor: simplify model (merge checkpoints into events) ← current
-6. **Stage 5** — Actions
+5. **Stage R** — Refactor: simplify model (merge checkpoints into events)
+6. **Stage P** — Problem state tracking (WolfTheProblemSolver)
+7. **Stage 5** — Actions
 7. **Stage 8** — Startup wiring (session end on project close)
 8. **Stage 6** — Tool window
 9. **Stage 9** — README
@@ -121,6 +122,21 @@ The original checkpoint model (separate checkpoint files, FileStateTracker, Chec
 ├── session.json     ← written on session end
 └── events.jsonl     ← one JSON object per line, appended live
 ```
+
+---
+
+## Stage P — Problem State Tracking (WolfTheProblemSolver)
+**Status:** [x] Complete
+
+Track when files transition between broken (has errors) and clean states, capturing file contents at each transition.
+
+- Add `FILE_ERRORS_CHANGED` to `model/EventType.kt`
+- Add `listeners/ProblemListener.kt` implementing `com.intellij.problems.ProblemListener`:
+  - `problemsAppeared` / `problemsChanged` → emit `FILE_ERRORS_CHANGED` with `hasErrors=true` + file contents
+  - `problemsDisappeared` → emit `FILE_ERRORS_CHANGED` with `hasErrors=false` + file contents
+  - Uses same `readContents()` pattern as `VfsListener` (prefer `FileDocumentManager`, fallback to VFS)
+  - Guards with `isTracesFile()` to skip output directory
+- Register in `plugin.xml` under `<projectListeners>` with topic `com.intellij.problems.ProblemListener`
 
 ---
 

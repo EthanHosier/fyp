@@ -39,6 +39,9 @@
         <!-- IntelliJ refactoring operations -->
         <listener class="com.github.ethanhosier.ideplugin.listeners.RefactoringListener"
                   topic="com.intellij.refactoring.listeners.RefactoringEventListener"/>
+        <!-- File error/problem state changes (WolfTheProblemSolver) -->
+        <listener class="com.github.ethanhosier.ideplugin.listeners.ProblemListener"
+                  topic="com.intellij.problems.ProblemListener"/>
     </projectListeners>
 
     <!-- TestRunListener subscribed dynamically in MyProjectActivity (SMTRunnerEventsListener requires per-project subscription) -->
