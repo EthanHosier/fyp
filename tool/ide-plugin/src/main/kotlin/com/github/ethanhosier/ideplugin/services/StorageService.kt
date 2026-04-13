@@ -1,6 +1,5 @@
 package com.github.ethanhosier.ideplugin.services
 
-import com.github.ethanhosier.ideplugin.model.Checkpoint
 import com.github.ethanhosier.ideplugin.model.Session
 import com.github.ethanhosier.ideplugin.model.TraceEvent
 import com.intellij.openapi.components.Service
@@ -9,20 +8,16 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.io.File
 import java.io.FileWriter
-import java.util.concurrent.atomic.AtomicInteger
 
 /**
  * Handles all disk I/O for a session.
  *
  * Output layout:
  *   <projectDir>/.refactoring-traces/<sessionId>/
- *     ├── session.json          ← written on session end
- *     ├── events.jsonl          ← appended live (one JSON object per line)
- *     └── checkpoints/
- *         ├── 001_<id>.json
- *         └── ...
+ *     ├── session.json    ← written on session end
+ *     └── events.jsonl   ← appended live (one JSON object per line, crash-safe)
  *
- * Call [init] once after the session ID is known (i.e. from SessionService.startSession).
+ * Call [init] once after the session ID is known (from SessionService.startSession).
  */
 @Service(Service.Level.PROJECT)
 class StorageService {
@@ -31,21 +26,14 @@ class StorageService {
     private val prettyJson = Json { prettyPrint = true; encodeDefaults = true }
 
     private var sessionDir: File? = null
-    private var checkpointDir: File? = null
-    private var eventsFile: File? = null
     private var eventsWriter: FileWriter? = null
-    private val checkpointSeq = AtomicInteger(0)
 
     fun init(sessionId: String, projectBasePath: String) {
         val base = File(projectBasePath, ".refactoring-traces/$sessionId")
         base.mkdirs()
-        val cpDir = File(base, "checkpoints")
-        cpDir.mkdirs()
 
         sessionDir = base
-        checkpointDir = cpDir
-        eventsFile = File(base, "events.jsonl")
-        eventsWriter = FileWriter(eventsFile!!, /* append = */ true)
+        eventsWriter = FileWriter(File(base, "events.jsonl"), /* append = */ true)
 
         thisLogger().info("RefactoringTracer: storage initialised at ${base.absolutePath}")
     }
@@ -54,25 +42,13 @@ class StorageService {
     fun flushEvent(event: TraceEvent) {
         val writer = eventsWriter ?: return
         try {
-            val encoded = json.encodeToString(event)
-            thisLogger().info("RefactoringTracer: flushing event ${encoded}")
-            writer.write(encoded)
+            val line = json.encodeToString(event)
+            thisLogger().info("RefactoringTracer: $line")
+            writer.write(line)
             writer.write("\n")
             writer.flush()
         } catch (e: Exception) {
             thisLogger().warn("RefactoringTracer: failed to flush event id=${event.id}: ${e.message}")
-        }
-    }
-
-    /** Writes a checkpoint as its own numbered JSON file. */
-    fun flushCheckpoint(checkpoint: Checkpoint) {
-        val dir = checkpointDir ?: return
-        val seq = checkpointSeq.incrementAndGet()
-        val filename = "%03d_%s.json".format(seq, checkpoint.id)
-        try {
-            File(dir, filename).writeText(prettyJson.encodeToString(checkpoint))
-        } catch (e: Exception) {
-            thisLogger().warn("RefactoringTracer: failed to flush checkpoint id=${checkpoint.id}: ${e.message}")
         }
     }
 

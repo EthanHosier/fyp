@@ -2,6 +2,7 @@ package com.github.ethanhosier.ideplugin.services
 
 import com.github.ethanhosier.ideplugin.model.EventType
 import com.github.ethanhosier.ideplugin.model.FileChangeType
+import com.github.ethanhosier.ideplugin.model.FileSnapshot
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
@@ -17,9 +18,11 @@ import java.util.concurrent.TimeUnit
 /**
  * Owns all debounce state for edit burst detection.
  *
- * For each file being edited, it accumulates character-level change stats and
- * schedules a flush after [DEBOUNCE_MS] of inactivity. On flush, it emits an
- * EDIT_BURST TraceEvent and marks the file dirty for the next checkpoint.
+ * For each file being edited, accumulates character-level change stats and captures
+ * the in-memory document text on every change. After [DEBOUNCE_MS] of inactivity,
+ * flushes an EDIT_BURST event with the file contents as they were at the last edit —
+ * using the in-memory document state (event.document.text) rather than reading from
+ * disk, giving accurate pre-save contents regardless of auto-save or formatters.
  *
  * Lifecycle is tied to the project: the scheduler is shut down cleanly on dispose().
  */
@@ -41,6 +44,9 @@ class EditBurstTracker(private val project: Project) : Disposable {
         var charsDeleted: Int = 0,
         var regionStart: Int = Int.MAX_VALUE,
         var regionEnd: Int = 0,
+        // Captured from event.document.text on every change — reflects the exact in-memory
+        // state at the time of the last edit in this burst.
+        var latestContents: String? = null,
     )
 
     fun onDocumentChanged(vFile: VirtualFile, event: DocumentEvent) {
@@ -48,6 +54,7 @@ class EditBurstTracker(private val project: Project) : Disposable {
         val inserted = maxOf(0, event.newLength - event.oldLength)
         val deleted = maxOf(0, event.oldLength - event.newLength)
         val regionEnd = event.offset + maxOf(event.oldLength, event.newLength)
+        val currentText = event.document.text
 
         accumulators.compute(key) { _, existing ->
             val acc = existing ?: BurstAccumulator(fileUrl = key, filePath = vFile.path)
@@ -55,6 +62,7 @@ class EditBurstTracker(private val project: Project) : Disposable {
             acc.charsDeleted += deleted
             acc.regionStart = minOf(acc.regionStart, event.offset)
             acc.regionEnd = maxOf(acc.regionEnd, regionEnd)
+            acc.latestContents = currentText
             acc
         }
 
@@ -63,10 +71,6 @@ class EditBurstTracker(private val project: Project) : Disposable {
         if (!scheduler.isShutdown) {
             futures[key] = scheduler.schedule({ flush(key) }, DEBOUNCE_MS, TimeUnit.MILLISECONDS)
         }
-
-        thisLogger().info("EditBurstTracker EditBurstTracker $key!!!!")
-        // Mark dirty immediately so FileStateTracker is up-to-date even before the burst flushes.
-        project.service<FileStateTracker>().markDirty(vFile.path, FileChangeType.MODIFIED)
     }
 
     private fun flush(key: String) {
@@ -75,9 +79,17 @@ class EditBurstTracker(private val project: Project) : Disposable {
 
         if (project.isDisposed) return
 
+        val changedFiles = listOf(
+            FileSnapshot(
+                path = acc.filePath,
+                contents = acc.latestContents,
+                changeType = FileChangeType.MODIFIED,
+            )
+        )
+
         project.service<SessionService>().addEvent(
-            EventType.EDIT_BURST,
-            relatedFiles = listOf(acc.filePath),
+            type = EventType.EDIT_BURST,
+            changedFiles = changedFiles,
             payload = mapOf(
                 "charsInserted" to acc.charsInserted.toString(),
                 "charsDeleted" to acc.charsDeleted.toString(),

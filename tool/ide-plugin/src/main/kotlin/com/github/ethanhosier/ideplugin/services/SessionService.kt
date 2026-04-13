@@ -14,7 +14,6 @@ class SessionService(private val project: Project) {
 
     private var metadata: SessionMetadata? = null
     private val events: CopyOnWriteArrayList<TraceEvent> = CopyOnWriteArrayList()
-    private val checkpoints: CopyOnWriteArrayList<Checkpoint> = CopyOnWriteArrayList()
 
     fun startSession() {
         val sessionId = UUID.randomUUID().toString()
@@ -77,6 +76,7 @@ class SessionService(private val project: Project) {
     /** Convenience overload: builds and records a TraceEvent without the caller needing to manage IDs or timestamps. */
     fun addEvent(
         type: EventType,
+        changedFiles: List<FileSnapshot> = emptyList(),
         relatedFiles: List<String> = emptyList(),
         payload: Map<String, String> = emptyMap(),
     ) {
@@ -87,14 +87,11 @@ class SessionService(private val project: Project) {
                 type = type,
                 timestamp = System.currentTimeMillis(),
                 sessionId = sessionId,
+                changedFiles = changedFiles,
                 relatedFiles = relatedFiles,
                 payload = payload,
             )
         )
-    }
-
-    fun addCheckpoint(checkpoint: Checkpoint) {
-        checkpoints.add(checkpoint)
     }
 
     fun getSession(): Session? {
@@ -102,15 +99,10 @@ class SessionService(private val project: Project) {
         return Session(
             metadata = meta,
             events = events.toList(),
-            checkpoints = checkpoints.toList(),
         )
     }
 
     fun getSessionId(): String? = metadata?.sessionId
-
-    /** Returns the IDs of the most recent [count] events, for embedding in a checkpoint. */
-    fun getRecentEventIds(count: Int = 20): List<String> =
-        events.takeLast(count).map { it.id }
 
     // --- private helpers ---
 

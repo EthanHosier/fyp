@@ -2,10 +2,11 @@ package com.github.ethanhosier.ideplugin.listeners
 
 import com.github.ethanhosier.ideplugin.model.EventType
 import com.github.ethanhosier.ideplugin.model.FileChangeType
-import com.github.ethanhosier.ideplugin.services.CheckpointService
-import com.github.ethanhosier.ideplugin.services.FileStateTracker
+import com.github.ethanhosier.ideplugin.model.FileSnapshot
 import com.github.ethanhosier.ideplugin.services.SessionService
+import com.github.ethanhosier.ideplugin.util.isTracesFile
 import com.intellij.openapi.components.service
+import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.project.ProjectLocator
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.vfs.newvfs.BulkFileListener
@@ -33,7 +34,6 @@ class VfsListener : BulkFileListener {
                     eventType = EventType.FILE_MOVED,
                     changeType = FileChangeType.MOVED,
                     previousPath = event.oldPath,
-                    triggerCheckpoint = true,
                 )
 
                 is VFilePropertyChangeEvent if event.propertyName == "name" -> handle(
@@ -41,10 +41,9 @@ class VfsListener : BulkFileListener {
                     eventType = EventType.FILE_RENAMED,
                     changeType = FileChangeType.RENAMED,
                     previousPath = event.file.parent?.path + "/" + event.oldValue,
-                    triggerCheckpoint = true,
                 )
 
-                else -> { /* content changes handled via DocumentListener */ }
+                else -> { /* content changes handled via DocumentListener / EditBurstTracker */ }
             }
         }
     }
@@ -54,35 +53,48 @@ class VfsListener : BulkFileListener {
         eventType: EventType,
         changeType: FileChangeType,
         previousPath: String? = null,
-        triggerCheckpoint: Boolean = false,
     ) {
         // Skip directories — we only track file-level changes.
         if (file.isDirectory) return
 
         // Skip our own output directory to avoid feedback loops.
-        if (file.path.contains("/.refactoring-traces/")) return
+        if (file.isTracesFile()) return
 
         // Only track files that belong to an open project.
         val project = ProjectLocator.getInstance().getProjectsForFile(file).firstOrNull() ?: return
 
-        val path = file.path
         val sessionService = project.service<SessionService>()
         if (sessionService.getSessionId() == null) return
 
-        project.service<FileStateTracker>().markDirty(path, changeType, previousPath)
+        val contents = if (changeType == FileChangeType.DELETED) {
+            // File is already gone by the time after() fires — record null contents.
+            null
+        } else {
+            readContents(file)
+        }
+
+        val snapshot = FileSnapshot(
+            path = file.path,
+            contents = contents,
+            changeType = changeType,
+            previousPath = previousPath,
+        )
+
         sessionService.addEvent(
             type = eventType,
-            relatedFiles = listOfNotNull(path, previousPath),
+            changedFiles = listOf(snapshot),
             payload = buildMap {
                 if (previousPath != null) put("previousPath", previousPath)
             },
         )
+    }
 
-        if (triggerCheckpoint) {
-            project.service<CheckpointService>().createCheckpoint(
-                triggerType = eventType.name,
-                activeFilePath = path,
-            )
-        }
+    /**
+     * Reads file contents preferring the in-memory document (open editor state) over
+     * the VFS cache, so we get the exact text the user sees before any disk flush.
+     */
+    private fun readContents(file: VirtualFile): String? {
+        FileDocumentManager.getInstance().getDocument(file)?.let { return it.text }
+        return try { String(file.contentsToByteArray()) } catch (e: Exception) { null }
     }
 }
