@@ -18,9 +18,12 @@
         <!-- VFS structural changes: create / delete / rename / move -->
         <listener class="com.github.ethanhosier.ideplugin.listeners.VfsListener"
                   topic="com.intellij.openapi.vfs.newvfs.BulkFileListener"/>
-        <!-- Editor created / released + document changes -->
-        <listener class="com.github.ethanhosier.ideplugin.listeners.EditorEventListener"
-                  topic="com.intellij.openapi.editor.event.EditorFactoryListener"/>
+        <!-- EditorEventListener is registered programmatically in MyProjectActivity, not here.
+             plugin.xml EditorFactoryListener callbacks fire too late to catch editors that
+             IntelliJ restores from the previous session on project open — those editors are
+             created via an internal restore path that bypasses EditorFactory events.
+             MyProjectActivity runs after restoration is complete and handles both existing
+             and future editors in one place with a single listener instance. -->
         <!-- File save -->
         <listener class="com.github.ethanhosier.ideplugin.listeners.FileSaveListener"
                   topic="com.intellij.openapi.fileEditor.FileDocumentManagerListener"/>

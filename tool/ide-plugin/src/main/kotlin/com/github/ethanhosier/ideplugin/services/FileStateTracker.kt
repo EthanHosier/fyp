@@ -58,7 +58,9 @@ class FileStateTracker {
 
     private fun readFileContents(path: String): String? {
         return try {
-            java.io.File(path).readText()
+            val file = java.io.File(path)
+            if (!file.isFile) return null
+            file.readText()
         } catch (e: Exception) {
             thisLogger().warn("RefactoringTracer: could not read file contents path=$path: ${e.message}")
             null

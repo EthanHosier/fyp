@@ -1,16 +1,18 @@
 package com.github.ethanhosier.ideplugin.listeners
 
-import com.intellij.openapi.diagnostic.thisLogger
+import com.github.ethanhosier.ideplugin.model.EventType
+import com.github.ethanhosier.ideplugin.services.SessionService
+import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Document
+import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.fileEditor.FileDocumentManagerListener
+import com.intellij.openapi.project.ProjectLocator
 
 class FileSaveListener : FileDocumentManagerListener {
 
     override fun beforeDocumentSaving(document: Document) {
-        thisLogger().info("[STUB] Document saving: $document")
-    }
-
-    override fun beforeAllDocumentsSaving() {
-        thisLogger().info("[STUB] All documents saving (e.g. before build)")
+        val vFile = FileDocumentManager.getInstance().getFile(document) ?: return
+        val project = ProjectLocator.getInstance().getProjectsForFile(vFile).firstOrNull() ?: return
+        project.service<SessionService>().addEvent(EventType.FILE_SAVED, relatedFiles = listOf(vFile.path))
     }
 }

@@ -54,7 +54,9 @@ class StorageService {
     fun flushEvent(event: TraceEvent) {
         val writer = eventsWriter ?: return
         try {
-            writer.write(json.encodeToString(event))
+            val encoded = json.encodeToString(event)
+            thisLogger().info("RefactoringTracer: flushing event ${encoded}")
+            writer.write(encoded)
             writer.write("\n")
             writer.flush()
         } catch (e: Exception) {

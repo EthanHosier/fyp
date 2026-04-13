@@ -1,22 +1,25 @@
 package com.github.ethanhosier.ideplugin.listeners
 
-import com.intellij.openapi.diagnostic.thisLogger
+import com.github.ethanhosier.ideplugin.model.EventType
+import com.github.ethanhosier.ideplugin.services.SessionService
+import com.intellij.openapi.components.service
+import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.fileEditor.FileEditorManagerEvent
 import com.intellij.openapi.fileEditor.FileEditorManagerListener
+import com.intellij.openapi.project.Project
+import com.intellij.openapi.vfs.VirtualFile
 
-class FileEditorListener : FileEditorManagerListener {
+class FileEditorListener(private val project: Project) : FileEditorManagerListener {
 
-    override fun fileOpened(source: com.intellij.openapi.fileEditor.FileEditorManager, file: com.intellij.openapi.vfs.VirtualFile) {
-        thisLogger().info("[STUB] File opened: ${file.path}")
-    }
+    override fun fileOpened(source: FileEditorManager, file: VirtualFile) =
+        project.service<SessionService>().addEvent(EventType.FILE_OPENED, relatedFiles = listOf(file.path))
 
-    override fun fileClosed(source: com.intellij.openapi.fileEditor.FileEditorManager, file: com.intellij.openapi.vfs.VirtualFile) {
-        thisLogger().info("[STUB] File closed: ${file.path}")
-    }
+    override fun fileClosed(source: FileEditorManager, file: VirtualFile) =
+        project.service<SessionService>().addEvent(EventType.FILE_CLOSED, relatedFiles = listOf(file.path))
 
     override fun selectionChanged(event: FileEditorManagerEvent) {
-        val old = event.oldFile?.path
-        val new = event.newFile?.path
-        thisLogger().info("[STUB] File focus changed: $old -> $new")
+        val sessionService = project.service<SessionService>()
+        event.oldFile?.let { sessionService.addEvent(EventType.FILE_UNFOCUSED, relatedFiles = listOf(it.path)) }
+        event.newFile?.let { sessionService.addEvent(EventType.FILE_FOCUSED, relatedFiles = listOf(it.path)) }
     }
 }

@@ -74,6 +74,25 @@ class SessionService(private val project: Project) {
         project.service<StorageService>().flushEvent(event)
     }
 
+    /** Convenience overload: builds and records a TraceEvent without the caller needing to manage IDs or timestamps. */
+    fun addEvent(
+        type: EventType,
+        relatedFiles: List<String> = emptyList(),
+        payload: Map<String, String> = emptyMap(),
+    ) {
+        val sessionId = metadata?.sessionId ?: return
+        addEvent(
+            TraceEvent(
+                id = UUID.randomUUID().toString(),
+                type = type,
+                timestamp = System.currentTimeMillis(),
+                sessionId = sessionId,
+                relatedFiles = relatedFiles,
+                payload = payload,
+            )
+        )
+    }
+
     fun addCheckpoint(checkpoint: Checkpoint) {
         checkpoints.add(checkpoint)
     }

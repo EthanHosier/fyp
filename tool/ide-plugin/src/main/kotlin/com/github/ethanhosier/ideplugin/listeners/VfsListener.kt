@@ -1,39 +1,88 @@
 package com.github.ethanhosier.ideplugin.listeners
 
-import com.intellij.openapi.diagnostic.thisLogger
+import com.github.ethanhosier.ideplugin.model.EventType
+import com.github.ethanhosier.ideplugin.model.FileChangeType
+import com.github.ethanhosier.ideplugin.services.CheckpointService
+import com.github.ethanhosier.ideplugin.services.FileStateTracker
+import com.github.ethanhosier.ideplugin.services.SessionService
+import com.intellij.openapi.components.service
+import com.intellij.openapi.project.ProjectLocator
+import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.vfs.newvfs.BulkFileListener
-import com.intellij.openapi.vfs.newvfs.events.VFileContentChangeEvent
-import com.intellij.openapi.vfs.newvfs.events.VFileCopyEvent
-import com.intellij.openapi.vfs.newvfs.events.VFileCreateEvent
-import com.intellij.openapi.vfs.newvfs.events.VFileDeleteEvent
-import com.intellij.openapi.vfs.newvfs.events.VFileMoveEvent
-import com.intellij.openapi.vfs.newvfs.events.VFilePropertyChangeEvent
+import com.intellij.openapi.vfs.newvfs.events.*
 
 class VfsListener : BulkFileListener {
 
-    override fun after(events: List<com.intellij.openapi.vfs.newvfs.events.VFileEvent>) {
+    override fun after(events: List<VFileEvent>) {
         for (event in events) {
             when (event) {
-                is VFileCreateEvent ->
-                    thisLogger().info("[STUB] VFS file created: ${event.path}")
+                is VFileCreateEvent -> handle(
+                    file = event.file ?: continue,
+                    eventType = EventType.FILE_CREATED,
+                    changeType = FileChangeType.CREATED,
+                )
 
-                is VFileDeleteEvent ->
-                    thisLogger().info("[STUB] VFS file deleted: ${event.file.path}")
+                is VFileDeleteEvent -> handle(
+                    file = event.file,
+                    eventType = EventType.FILE_DELETED,
+                    changeType = FileChangeType.DELETED,
+                )
 
-                is VFileMoveEvent ->
-                    thisLogger().info("[STUB] VFS file moved: ${event.oldPath} -> ${event.newPath}")
+                is VFileMoveEvent -> handle(
+                    file = event.file,
+                    eventType = EventType.FILE_MOVED,
+                    changeType = FileChangeType.MOVED,
+                    previousPath = event.oldPath,
+                    triggerCheckpoint = true,
+                )
 
-                is VFilePropertyChangeEvent if event.propertyName == "name" ->
-                    thisLogger().info("[STUB] VFS file renamed: ${event.oldValue} -> ${event.newValue} (in ${event.file.parent?.path})")
+                is VFilePropertyChangeEvent if event.propertyName == "name" -> handle(
+                    file = event.file,
+                    eventType = EventType.FILE_RENAMED,
+                    changeType = FileChangeType.RENAMED,
+                    previousPath = event.file.parent?.path + "/" + event.oldValue,
+                    triggerCheckpoint = true,
+                )
 
-                is VFileCopyEvent ->
-                    thisLogger().info("[STUB] VFS file copied: ${event.file.path} -> ${event.newParent.path}/${event.newChildName}")
-
-                is VFileContentChangeEvent ->
-                    thisLogger().info("[STUB] VFS content changed: ${event.file.path}")
-
-                else -> { /* not interested */ }
+                else -> { /* content changes handled via DocumentListener */ }
             }
+        }
+    }
+
+    private fun handle(
+        file: VirtualFile,
+        eventType: EventType,
+        changeType: FileChangeType,
+        previousPath: String? = null,
+        triggerCheckpoint: Boolean = false,
+    ) {
+        // Skip directories — we only track file-level changes.
+        if (file.isDirectory) return
+
+        // Skip our own output directory to avoid feedback loops.
+        if (file.path.contains("/.refactoring-traces/")) return
+
+        // Only track files that belong to an open project.
+        val project = ProjectLocator.getInstance().getProjectsForFile(file).firstOrNull() ?: return
+
+        val path = file.path
+        val sessionService = project.service<SessionService>()
+        if (sessionService.getSessionId() == null) return
+
+        project.service<FileStateTracker>().markDirty(path, changeType, previousPath)
+        sessionService.addEvent(
+            type = eventType,
+            relatedFiles = listOfNotNull(path, previousPath),
+            payload = buildMap {
+                if (previousPath != null) put("previousPath", previousPath)
+            },
+        )
+
+        if (triggerCheckpoint) {
+            project.service<CheckpointService>().createCheckpoint(
+                triggerType = eventType.name,
+                activeFilePath = path,
+            )
         }
     }
 }
