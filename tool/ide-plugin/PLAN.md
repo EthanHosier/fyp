@@ -63,7 +63,7 @@ Notes:
 ---
 
 ## Stage R — Simplify Model: Merge Checkpoints into Events
-**Status:** [ ] Not started
+**Status:** [x] Complete
 
 The original checkpoint model (separate checkpoint files, FileStateTracker, CheckpointService) is replaced by storing file contents inline with the events that cause changes.
 
@@ -127,7 +127,6 @@ The original checkpoint model (separate checkpoint files, FileStateTracker, Chec
 ## Stage 5 — Actions
 **Status:** [ ] Not started
 
-- `actions/MarkCheckpointAction.kt` — emits `MANUAL_CHECKPOINT` event (no file snapshot needed)
 - `actions/StartTaskAction.kt` — input dialog for label, emits `TASK_STARTED`
 - `actions/EndTaskAction.kt` — emits `TASK_ENDED`
 
@@ -149,7 +148,6 @@ Register in plugin.xml under Tools menu.
 Replace `toolWindow/MyToolWindowFactory.kt` with a status panel:
 - Session ID + start time
 - Live event count
-- "Mark Checkpoint" button
 - "Start Task" / "End Task" buttons
 - Output directory path
 
