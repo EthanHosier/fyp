@@ -80,7 +80,7 @@ Wire all listeners in `plugin.xml`. Each listener only calls `thisLogger().info(
 ---
 
 ## Stage 2 — Core Services
-**Status:** [ ] Not started
+**Status:** [x] Complete
 
 - `services/SessionService.kt` — `@Service(PROJECT)`. `startSession()`, `endSession()`, `addEvent(TraceEvent)`, `getSession()`. Generates UUID session ID. Reads git branch/commit via `git rev-parse`. Captures IDE version via `ApplicationInfo`.
 - `services/FileStateTracker.kt` — `@Service(PROJECT)`. Maintains set of dirty files since last checkpoint. `markDirty(path, changeType)`, `getDirtyFiles(): List<ChangedFile>`, `reset()`.
@@ -90,7 +90,7 @@ Wire all listeners in `plugin.xml`. Each listener only calls `thisLogger().info(
 ---
 
 ## Stage 7 — Storage & Export
-**Status:** [ ] Not started
+**Status:** [x] Complete (implemented as part of Stage 2 via StorageService)
 
 Output layout:
 ```
@@ -108,7 +108,13 @@ Each checkpoint JSON contains full `Checkpoint` object including full file conte
 ---
 
 ## Stage 3b — Real Listener Implementations
-**Status:** [ ] Not started
+**Status:** [x] Complete
+
+Notes:
+- Added `SessionService.addEvent(type, ...)` convenience overload to eliminate emit() duplication
+- Added `EditBurstTracker` service owning debounce scheduler, per-file accumulators, and burst flush logic
+- `EditorEventListener` wired programmatically from `MyProjectActivity` (not plugin.xml) — restored editors bypass EditorFactory events so must be attached after project open
+- `VfsListener` filters out directories and `.refactoring-traces/` paths to avoid feedback loops
 
 Replace stub log calls with real service calls:
 - `EditorEventListener` — debounce edits into `EDIT_BURST` events (2s idle gap), capture char counts + line ranges, call `SessionService.addEvent()` + `FileStateTracker.markDirty()`
