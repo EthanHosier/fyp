@@ -151,10 +151,11 @@ Track when files transition between broken (has errors) and clean states, captur
 ---
 
 ## Stage 8 — Startup & Session End
-**Status:** [ ] Not started
+**Status:** [x] Complete
 
-- Add `ProjectManagerListener` to call `SessionService.endSession()` on project close
-- Ensure `session.json` is flushed cleanly
+- Add `listeners/ProjectCloseListener.kt` implementing `ProjectManagerListener.projectClosing()`
+- Calls `SessionService.endSession()` which flushes `SESSION_ENDED` event and writes `session.json`
+- Registered in `plugin.xml` under `<projectListeners>`
 
 ---
 

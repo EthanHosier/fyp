@@ -33,6 +33,9 @@
     </applicationListeners>
 
     <projectListeners>
+        <!-- Flush session.json cleanly when the project is closed -->
+        <listener class="com.github.ethanhosier.ideplugin.listeners.ProjectCloseListener"
+                  topic="com.intellij.openapi.project.ProjectManagerListener"/>
         <!-- File editor focus / open / close -->
         <listener class="com.github.ethanhosier.ideplugin.listeners.FileEditorListener"
                   topic="com.intellij.openapi.fileEditor.FileEditorManagerListener"/>
