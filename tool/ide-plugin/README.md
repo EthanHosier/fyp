@@ -4,6 +4,8 @@
 An IntelliJ IDE plugin that records a timestamped stream of developer activity events for trajectory-level refactoring analysis. Built as part of an MEng Final Year Project.
 <!-- Plugin description end -->
 
+> **TODO — blocking I/O on the EDT.** Several hot paths still do synchronous disk or subprocess work on the EDT: the `git` subprocess calls in `SessionService.readGitInfo` (no `waitFor` timeout — a stuck `git` hangs the IDE), `StorageService.flushEvent` (writes `events.jsonl` on every event, including those emitted from EDT listeners like `FileSaveListener`), and `Desktop.open(dir)` in the tool window's "open folder" button. Acceptable for thesis data collection on a developer machine, but should be moved off the EDT (pooled executor + hard timeouts) before wider use.
+
 ---
 
 ## What is captured
