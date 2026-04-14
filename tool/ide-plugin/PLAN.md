@@ -173,9 +173,9 @@ Added `toolWindow/TracerToolWindowFactory.kt` as a new tool window (left sidebar
 ---
 
 ## Stage 9 — README
-**Status:** [ ] Not started
+**Status:** [x] Complete
 
-`README.md` covering: what is captured, output location, export format, and how offline reconstruction works.
+`README.md` covering: event table with file-contents column, output location, full JSON format examples, offline reconstruction explanation, usage instructions, and build commands.
 
 ---
 
