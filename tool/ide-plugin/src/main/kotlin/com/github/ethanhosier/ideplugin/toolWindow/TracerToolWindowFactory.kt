@@ -5,6 +5,8 @@ import com.github.ethanhosier.ideplugin.services.StorageService
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.ui.InputValidator
+import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowFactory
@@ -24,7 +26,6 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import javax.swing.Box
 import javax.swing.JButton
-import javax.swing.JOptionPane
 import javax.swing.JSeparator
 import javax.swing.Timer
 
@@ -174,8 +175,16 @@ private class TracerStatusPanel(project: Project, toolWindow: ToolWindow) : JBPa
             }
         }
         startSessionButton.addActionListener {
-            val label = JOptionPane.showInputDialog(
-                this, "Session name:", "Start Session", JOptionPane.QUESTION_MESSAGE
+            val label = Messages.showInputDialog(
+                this,
+                "Session name:",
+                "Start Session",
+                Messages.getQuestionIcon(),
+                null,
+                object : InputValidator {
+                    override fun checkInput(input: String?) = !input.isNullOrBlank()
+                    override fun canClose(input: String?) = checkInput(input)
+                },
             ) ?: return@addActionListener
             sessionService.startSession(label)
             refresh()

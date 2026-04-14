@@ -24,6 +24,11 @@ class SessionService(private val project: Project) {
             thisLogger().warn("RefactoringTracer: startSession called while a session is already active — ignoring")
             return
         }
+        val trimmedName = name.trim()
+        if (trimmedName.isEmpty()) {
+            thisLogger().warn("RefactoringTracer: startSession called with blank name — ignoring")
+            return
+        }
         synchronized(eventsLock) { events.clear() }
 
         val sessionId = UUID.randomUUID().toString()
@@ -36,7 +41,7 @@ class SessionService(private val project: Project) {
 
         metadata = SessionMetadata(
             sessionId = sessionId,
-            name = name,
+            name = trimmedName,
             projectName = project.name,
             projectPath = project.basePath ?: "",
             branch = branch,

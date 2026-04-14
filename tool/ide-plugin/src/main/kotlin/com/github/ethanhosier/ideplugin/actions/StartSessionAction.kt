@@ -4,6 +4,7 @@ import com.github.ethanhosier.ideplugin.services.SessionService
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.components.service
+import com.intellij.openapi.ui.InputValidator
 import com.intellij.openapi.ui.Messages
 
 class StartSessionAction : AnAction("Start Session") {
@@ -21,6 +22,11 @@ class StartSessionAction : AnAction("Start Session") {
             "Session name:",
             "Start Session",
             Messages.getQuestionIcon(),
+            null,
+            object : InputValidator {
+                override fun checkInput(input: String?) = !input.isNullOrBlank()
+                override fun canClose(input: String?) = checkInput(input)
+            },
         ) ?: return  // user cancelled
 
         project.service<SessionService>().startSession(label)

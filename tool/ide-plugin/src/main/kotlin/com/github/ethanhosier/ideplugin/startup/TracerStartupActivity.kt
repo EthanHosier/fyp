@@ -20,7 +20,7 @@ class TracerStartupActivity : ProjectActivity {
         val editorListener = EditorEventListener()
         EditorFactory.getInstance().allEditors
             .filter { it.project == project }
-            .forEach { it.document.addDocumentListener(editorListener) }
+            .forEach { editorListener.attach(it.document) }
         EditorFactory.getInstance().addEditorFactoryListener(editorListener, project)
 
         // Remove the listener from any editors we attached to directly on project close.
@@ -30,7 +30,7 @@ class TracerStartupActivity : ProjectActivity {
         Disposer.register(project) {
             EditorFactory.getInstance().allEditors
                 .filter { it.project == project }
-                .forEach { it.document.removeDocumentListener(editorListener) }
+                .forEach { editorListener.detach(it.document) }
         }
 
         // SMTRunnerEventsListener requires per-project dynamic subscription. Pass project
