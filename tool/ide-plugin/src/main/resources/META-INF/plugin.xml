@@ -5,11 +5,60 @@
     <vendor>ethanhosier</vendor>
 
     <depends>com.intellij.modules.platform</depends>
-
-    <resource-bundle>messages.MyBundle</resource-bundle>
+    <depends>com.intellij.modules.java</depends>
 
     <extensions defaultExtensionNs="com.intellij">
-        <toolWindow factoryClass="com.github.ethanhosier.ideplugin.toolWindow.MyToolWindowFactory" id="MyToolWindow"/>
-        <postStartupActivity implementation="com.github.ethanhosier.ideplugin.startup.MyProjectActivity" />
+        <toolWindow factoryClass="com.github.ethanhosier.ideplugin.toolWindow.TracerToolWindowFactory" id="Refactoring Tracer" anchor="left"/>
+        <postStartupActivity implementation="com.github.ethanhosier.ideplugin.startup.TracerStartupActivity" />
     </extensions>
+
+    <applicationListeners>
+        <!-- VFS structural changes: create / delete / rename / move -->
+        <listener class="com.github.ethanhosier.ideplugin.listeners.VfsListener"
+                  topic="com.intellij.openapi.vfs.newvfs.BulkFileListener"/>
+        <!-- EditorEventListener is registered programmatically in TracerStartupActivity, not here.
+             plugin.xml EditorFactoryListener callbacks fire too late to catch editors that
+             IntelliJ restores from the previous session on project open — those editors are
+             created via an internal restore path that bypasses EditorFactory events.
+             TracerStartupActivity runs after restoration is complete and handles both existing
+             and future editors in one place with a single listener instance. -->
+        <!-- File save -->
+        <listener class="com.github.ethanhosier.ideplugin.listeners.FileSaveListener"
+                  topic="com.intellij.openapi.fileEditor.FileDocumentManagerListener"/>
+        <!-- Build lifecycle -->
+        <listener class="com.github.ethanhosier.ideplugin.listeners.BuildListener"
+                  topic="com.intellij.compiler.server.BuildManagerListener"/>
+    </applicationListeners>
+
+    <projectListeners>
+        <!-- Flush session.json cleanly when the project is closed -->
+        <listener class="com.github.ethanhosier.ideplugin.listeners.ProjectCloseListener"
+                  topic="com.intellij.openapi.project.ProjectManagerListener"/>
+        <!-- File editor focus / open / close -->
+        <listener class="com.github.ethanhosier.ideplugin.listeners.FileEditorListener"
+                  topic="com.intellij.openapi.fileEditor.FileEditorManagerListener"/>
+        <!-- IntelliJ refactoring operations -->
+        <listener class="com.github.ethanhosier.ideplugin.listeners.RefactoringListener"
+                  topic="com.intellij.refactoring.listeners.RefactoringEventListener"/>
+        <!-- File error/problem state changes (WolfTheProblemSolver) -->
+        <listener class="com.github.ethanhosier.ideplugin.listeners.ProblemListener"
+                  topic="com.intellij.problems.ProblemListener"/>
+    </projectListeners>
+
+    <!-- TestRunListener subscribed dynamically in TracerStartupActivity (SMTRunnerEventsListener requires per-project subscription) -->
+
+    <actions>
+        <group id="RefactoringTracer.ToolsMenu" text="Refactoring Tracer" popup="true">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+            <action id="RefactoringTracer.StartSession"
+                    class="com.github.ethanhosier.ideplugin.actions.StartSessionAction"
+                    text="Start Session"
+                    description="Start a new recording session"/>
+            <action id="RefactoringTracer.EndSession"
+                    class="com.github.ethanhosier.ideplugin.actions.EndSessionAction"
+                    text="End Session"
+                    description="End the current recording session and flush session.json"/>
+        </group>
+    </actions>
+
 </idea-plugin>
