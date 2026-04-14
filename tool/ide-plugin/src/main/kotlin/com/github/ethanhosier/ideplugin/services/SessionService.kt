@@ -12,7 +12,7 @@ import java.util.concurrent.CopyOnWriteArrayList
 @Service(Service.Level.PROJECT)
 class SessionService(private val project: Project) {
 
-    private var metadata: SessionMetadata? = null
+    @Volatile private var metadata: SessionMetadata? = null
     private val events: CopyOnWriteArrayList<TraceEvent> = CopyOnWriteArrayList()
 
     fun startSession(name: String) {
