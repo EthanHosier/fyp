@@ -5,6 +5,7 @@ import com.github.ethanhosier.ideplugin.services.StorageService
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowFactory
 import com.intellij.ui.JBColor
@@ -30,7 +31,7 @@ import javax.swing.Timer
 class TracerToolWindowFactory : ToolWindowFactory {
 
     override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
-        val panel = TracerStatusPanel(project)
+        val panel = TracerStatusPanel(project, toolWindow)
         val content = ContentFactory.getInstance().createContent(panel, null, false)
         toolWindow.contentManager.addContent(content)
     }
@@ -38,7 +39,7 @@ class TracerToolWindowFactory : ToolWindowFactory {
     override fun shouldBeAvailable(project: Project) = true
 }
 
-private class TracerStatusPanel(project: Project) : JBPanel<TracerStatusPanel>(CardLayout()) {
+private class TracerStatusPanel(project: Project, toolWindow: ToolWindow) : JBPanel<TracerStatusPanel>(CardLayout()) {
 
     private val sessionService = project.service<SessionService>()
     private val storageService = project.service<StorageService>()
@@ -79,7 +80,8 @@ private class TracerStatusPanel(project: Project) : JBPanel<TracerStatusPanel>(C
 
         wireButtons()
         refresh()
-        Timer(2000) { refresh() }.also { it.isRepeats = true; it.start() }
+        val timer = Timer(2000) { refresh() }.apply { isRepeats = true; start() }
+        Disposer.register(toolWindow.disposable) { timer.stop() }
     }
 
     /** Just the start button, top-aligned. */
