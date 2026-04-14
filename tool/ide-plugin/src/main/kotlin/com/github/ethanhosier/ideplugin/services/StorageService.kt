@@ -41,7 +41,28 @@ class StorageService {
             OutputStreamWriter(FileOutputStream(File(base, "events.jsonl"), /* append = */ true), Charsets.UTF_8)
         )
 
+        ensureGitignoreEntry(File(projectBasePath))
+
         thisLogger().info("RefactoringTracer: storage initialised at ${base.absolutePath}")
+    }
+
+    /**
+     * If the project is a git repo, append `.refactoring-traces/` to `.gitignore` (creating the
+     * file if missing) so captured trace data doesn't sneak into commits via `git add .`.
+     * No-op for non-git projects.
+     */
+    private fun ensureGitignoreEntry(projectRoot: File) {
+        if (!File(projectRoot, ".git").exists()) return
+        try {
+            val gitignore = File(projectRoot, ".gitignore")
+            val entry = ".refactoring-traces/"
+            val existing = if (gitignore.exists()) gitignore.readLines() else emptyList()
+            if (existing.any { it.trim() == entry }) return
+            val prefix = if (existing.isNotEmpty() && existing.last().isNotBlank()) "\n" else ""
+            gitignore.appendText("$prefix$entry\n")
+        } catch (e: Exception) {
+            thisLogger().warn("RefactoringTracer: could not update .gitignore: ${e.message}")
+        }
     }
 
     /** Appends a single event as one JSON line to events.jsonl. */
