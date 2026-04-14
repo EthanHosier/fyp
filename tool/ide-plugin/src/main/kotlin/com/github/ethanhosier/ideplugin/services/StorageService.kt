@@ -6,8 +6,10 @@ import com.intellij.openapi.components.Service
 import com.intellij.openapi.diagnostic.thisLogger
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import java.io.BufferedWriter
 import java.io.File
-import java.io.FileWriter
+import java.io.FileOutputStream
+import java.io.OutputStreamWriter
 
 /**
  * Handles all disk I/O for a session.
@@ -28,14 +30,16 @@ class StorageService {
     private val lock = Any()
 
     @Volatile private var sessionDir: File? = null
-    private var eventsWriter: FileWriter? = null
+    private var eventsWriter: BufferedWriter? = null
 
     fun init(sessionId: String, projectBasePath: String) = synchronized(lock) {
         val base = File(projectBasePath, ".refactoring-traces/$sessionId")
         base.mkdirs()
 
         sessionDir = base
-        eventsWriter = FileWriter(File(base, "events.jsonl"), /* append = */ true)
+        eventsWriter = BufferedWriter(
+            OutputStreamWriter(FileOutputStream(File(base, "events.jsonl"), /* append = */ true), Charsets.UTF_8)
+        )
 
         thisLogger().info("RefactoringTracer: storage initialised at ${base.absolutePath}")
     }
