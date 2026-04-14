@@ -61,6 +61,11 @@ class SessionService(private val project: Project) {
 
     fun endSession() {
         val meta = metadata ?: return
+
+        // Drain pending edit bursts before marking the session ended — otherwise
+        // addEvent() would reject the flushed bursts as post-session events.
+        project.service<EditBurstTracker>().flushAllPending()
+
         val now = System.currentTimeMillis()
         metadata = meta.copy(endTime = now)
 

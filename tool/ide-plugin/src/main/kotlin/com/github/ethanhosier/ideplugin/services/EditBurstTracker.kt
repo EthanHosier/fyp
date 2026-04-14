@@ -124,10 +124,20 @@ class EditBurstTracker(private val project: Project) : Disposable {
         )
     }
 
-    override fun dispose() {
+    /**
+     * Synchronously flushes every pending burst, cancelling their scheduled futures first so
+     * the debounce timer can't race with the final flush. Called from SessionService.endSession
+     * so the last ~2 s of typing before a session ends is preserved instead of silently dropped.
+     */
+    fun flushAllPending() {
         futures.values.forEach { it.cancel(false) }
         futures.clear()
-        accumulators.clear()
+        // Snapshot keys so flush() can safely call accumulators.remove(key) during iteration.
+        accumulators.keys.toList().forEach { flush(it) }
+    }
+
+    override fun dispose() {
+        flushAllPending()
         scheduler.shutdownNow()
     }
 
