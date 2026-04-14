@@ -7,13 +7,17 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.project.Project
 import java.util.UUID
-import java.util.concurrent.CopyOnWriteArrayList
 
 @Service(Service.Level.PROJECT)
 class SessionService(private val project: Project) {
 
     @Volatile private var metadata: SessionMetadata? = null
-    private val events: CopyOnWriteArrayList<TraceEvent> = CopyOnWriteArrayList()
+
+    // Guards every read/write of `events`. Plain ArrayList + lock is O(1) amortised
+    // per add; CopyOnWriteArrayList would copy the whole backing array on each add
+    // (O(n²) over a long session).
+    private val eventsLock = Any()
+    private val events: MutableList<TraceEvent> = ArrayList()
 
     fun startSession(name: String) {
         val sessionId = UUID.randomUUID().toString()
@@ -44,7 +48,7 @@ class SessionService(private val project: Project) {
             timestamp = now,
             sessionId = sessionId,
         )
-        events.add(sessionStartedEvent)
+        synchronized(eventsLock) { events.add(sessionStartedEvent) }
         project.service<StorageService>().init(sessionId, project.basePath ?: "")
         project.service<StorageService>().flushEvent(sessionStartedEvent)
     }
@@ -60,7 +64,7 @@ class SessionService(private val project: Project) {
             timestamp = now,
             sessionId = meta.sessionId,
         )
-        events.add(endEvent)
+        synchronized(eventsLock) { events.add(endEvent) }
         project.service<StorageService>().flushEvent(endEvent)
 
         val session = getSession() ?: return
@@ -70,7 +74,7 @@ class SessionService(private val project: Project) {
 
     fun addEvent(event: TraceEvent) {
         if (metadata == null) return  // session not started yet
-        events.add(event)
+        synchronized(eventsLock) { events.add(event) }
         project.service<StorageService>().flushEvent(event)
     }
 
@@ -100,15 +104,16 @@ class SessionService(private val project: Project) {
 
     fun getSession(): Session? {
         val meta = metadata ?: return null
+        val snapshot = synchronized(eventsLock) { events.toList() }
         return Session(
             metadata = meta,
-            events = events.toList(),
+            events = snapshot,
         )
     }
 
     fun getSessionId(): String? = metadata?.sessionId
     fun getStartTime(): Long? = metadata?.startTime
-    fun getEventCount(): Int = events.size
+    fun getEventCount(): Int = synchronized(eventsLock) { events.size }
 
     // --- private helpers ---
 
