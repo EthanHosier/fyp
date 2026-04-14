@@ -35,6 +35,7 @@ configurations.implementation {
 }
 
 dependencies {
+    implementation(project(":shared"))
     testImplementation(libs.junit)
     testImplementation(libs.opentest4j)
     implementation(libs.kotlinx.serialization.json)
@@ -118,10 +119,6 @@ kover {
 }
 
 tasks {
-    wrapper {
-        gradleVersion = providers.gradleProperty("gradleVersion").get()
-    }
-
     publishPlugin {
         dependsOn(patchChangelog)
     }
