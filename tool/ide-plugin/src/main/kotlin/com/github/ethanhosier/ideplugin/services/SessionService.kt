@@ -141,12 +141,15 @@ class SessionService(private val project: Project) {
     }
 
     private fun runGit(workDir: String, vararg args: String): String? {
+        // stdout and stderr kept separate so a non-git project (which prints
+        // "fatal: not a git repository" on stderr) doesn't end up stored as
+        // the branch name. Only trust stdout when the process exits cleanly.
         val process = ProcessBuilder("git", *args)
             .directory(java.io.File(workDir))
-            .redirectErrorStream(true)
             .start()
         val output = process.inputStream.bufferedReader().readText().trim()
-        process.waitFor()
+        val exitCode = process.waitFor()
+        if (exitCode != 0) return null
         return output.ifBlank { null }
     }
 }

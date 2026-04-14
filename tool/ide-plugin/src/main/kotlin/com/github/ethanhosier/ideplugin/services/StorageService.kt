@@ -75,7 +75,11 @@ class StorageService {
         val writer = eventsWriter ?: return@synchronized
         try {
             val line = json.encodeToString(event)
-            thisLogger().info("RefactoringTracer: $line")
+            // Log a summary only — the event JSON can include full file contents, which would
+            // echo source code into the IDE log and blow up log size over a long session.
+            thisLogger().info(
+                "RefactoringTracer: flushed ${event.type} id=${event.id} bytes=${line.length}"
+            )
             writer.write(line)
             writer.write("\n")
             writer.flush()
