@@ -43,7 +43,17 @@ class VfsListener : BulkFileListener {
                     previousPath = event.oldPath,
                 )
 
-                else -> { /* content changes handled via DocumentListener / EditBurstTracker */ }
+                // Content changes made inside the IDE editor are captured by EditBurstTracker
+                // and then re-emerge here with isFromSave=true when the document flushes to
+                // disk. Skip those to avoid double-counting. Anything else (git checkout,
+                // external editor, codemod run from terminal) goes through.
+                is VFileContentChangeEvent if !event.isFromSave -> handle(
+                    file = event.file,
+                    eventType = EventType.FILE_MODIFIED_EXTERNAL,
+                    changeType = FileChangeType.MODIFIED,
+                )
+
+                else -> { /* ignored */ }
             }
         }
     }

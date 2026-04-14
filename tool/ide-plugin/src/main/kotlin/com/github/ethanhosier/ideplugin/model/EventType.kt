@@ -17,6 +17,7 @@ enum class EventType {
     FILE_DELETED,
     FILE_RENAMED,
     FILE_MOVED,
+    FILE_MODIFIED_EXTERNAL,
 
     // IntelliJ refactoring
     REFACTORING_STARTED,

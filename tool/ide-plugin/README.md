@@ -26,6 +26,7 @@ Every event is written to a single append-only `events.jsonl` file as the sessio
 | `FILE_DELETED` | File deleted | No (contents gone) |
 | `FILE_RENAMED` | File renamed | Yes |
 | `FILE_MOVED` | File moved | Yes |
+| `FILE_MODIFIED_EXTERNAL` | File contents changed outside the IDE editor (git checkout, external editor, codemod) | Yes |
 | `REFACTORING_STARTED` | IntelliJ refactoring begins | No |
 | `REFACTORING_FINISHED` | IntelliJ refactoring completes | No (VFS events capture changed files) |
 | `FILE_ERRORS_CHANGED` | File gains or loses compile errors (2 s debounce) | Yes |
