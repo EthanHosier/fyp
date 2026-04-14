@@ -17,7 +17,8 @@ import java.io.OutputStreamWriter
  * Output layout:
  *   <projectDir>/.refactoring-traces/<sessionId>/
  *     ├── session.json    ← written on session end
- *     └── events.jsonl   ← appended live (one JSON object per line, crash-safe)
+ *     ├── events.jsonl    ← appended live (one JSON object per line, crash-safe)
+ *     └── initial-src/    ← baseline source tree, written on session start
  *
  * Call [init] once after the session ID is known (from SessionService.startSession).
  */
@@ -101,4 +102,20 @@ class StorageService {
     }
 
     fun getSessionDir(): File? = sessionDir
+
+    /**
+     * Writes raw bytes into the active session directory at [relativePath].
+     * Creates parent directories as needed. No-op if no session is active.
+     * Generic primitive used for ad-hoc session artifacts (e.g. source snapshots).
+     */
+    fun writeSessionFile(relativePath: String, bytes: ByteArray) = synchronized(lock) {
+        val dir = sessionDir ?: return@synchronized
+        try {
+            val target = File(dir, relativePath)
+            target.parentFile?.mkdirs()
+            target.writeBytes(bytes)
+        } catch (e: Exception) {
+            thisLogger().warn("RefactoringTracer: failed to write session file $relativePath: ${e.message}")
+        }
+    }
 }
