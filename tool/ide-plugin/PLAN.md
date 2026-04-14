@@ -143,10 +143,10 @@ Track when files transition between broken (has errors) and clean states, captur
 ## Stage 5 — Actions
 **Status:** [x] Complete
 
-- `actions/StartTaskAction.kt` — input dialog for label, emits `TASK_STARTED`; disabled when task already active
-- `actions/EndTaskAction.kt` — emits `TASK_ENDED` with active label; disabled when no task active
-- `SessionService.activeTaskLabel` tracks current task state, exposed via `getActiveTaskLabel()`
+- `actions/StartSessionAction.kt` — input dialog for session name, calls `SessionService.startSession(name)`; disabled when session already active
+- `actions/EndSessionAction.kt` — calls `SessionService.endSession()`; disabled when no session active
 - Registered in plugin.xml under Tools → Refactoring Tracer submenu
+- Note: originally planned as StartTaskAction/EndTaskAction; redesigned so sessions are fully user-controlled (no auto-start)
 
 ---
 
@@ -156,6 +156,7 @@ Track when files transition between broken (has errors) and clean states, captur
 - Add `listeners/ProjectCloseListener.kt` implementing `ProjectManagerListener.projectClosing()`
 - Calls `SessionService.endSession()` which flushes `SESSION_ENDED` event and writes `session.json`
 - Registered in `plugin.xml` under `<projectListeners>`
+- Session no longer auto-starts on project open — `MyProjectActivity` only wires editor/test listeners
 
 ---
 
@@ -163,10 +164,10 @@ Track when files transition between broken (has errors) and clean states, captur
 **Status:** [x] Complete
 
 Added `toolWindow/TracerToolWindowFactory.kt` as a new tool window (left sidebar, id="Refactoring Tracer"):
-- Session ID (truncated), start time, live event count, output path
+- Uses CardLayout: idle card shows only "Start Session" button; active card shows session name, ID, start time, event count, output path, and "End Session" button
 - Icon button in the Output heading row opens the session folder in Finder
-- "Start Task" / "End Task" buttons (primary blue / default) mirroring the menu actions
-- Polls every 2 seconds to keep event count and task state live
+- Polls every 2 seconds to keep event count live
+- `SessionMetadata.name` / `SessionService.getSessionName()` replace the old label field
 - Original `MyToolWindowFactory` preserved unchanged
 
 ---

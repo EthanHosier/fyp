@@ -12,8 +12,6 @@ import com.intellij.openapi.startup.ProjectActivity
 class MyProjectActivity : ProjectActivity {
 
     override suspend fun execute(project: Project) {
-        project.service<SessionService>().startSession()
-
         // EditorEventListener is wired here rather than via plugin.xml because
         // IntelliJ restores previously open editors through an internal path that
         // bypasses EditorFactory events — so a plugin.xml EditorFactoryListener

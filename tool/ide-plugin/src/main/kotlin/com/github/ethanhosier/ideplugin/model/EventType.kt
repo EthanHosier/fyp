@@ -31,11 +31,6 @@ enum class EventType {
     TEST_RUN_STARTED,
     TEST_RUN_FINISHED,
 
-    // Manual plugin actions
-    MANUAL_CHECKPOINT,
-    TASK_STARTED,
-    TASK_ENDED,
-
     // Session lifecycle
     SESSION_STARTED,
     SESSION_ENDED,

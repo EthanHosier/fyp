@@ -1,6 +1,5 @@
 package com.github.ethanhosier.ideplugin.toolWindow
 
-import com.github.ethanhosier.ideplugin.model.EventType
 import com.github.ethanhosier.ideplugin.services.SessionService
 import com.github.ethanhosier.ideplugin.services.StorageService
 import com.intellij.icons.AllIcons
@@ -13,6 +12,7 @@ import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBPanel
 import com.intellij.ui.content.ContentFactory
 import com.intellij.util.ui.UIUtil
+import java.awt.CardLayout
 import java.awt.Color
 import java.awt.Desktop
 import java.awt.Font
@@ -21,6 +21,7 @@ import java.awt.GridBagLayout
 import java.awt.Insets
 import java.text.SimpleDateFormat
 import java.util.Date
+import javax.swing.Box
 import javax.swing.JButton
 import javax.swing.JOptionPane
 import javax.swing.JSeparator
@@ -37,21 +38,19 @@ class TracerToolWindowFactory : ToolWindowFactory {
     override fun shouldBeAvailable(project: Project) = true
 }
 
-private class TracerStatusPanel(project: Project) : JBPanel<TracerStatusPanel>(GridBagLayout()) {
+private class TracerStatusPanel(project: Project) : JBPanel<TracerStatusPanel>(CardLayout()) {
 
     private val sessionService = project.service<SessionService>()
     private val storageService = project.service<StorageService>()
     private val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
 
+    // --- Active-session widgets ---
+    private val sessionLabelLabel = JBLabel()
     private val sessionIdLabel = JBLabel()
     private val startTimeLabel = JBLabel()
     private val eventCountLabel = JBLabel()
     private val outputDirLabel = JBLabel()
-    private val activeTaskLabel = JBLabel()
-    private val startTaskButton = JButton("Start Task")
-    private val endTaskButton = JButton("End Task")
 
-    // Icon button to open the session folder — sits in the heading row, right-aligned
     private val openFolderButton = JButton(AllIcons.Actions.OpenNewTab).apply {
         isBorderPainted = false
         isContentAreaFilled = false
@@ -60,22 +59,54 @@ private class TracerStatusPanel(project: Project) : JBPanel<TracerStatusPanel>(G
         preferredSize = java.awt.Dimension(22, 22)
     }
 
+    private val startSessionButton = JButton("Start Session").apply {
+        background = JBColor(Color(75, 110, 175), Color(75, 110, 175))
+        foreground = Color.WHITE
+        isBorderPainted = false
+        isOpaque = true
+        font = font.deriveFont(Font.BOLD)
+    }
+    private val endSessionButton = JButton("End Session")
+
+    private companion object {
+        const val CARD_IDLE = "idle"
+        const val CARD_ACTIVE = "active"
+    }
+
     init {
-        buildLayout()
+        add(buildIdlePanel(), CARD_IDLE)
+        add(buildActivePanel(), CARD_ACTIVE)
+
         wireButtons()
         refresh()
         Timer(2000) { refresh() }.also { it.isRepeats = true; it.start() }
     }
 
-    private fun buildLayout() {
-        // Two columns: col 0 = label/value (stretches), col 1 = optional icon (fixed)
-        val gbc = GridBagConstraints().apply { fill = GridBagConstraints.HORIZONTAL }
+    /** Just the start button, top-aligned. */
+    private fun buildIdlePanel(): JBPanel<*> =
+        JBPanel<JBPanel<*>>(GridBagLayout()).apply {
+            val gbc = GridBagConstraints().apply {
+                gridx = 0; gridy = 0
+                fill = GridBagConstraints.HORIZONTAL
+                weightx = 1.0
+                insets = Insets(8, 10, 4, 10)
+            }
+            add(startSessionButton, gbc)
 
+            // Push everything to the top
+            gbc.gridy = 1; gbc.weighty = 1.0; gbc.fill = GridBagConstraints.BOTH
+            add(Box.createGlue(), gbc)
+        }
+
+    /** Info fields + end button, top-aligned. */
+    private fun buildActivePanel(): JBPanel<*> {
         val mutedColor = UIUtil.getContextHelpForeground().let {
             JBColor(
-                Color(it.red + 40, it.green + 40, it.blue + 40).let { c ->
-                    Color(minOf(255, c.red), minOf(255, c.green), minOf(255, c.blue))
-                },
+                Color(
+                    minOf(255, it.red + 40),
+                    minOf(255, it.green + 40),
+                    minOf(255, it.blue + 40)
+                ),
                 Color(it.red, it.green, it.blue, 160)
             )
         }
@@ -85,66 +116,53 @@ private class TracerStatusPanel(project: Project) : JBPanel<TracerStatusPanel>(G
             foreground = mutedColor
         }
 
-        /** Plain field: heading spans both columns, value spans both columns. */
-        fun addField(heading: String, value: JBLabel, row: Int) {
-            gbc.gridy = row * 2; gbc.gridx = 0; gbc.gridwidth = 2; gbc.weightx = 1.0
-            gbc.insets = Insets(10, 10, 0, 10)
-            add(headingLabel(heading), gbc)
+        return JBPanel<JBPanel<*>>(GridBagLayout()).apply {
+            val gbc = GridBagConstraints().apply {
+                gridx = 0; fill = GridBagConstraints.HORIZONTAL; weightx = 1.0
+            }
+            var row = 0
 
-            gbc.gridy = row * 2 + 1; gbc.gridwidth = 2
-            gbc.insets = Insets(2, 10, 0, 10)
-            add(value, gbc)
+            fun addField(heading: String, value: JBLabel) {
+                gbc.gridy = row++; gbc.gridwidth = 2
+                gbc.insets = Insets(10, 10, 0, 10)
+                add(headingLabel(heading), gbc)
+                gbc.gridy = row++
+                gbc.insets = Insets(2, 10, 0, 10)
+                add(value, gbc)
+            }
+
+            fun addFieldWithAction(heading: String, value: JBLabel, action: JButton) {
+                gbc.gridy = row++; gbc.gridx = 0; gbc.gridwidth = 1; gbc.weightx = 1.0
+                gbc.insets = Insets(10, 10, 0, 4)
+                add(headingLabel(heading), gbc)
+                gbc.gridx = 1; gbc.weightx = 0.0
+                gbc.insets = Insets(10, 0, 0, 6)
+                add(action, gbc)
+                gbc.gridy = row++; gbc.gridx = 0; gbc.gridwidth = 2; gbc.weightx = 1.0
+                gbc.insets = Insets(2, 10, 0, 10)
+                add(value, gbc)
+            }
+
+            addField("Session name", sessionLabelLabel)
+            addField("Session ID", sessionIdLabel)
+            addField("Started", startTimeLabel)
+            addField("Events", eventCountLabel)
+            addFieldWithAction("Output", outputDirLabel, openFolderButton)
+
+            // Separator
+            gbc.gridy = row++; gbc.gridx = 0; gbc.gridwidth = 2; gbc.weightx = 1.0
+            gbc.insets = Insets(12, 8, 0, 8)
+            add(JSeparator(), gbc)
+
+            // End button
+            gbc.gridy = row++
+            gbc.insets = Insets(8, 10, 4, 10)
+            add(endSessionButton, gbc)
+
+            // Push to top
+            gbc.gridy = row; gbc.weighty = 1.0; gbc.fill = GridBagConstraints.BOTH
+            add(Box.createGlue(), gbc)
         }
-
-        /** Field with an icon action in the heading row, right-aligned. */
-        fun addFieldWithAction(heading: String, value: JBLabel, action: JButton, row: Int) {
-            // Heading in col 0
-            gbc.gridy = row * 2; gbc.gridx = 0; gbc.gridwidth = 1; gbc.weightx = 1.0
-            gbc.insets = Insets(10, 10, 0, 4)
-            add(headingLabel(heading), gbc)
-            // Icon in col 1
-            gbc.gridx = 1; gbc.weightx = 0.0
-            gbc.insets = Insets(10, 0, 0, 6)
-            add(action, gbc)
-            // Value spans both columns
-            gbc.gridy = row * 2 + 1; gbc.gridx = 0; gbc.gridwidth = 2; gbc.weightx = 1.0
-            gbc.insets = Insets(2, 10, 0, 10)
-            add(value, gbc)
-        }
-
-        addField("Session ID", sessionIdLabel, 0)
-        addField("Started", startTimeLabel, 1)
-        addField("Events", eventCountLabel, 2)
-        addFieldWithAction("Output", outputDirLabel, openFolderButton, 3)
-
-        // Separator
-        gbc.gridy = 8; gbc.gridx = 0; gbc.gridwidth = 2; gbc.weightx = 1.0
-        gbc.insets = Insets(12, 8, 4, 8)
-        add(JSeparator(), gbc)
-
-        addField("Active task", activeTaskLabel, 5)  // rows 10 & 11
-
-        // Start Task button (primary blue)
-        startTaskButton.apply {
-            background = JBColor(Color(75, 110, 175), Color(75, 110, 175))
-            foreground = Color.WHITE
-            isBorderPainted = false
-            isOpaque = true
-            font = font.deriveFont(Font.BOLD)
-        }
-
-        gbc.gridy = 12; gbc.gridx = 0; gbc.gridwidth = 2; gbc.weightx = 1.0
-        gbc.insets = Insets(12, 10, 4, 10)
-        add(startTaskButton, gbc)
-
-        gbc.gridy = 13
-        gbc.insets = Insets(0, 10, 10, 10)
-        add(endTaskButton, gbc)
-
-        // Push content to top
-        gbc.gridy = 14; gbc.weighty = 1.0; gbc.fill = GridBagConstraints.BOTH
-        gbc.insets = Insets(0, 0, 0, 0)
-        add(JBPanel<JBPanel<*>>(), gbc)
     }
 
     private fun wireButtons() {
@@ -153,36 +171,28 @@ private class TracerStatusPanel(project: Project) : JBPanel<TracerStatusPanel>(G
                 if (Desktop.isDesktopSupported()) Desktop.getDesktop().open(dir)
             }
         }
-
-        startTaskButton.addActionListener {
+        startSessionButton.addActionListener {
             val label = JOptionPane.showInputDialog(
-                this, "Task label:", "Start Task", JOptionPane.QUESTION_MESSAGE
+                this, "Session name:", "Start Session", JOptionPane.QUESTION_MESSAGE
             ) ?: return@addActionListener
-            sessionService.addEvent(
-                type = EventType.TASK_STARTED,
-                payload = mapOf("label" to label),
-            )
+            sessionService.startSession(label)
             refresh()
         }
-
-        endTaskButton.addActionListener {
-            val label = sessionService.getActiveTaskLabel() ?: return@addActionListener
-            sessionService.addEvent(
-                type = EventType.TASK_ENDED,
-                payload = mapOf("label" to label),
-            )
+        endSessionButton.addActionListener {
+            sessionService.endSession()
             refresh()
         }
     }
 
     private fun refresh() {
-        val taskLabel = sessionService.getActiveTaskLabel()
-        sessionIdLabel.text = sessionService.getSessionId()?.take(8)?.let { "$it…" } ?: "—"
-        startTimeLabel.text = sessionService.getStartTime()?.let { dateFormat.format(Date(it)) } ?: "—"
+        val active = sessionService.isSessionActive()
+        sessionLabelLabel.text = sessionService.getSessionName() ?: ""
+        sessionIdLabel.text = sessionService.getSessionId()?.take(8)?.let { "$it…" } ?: ""
+        startTimeLabel.text = sessionService.getStartTime()?.let { dateFormat.format(Date(it)) } ?: ""
         eventCountLabel.text = sessionService.getEventCount().toString()
-        outputDirLabel.text = storageService.getSessionDir()?.absolutePath ?: "—"
-        activeTaskLabel.text = taskLabel ?: "none"
-        startTaskButton.isEnabled = taskLabel == null
-        endTaskButton.isEnabled = taskLabel != null
+        outputDirLabel.text = storageService.getSessionDir()?.absolutePath ?: ""
+
+        val cardLayout = layout as CardLayout
+        cardLayout.show(this, if (active) CARD_ACTIVE else CARD_IDLE)
     }
 }

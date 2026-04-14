@@ -53,14 +53,14 @@
     <actions>
         <group id="RefactoringTracer.ToolsMenu" text="Refactoring Tracer" popup="true">
             <add-to-group group-id="ToolsMenu" anchor="last"/>
-            <action id="RefactoringTracer.StartTask"
-                    class="com.github.ethanhosier.ideplugin.actions.StartTaskAction"
-                    text="Start Task"
-                    description="Mark the start of a labelled task in the refactoring trace"/>
-            <action id="RefactoringTracer.EndTask"
-                    class="com.github.ethanhosier.ideplugin.actions.EndTaskAction"
-                    text="End Task"
-                    description="Mark the end of the current task in the refactoring trace"/>
+            <action id="RefactoringTracer.StartSession"
+                    class="com.github.ethanhosier.ideplugin.actions.StartSessionAction"
+                    text="Start Session"
+                    description="Start a new recording session"/>
+            <action id="RefactoringTracer.EndSession"
+                    class="com.github.ethanhosier.ideplugin.actions.EndSessionAction"
+                    text="End Session"
+                    description="End the current recording session and flush session.json"/>
         </group>
     </actions>
 

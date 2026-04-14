@@ -14,9 +14,8 @@ class SessionService(private val project: Project) {
 
     private var metadata: SessionMetadata? = null
     private val events: CopyOnWriteArrayList<TraceEvent> = CopyOnWriteArrayList()
-    private var activeTaskLabel: String? = null
 
-    fun startSession() {
+    fun startSession(name: String) {
         val sessionId = UUID.randomUUID().toString()
         val now = System.currentTimeMillis()
         val (branch, commit) = readGitInfo()
@@ -27,6 +26,7 @@ class SessionService(private val project: Project) {
 
         metadata = SessionMetadata(
             sessionId = sessionId,
+            name = name,
             projectName = project.name,
             projectPath = project.basePath ?: "",
             branch = branch,
@@ -82,11 +82,6 @@ class SessionService(private val project: Project) {
         payload: Map<String, String> = emptyMap(),
     ) {
         val sessionId = metadata?.sessionId ?: return
-        when (type) {
-            EventType.TASK_STARTED -> activeTaskLabel = payload["label"]
-            EventType.TASK_ENDED -> activeTaskLabel = null
-            else -> {}
-        }
         addEvent(
             TraceEvent(
                 id = UUID.randomUUID().toString(),
@@ -100,7 +95,8 @@ class SessionService(private val project: Project) {
         )
     }
 
-    fun getActiveTaskLabel(): String? = activeTaskLabel
+    fun isSessionActive(): Boolean = metadata != null && metadata?.endTime == null
+    fun getSessionName(): String? = metadata?.name
 
     fun getSession(): Session? {
         val meta = metadata ?: return null

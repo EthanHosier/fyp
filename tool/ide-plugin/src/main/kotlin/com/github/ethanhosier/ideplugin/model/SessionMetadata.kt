@@ -5,6 +5,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class SessionMetadata(
     val sessionId: String,
+    val name: String,
     val projectName: String,
     val projectPath: String,
     val branch: String? = null,
