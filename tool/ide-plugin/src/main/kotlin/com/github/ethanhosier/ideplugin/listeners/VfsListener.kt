@@ -40,7 +40,7 @@ class VfsListener : BulkFileListener {
                     file = event.file,
                     eventType = EventType.FILE_RENAMED,
                     changeType = FileChangeType.RENAMED,
-                    previousPath = event.file.parent?.path + "/" + event.oldValue,
+                    previousPath = event.oldPath,
                 )
 
                 else -> { /* content changes handled via DocumentListener / EditBurstTracker */ }
