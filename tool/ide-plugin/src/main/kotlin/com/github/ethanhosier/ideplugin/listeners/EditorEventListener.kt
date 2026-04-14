@@ -1,6 +1,7 @@
 package com.github.ethanhosier.ideplugin.listeners
 
 import com.github.ethanhosier.ideplugin.services.EditBurstTracker
+import com.github.ethanhosier.ideplugin.util.shouldCapture
 import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.event.DocumentEvent
 import com.intellij.openapi.editor.event.DocumentListener
@@ -21,6 +22,7 @@ class EditorEventListener : EditorFactoryListener, DocumentListener {
 
     override fun documentChanged(event: DocumentEvent) {
         val vFile = FileDocumentManager.getInstance().getFile(event.document) ?: return
+        if (!vFile.shouldCapture()) return
         val project = ProjectLocator.getInstance().getProjectsForFile(vFile).firstOrNull() ?: return
         project.service<EditBurstTracker>().onDocumentChanged(vFile, event)
     }

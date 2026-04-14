@@ -4,7 +4,7 @@ import com.github.ethanhosier.ideplugin.model.EventType
 import com.github.ethanhosier.ideplugin.model.FileChangeType
 import com.github.ethanhosier.ideplugin.model.FileSnapshot
 import com.github.ethanhosier.ideplugin.services.SessionService
-import com.github.ethanhosier.ideplugin.util.isTracesFile
+import com.github.ethanhosier.ideplugin.util.shouldCapture
 import com.intellij.openapi.components.service
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.project.ProjectLocator
@@ -54,11 +54,9 @@ class VfsListener : BulkFileListener {
         changeType: FileChangeType,
         previousPath: String? = null,
     ) {
-        // Skip directories — we only track file-level changes.
-        if (file.isDirectory) return
-
-        // Skip our own output directory to avoid feedback loops.
-        if (file.isTracesFile()) return
+        // Only capture files inside a src/ folder (excludes directories,
+        // our own output dir, .git, .idea, build output, config, etc.)
+        if (!file.shouldCapture()) return
 
         // Only track files that belong to an open project.
         val project = ProjectLocator.getInstance().getProjectsForFile(file).firstOrNull() ?: return
