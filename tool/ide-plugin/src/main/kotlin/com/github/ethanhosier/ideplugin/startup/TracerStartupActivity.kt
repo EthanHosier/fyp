@@ -27,6 +27,12 @@ class TracerStartupActivity : ProjectActivity {
         // addEditorFactoryListener scopes itself to `project`, but the pre-existing editors
         // we looped over above are owned by IntelliJ's document cache and can outlive the
         // project — without this, they'd keep firing documentChanged into a stale listener.
+        //
+        // Platform inspection flags `Disposer.register(project, ...)` because if the plugin
+        // is dynamically unloaded mid-session, the lambda stays registered on the project's
+        // disposer tree holding a reference into unloaded plugin classes (classloader leak).
+        // The strictly correct fix is to parent under a @Service(PROJECT) that implements
+        // Disposable. For this thesis tool (never dynamically reloaded) project scope is fine.
         Disposer.register(project) {
             EditorFactory.getInstance().allEditors
                 .filter { it.project == project }
