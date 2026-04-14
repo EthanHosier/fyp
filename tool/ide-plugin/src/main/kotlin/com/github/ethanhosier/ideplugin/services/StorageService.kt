@@ -33,6 +33,11 @@ class StorageService {
     private var eventsWriter: BufferedWriter? = null
 
     fun init(sessionId: String, projectBasePath: String) = synchronized(lock) {
+        // Close any writer left over from a previous session that wasn't flushed
+        // (e.g. if startSession was called twice without endSession in between).
+        eventsWriter?.runCatching { close() }
+        eventsWriter = null
+
         val base = File(projectBasePath, ".refactoring-traces/$sessionId")
         base.mkdirs()
 

@@ -20,6 +20,12 @@ class SessionService(private val project: Project) {
     private val events: MutableList<TraceEvent> = ArrayList()
 
     fun startSession(name: String) {
+        if (isSessionActive()) {
+            thisLogger().warn("RefactoringTracer: startSession called while a session is already active — ignoring")
+            return
+        }
+        synchronized(eventsLock) { events.clear() }
+
         val sessionId = UUID.randomUUID().toString()
         val now = System.currentTimeMillis()
         val (branch, commit) = readGitInfo()
@@ -73,7 +79,7 @@ class SessionService(private val project: Project) {
     }
 
     fun addEvent(event: TraceEvent) {
-        if (metadata == null) return  // session not started yet
+        if (!isSessionActive()) return  // no active session — drop event
         synchronized(eventsLock) { events.add(event) }
         project.service<StorageService>().flushEvent(event)
     }
