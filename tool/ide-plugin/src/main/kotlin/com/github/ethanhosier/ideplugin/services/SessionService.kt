@@ -14,6 +14,7 @@ class SessionService(private val project: Project) {
 
     private var metadata: SessionMetadata? = null
     private val events: CopyOnWriteArrayList<TraceEvent> = CopyOnWriteArrayList()
+    private var activeTaskLabel: String? = null
 
     fun startSession() {
         val sessionId = UUID.randomUUID().toString()
@@ -81,6 +82,11 @@ class SessionService(private val project: Project) {
         payload: Map<String, String> = emptyMap(),
     ) {
         val sessionId = metadata?.sessionId ?: return
+        when (type) {
+            EventType.TASK_STARTED -> activeTaskLabel = payload["label"]
+            EventType.TASK_ENDED -> activeTaskLabel = null
+            else -> {}
+        }
         addEvent(
             TraceEvent(
                 id = UUID.randomUUID().toString(),
@@ -93,6 +99,8 @@ class SessionService(private val project: Project) {
             )
         )
     }
+
+    fun getActiveTaskLabel(): String? = activeTaskLabel
 
     fun getSession(): Session? {
         val meta = metadata ?: return null

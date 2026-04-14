@@ -141,12 +141,12 @@ Track when files transition between broken (has errors) and clean states, captur
 ---
 
 ## Stage 5 — Actions
-**Status:** [ ] Not started
+**Status:** [x] Complete
 
-- `actions/StartTaskAction.kt` — input dialog for label, emits `TASK_STARTED`
-- `actions/EndTaskAction.kt` — emits `TASK_ENDED`
-
-Register in plugin.xml under Tools menu.
+- `actions/StartTaskAction.kt` — input dialog for label, emits `TASK_STARTED`; disabled when task already active
+- `actions/EndTaskAction.kt` — emits `TASK_ENDED` with active label; disabled when no task active
+- `SessionService.activeTaskLabel` tracks current task state, exposed via `getActiveTaskLabel()`
+- Registered in plugin.xml under Tools → Refactoring Tracer submenu
 
 ---
 
