@@ -7,23 +7,20 @@
     <depends>com.intellij.modules.platform</depends>
     <depends>com.intellij.modules.java</depends>
 
-    <resource-bundle>messages.MyBundle</resource-bundle>
-
     <extensions defaultExtensionNs="com.intellij">
-        <toolWindow factoryClass="com.github.ethanhosier.ideplugin.toolWindow.MyToolWindowFactory" id="MyToolWindow"/>
         <toolWindow factoryClass="com.github.ethanhosier.ideplugin.toolWindow.TracerToolWindowFactory" id="Refactoring Tracer" anchor="left"/>
-        <postStartupActivity implementation="com.github.ethanhosier.ideplugin.startup.MyProjectActivity" />
+        <postStartupActivity implementation="com.github.ethanhosier.ideplugin.startup.TracerStartupActivity" />
     </extensions>
 
     <applicationListeners>
         <!-- VFS structural changes: create / delete / rename / move -->
         <listener class="com.github.ethanhosier.ideplugin.listeners.VfsListener"
                   topic="com.intellij.openapi.vfs.newvfs.BulkFileListener"/>
-        <!-- EditorEventListener is registered programmatically in MyProjectActivity, not here.
+        <!-- EditorEventListener is registered programmatically in TracerStartupActivity, not here.
              plugin.xml EditorFactoryListener callbacks fire too late to catch editors that
              IntelliJ restores from the previous session on project open — those editors are
              created via an internal restore path that bypasses EditorFactory events.
-             MyProjectActivity runs after restoration is complete and handles both existing
+             TracerStartupActivity runs after restoration is complete and handles both existing
              and future editors in one place with a single listener instance. -->
         <!-- File save -->
         <listener class="com.github.ethanhosier.ideplugin.listeners.FileSaveListener"
@@ -48,7 +45,7 @@
                   topic="com.intellij.problems.ProblemListener"/>
     </projectListeners>
 
-    <!-- TestRunListener subscribed dynamically in MyProjectActivity (SMTRunnerEventsListener requires per-project subscription) -->
+    <!-- TestRunListener subscribed dynamically in TracerStartupActivity (SMTRunnerEventsListener requires per-project subscription) -->
 
     <actions>
         <group id="RefactoringTracer.ToolsMenu" text="Refactoring Tracer" popup="true">

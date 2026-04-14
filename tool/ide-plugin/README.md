@@ -1,6 +1,8 @@
 # Refactoring Tracer — IntelliJ Plugin
 
+<!-- Plugin description -->
 An IntelliJ IDE plugin that records a timestamped stream of developer activity events for trajectory-level refactoring analysis. Built as part of an MEng Final Year Project.
+<!-- Plugin description end -->
 
 ---
 
