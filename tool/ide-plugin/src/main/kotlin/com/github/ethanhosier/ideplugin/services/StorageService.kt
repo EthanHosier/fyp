@@ -25,10 +25,12 @@ class StorageService {
     private val json = Json { prettyPrint = false; encodeDefaults = true }
     private val prettyJson = Json { prettyPrint = true; encodeDefaults = true }
 
-    private var sessionDir: File? = null
+    private val lock = Any()
+
+    @Volatile private var sessionDir: File? = null
     private var eventsWriter: FileWriter? = null
 
-    fun init(sessionId: String, projectBasePath: String) {
+    fun init(sessionId: String, projectBasePath: String) = synchronized(lock) {
         val base = File(projectBasePath, ".refactoring-traces/$sessionId")
         base.mkdirs()
 
@@ -39,8 +41,8 @@ class StorageService {
     }
 
     /** Appends a single event as one JSON line to events.jsonl. */
-    fun flushEvent(event: TraceEvent) {
-        val writer = eventsWriter ?: return
+    fun flushEvent(event: TraceEvent) = synchronized(lock) {
+        val writer = eventsWriter ?: return@synchronized
         try {
             val line = json.encodeToString(event)
             thisLogger().info("RefactoringTracer: $line")
@@ -53,8 +55,8 @@ class StorageService {
     }
 
     /** Writes the full session summary. Called once on session end. */
-    fun flushSession(session: Session) {
-        val dir = sessionDir ?: return
+    fun flushSession(session: Session) = synchronized(lock) {
+        val dir = sessionDir ?: return@synchronized
         try {
             eventsWriter?.close()
             eventsWriter = null
