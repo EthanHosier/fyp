@@ -20,10 +20,4 @@ class TestRunListener(private val project: Project) : SMTRunnerEventsAdapter() {
             EventType.TEST_RUN_FINISHED,
             payload = mapOf("suite" to testsRoot.name, "passed" to testsRoot.isPassed.toString()),
         )
-
-    override fun onTestFailed(test: SMTestProxy) =
-        project.service<SessionService>().addEvent(
-            EventType.TEST_RUN_FINISHED,
-            payload = mapOf("test" to test.name, "passed" to "false"),
-        )
 }
