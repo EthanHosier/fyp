@@ -111,6 +111,8 @@ class SessionService(private val project: Project) {
     }
 
     fun getSessionId(): String? = metadata?.sessionId
+    fun getStartTime(): Long? = metadata?.startTime
+    fun getEventCount(): Int = events.size
 
     // --- private helpers ---
 

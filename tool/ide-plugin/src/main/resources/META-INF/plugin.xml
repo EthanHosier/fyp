@@ -11,6 +11,7 @@
 
     <extensions defaultExtensionNs="com.intellij">
         <toolWindow factoryClass="com.github.ethanhosier.ideplugin.toolWindow.MyToolWindowFactory" id="MyToolWindow"/>
+        <toolWindow factoryClass="com.github.ethanhosier.ideplugin.toolWindow.TracerToolWindowFactory" id="Refactoring Tracer" anchor="left"/>
         <postStartupActivity implementation="com.github.ethanhosier.ideplugin.startup.MyProjectActivity" />
     </extensions>
 

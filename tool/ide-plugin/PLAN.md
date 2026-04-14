@@ -160,13 +160,14 @@ Track when files transition between broken (has errors) and clean states, captur
 ---
 
 ## Stage 6 — Tool Window
-**Status:** [ ] Not started
+**Status:** [x] Complete
 
-Replace `toolWindow/MyToolWindowFactory.kt` with a status panel:
-- Session ID + start time
-- Live event count
-- "Start Task" / "End Task" buttons
-- Output directory path
+Added `toolWindow/TracerToolWindowFactory.kt` as a new tool window (left sidebar, id="Refactoring Tracer"):
+- Session ID (truncated), start time, live event count, output path
+- Icon button in the Output heading row opens the session folder in Finder
+- "Start Task" / "End Task" buttons (primary blue / default) mirroring the menu actions
+- Polls every 2 seconds to keep event count and task state live
+- Original `MyToolWindowFactory` preserved unchanged
 
 ---
 
