@@ -6,6 +6,7 @@ import com.intellij.execution.testframework.sm.runner.SMTRunnerEventsListener
 import com.intellij.openapi.editor.EditorFactory
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.startup.ProjectActivity
+import com.intellij.openapi.util.Disposer
 
 class TracerStartupActivity : ProjectActivity {
 
@@ -22,7 +23,20 @@ class TracerStartupActivity : ProjectActivity {
             .forEach { it.document.addDocumentListener(editorListener) }
         EditorFactory.getInstance().addEditorFactoryListener(editorListener, project)
 
-        // SMTRunnerEventsListener requires per-project dynamic subscription.
-        project.messageBus.connect().subscribe(SMTRunnerEventsListener.TEST_STATUS, TestRunListener(project))
+        // Remove the listener from any editors we attached to directly on project close.
+        // addEditorFactoryListener scopes itself to `project`, but the pre-existing editors
+        // we looped over above are owned by IntelliJ's document cache and can outlive the
+        // project — without this, they'd keep firing documentChanged into a stale listener.
+        Disposer.register(project) {
+            EditorFactory.getInstance().allEditors
+                .filter { it.project == project }
+                .forEach { it.document.removeDocumentListener(editorListener) }
+        }
+
+        // SMTRunnerEventsListener requires per-project dynamic subscription. Pass project
+        // as the parent Disposable so the connection (and TestRunListener's Project ref)
+        // are released on project close.
+        project.messageBus.connect(project)
+            .subscribe(SMTRunnerEventsListener.TEST_STATUS, TestRunListener(project))
     }
 }
