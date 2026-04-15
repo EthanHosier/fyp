@@ -5,6 +5,7 @@ import com.github.ethanhosier.ideplugin.model.FileChangeType
 import com.github.ethanhosier.ideplugin.model.FileSnapshot
 import com.github.ethanhosier.ideplugin.services.SessionService
 import com.github.ethanhosier.ideplugin.util.shouldCapture
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.service
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.project.ProjectLocator
@@ -14,20 +15,49 @@ import com.intellij.openapi.vfs.newvfs.events.*
 
 class VfsListener : BulkFileListener {
 
-    override fun after(events: List<VFileEvent>) {
+    /**
+     * Deletes are handled *before* the operation executes so the VirtualFile is
+     * still alive — `fileType`, `isValid`, and `contentsToByteArray` all work.
+     * By the time `after()` fires, the file's `fileType` often resolves to
+     * `UnknownFileType` (whose `isBinary=true`), which would make
+     * [com.github.ethanhosier.ideplugin.util.shouldCapture] silently drop the
+     * event. Capturing in `before()` also lets us snapshot the pre-delete
+     * contents so downstream analysis has the file's final state inline.
+     */
+    override fun before(events: List<VFileEvent>) {
         for (event in events) {
-            when (event) {
-                is VFileCreateEvent -> handle(
-                    file = event.file ?: continue,
-                    eventType = EventType.FILE_CREATED,
-                    changeType = FileChangeType.CREATED,
-                )
-
-                is VFileDeleteEvent -> handle(
+            if (event is VFileDeleteEvent) {
+                handle(
                     file = event.file,
                     eventType = EventType.FILE_DELETED,
                     changeType = FileChangeType.DELETED,
                 )
+            }
+        }
+    }
+
+    override fun after(events: List<VFileEvent>) {
+        for (event in events) {
+            when (event) {
+                // TEMP FIX: defer the FILE_CREATED snapshot to the next EDT tick so
+                // IntelliJ's file template engine has time to populate the new file
+                // (e.g. `public class Ethan {}` for "New > Java Class"). Reading
+                // synchronously here observes the file before the template insertion
+                // runs and yields empty contents. Not bullet-proof — relies on the
+                // template engine completing within the same EDT round — but covers
+                // the common case. Replace with a `performWhenAllCommitted` /
+                // PSI-join flow if races appear.
+                is VFileCreateEvent -> {
+                    val createdFile = event.file ?: continue
+                    ApplicationManager.getApplication().invokeLater {
+                        if (!createdFile.isValid) return@invokeLater
+                        handle(
+                            file = createdFile,
+                            eventType = EventType.FILE_CREATED,
+                            changeType = FileChangeType.CREATED,
+                        )
+                    }
+                }
 
                 is VFileMoveEvent -> handle(
                     file = event.file,
@@ -74,16 +104,9 @@ class VfsListener : BulkFileListener {
         val sessionService = project.service<SessionService>()
         if (sessionService.getSessionId() == null) return
 
-        val contents = if (changeType == FileChangeType.DELETED) {
-            // File is already gone by the time after() fires — record null contents.
-            null
-        } else {
-            readContents(file)
-        }
-
         val snapshot = FileSnapshot(
             path = file.path,
-            contents = contents,
+            contents = readContents(file),
             changeType = changeType,
             previousPath = previousPath,
         )
