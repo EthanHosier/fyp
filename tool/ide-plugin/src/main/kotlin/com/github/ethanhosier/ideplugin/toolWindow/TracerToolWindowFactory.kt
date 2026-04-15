@@ -4,6 +4,7 @@ import com.github.ethanhosier.ideplugin.services.SessionService
 import com.github.ethanhosier.ideplugin.services.StorageService
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.components.service
+import com.intellij.openapi.ide.CopyPasteManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.InputValidator
 import com.intellij.openapi.ui.Messages
@@ -22,10 +23,14 @@ import java.awt.Font
 import java.awt.GridBagConstraints
 import java.awt.GridBagLayout
 import java.awt.Insets
+import java.awt.datatransfer.StringSelection
 import java.text.SimpleDateFormat
 import java.util.Date
 import javax.swing.Box
+import javax.swing.BoxLayout
 import javax.swing.JButton
+import javax.swing.JComponent
+import javax.swing.JPanel
 import javax.swing.JSeparator
 import javax.swing.Timer
 
@@ -53,11 +58,14 @@ private class TracerStatusPanel(project: Project, toolWindow: ToolWindow) : JBPa
     private val eventCountLabel = JBLabel()
     private val outputDirLabel = JBLabel()
 
-    private val openFolderButton = JButton(AllIcons.Actions.OpenNewTab).apply {
+    private val openFolderButton = iconButton(AllIcons.Actions.OpenNewTab, "Open session folder")
+    private val copyPathButton = iconButton(AllIcons.Actions.Copy, "Copy session folder path")
+
+    private fun iconButton(icon: javax.swing.Icon, tooltip: String) = JButton(icon).apply {
         isBorderPainted = false
         isContentAreaFilled = false
         isOpaque = false
-        toolTipText = "Open session folder"
+        toolTipText = tooltip
         preferredSize = java.awt.Dimension(22, 22)
     }
 
@@ -134,23 +142,30 @@ private class TracerStatusPanel(project: Project, toolWindow: ToolWindow) : JBPa
                 add(value, gbc)
             }
 
-            fun addFieldWithAction(heading: String, value: JBLabel, action: JButton) {
+            fun addFieldWithActions(heading: String, value: JBLabel, actions: JComponent) {
                 gbc.gridy = row++; gbc.gridx = 0; gbc.gridwidth = 1; gbc.weightx = 1.0
                 gbc.insets = Insets(10, 10, 0, 4)
                 add(headingLabel(heading), gbc)
                 gbc.gridx = 1; gbc.weightx = 0.0
                 gbc.insets = Insets(10, 0, 0, 6)
-                add(action, gbc)
+                add(actions, gbc)
                 gbc.gridy = row++; gbc.gridx = 0; gbc.gridwidth = 2; gbc.weightx = 1.0
                 gbc.insets = Insets(2, 10, 0, 10)
                 add(value, gbc)
+            }
+
+            val outputActions = JPanel().apply {
+                layout = BoxLayout(this, BoxLayout.X_AXIS)
+                isOpaque = false
+                add(openFolderButton)
+                add(copyPathButton)
             }
 
             addField("Session name", sessionLabelLabel)
             addField("Session ID", sessionIdLabel)
             addField("Started", startTimeLabel)
             addField("Events", eventCountLabel)
-            addFieldWithAction("Output", outputDirLabel, openFolderButton)
+            addFieldWithActions("Output", outputDirLabel, outputActions)
 
             // Separator
             gbc.gridy = row++; gbc.gridx = 0; gbc.gridwidth = 2; gbc.weightx = 1.0
@@ -172,6 +187,11 @@ private class TracerStatusPanel(project: Project, toolWindow: ToolWindow) : JBPa
         openFolderButton.addActionListener {
             storageService.getSessionDir()?.let { dir ->
                 if (Desktop.isDesktopSupported()) Desktop.getDesktop().open(dir)
+            }
+        }
+        copyPathButton.addActionListener {
+            storageService.getSessionDir()?.absolutePath?.let { path ->
+                CopyPasteManager.getInstance().setContents(StringSelection(path))
             }
         }
         startSessionButton.addActionListener {
