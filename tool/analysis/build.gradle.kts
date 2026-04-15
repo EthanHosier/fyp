@@ -23,6 +23,8 @@ dependencies {
     implementation(kotlin("stdlib"))
     implementation(project(":shared"))
     implementation(libs.kotlinx.serialization.json)
+    implementation(libs.ck)
+    implementation(libs.pmd.java)
 
     testImplementation(libs.junit.jupiter)
     testImplementation(libs.kotlin.test.junit5)

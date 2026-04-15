@@ -89,7 +89,7 @@ Per-SHA dedup matters because long sessions produce hundreds of events but far f
 
 - All Phase 3 work on branch `analysis/checkpoint-metrics`.
 - Step-by-step, hand back to user between steps.
-- Per-section status (`ok` | `error` | `skipped`) so single tool failures don't abort the run.
+- **Errors are fatal** (Phase 1 rule carries over): any failure in any tool, for any SHA, aborts the whole run. No per-section status, no partial results — a checkpoint either has a full metrics file or the run halts and the user fixes the underlying issue.
 
 ## Design decisions (sticky constraints)
 
@@ -121,12 +121,14 @@ Per-SHA file shape (sketch):
 ```json
 {
   "sha": "abc123…",
-  "ck":     { "status": "ok", "perClass": [...], "summary": {...} },
-  "pmd":    { "status": "ok", "violations": [...], "summary": {...} },
-  "build":  { "status": "ok", "success": true, "durationMs": 12345, "stderrTail": "…" },
-  "tests":  { "status": "ok", "total": 50, "passed": 48, "failed": 2, "skipped": 0, "failures": [...] }
+  "ck":     { "perClass": [...], "summary": {...} },
+  "pmd":    { "violations": [...], "summary": {...} },
+  "build":  { "success": true, "durationMs": 12345, "stderrTail": "…" },
+  "tests":  { "total": 50, "passed": 48, "failed": 2, "skipped": 0, "failures": [...] }
 }
 ```
+
+Note: `build.success: false` and `tests.failed > 0` are **valid outcomes**, not errors — they're signals the downstream analysis cares about. Errors here mean "the tool itself crashed / timed out / failed to run"; those abort the run.
 
 ## Internal shape
 
@@ -149,7 +151,7 @@ Files modified:
 
 ## Concurrency model
 
-Each task: borrow worktree → `git checkout <sha>` → run CK + PMD + build + tests sequentially → write `<sha>.json` → return worktree. Tasks themselves run in parallel up to `parallelism`. Each subprocess (build, test) has a hard timeout (default 5 min build, 10 min test). Timeout → `status: "error"` for that section, run continues.
+Each task: borrow worktree → `git checkout <sha>` → run CK + PMD + build + tests sequentially → write `<sha>.json` → return worktree. Tasks themselves run in parallel up to `parallelism`. Each subprocess (build, test) has a hard timeout (default 5 min build, 10 min test). Timeout or crash → the task fails, the orchestrator propagates the exception and the run aborts.
 
 ## Open items to verify during implementation
 
