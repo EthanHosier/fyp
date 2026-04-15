@@ -1,6 +1,7 @@
 package com.github.ethanhosier.ideplugin.listeners
 
 import com.github.ethanhosier.ideplugin.services.EditBurstTracker
+import com.github.ethanhosier.ideplugin.services.RefactoringBurstCoordinator
 import com.github.ethanhosier.ideplugin.util.shouldCapture
 import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Document
@@ -46,6 +47,10 @@ class EditorEventListener : EditorFactoryListener, DocumentListener {
         val vFile = FileDocumentManager.getInstance().getFile(event.document) ?: return
         if (!vFile.shouldCapture()) return
         val project = ProjectLocator.getInstance().getProjectsForFile(vFile).firstOrNull() ?: return
+        // Route through the coordinator first: during a refactoring it absorbs the
+        // change into the REFACTORING_FINISHED snapshot instead of letting EBT emit
+        // an EDIT_BURST that could bleed across the refactoring boundary.
+        if (project.service<RefactoringBurstCoordinator>().onDocumentChanged(vFile, event)) return
         project.service<EditBurstTracker>().onDocumentChanged(vFile, event)
     }
 }
