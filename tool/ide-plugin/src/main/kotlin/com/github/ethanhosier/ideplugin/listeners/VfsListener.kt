@@ -5,6 +5,7 @@ import com.github.ethanhosier.ideplugin.model.FileChangeType
 import com.github.ethanhosier.ideplugin.model.FileSnapshot
 import com.github.ethanhosier.ideplugin.services.SessionService
 import com.github.ethanhosier.ideplugin.util.shouldCapture
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.service
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.project.ProjectLocator
@@ -38,11 +39,25 @@ class VfsListener : BulkFileListener {
     override fun after(events: List<VFileEvent>) {
         for (event in events) {
             when (event) {
-                is VFileCreateEvent -> handle(
-                    file = event.file ?: continue,
-                    eventType = EventType.FILE_CREATED,
-                    changeType = FileChangeType.CREATED,
-                )
+                // TEMP FIX: defer the FILE_CREATED snapshot to the next EDT tick so
+                // IntelliJ's file template engine has time to populate the new file
+                // (e.g. `public class Ethan {}` for "New > Java Class"). Reading
+                // synchronously here observes the file before the template insertion
+                // runs and yields empty contents. Not bullet-proof — relies on the
+                // template engine completing within the same EDT round — but covers
+                // the common case. Replace with a `performWhenAllCommitted` /
+                // PSI-join flow if races appear.
+                is VFileCreateEvent -> {
+                    val createdFile = event.file ?: continue
+                    ApplicationManager.getApplication().invokeLater {
+                        if (!createdFile.isValid) return@invokeLater
+                        handle(
+                            file = createdFile,
+                            eventType = EventType.FILE_CREATED,
+                            changeType = FileChangeType.CREATED,
+                        )
+                    }
+                }
 
                 is VFileMoveEvent -> handle(
                     file = event.file,
