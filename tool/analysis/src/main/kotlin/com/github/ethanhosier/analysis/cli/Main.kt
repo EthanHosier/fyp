@@ -8,6 +8,7 @@ import kotlinx.serialization.json.Json
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.system.exitProcess
+import com.github.ethanhosier.analysis.model.Trace
 
 /**
  * Temporary harness used during Phase 1. Prints a summary of a loaded trace so we
@@ -25,18 +26,7 @@ fun main(args: Array<String>) {
     val trace = TraceNormalizer.normalize(raw)
 
     val reordered = raw.events.indices.count { i -> raw.events[i].id != trace.events[i].id }
-
-    // Dump the normalized stream to a scratch JSONL file next to this harness so we
-    // can eyeball the full ordering without piping the console. Gitignored.
-    val scratchPath = Path.of("src/main/kotlin/com/github/ethanhosier/analysis/cli/normalized-events.jsonl")
-    val jsonl = Json { prettyPrint = false; encodeDefaults = true }
-    Files.createDirectories(scratchPath.parent)
-    Files.newBufferedWriter(scratchPath).use { w ->
-        trace.events.forEach { event ->
-            w.write(jsonl.encodeToString(TraceEvent.serializer(), event))
-            w.newLine()
-        }
-    }
+    val scratchPath = saveNormalizedTraceToJson(trace)
 
     val result = ShadowRepoBuilder().build(folder, trace)
     val uniqueShas = result.eventCommits.mapping.values.toSet().size
@@ -56,4 +46,19 @@ fun main(args: Array<String>) {
     trace.events.take(5).forEach { println("  ${it.timestamp}  ${it.type}  ${it.id}") }
     println("last 5:")
     trace.events.takeLast(5).forEach { println("  ${it.timestamp}  ${it.type}  ${it.id}") }
+}
+
+private fun saveNormalizedTraceToJson(trace: Trace): Path {
+    // Dump the normalized stream to a scratch JSONL file next to this harness so we
+    // can eyeball the full ordering without piping the console. Gitignored.
+    val scratchPath = Path.of("src/main/kotlin/com/github/ethanhosier/analysis/cli/normalized-events.jsonl")
+    val jsonl = Json { prettyPrint = false; encodeDefaults = true }
+    Files.createDirectories(scratchPath.parent)
+    Files.newBufferedWriter(scratchPath).use { w ->
+        trace.events.forEach { event ->
+            w.write(jsonl.encodeToString(TraceEvent.serializer(), event))
+            w.newLine()
+        }
+    }
+    return scratchPath
 }
