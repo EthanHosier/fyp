@@ -17,7 +17,7 @@ import com.github.ethanhosier.analysis.model.Trace
  */
 
 /*
- ./gradlew :analysis:run --args="/Users/ethanhosier/IdeaProjects/untitled7/.refactoring-traces/98c45a19-16b9-43a7-9842-d6662c620d34" -q
+ ./gradlew :analysis:run --args="/Users/ethanhosier/IdeaProjects/untitled7/.refactoring-traces/b0677d51-6541-4a37-98e9-f631751e6f88" -q
  */
 
 fun main(args: Array<String>) {

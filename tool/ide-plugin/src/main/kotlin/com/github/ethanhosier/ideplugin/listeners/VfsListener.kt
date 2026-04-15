@@ -14,6 +14,27 @@ import com.intellij.openapi.vfs.newvfs.events.*
 
 class VfsListener : BulkFileListener {
 
+    /**
+     * Deletes are handled *before* the operation executes so the VirtualFile is
+     * still alive — `fileType`, `isValid`, and `contentsToByteArray` all work.
+     * By the time `after()` fires, the file's `fileType` often resolves to
+     * `UnknownFileType` (whose `isBinary=true`), which would make
+     * [com.github.ethanhosier.ideplugin.util.shouldCapture] silently drop the
+     * event. Capturing in `before()` also lets us snapshot the pre-delete
+     * contents so downstream analysis has the file's final state inline.
+     */
+    override fun before(events: List<VFileEvent>) {
+        for (event in events) {
+            if (event is VFileDeleteEvent) {
+                handle(
+                    file = event.file,
+                    eventType = EventType.FILE_DELETED,
+                    changeType = FileChangeType.DELETED,
+                )
+            }
+        }
+    }
+
     override fun after(events: List<VFileEvent>) {
         for (event in events) {
             when (event) {
@@ -21,12 +42,6 @@ class VfsListener : BulkFileListener {
                     file = event.file ?: continue,
                     eventType = EventType.FILE_CREATED,
                     changeType = FileChangeType.CREATED,
-                )
-
-                is VFileDeleteEvent -> handle(
-                    file = event.file,
-                    eventType = EventType.FILE_DELETED,
-                    changeType = FileChangeType.DELETED,
                 )
 
                 is VFileMoveEvent -> handle(
@@ -74,16 +89,9 @@ class VfsListener : BulkFileListener {
         val sessionService = project.service<SessionService>()
         if (sessionService.getSessionId() == null) return
 
-        val contents = if (changeType == FileChangeType.DELETED) {
-            // File is already gone by the time after() fires — record null contents.
-            null
-        } else {
-            readContents(file)
-        }
-
         val snapshot = FileSnapshot(
             path = file.path,
-            contents = contents,
+            contents = readContents(file),
             changeType = changeType,
             previousPath = previousPath,
         )
