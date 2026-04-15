@@ -1,7 +1,9 @@
 package com.github.ethanhosier.ideplugin.startup
 
 import com.github.ethanhosier.ideplugin.listeners.EditorEventListener
+import com.github.ethanhosier.ideplugin.listeners.RefactoringTemplateListener
 import com.github.ethanhosier.ideplugin.listeners.TestRunListener
+import com.intellij.codeInsight.template.TemplateManager
 import com.intellij.execution.testframework.sm.runner.SMTRunnerEventsListener
 import com.intellij.openapi.editor.EditorFactory
 import com.intellij.openapi.project.Project
@@ -42,7 +44,13 @@ class TracerStartupActivity : ProjectActivity {
         // SMTRunnerEventsListener requires per-project dynamic subscription. Pass project
         // as the parent Disposable so the connection (and TestRunListener's Project ref)
         // are released on project close.
-        project.messageBus.connect(project)
-            .subscribe(SMTRunnerEventsListener.TEST_STATUS, TestRunListener(project))
+        val connection = project.messageBus.connect(project)
+        connection.subscribe(SMTRunnerEventsListener.TEST_STATUS, TestRunListener(project))
+
+        // Template lifecycle: terminator for in-place refactorings. RefactoringEventListener
+        // does not fire refactoringDone / undoRefactoring when the user dismisses an
+        // in-place refactoring (e.g. Extract Method preview with Esc), so we rely on the
+        // template's finish callback to close the refactoring window cleanly.
+        connection.subscribe(TemplateManager.TEMPLATE_STARTED_TOPIC, RefactoringTemplateListener(project))
     }
 }

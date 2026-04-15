@@ -120,8 +120,11 @@ class SessionService(private val project: Project) {
     fun endSession() {
         val meta = metadata ?: return
 
-        // Drain pending edit bursts before marking the session ended — otherwise
-        // addEvent() would reject the flushed bursts as post-session events.
+        // Close any in-flight refactoring first so its accumulated state is emitted
+        // as REFACTORING_FINISHED before we tear down the session. Then drain pending
+        // edit bursts — otherwise addEvent() would reject the flushed events as
+        // post-session.
+        project.service<RefactoringBurstCoordinator>().flushIfActive(outcome = "session_ended")
         project.service<EditBurstTracker>().flushAllPending()
 
         val now = System.currentTimeMillis()
