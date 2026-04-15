@@ -2,6 +2,7 @@ package com.github.ethanhosier.analysis.cli
 
 import com.github.ethanhosier.analysis.ingest.TraceLoader
 import com.github.ethanhosier.analysis.normalize.TraceNormalizer
+import com.github.ethanhosier.analysis.reconstruct.ShadowRepoBuilder
 import com.github.ethanhosier.ideplugin.model.TraceEvent
 import kotlinx.serialization.json.Json
 import java.nio.file.Files
@@ -37,6 +38,9 @@ fun main(args: Array<String>) {
         }
     }
 
+    val result = ShadowRepoBuilder().build(folder, trace)
+    val uniqueShas = result.eventCommits.mapping.values.toSet().size
+
     println("session:    ${trace.metadata.sessionId}")
     println("name:       ${trace.metadata.name}")
     println("project:    ${trace.metadata.projectName} (${trace.metadata.projectPath})")
@@ -45,6 +49,8 @@ fun main(args: Array<String>) {
     println("events:     ${trace.events.size}")
     println("reordered:  $reordered event(s) moved by normalize")
     println("wrote:      ${scratchPath.toAbsolutePath()}")
+    println("repo:       ${result.repoDir}")
+    println("commits:    $uniqueShas unique (${trace.events.size - uniqueShas} events collapsed to prior SHA)")
     println()
     println("first 5:")
     trace.events.take(5).forEach { println("  ${it.timestamp}  ${it.type}  ${it.id}") }
