@@ -1,14 +1,25 @@
 package com.github.ethanhosier.analysis.cli
 
 import com.github.ethanhosier.analysis.ingest.TraceLoader
+import com.github.ethanhosier.analysis.normalize.TraceNormalizer
+import com.github.ethanhosier.analysis.reconstruct.ShadowRepoBuilder
+import com.github.ethanhosier.ideplugin.model.TraceEvent
+import kotlinx.serialization.json.Json
+import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.system.exitProcess
+import com.github.ethanhosier.analysis.model.Trace
 
 /**
  * Temporary harness used during Phase 1. Prints a summary of a loaded trace so we
  * can smoke-test `TraceLoader` against real session folders produced by the
  * ide-plugin. Will be replaced by a proper Clikt command in Step 6.
  */
+
+/*
+ ./gradlew :analysis:run --args="/Users/ethanhosier/IdeaProjects/untitled7/.refactoring-traces/b0677d51-6541-4a37-98e9-f631751e6f88" -q
+ */
+
 fun main(args: Array<String>) {
     if (args.size != 1) {
         System.err.println("usage: analysis <session-folder>")
@@ -16,17 +27,38 @@ fun main(args: Array<String>) {
     }
 
     val folder = Path.of(args[0])
-    val trace = TraceLoader().load(folder)
+    val raw = TraceLoader().load(folder)
+    val trace = TraceNormalizer.normalize(raw)
 
-    println("session:  ${trace.metadata.sessionId}")
-    println("name:     ${trace.metadata.name}")
-    println("project:  ${trace.metadata.projectName} (${trace.metadata.projectPath})")
-    println("started:  ${trace.metadata.startTime}")
-    println("ended:    ${trace.metadata.endTime}")
-    println("events:   ${trace.events.size}")
-    println()
-    println("first 5:")
-    trace.events.take(5).forEach { println("  ${it.timestamp}  ${it.type}  ${it.id}") }
-    println("last 5:")
-    trace.events.takeLast(5).forEach { println("  ${it.timestamp}  ${it.type}  ${it.id}") }
+    val reordered = raw.events.indices.count { i -> raw.events[i].id != trace.events[i].id }
+    val scratchPath = saveNormalizedTraceToJson(trace)
+
+    val result = ShadowRepoBuilder().build(folder, trace)
+    val uniqueShas = result.eventCommits.mapping.values.toSet().size
+
+    println("session:    ${trace.metadata.sessionId}")
+    println("name:       ${trace.metadata.name}")
+    println("project:    ${trace.metadata.projectName} (${trace.metadata.projectPath})")
+    println("started:    ${trace.metadata.startTime}")
+    println("ended:      ${trace.metadata.endTime}")
+    println("events:     ${trace.events.size}")
+    println("reordered:  $reordered event(s) moved by normalize")
+    println("wrote:      ${scratchPath.toAbsolutePath()}")
+    println("repo:       ${result.repoDir}")
+    println("commits:    $uniqueShas unique (${trace.events.size - uniqueShas} events collapsed to prior SHA)")
+}
+
+private fun saveNormalizedTraceToJson(trace: Trace): Path {
+    // Dump the normalized stream to a scratch JSONL file next to this harness so we
+    // can eyeball the full ordering without piping the console. Gitignored.
+    val scratchPath = Path.of("src/main/kotlin/com/github/ethanhosier/analysis/cli/normalized-events.jsonl")
+    val jsonl = Json { prettyPrint = false; encodeDefaults = true }
+    Files.createDirectories(scratchPath.parent)
+    Files.newBufferedWriter(scratchPath).use { w ->
+        trace.events.forEach { event ->
+            w.write(jsonl.encodeToString(TraceEvent.serializer(), event))
+            w.newLine()
+        }
+    }
+    return scratchPath
 }
