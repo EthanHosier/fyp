@@ -1,6 +1,6 @@
 package com.github.ethanhosier.analysis.metrics.model
 
-import com.github.ethanhosier.analysis.metrics.build.BuildResult
+import com.github.ethanhosier.analysis.metrics.gradlebuild.BuildResult
 import com.github.ethanhosier.analysis.metrics.ck.CkResult
 import com.github.ethanhosier.analysis.metrics.pmd.PmdResult
 import com.github.ethanhosier.analysis.metrics.tests.TestResult

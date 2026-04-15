@@ -138,8 +138,8 @@ New package `com.github.ethanhosier.analysis.metrics`:
 - `WorktreePool.kt` — fixed-size pool of `git worktree` directories. Workers borrow → checkout → run → return.
 - `ck/CkRunner.kt` + `ck/CkResult.kt` — wraps CK's `CKNotifier` callback; produces typed result.
 - `pmd/PmdRunner.kt` + `pmd/PmdResult.kt` — wraps `PmdAnalysis`; collects from `Report`.
-- `build/GradleBuildRunner.kt` + `build/BuildResult.kt` — `./gradlew --no-daemon --console=plain build -x test` with timeout.
-- `tests/GradleTestRunner.kt` + `tests/TestResult.kt` — `./gradlew --no-daemon --console=plain test` + parse `build/test-results/test/*.xml`.
+- `gradlebuild/GradleBuildRunner.kt` + `gradlebuild/BuildResult.kt` — `./gradlew --no-daemon --console=plain build -x test` with timeout.
+- `tests/GradleTestRunner.kt` + `tests/TestResult.kt` — `./gradlew --no-daemon --console=plain test` + parse `gradlebuild/test-results/test/*.xml`.
 - `tests/JUnitXmlParser.kt` — minimal JUnit-XML parsing using `javax.xml.parsers`.
 - `model/CheckpointMetrics.kt` — top-level serializable record combining all four sections.
 
