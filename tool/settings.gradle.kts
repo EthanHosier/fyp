@@ -4,4 +4,4 @@ plugins {
 
 rootProject.name = "fyp-tool"
 
-include(":ide-plugin", ":shared")
+include(":ide-plugin", ":shared", ":analysis")
