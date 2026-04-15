@@ -1,6 +1,10 @@
 package com.github.ethanhosier.analysis.cli
 
 import com.github.ethanhosier.analysis.ingest.TraceLoader
+import com.github.ethanhosier.analysis.normalize.TraceNormalizer
+import com.github.ethanhosier.ideplugin.model.TraceEvent
+import kotlinx.serialization.json.Json
+import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.system.exitProcess
 
@@ -16,14 +20,31 @@ fun main(args: Array<String>) {
     }
 
     val folder = Path.of(args[0])
-    val trace = TraceLoader().load(folder)
+    val raw = TraceLoader().load(folder)
+    val trace = TraceNormalizer.normalize(raw)
 
-    println("session:  ${trace.metadata.sessionId}")
-    println("name:     ${trace.metadata.name}")
-    println("project:  ${trace.metadata.projectName} (${trace.metadata.projectPath})")
-    println("started:  ${trace.metadata.startTime}")
-    println("ended:    ${trace.metadata.endTime}")
-    println("events:   ${trace.events.size}")
+    val reordered = raw.events.indices.count { i -> raw.events[i].id != trace.events[i].id }
+
+    // Dump the normalized stream to a scratch JSONL file next to this harness so we
+    // can eyeball the full ordering without piping the console. Gitignored.
+    val scratchPath = Path.of("src/main/kotlin/com/github/ethanhosier/analysis/cli/normalized-events.jsonl")
+    val jsonl = Json { prettyPrint = false; encodeDefaults = true }
+    Files.createDirectories(scratchPath.parent)
+    Files.newBufferedWriter(scratchPath).use { w ->
+        trace.events.forEach { event ->
+            w.write(jsonl.encodeToString(TraceEvent.serializer(), event))
+            w.newLine()
+        }
+    }
+
+    println("session:    ${trace.metadata.sessionId}")
+    println("name:       ${trace.metadata.name}")
+    println("project:    ${trace.metadata.projectName} (${trace.metadata.projectPath})")
+    println("started:    ${trace.metadata.startTime}")
+    println("ended:      ${trace.metadata.endTime}")
+    println("events:     ${trace.events.size}")
+    println("reordered:  $reordered event(s) moved by normalize")
+    println("wrote:      ${scratchPath.toAbsolutePath()}")
     println()
     println("first 5:")
     trace.events.take(5).forEach { println("  ${it.timestamp}  ${it.type}  ${it.id}") }
