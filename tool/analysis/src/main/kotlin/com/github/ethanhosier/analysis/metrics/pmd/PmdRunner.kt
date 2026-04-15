@@ -3,6 +3,7 @@ package com.github.ethanhosier.analysis.metrics.pmd
 import net.sourceforge.pmd.PMDConfiguration
 import net.sourceforge.pmd.PmdAnalysis
 import net.sourceforge.pmd.lang.java.JavaLanguageModule
+import net.sourceforge.pmd.lang.rule.RuleSet
 import java.nio.file.Files
 import java.nio.file.Path
 
@@ -34,7 +35,10 @@ class PmdRunner(
             ruleSets.forEach { addRuleSet(it) }
         }
 
+        val collector = PmdMetricsCollectorRule()
+
         return PmdAnalysis.create(config).use { pmd ->
+            pmd.addRuleSet(RuleSet.forSingleRule(collector))
             val report = pmd.performAnalysisAndCollectReport()
 
             val violations = report.violations.map { v ->
@@ -55,7 +59,36 @@ class PmdRunner(
                 )
             }
 
-            PmdResult(violations = violations, processingErrors = errors)
+            val classMetrics = collector.classMetrics.map {
+                PmdClassMetrics(
+                    className = it.className,
+                    file = relativize(it.file, rootStr),
+                    ncss = it.ncss,
+                    atfd = it.atfd,
+                    noam = it.noam,
+                    nopa = it.nopa,
+                    woc = it.woc,
+                )
+            }
+            val methodMetrics = collector.methodMetrics.map {
+                PmdMethodMetrics(
+                    className = it.className,
+                    signature = it.signature,
+                    file = relativize(it.file, rootStr),
+                    cyclo = it.cyclo,
+                    cognitive = it.cognitive,
+                    npath = it.npath,
+                    ncss = it.ncss,
+                    atfd = it.atfd,
+                )
+            }
+
+            PmdResult(
+                violations = violations,
+                classMetrics = classMetrics,
+                methodMetrics = methodMetrics,
+                processingErrors = errors,
+            )
         }
     }
 
