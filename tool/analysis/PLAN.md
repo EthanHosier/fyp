@@ -67,3 +67,116 @@ Steps can re-open earlier ones as design pressure appears — the above is a dir
 - Web server entrypoint.
 - Binary file support.
 - Worktree-based multi-state diff tooling (unlocked by this design but not built yet).
+
+---
+
+# Analysis Module — Phase 3: Per-Checkpoint Metrics
+
+## Context
+
+Phase 1 + 2 produce a shadow git repo under `<sessionFolder>/shadow-repo/` and an `event-commits.json` mapping every event to a commit SHA (many events collapse to the previous SHA). With reconstruction working, we now need to characterise the *state* of the project at each checkpoint so downstream trajectory analysis has signals to work with.
+
+A "checkpoint" = a unique commit SHA in the shadow repo. For each checkpoint, compute:
+
+1. **CK metrics** — class/method-level OO metrics (LCOM, CBO, WMC, RFC, NOM, LOC, …) via the `com.github.mauricioaniche:ck` library API.
+2. **PMD violations** — rule violations via the `net.sourceforge.pmd:pmd-java` library API (`PmdAnalysis`).
+3. **Build status** — does `./gradlew build` succeed? (Gradle-only; the project under analysis is assumed to be a Gradle Java project.)
+4. **Test pass rate** — `./gradlew test` exit + JUnit XML report parsing for total/passed/failed/skipped.
+
+Per-SHA dedup matters because long sessions produce hundreds of events but far fewer unique commits. Build+test is expensive, so unique SHAs run in parallel via `git worktree`.
+
+## Workflow
+
+- All Phase 3 work on branch `analysis/checkpoint-metrics`.
+- Step-by-step, hand back to user between steps.
+- Per-section status (`ok` | `error` | `skipped`) so single tool failures don't abort the run.
+
+## Design decisions (sticky constraints)
+
+- **CK + PMD as Maven libraries** (not shelled out). Both publish to Maven Central with a programmatic API — no JAR vendoring, no version drift.
+- **Build/test** shell out to `./gradlew --no-daemon` (no daemon since concurrent worktrees would contend).
+- **Granularity:** per unique commit SHA, not per event. Many events share a SHA; recompute would be wasted.
+- **Concurrency:** `Executors.newFixedThreadPool(parallelism)` + `WorktreePool` of equal size. Default parallelism = `availableProcessors() / 2`.
+- **Build system supported:** Gradle only for now. If `./gradlew` is missing in the worktree, build/test sections record `status: "skipped"` rather than crashing.
+- **Ruleset (PMD):** start with `category/java/bestpractices.xml,category/java/errorprone.xml,category/java/design.xml`. Configurable later.
+- **Idempotency:** existing `<sha>.json` files are reused on re-run — incremental runs are cheap.
+
+## Output layout (added by this phase)
+
+```
+<sessionFolder>/
+├── shadow-repo/                    (Phase 2)
+├── event-commits.json              (Phase 2)
+├── checkpoint-metrics/
+│   └── <sha>.json                  one per unique SHA
+└── shadow-worktrees/               transient — created/cleaned per run
+    ├── w0/
+    └── w1/
+```
+
+`event-commits.json` already maps event-id → SHA, so no separate index is needed — downstream code joins on SHA.
+
+Per-SHA file shape (sketch):
+
+```json
+{
+  "sha": "abc123…",
+  "ck":     { "status": "ok", "perClass": [...], "summary": {...} },
+  "pmd":    { "status": "ok", "violations": [...], "summary": {...} },
+  "build":  { "status": "ok", "success": true, "durationMs": 12345, "stderrTail": "…" },
+  "tests":  { "status": "ok", "total": 50, "passed": 48, "failed": 2, "skipped": 0, "failures": [...] }
+}
+```
+
+## Internal shape
+
+New package `com.github.ethanhosier.analysis.metrics`:
+
+- `MetricsRunner.kt` — orchestrator: pulls unique SHAs from `EventCommitMap`, schedules them across the worktree pool, writes per-SHA JSON.
+- `WorktreePool.kt` — fixed-size pool of `git worktree` directories. Workers borrow → checkout → run → return.
+- `ck/CkRunner.kt` + `ck/CkResult.kt` — wraps CK's `CKNotifier` callback; produces typed result.
+- `pmd/PmdRunner.kt` + `pmd/PmdResult.kt` — wraps `PmdAnalysis`; collects from `Report`.
+- `build/GradleBuildRunner.kt` + `build/BuildResult.kt` — `./gradlew --no-daemon --console=plain build -x test` with timeout.
+- `tests/GradleTestRunner.kt` + `tests/TestResult.kt` — `./gradlew --no-daemon --console=plain test` + parse `build/test-results/test/*.xml`.
+- `tests/JUnitXmlParser.kt` — minimal JUnit-XML parsing using `javax.xml.parsers`.
+- `model/CheckpointMetrics.kt` — top-level serializable record combining all four sections.
+
+Files modified:
+
+- `analysis/build.gradle.kts` — add `com.github.mauricioaniche:ck` and `net.sourceforge.pmd:pmd-java` deps.
+- `reconstruct/GitRunner.kt` — add `worktreeAdd`, `worktreeRemove`, `worktreePrune`, `checkout`.
+- `cli/Main.kt` — after `ShadowRepoBuilder().build(...)`, call `MetricsRunner(parallelism).run(result, folder)`. Add `--parallelism` flag.
+
+## Concurrency model
+
+Each task: borrow worktree → `git checkout <sha>` → run CK + PMD + build + tests sequentially → write `<sha>.json` → return worktree. Tasks themselves run in parallel up to `parallelism`. Each subprocess (build, test) has a hard timeout (default 5 min build, 10 min test). Timeout → `status: "error"` for that section, run continues.
+
+## Open items to verify during implementation
+
+- **initial-src completeness for Gradle:** confirm the ide-plugin's `initial-src/` capture includes `gradlew`, `gradle/wrapper/`, `build.gradle*`, `settings.gradle*`. If filtered out, build/test sections must skip cleanly rather than crash.
+- **CK version compatibility** with JDK 21 toolchain — pin to a known-good version.
+- **PMD ruleset choice** — start with the three default categories; expose `--pmd-ruleset` later if needed.
+
+## Step-by-step execution
+
+1. **Skeleton + deps.** Add CK + PMD to `build.gradle.kts`, create `metrics/` package skeleton, define `CheckpointMetrics` schema. Verify `./gradlew :analysis:build`.
+2. **CK runner.** Implement, smoke-test against analysis module's own source tree.
+3. **PMD runner.** Same shape.
+4. **Gradle build runner.** Shell out, capture exit + stderr tail.
+5. **Gradle test runner + JUnit XML parser.**
+6. **GitRunner worktree extensions + WorktreePool.**
+7. **MetricsRunner orchestrator.** Sequential first (parallelism=1), then parallel.
+8. **CLI wire-up.** `--parallelism` flag, integrate after reconstruct, print summary line.
+
+## Verification
+
+```
+./gradlew :analysis:run --args="<sessionFolder> --parallelism=4" -q
+```
+
+Expected:
+- `<sessionFolder>/checkpoint-metrics/<sha>.json` exists for every unique SHA in `event-commits.json`.
+- All four sections present with sensible statuses.
+- `shadow-worktrees/` removed after run.
+- Re-run is a no-op on already-computed SHAs.
+- Spot-check: a deliberately broken-test session produces `tests.failed > 0` and `build.success` matching expectation.
