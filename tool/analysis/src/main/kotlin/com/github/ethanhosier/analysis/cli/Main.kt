@@ -15,6 +15,11 @@ import com.github.ethanhosier.analysis.model.Trace
  * can smoke-test `TraceLoader` against real session folders produced by the
  * ide-plugin. Will be replaced by a proper Clikt command in Step 6.
  */
+
+/*
+ ./gradlew :analysis:run --args="/Users/ethanhosier/IdeaProjects/untitled7/.refactoring-traces/98c45a19-16b9-43a7-9842-d6662c620d34" -q
+ */
+
 fun main(args: Array<String>) {
     if (args.size != 1) {
         System.err.println("usage: analysis <session-folder>")
@@ -41,11 +46,6 @@ fun main(args: Array<String>) {
     println("wrote:      ${scratchPath.toAbsolutePath()}")
     println("repo:       ${result.repoDir}")
     println("commits:    $uniqueShas unique (${trace.events.size - uniqueShas} events collapsed to prior SHA)")
-    println()
-    println("first 5:")
-    trace.events.take(5).forEach { println("  ${it.timestamp}  ${it.type}  ${it.id}") }
-    println("last 5:")
-    trace.events.takeLast(5).forEach { println("  ${it.timestamp}  ${it.type}  ${it.id}") }
 }
 
 private fun saveNormalizedTraceToJson(trace: Trace): Path {
