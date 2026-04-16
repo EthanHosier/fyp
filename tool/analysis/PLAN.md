@@ -145,6 +145,5 @@ Other RM types (e.g. `Change Return Type`, `Modify Method Annotation`) are recor
 
 - Disk cache for `(fromSha, toSha) → detections` across reruns.
 - Non-Java language support (RM's Java path is the only well-tested one; target codebases are Java).
-- Reporting refactorings that RM finds at the outer segment scope but the inner sliding window misses due to strict equality.
 - UI surfacing in the ide-plugin — for now findings live in `analysis-report.json`; a results panel is a separate follow-up.
 - Suggesting which IntelliJ action key the user *should have* used — `ideRelevant: Boolean` is the current granularity.
