@@ -25,6 +25,7 @@ object SnapshotFilter {
         ".intellijPlatform",
         ".qodana",
         ".settings",   // Eclipse / Buildship metadata
+        ".refactoring-traces",  // this plugin's own output — snapshotting it would recurse
         "build",       // Gradle output
         "out",         // IDEA compile output
         "bin",         // Eclipse compile output

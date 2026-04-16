@@ -1,16 +1,24 @@
 package com.github.ethanhosier.ideplugin.toolWindow
 
+import com.github.ethanhosier.ideplugin.services.AnalysisClient
 import com.github.ethanhosier.ideplugin.services.SessionService
 import com.github.ethanhosier.ideplugin.services.StorageService
 import com.intellij.icons.AllIcons
+import com.intellij.notification.NotificationGroupManager
+import com.intellij.notification.NotificationType
 import com.intellij.openapi.components.service
+import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.ide.CopyPasteManager
+import com.intellij.openapi.progress.ProgressIndicator
+import com.intellij.openapi.progress.ProgressManager
+import com.intellij.openapi.progress.Task
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.InputValidator
 import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowFactory
+import com.intellij.ui.AnimatedIcon
 import com.intellij.ui.JBColor
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBPanel
@@ -24,6 +32,7 @@ import java.awt.GridBagConstraints
 import java.awt.GridBagLayout
 import java.awt.Insets
 import java.awt.datatransfer.StringSelection
+import java.nio.file.Files
 import java.text.SimpleDateFormat
 import java.util.Date
 import javax.swing.Box
@@ -45,7 +54,7 @@ class TracerToolWindowFactory : ToolWindowFactory {
     override fun shouldBeAvailable(project: Project) = true
 }
 
-private class TracerStatusPanel(project: Project, toolWindow: ToolWindow) : JBPanel<TracerStatusPanel>(CardLayout()) {
+private class TracerStatusPanel(private val project: Project, toolWindow: ToolWindow) : JBPanel<TracerStatusPanel>(CardLayout()) {
 
     private val sessionService = project.service<SessionService>()
     private val storageService = project.service<StorageService>()
@@ -77,6 +86,11 @@ private class TracerStatusPanel(project: Project, toolWindow: ToolWindow) : JBPa
         font = font.deriveFont(Font.BOLD)
     }
     private val endSessionButton = JButton("End Session")
+
+    // Kept true from the moment End Session is clicked until the analysis
+    // upload finishes, so the active panel stays visible (with a spinner on
+    // the button) instead of flipping straight to idle.
+    @Volatile private var analysing = false
 
     private companion object {
         const val CARD_IDLE = "idle"
@@ -210,13 +224,72 @@ private class TracerStatusPanel(project: Project, toolWindow: ToolWindow) : JBPa
             refresh()
         }
         endSessionButton.addActionListener {
+            val sessionDir = storageService.getSessionDir()?.toPath()
+            if (sessionDir != null) {
+                analysing = true
+                setEndButtonAnalysing()
+            }
             sessionService.endSession()
             refresh()
+            if (sessionDir != null) {
+                runAnalysisUpload(sessionDir)
+            }
         }
     }
 
+    private fun setEndButtonAnalysing() {
+        endSessionButton.text = "Analysing…"
+        endSessionButton.icon = AnimatedIcon.Default()
+        endSessionButton.isEnabled = false
+    }
+
+    private fun resetEndButton() {
+        endSessionButton.text = "End Session"
+        endSessionButton.icon = null
+        endSessionButton.isEnabled = true
+    }
+
+    private fun runAnalysisUpload(sessionDir: java.nio.file.Path) {
+        ProgressManager.getInstance().run(object : Task.Backgroundable(project, "Analysing session…", /* canBeCancelled = */ false) {
+            override fun run(indicator: ProgressIndicator) {
+                indicator.isIndeterminate = true
+                indicator.text = "Uploading session to analysis server…"
+                val reportPath = sessionDir.resolve("analysis-report.json")
+                try {
+                    val reportBytes = project.service<AnalysisClient>().upload(sessionDir)
+                    Files.write(reportPath, reportBytes)
+                    notifyUser(
+                        NotificationType.INFORMATION,
+                        "Session analysed",
+                        "Report written to ${reportPath.toAbsolutePath()}",
+                    )
+                } catch (e: Exception) {
+                    thisLogger().warn("RefactoringTracer: analysis upload failed", e)
+                    notifyUser(
+                        NotificationType.ERROR,
+                        "Analysis failed",
+                        e.message ?: e.toString(),
+                    )
+                }
+            }
+
+            override fun onFinished() {
+                analysing = false
+                resetEndButton()
+                refresh()
+            }
+        })
+    }
+
+    private fun notifyUser(type: NotificationType, title: String, content: String) {
+        NotificationGroupManager.getInstance()
+            .getNotificationGroup("RefactoringTracer.Analysis")
+            .createNotification(title, content, type)
+            .notify(project)
+    }
+
     private fun refresh() {
-        val active = sessionService.isSessionActive()
+        val active = sessionService.isSessionActive() || analysing
         sessionLabelLabel.text = sessionService.getSessionName() ?: ""
         sessionIdLabel.text = sessionService.getSessionId()?.take(8)?.let { "$it…" } ?: ""
         startTimeLabel.text = sessionService.getStartTime()?.let { dateFormat.format(Date(it)) } ?: ""
