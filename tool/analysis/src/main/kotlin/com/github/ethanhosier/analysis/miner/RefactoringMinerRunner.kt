@@ -2,7 +2,7 @@ package com.github.ethanhosier.analysis.miner
 
 import com.github.ethanhosier.analysis.metrics.WorktreePool
 import com.github.ethanhosier.analysis.miner.model.DetectedRefactoring
-import com.github.ethanhosier.analysis.miner.model.FindingScope
+import com.github.ethanhosier.analysis.miner.model.ManualRefactoringSegment
 import com.github.ethanhosier.analysis.miner.model.RefactoringFinding
 import com.github.ethanhosier.analysis.model.ReconstructionResult
 import com.github.ethanhosier.analysis.model.Trace
@@ -42,7 +42,7 @@ class RefactoringMinerRunner(
 
     data class Summary(
         val segmentsAnalysed: Int,
-        val findings: List<RefactoringFinding>,
+        val segments: List<ManualRefactoringSegment>,
     )
 
     fun run(
@@ -63,11 +63,11 @@ class RefactoringMinerRunner(
         val pool = WorktreePool(reconstruction.repoDir, worktreeBase, poolSize)
         val executor = Executors.newFixedThreadPool(parallelism)
 
-        val findings = try {
+        val results = try {
             val futures = segments.mapIndexed { i, seg ->
-                executor.submit<List<RefactoringFinding>> { processSegment(i, seg, pool) }
+                executor.submit<ManualRefactoringSegment?> { processSegment(i, seg, pool) }
             }
-            futures.flatMap { future ->
+            futures.mapNotNull { future ->
                 try {
                     future.get()
                 } catch (e: ExecutionException) {
@@ -80,31 +80,25 @@ class RefactoringMinerRunner(
             pool.close()
         }
 
-        return Summary(segments.size, findings)
+        return Summary(segmentsAnalysed = segments.size, segments = results)
     }
 
+    /**
+     * Returns null if the segment had no manual checkpoints or no
+     * refactorings at either scope — empty entries are not worth
+     * surfacing.
+     */
     private fun processSegment(
         index: Int,
         segment: Segment,
         pool: WorktreePool,
-    ): List<RefactoringFinding> {
-        val findings = mutableListOf<RefactoringFinding>()
+    ): ManualRefactoringSegment? {
         val manuals = segment.manuals
-        if (manuals.isEmpty()) return findings
+        if (manuals.isEmpty()) return null
 
         val segmentLevel = runRM(pool, segment.leftAnchor, manuals.last())
-        if (segmentLevel.isNotEmpty()) {
-            findings.add(
-                RefactoringFinding(
-                    segmentIndex = index,
-                    scope = FindingScope.SEGMENT,
-                    fromSha = segment.leftAnchor,
-                    toSha = manuals.last(),
-                    refactorings = segmentLevel.map(::toDetected),
-                ),
-            )
-        }
 
+        val innerFindings = mutableListOf<RefactoringFinding>()
         // lIdx == -1 means L is the left anchor; otherwise L = manuals[lIdx].
         var lIdx = -1
         var rIdx = 0
@@ -129,10 +123,8 @@ class RefactoringMinerRunner(
                 } else break
             }
 
-            findings.add(
+            innerFindings.add(
                 RefactoringFinding(
-                    segmentIndex = index,
-                    scope = FindingScope.INNER,
                     fromSha = tightestLSha,
                     toSha = rSha,
                     refactorings = detections.map(::toDetected),
@@ -144,7 +136,15 @@ class RefactoringMinerRunner(
             rIdx++
         }
 
-        return findings
+        if (segmentLevel.isEmpty() && innerFindings.isEmpty()) return null
+
+        return ManualRefactoringSegment(
+            segmentIndex = index,
+            fromSha = segment.leftAnchor,
+            toSha = manuals.last(),
+            segmentRefactorings = segmentLevel.map(::toDetected),
+            innerFindings = innerFindings,
+        )
     }
 
     private fun runRM(pool: WorktreePool, fromSha: String, toSha: String): List<Refactoring> {

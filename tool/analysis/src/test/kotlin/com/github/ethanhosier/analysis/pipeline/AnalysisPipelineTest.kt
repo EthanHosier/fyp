@@ -115,7 +115,7 @@ class AnalysisPipelineTest {
 
     private fun emptyMinerSummary() = RefactoringMinerRunner.Summary(
         segmentsAnalysed = 0,
-        findings = emptyList(),
+        segments = emptyList(),
     )
 
     private fun metadata(id: String) = SessionMetadata(
