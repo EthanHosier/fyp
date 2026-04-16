@@ -4,6 +4,7 @@ import com.github.ethanhosier.analysis.metrics.WorktreePool
 import com.github.ethanhosier.analysis.miner.model.DetectedRefactoring
 import com.github.ethanhosier.analysis.miner.model.ManualRefactoringSegment
 import com.github.ethanhosier.analysis.miner.model.RefactoringFinding
+import com.github.ethanhosier.analysis.miner.model.RefactoringLocation
 import com.github.ethanhosier.analysis.model.ReconstructionResult
 import com.github.ethanhosier.analysis.model.Trace
 import com.github.ethanhosier.ideplugin.model.EventType
@@ -180,16 +181,27 @@ class RefactoringMinerRunner(
         return DetectedRefactoring(
             type = type,
             description = r.toString(),
-            leftSideLocations = r.leftSide().map(::codeRangeKey),
-            rightSideLocations = r.rightSide().map(::codeRangeKey),
+            leftSideLocations = r.leftSide().map(::toLocation),
+            rightSideLocations = r.rightSide().map(::toLocation),
             ideRelevant = IdeRelevantRefactorings.isIdeRelevant(type),
         )
     }
 
-    // Canonical key: type + sorted left locations + sorted right locations.
-    // Same field set as DetectedRefactoring.leftSideLocations/rightSideLocations
-    // so the "same refactoring" relation used by the sliding window matches
-    // what a reader sees in the serialized output.
+    private fun toLocation(c: CodeRange): RefactoringLocation = RefactoringLocation(
+        key = codeRangeKey(c),
+        filePath = c.filePath,
+        startLine = c.startLine,
+        endLine = c.endLine,
+        startColumn = c.startColumn,
+        endColumn = c.endColumn,
+        codeElementType = c.codeElementType.toString(),
+        codeElement = c.codeElement,
+    )
+
+    // Canonical key: type + sorted left location keys + sorted right location keys.
+    // Same string form as RefactoringLocation.key so the "same refactoring"
+    // relation used by the sliding window matches what a reader sees in the
+    // serialized output.
     private fun canonicalKey(r: Refactoring): String {
         val left = r.leftSide().map(::codeRangeKey).sorted()
         val right = r.rightSide().map(::codeRangeKey).sorted()
