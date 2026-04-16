@@ -149,29 +149,36 @@ class RefactoringMinerRunner(
     }
 
     private fun runRM(pool: WorktreePool, fromSha: String, toSha: String): List<Refactoring> {
+        // Borrows are nested so if the second borrow throws, the first one
+        // is still released. A flat try { borrow; borrow } finally { release;
+        // release } leaks the first slot on a failed second borrow, and the
+        // pool eventually blocks forever.
         val prev = pool.borrow(fromSha)
-        val next = pool.borrow(toSha)
         return try {
-            val collected = mutableListOf<Refactoring>()
-            // RM's default handleException is a no-op — override so internal failures
-            // surface instead of being silently treated as "no refactorings".
-            var captured: Exception? = null
-            GitHistoryRefactoringMinerImpl().detectAtDirectories(
-                prev.toAbsolutePath(),
-                next.toAbsolutePath(),
-                object : RefactoringHandler {
-                    override fun handle(commitId: String, refactorings: List<Refactoring>) {
-                        collected.addAll(refactorings)
-                    }
-                    override fun handleException(commitId: String, e: Exception) {
-                        captured = e
-                    }
-                },
-            )
-            captured?.let { throw IllegalStateException("RefactoringMiner failed on $fromSha → $toSha", it) }
-            collected
+            val next = pool.borrow(toSha)
+            try {
+                val collected = mutableListOf<Refactoring>()
+                // RM's default handleException is a no-op — override so internal failures
+                // surface instead of being silently treated as "no refactorings".
+                var captured: Exception? = null
+                GitHistoryRefactoringMinerImpl().detectAtDirectories(
+                    prev.toAbsolutePath(),
+                    next.toAbsolutePath(),
+                    object : RefactoringHandler {
+                        override fun handle(commitId: String, refactorings: List<Refactoring>) {
+                            collected.addAll(refactorings)
+                        }
+                        override fun handleException(commitId: String, e: Exception) {
+                            captured = e
+                        }
+                    },
+                )
+                captured?.let { throw IllegalStateException("RefactoringMiner failed on $fromSha → $toSha", it) }
+                collected
+            } finally {
+                pool.release(next)
+            }
         } finally {
-            pool.release(next)
             pool.release(prev)
         }
     }
