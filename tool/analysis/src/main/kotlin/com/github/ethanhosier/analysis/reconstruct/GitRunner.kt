@@ -58,6 +58,32 @@ class GitRunner(private val workDir: Path) {
 
     fun head(): String = run("rev-parse", "HEAD").trim()
 
+    /**
+     * Adds a new linked worktree at [path], checked out in detached-HEAD state
+     * at [sha]. The parent directory must exist; [path] itself must not.
+     */
+    fun worktreeAdd(path: Path, sha: String) {
+        run("worktree", "add", "--detach", path.toAbsolutePath().toString(), sha)
+    }
+
+    /**
+     * Removes the linked worktree at [path], force-removing even if the
+     * working tree has untracked changes (a checkpoint run may have left
+     * `build/` etc. behind).
+     */
+    fun worktreeRemove(path: Path) {
+        run("worktree", "remove", "--force", path.toAbsolutePath().toString())
+    }
+
+    /**
+     * Cleans up admin entries for worktrees whose directories no longer
+     * exist. Cheap to run defensively before provisioning new worktrees, so
+     * a crashed prior run doesn't wedge the next one.
+     */
+    fun worktreePrune() {
+        run("worktree", "prune")
+    }
+
     private data class ExecResult(val exitCode: Int, val stdout: String, val stderr: String)
 
     private fun run(vararg args: String): String =

@@ -6,5 +6,12 @@
 .qodana
 build
 
+# Eclipse / Buildship IDE artefacts (appeared when opening the monorepo in
+# another IDE — Gradle's `eclipse` plugin writes these on project import).
+.project
+.classpath
+.settings/
+bin/
+
 # Scratch output from the Phase 1 CLI harness — used for eyeballing normalize output.
 analysis/src/main/kotlin/com/github/ethanhosier/analysis/cli/normalized-events.jsonl
