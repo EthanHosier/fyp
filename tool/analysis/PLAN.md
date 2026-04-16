@@ -1,195 +1,169 @@
-# Analysis Module — Phase 1 Setup
+# Analysis Server Entrypoint
 
 ## Context
 
-The monorepo contains `ide-plugin/` (emits JSONL traces with a baseline source snapshot) and `shared/` (event/session models). This `analysis/` module is a sibling Kotlin/JVM project that will become the offline analysis engine — trajectory scoring, RefactoringMiner integration, web server entrypoint, etc. Phase 1 is just the foundation.
+Today the analysis pipeline runs as a CLI: `./gradlew :analysis:run --args="<sessionFolder>"` loads the session from disk, computes metrics, and writes `analysis-report.json` alongside the inputs. We want to move metric computation off the IDE machine eventually — step one is to extract the pipeline behind an HTTP server that the ide-plugin posts to at session end. For now the server runs locally (separate JVM) next to the IDE; the same binary will later deploy remotely without code changes.
 
-Phase 1 goal: point the tool at an ide-plugin trace folder and produce a **shadow git repo** where each state-bearing event maps to a commit SHA. Using real git unlocks worktrees, diff, blame, etc. for later analysis stages without reimplementing them.
+Two refactors this forces:
 
-## Workflow
+1. **Extract the pipeline from the CLI.** `cli/Main.kt` currently threads load → normalize → reconstruct → metrics → report-writing together. Needs to become a reusable `AnalysisPipeline.run(sessionDir)` that both CLI and server call.
+2. **Separate "input dir" from "write dir."** Today `ShadowRepoBuilder` and `MetricsRunner` both read from and write into the same `sessionFolder`. The server can't write into the plugin's user-owned folder (and won't have it at all once remote), so all pipeline writes must land in a caller-supplied scratch dir. For the CLI we pass the session folder as both input and scratch — behaviour is unchanged. For the server we pass a `Files.createTempDirectory()`.
 
-- All Phase 1 work on branch `analysis/phase-1-setup`.
-- Step-by-step: finish a step, hand back to the user to verify, then move on. Keep implementation fluid — re-plan between steps when new information appears.
-- Minimal tests. One happy-path sanity check per component; thorough fixtures arrive once shapes stabilise.
-- Errors are fatal. Any parse error, replay anomaly, or git failure aborts the run.
+## Approach
 
-## Design decisions (sticky constraints)
+### New `:server` module (Ktor + Netty)
 
-- **CLI framework:** Clikt. Single command for now — a future web server will reuse the pipeline underneath.
-- **Package namespace:** `com.github.ethanhosier.analysis`.
-- **File contents:** UTF-8 text only (matches `FileSnapshot.contents: String?`).
-- **Git backend:** shell out to the system `git` binary via `ProcessBuilder`. Preferred over JGit because JGit lacks `git-worktree` support, which we want later. Assumes `git` is on `PATH`.
-- **Phase 1 ordering rule:** stable sort by `timestamp` ascending. Placeholder — later the normalizer will also group automated refactoring events with nearby edit bursts, but that's deferred.
+- `server/build.gradle.kts`: depends on `:analysis` (transitively `:shared`), pulls in Ktor server + content negotiation + kotlinx.serialization.
+- `server/src/main/kotlin/com/github/ethanhosier/server/Main.kt`: `embeddedServer(Netty, port = 8080) { ... }` with a single route.
+- Two endpoints:
+  - `GET /health` — returns `200 OK` with `{"status": "ok"}`. Trivial liveness probe; the plugin uses it on startup to decide whether to offer analysis (skip otherwise) and ops tooling uses it once we deploy remotely.
+  - `POST /analyze` — accepts `multipart/form-data` with three named parts:
+    - `session.json` → deserialize to `Session`
+    - `initial-src.zip` → unzip into `<tempDir>/initial-src/`
+    - `executable-paths.json` → JSON array of relative paths; apply `+x` to each unzipped file
+- For `POST /analyze`: server writes `session.json` + generates `events.jsonl` (one line per event) into `<tempDir>` so the existing `TraceLoader` works unchanged, invokes `AnalysisPipeline.run(tempDir)`, returns the resulting `AnalysisReport` as `application/json`.
+- `tempDir` is cleaned up in a `finally` regardless of outcome. Startup logs "listening on :8080".
+- Add a `server/src/main/kotlin/.../AnalyzeRoute.kt` so the Ktor wiring and the pipeline invocation are separable/testable.
 
-## Input layout (produced by ide-plugin)
+### `:analysis` refactor
 
-```
-.refactoring-traces/<sessionId>/
-├── events.jsonl        # one TraceEvent per line
-├── session.json        # pretty-printed Session with SessionMetadata
-└── initial-src/        # baseline source tree captured at SESSION_STARTED
-```
+**New file:** `analysis/src/main/kotlin/com/github/ethanhosier/analysis/pipeline/AnalysisPipeline.kt`
 
-## Internal shape
-
-Pipeline stages live in separate packages under `com.github.ethanhosier.analysis`:
-
-- `cli/` — thin Clikt entrypoint.
-- `ingest/` — JSONL + session.json loading into `shared` model types.
-- `normalize/` — canonical ordering of the event stream.
-- `reconstruct/` — shadow git repo builder (seed from `initial-src/`, apply each state-bearing event as a commit). Includes a small `git` subprocess wrapper.
-- `model/` — analysis-owned domain types (ordered trace, reconstruction result, event-to-commit map, etc.) so the pipeline doesn't leak raw shared types everywhere downstream.
-
-File and class names are intentionally unspecified here — let them emerge as we build.
-
-## Shadow repo approach (high level)
-
-Seed a fresh repo under `<sessionFolder>/shadow-repo/` from `initial-src/`, commit it as the baseline, then walk the ordered event stream. For each event that carries file changes, apply the changes to the working tree and commit. Events that don't change the tree (empty `changedFiles`, or edit bursts whose final state matches HEAD) map to the previous commit SHA — the mapping is preserved but no new commit is created. Persist the `eventId → commitSha` map alongside the repo.
-
-Path normalization: trace paths are absolute; strip `SessionMetadata.projectPath` to get repo-relative paths. Paths escaping the project root are fatal.
-
-## Step-by-step execution
-
-1. **Branch + skeleton.** New branch, `:analysis` wired into the Gradle build, minimal `build.gradle.kts`, `analysis/PLAN.md` committed. Verify `./gradlew :analysis:build` succeeds with no source.
-2. **Ingest.** JSONL + session.json loader. Sanity-load a real trace.
-3. **Normalize.** Timestamp ordering stage. Eyeball a real trace output.
-4. **Git wrapper.** Small `ProcessBuilder` shim around `git`. Single test hitting `version`, `init`, `commit`.
-5. **Shadow repo builder.** Core reconstruction logic. Verify against a real session folder; inspect with `git log`.
-6. **CLI wire-up.** Clikt command + application plugin + mainClass. Verify end-to-end via `./gradlew :analysis:run`.
-
-Steps can re-open earlier ones as design pressure appears — the above is a direction, not a contract.
-
-## Out of scope (explicitly deferred)
-
-- Normalizer grouping of automated refactorings with nearby edit bursts.
-- RefactoringMiner / CK / PMD integration.
-- Anchor/step extraction, metrics, scoring, suggestions.
-- Web server entrypoint.
-- Binary file support.
-- Worktree-based multi-state diff tooling (unlocked by this design but not built yet).
-
----
-
-# Analysis Module — Phase 3: Per-Checkpoint Metrics
-
-## Context
-
-Phase 1 + 2 produce a shadow git repo under `<sessionFolder>/shadow-repo/` and an `event-commits.json` mapping every event to a commit SHA (many events collapse to the previous SHA). With reconstruction working, we now need to characterise the *state* of the project at each checkpoint so downstream trajectory analysis has signals to work with.
-
-A "checkpoint" = a unique commit SHA in the shadow repo. For each checkpoint, compute:
-
-1. **CK metrics** — class/method-level OO metrics (LCOM, CBO, WMC, RFC, NOM, LOC, …) via the `com.github.mauricioaniche:ck` library API.
-2. **PMD violations** — rule violations via the `net.sourceforge.pmd:pmd-java` library API (`PmdAnalysis`).
-3. **Build status** — does `./gradlew build` succeed? (Gradle-only; the project under analysis is assumed to be a Gradle Java project.)
-4. **Test pass rate** — `./gradlew test` exit + JUnit XML report parsing for total/passed/failed/skipped.
-
-Per-SHA dedup matters because long sessions produce hundreds of events but far fewer unique commits. Build+test is expensive, so unique SHAs run in parallel via `git worktree`.
-
-## Workflow
-
-- All Phase 3 work on branch `analysis/checkpoint-metrics`.
-- Step-by-step, hand back to user between steps.
-- **Errors are fatal** (Phase 1 rule carries over): any failure in any tool, for any SHA, aborts the whole run. No per-section status, no partial results — a checkpoint either has a full metrics file or the run halts and the user fixes the underlying issue.
-
-## Design decisions (sticky constraints)
-
-- **CK + PMD as Maven libraries** (not shelled out). Both publish to Maven Central with a programmatic API — no JAR vendoring, no version drift.
-- **Build/test** shell out to `./gradlew --no-daemon` (no daemon since concurrent worktrees would contend).
-- **Granularity:** per unique commit SHA, not per event. Many events share a SHA; recompute would be wasted.
-- **Concurrency:** `Executors.newFixedThreadPool(parallelism)` + `WorktreePool` of equal size. Default parallelism = `availableProcessors() / 2`.
-- **Build system supported:** Gradle only for now. If `./gradlew` is missing in the worktree, build/test sections record `status: "skipped"` rather than crashing.
-- **Ruleset (PMD):** start with `category/java/bestpractices.xml,category/java/errorprone.xml,category/java/design.xml`. Configurable later.
-- **Idempotency:** existing `<sha>.json` files are reused on re-run — incremental runs are cheap.
-
-## Output layout (added by this phase)
-
-```
-<sessionFolder>/
-├── shadow-repo/                    (Phase 2)
-├── event-commits.json              (Phase 2)
-├── checkpoint-metrics/
-│   └── <sha>.json                  one per unique SHA
-└── shadow-worktrees/               transient — created/cleaned per run
-    ├── w0/
-    └── w1/
-```
-
-`event-commits.json` already maps event-id → SHA, so no separate index is needed — downstream code joins on SHA.
-
-Per-SHA file shape (sketch):
-
-```json
-{
-  "sha": "abc123…",
-  "ck":     { "perClass": [...], "summary": {...} },
-  "pmd":    { "violations": [...], "summary": {...} },
-  "build":  { "success": true, "durationMs": 12345, "stderrTail": "…" },
-  "tests":  { "total": 50, "passed": 48, "failed": 2, "skipped": 0, "failures": [...] }
+```kotlin
+class AnalysisPipeline(private val parallelism: Int = defaultParallelism()) {
+    data class Result(
+        val trace: Trace,
+        val reconstruction: ReconstructionResult,
+        val metrics: MetricsRunner.Summary,
+        val metricsDurationMs: Long,
+        val report: AnalysisReport,
+    )
+    fun run(sessionDir: Path): Result { /* load → normalize → reconstruct → metrics → build report */ }
 }
 ```
 
-Note: `build.success: false` and `tests.failed > 0` are **valid outcomes**, not errors — they're signals the downstream analysis cares about. Errors here mean "the tool itself crashed / timed out / failed to run"; those abort the run.
+- Moves the `writeAnalysisReport` logic (currently in `cli/Main.kt:115-155`) into the pipeline as pure in-memory report construction. The pipeline does **not** write `analysis-report.json` — that's the caller's job (CLI writes it; server returns it in the response body).
+- CLI (`cli/Main.kt`) shrinks to: parse args → `pipeline.run(sessionFolder)` → `Files.writeString(sessionFolder.resolve("analysis-report.json"), Json.encodeToString(result.report))` → print the summary lines it already prints today.
+- `MetricsRunner`'s output dir (`<sessionDir>/checkpoint-metrics/`) and `ShadowRepoBuilder`'s output dir (`<sessionDir>/shadow-repo/`) stay rooted at the supplied path — no change to those, they already accept a `Path`.
+- Delete `saveNormalizedTraceToJson` in `cli/Main.kt` (CLI-only debug dump — writes to `src/main/kotlin/.../cli/normalized-events.jsonl`, which is gitignored scratch; no production code reads it).
+- Mark `Trace` `@Serializable` (currently the only domain type crossing module boundaries that isn't). Leave `ReconstructionResult` as-is — it holds a `Path` and stays server-internal.
 
-## Internal shape
+### `:ide-plugin` additions
 
-New package `com.github.ethanhosier.analysis.metrics`:
+**New file:** `ide-plugin/src/main/kotlin/com/github/ethanhosier/ideplugin/services/AnalysisClient.kt`
 
-- `MetricsRunner.kt` — orchestrator: pulls unique SHAs from `EventCommitMap`, schedules them across the worktree pool, writes per-SHA JSON.
-- `WorktreePool.kt` — fixed-size pool of `git worktree` directories. Workers borrow → checkout → run → return.
-- `ck/CkRunner.kt` + `ck/CkResult.kt` — wraps CK's `CKNotifier` callback; produces typed result.
-- `pmd/PmdRunner.kt` + `pmd/PmdResult.kt` — wraps `PmdAnalysis`; collects from `Report`.
-- `gradlebuild/GradleBuildRunner.kt` + `gradlebuild/BuildResult.kt` — `./gradlew --no-daemon --console=plain build -x test` with timeout.
-- `tests/GradleTestRunner.kt` + `tests/TestResult.kt` — `./gradlew --no-daemon --console=plain test` + parse `gradlebuild/test-results/test/*.xml`.
-- `tests/JUnitXmlParser.kt` — minimal JUnit-XML parsing using `javax.xml.parsers`.
-- `model/CheckpointMetrics.kt` — top-level serializable record combining all four sections.
+- Project-level `@Service` that owns a `java.net.http.HttpClient` (JDK built-in, no new dep).
+- `fun upload(sessionDir: Path): AnalysisReport`:
+  - Reads `session.json` (already written by `StorageService.flushSession`).
+  - Streams a ZIP of `<sessionDir>/initial-src/` into a `ByteArray` via `ZipOutputStream`.
+  - Walks `initial-src/` and collects paths where `Files.isExecutable` is true → `executable-paths.json`.
+  - Builds a multipart body (small custom boundary writer — the JDK HttpClient has no built-in multipart, but the body shape is ~30 lines and well-known).
+  - POSTs to `serverUrl`, deserializes the `AnalysisReport` response.
+- Server URL: `System.getenv("REFACTORING_TRACER_SERVER_URL") ?: "http://localhost:8080"` computed once at service init.
 
-Files modified:
+**Hook point:** `SessionService.endSession()` at `services/SessionService.kt:137-163`. Immediately after the existing `flushSession(session)` call on line 161, kick off a `Task.Backgroundable`:
 
-- `analysis/build.gradle.kts` — add `com.github.mauricioaniche:ck` and `net.sourceforge.pmd:pmd-java` deps.
-- `reconstruct/GitRunner.kt` — add `worktreeAdd`, `worktreeRemove`, `worktreePrune`, `checkout`.
-- `cli/Main.kt` — after `ShadowRepoBuilder().build(...)`, call `MetricsRunner(parallelism).run(result, folder)`. Add `--parallelism` flag.
+```kotlin
+ProgressManager.getInstance().run(object : Task.Backgroundable(project, "Analysing session…", true) {
+    override fun run(indicator: ProgressIndicator) {
+        val report = project.service<AnalysisClient>().upload(sessionDir)
+        Files.writeString(sessionDir.resolve("analysis-report.json"), json.encodeToString(report))
+        Notifications.Bus.notify(Notification(...).addAction(RevealFileAction(reportPath)), project)
+    }
+})
+```
 
-## Concurrency model
+- `sessionDir` comes from `StorageService` — need a public getter (`fun currentSessionDir(): Path?`) since it's currently private. Add one; don't leak `File` objects.
+- Failure surfaces as an error notification with the exception message; no retry logic for now.
+- A new notification group `"RefactoringTracer.Analysis"` registered in `plugin.xml` so the toast is themeable/silenceable.
 
-Each task: borrow worktree → `git checkout <sha>` → run CK + PMD + build + tests sequentially → write `<sha>.json` → return worktree. Tasks themselves run in parallel up to `parallelism`. Each subprocess (build, test) has a hard timeout (default 5 min build, 10 min test). Timeout or crash → the task fails, the orchestrator propagates the exception and the run aborts.
+### Wire contract (for reference)
 
-## Open items to verify during implementation
+```
+GET /health HTTP/1.1
 
-- **initial-src completeness for Gradle:** confirm the ide-plugin's `initial-src/` capture includes `gradlew`, `gradle/wrapper/`, `build.gradle*`, `settings.gradle*`. If filtered out, build/test sections must skip cleanly rather than crash.
-- **CK version compatibility** with JDK 21 toolchain — pin to a known-good version.
-- **PMD ruleset choice** — start with the three default categories; expose `--pmd-ruleset` later if needed.
+→ 200 OK
+  Content-Type: application/json
+  {"status": "ok"}
+```
 
-## Step-by-step execution
+```
+POST /analyze HTTP/1.1
+Content-Type: multipart/form-data; boundary=<b>
 
-1. **Skeleton + deps.** Add CK + PMD to `build.gradle.kts`, create `metrics/` package skeleton, define `CheckpointMetrics` schema. Verify `./gradlew :analysis:build`.
-2. **CK runner.** Implement, smoke-test against analysis module's own source tree.
-3. **PMD runner.** Same shape.
-4. **Gradle build runner.** Shell out, capture exit + stderr tail.
-5. **Gradle test runner + JUnit XML parser.**
-6. **GitRunner worktree extensions + WorktreePool.**
-7. **MetricsRunner orchestrator.** Sequential first (parallelism=1), then parallel.
-8. **CLI wire-up.** `--parallelism` flag, integrate after reconstruct, print summary line.
+--<b>
+Content-Disposition: form-data; name="session.json"; filename="session.json"
+Content-Type: application/json
+
+{ ...Session... }
+--<b>
+Content-Disposition: form-data; name="initial-src.zip"; filename="initial-src.zip"
+Content-Type: application/zip
+
+<zip bytes>
+--<b>
+Content-Disposition: form-data; name="executable-paths.json"; filename="executable-paths.json"
+Content-Type: application/json
+
+["gradlew"]
+--<b>--
+```
+
+Response: `200 OK` with `application/json` body = `AnalysisReport`. Errors: `400` for malformed upload, `500` with `{error, message}` for pipeline failure.
+
+## Critical files
+
+**New:**
+- `server/build.gradle.kts`
+- `server/src/main/kotlin/com/github/ethanhosier/server/Main.kt`
+- `server/src/main/kotlin/com/github/ethanhosier/server/AnalyzeRoute.kt`
+- `analysis/src/main/kotlin/com/github/ethanhosier/analysis/pipeline/AnalysisPipeline.kt`
+- `ide-plugin/src/main/kotlin/com/github/ethanhosier/ideplugin/services/AnalysisClient.kt`
+
+**Modified:**
+- `settings.gradle.kts` — add `include(":server")`.
+- `gradle/libs.versions.toml` — add Ktor version + `ktor-server-core`, `ktor-server-netty`, `ktor-server-content-negotiation`, `ktor-serialization-kotlinx-json`.
+- `analysis/src/main/kotlin/com/github/ethanhosier/analysis/cli/Main.kt` — shrink to a thin wrapper over `AnalysisPipeline`; drop the report-building + `saveNormalizedTraceToJson` helpers.
+- `analysis/src/main/kotlin/com/github/ethanhosier/analysis/model/Trace.kt` — add `@Serializable`.
+- `ide-plugin/src/main/kotlin/com/github/ethanhosier/ideplugin/services/SessionService.kt` — after `flushSession` (line 161), spawn the upload `Task.Backgroundable`.
+- `ide-plugin/src/main/kotlin/com/github/ethanhosier/ideplugin/services/StorageService.kt` — add a public `currentSessionDir(): Path?` getter.
+- `ide-plugin/src/main/resources/META-INF/plugin.xml` — register `AnalysisClient` service + the new notification group.
+
+## Reused utilities (worth calling out)
+
+- `TraceLoader`, `TraceNormalizer`, `ShadowRepoBuilder`, `MetricsRunner` — consumed as-is by `AnalysisPipeline`; no changes to their signatures.
+- `Session` / `TraceEvent` / `FileSnapshot` / `AnalysisReport` / `CheckpointMetrics` and downstream result types — already `@Serializable`, no work needed.
+- Existing `StorageService.writeSessionFile` (with the executable-bit flag) already records which files need `+x` on the plugin side — but we'll recompute at upload time via `Files.isExecutable`, which is authoritative regardless of how the file was written.
 
 ## Verification
 
-```
-./gradlew :analysis:run --args="<sessionFolder> --parallelism=4" -q
-```
+1. **Unit-ish tests**
+   - `server/src/test/kotlin/.../AnalyzeRouteTest.kt` using Ktor's `testApplication`: build a multipart body from a minimal canned session folder, POST it, assert a non-null `AnalysisReport` comes back with the expected number of checkpoints.
+   - `analysis/src/test/kotlin/.../pipeline/AnalysisPipelineTest.kt`: reuse the same canned session folder, assert `pipeline.run(dir)` produces the same report shape.
 
-Expected:
-- `<sessionFolder>/checkpoint-metrics/<sha>.json` exists for every unique SHA in `event-commits.json`.
-- All four sections present with sensible statuses.
-- `shadow-worktrees/` removed after run.
-- Re-run is a no-op on already-computed SHAs.
-- Spot-check: a deliberately broken-test session produces `tests.failed > 0` and `build.success` matching expectation.
+2. **Manual end-to-end** (local)
+   ```
+   # terminal 1
+   ./gradlew :server:run
+   # → "listening on :8080"
+   curl -s http://localhost:8080/health   # → {"status":"ok"}
 
-## Status: complete (2026-04-16)
+   # terminal 2 — open IntelliJ w/ the plugin installed, run a session,
+   # click End Session, watch for the "Analysing session…" progress bar and
+   # the "Analysis complete — reveal report" notification.
+   ```
+   Confirm `<projectDir>/.refactoring-traces/<sessionId>/analysis-report.json` appears after the notification fires, matches what the CLI would produce for the same folder.
 
-All 8 execution steps shipped. End-to-end run verified on a real session.
+3. **CLI regression**
+   ```
+   ./gradlew :analysis:run --args="<sessionFolder>" -q
+   ```
+   Output should be identical to today's output apart from the dropped `normalized-events.jsonl` debug file.
 
-Notable deviations/additions during implementation:
+## Non-goals (deferred)
 
-- **Consolidated report.** In addition to per-SHA `checkpoint-metrics/<sha>.json` files, the CLI now also emits `analysis-report.json` at the session root — one entry per unique SHA joining the metrics with the slimmed event summaries that landed on it. Lets a reader trace "edits → state" without cross-referencing `events.jsonl`.
-- **Gradle runner flags.** Dropped `--stacktrace` from both build and test invocations: it buried the actionable "What went wrong" block under ~40KB of Gradle internals, which then dominated our stderr tail buffer.
-- **Open item "initial-src completeness" — closed.** The ide-plugin snapshot now walks the full project tree (NIO-based, filtered via `SnapshotFilter`) and preserves the POSIX `+x` bit, so `gradlew`, `gradle/wrapper/`, and the Gradle build config survive the round-trip into the shadow repo and out through a worktree.
-- **Deferred (as planned):** `--pmd-ruleset` flag; normalizer grouping of automated refactorings.
+- Auth / TLS — server is localhost-only for now.
+- Streaming / chunked upload — multipart in one request is fine for ~100–500MB sessions.
+- Settings UI for server URL — env var is enough until we deploy remotely.
+- Results panel in the tool window — notification + reveal-in-finder is the current UX; a real UI is a separate follow-up.
+- `POST /analyze` idempotency cache across uploads — `MetricsRunner`'s per-SHA `checkpoint-metrics/<sha>.json` cache still works *within* a request (same temp dir) but cross-request caching is out of scope; adding it later means keying the cache by SHA in a server-owned persistent dir.

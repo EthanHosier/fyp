@@ -1,30 +1,24 @@
 package com.github.ethanhosier.analysis.cli
 
-import com.github.ethanhosier.analysis.ingest.TraceLoader
-import com.github.ethanhosier.analysis.metrics.MetricsRunner
 import com.github.ethanhosier.analysis.metrics.model.AnalysisReport
-import com.github.ethanhosier.analysis.metrics.model.CheckpointReport
-import com.github.ethanhosier.analysis.metrics.model.EventSummary
-import com.github.ethanhosier.analysis.metrics.model.RunInfo
-import com.github.ethanhosier.analysis.model.ReconstructionResult
-import com.github.ethanhosier.analysis.model.Trace
-import com.github.ethanhosier.analysis.normalize.TraceNormalizer
-import com.github.ethanhosier.analysis.reconstruct.ShadowRepoBuilder
-import com.github.ethanhosier.ideplugin.model.TraceEvent
+import com.github.ethanhosier.analysis.pipeline.AnalysisPipeline
 import kotlinx.serialization.json.Json
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.system.exitProcess
 
 /**
- * Temporary harness. Runs the full analysis pipeline (load → normalize →
- * reconstruct → metrics) over one session folder. Will be replaced by a
- * proper Clikt command once the stages stabilise.
+ * Temporary CLI harness around [AnalysisPipeline]. Runs the full pipeline
+ * over one on-disk session folder and writes `analysis-report.json` back
+ * next to the inputs. Will be replaced by a proper Clikt command once the
+ * stages stabilise; the `:server` module is the production entrypoint.
  */
 
 /*
  ./gradlew :analysis:run --args="/Users/ethanhosier/IdeaProjects/gradleproject/.refactoring-traces/8b833c23-8803-449d-9de4-bcb5e71dfaa4" -q
  */
+
+private val reportJson = Json { prettyPrint = true; encodeDefaults = true }
 
 fun main(args: Array<String>) {
     val opts = parseArgs(args) ?: run {
@@ -32,42 +26,28 @@ fun main(args: Array<String>) {
         exitProcess(2)
     }
 
-    val raw = TraceLoader().load(opts.sessionFolder)
-    val trace = TraceNormalizer.normalize(raw)
-    val reordered = raw.events.indices.count { i -> raw.events[i].id != trace.events[i].id }
-    val scratchPath = saveNormalizedTraceToJson(trace)
+    val result = AnalysisPipeline(parallelism = opts.parallelism).run(opts.sessionFolder)
 
-    val reconstruction = ShadowRepoBuilder().build(opts.sessionFolder, trace)
-    val uniqueShas = reconstruction.eventCommits.mapping.values.toSet().size
+    val reportPath = opts.sessionFolder.resolve("analysis-report.json")
+    Files.writeString(reportPath, reportJson.encodeToString(AnalysisReport.serializer(), result.report))
 
-    val metricsStart = System.currentTimeMillis()
-    val metrics = MetricsRunner(parallelism = opts.parallelism).run(reconstruction, opts.sessionFolder)
-    val metricsDurationMs = System.currentTimeMillis() - metricsStart
-
-    val reportPath = writeAnalysisReport(
-        sessionFolder = opts.sessionFolder,
-        trace = trace,
-        reconstruction = reconstruction,
-        metrics = metrics,
-        parallelism = opts.parallelism,
-        metricsDurationMs = metricsDurationMs,
-    )
-
-    println("session:    ${trace.metadata.sessionId}")
-    println("name:       ${trace.metadata.name}")
-    println("project:    ${trace.metadata.projectName} (${trace.metadata.projectPath})")
-    println("started:    ${trace.metadata.startTime}")
-    println("ended:      ${trace.metadata.endTime}")
-    println("events:     ${trace.events.size}")
-    println("reordered:  $reordered event(s) moved by normalize")
-    println("wrote:      ${scratchPath.toAbsolutePath()}")
-    println("repo:       ${reconstruction.repoDir}")
-    println("commits:    $uniqueShas unique (${trace.events.size - uniqueShas} events collapsed to prior SHA)")
+    val meta = result.trace.metadata
+    val uniqueShas = result.metricsSummary.totalShas
+    val eventCount = result.trace.events.size
+    println("session:    ${meta.sessionId}")
+    println("name:       ${meta.name}")
+    println("project:    ${meta.projectName} (${meta.projectPath})")
+    println("started:    ${meta.startTime}")
+    println("ended:      ${meta.endTime}")
+    println("events:     $eventCount")
+    println("reordered:  ${result.reorderedEventCount} event(s) moved by normalize")
+    println("repo:       ${result.reconstruction.repoDir}")
+    println("commits:    $uniqueShas unique (${eventCount - uniqueShas} events collapsed to prior SHA)")
     println(
-        "metrics:    ${metrics.totalShas} SHAs processed " +
-            "(${metrics.computed} computed, ${metrics.reused} reused), " +
-            "${metrics.buildOk} build-ok, ${metrics.testsOk} tests-ok " +
-            "in ${metricsDurationMs / 1000}s (parallelism=${opts.parallelism})",
+        "metrics:    $uniqueShas SHAs processed " +
+            "(${result.metricsSummary.computed} computed, ${result.metricsSummary.reused} reused), " +
+            "${result.metricsSummary.buildOk} build-ok, ${result.metricsSummary.testsOk} tests-ok " +
+            "in ${result.metricsDurationMs / 1000}s (parallelism=${opts.parallelism})",
     )
     println("report:     ${reportPath.toAbsolutePath()}")
 }
@@ -76,7 +56,7 @@ private data class CliOptions(val sessionFolder: Path, val parallelism: Int)
 
 private fun parseArgs(args: Array<String>): CliOptions? {
     var sessionFolder: Path? = null
-    var parallelism: Int = (Runtime.getRuntime().availableProcessors() / 2).coerceAtLeast(1)
+    var parallelism: Int = AnalysisPipeline.defaultParallelism()
 
     for (arg in args) {
         when {
@@ -93,63 +73,4 @@ private fun parseArgs(args: Array<String>): CliOptions? {
     }
     val folder = sessionFolder ?: return null
     return CliOptions(folder, parallelism)
-}
-
-private fun saveNormalizedTraceToJson(trace: Trace): Path {
-    // Dump the normalized stream to a scratch JSONL file next to this harness so we
-    // can eyeball the full ordering without piping the console. Gitignored.
-    val scratchPath = Path.of("src/main/kotlin/com/github/ethanhosier/analysis/cli/normalized-events.jsonl")
-    val jsonl = Json { prettyPrint = false; encodeDefaults = true }
-    Files.createDirectories(scratchPath.parent)
-    Files.newBufferedWriter(scratchPath).use { w ->
-        trace.events.forEach { event ->
-            w.write(jsonl.encodeToString(TraceEvent.serializer(), event))
-            w.newLine()
-        }
-    }
-    return scratchPath
-}
-
-private val reportJson = Json { prettyPrint = true; encodeDefaults = true }
-
-private fun writeAnalysisReport(
-    sessionFolder: Path,
-    trace: Trace,
-    reconstruction: ReconstructionResult,
-    metrics: MetricsRunner.Summary,
-    parallelism: Int,
-    metricsDurationMs: Long,
-): Path {
-    // Group event summaries by the SHA they map to, preserving event order so
-    // each checkpoint's event list reads chronologically.
-    val eventsBySha = LinkedHashMap<String, MutableList<EventSummary>>()
-    val mapping = reconstruction.eventCommits.mapping
-    for (event in trace.events) {
-        val sha = mapping[event.id] ?: continue
-        eventsBySha.getOrPut(sha) { mutableListOf() }.add(
-            EventSummary(event.id, event.type, event.timestamp),
-        )
-    }
-
-    val checkpoints = metrics.checkpoints.map { m ->
-        CheckpointReport(
-            sha = m.sha,
-            events = eventsBySha[m.sha].orEmpty(),
-            metrics = m,
-        )
-    }
-
-    val report = AnalysisReport(
-        session = trace.metadata,
-        run = RunInfo(
-            parallelism = parallelism,
-            generatedAt = System.currentTimeMillis(),
-            metricsDurationMs = metricsDurationMs,
-        ),
-        checkpoints = checkpoints,
-    )
-
-    val path = sessionFolder.resolve("analysis-report.json")
-    Files.writeString(path, reportJson.encodeToString(AnalysisReport.serializer(), report))
-    return path
 }
