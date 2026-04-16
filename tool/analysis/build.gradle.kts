@@ -8,7 +8,12 @@ group = "com.github.ethanhosier.analysis"
 version = "0.0.1"
 
 kotlin {
-    jvmToolchain(21)
+    // Bumped from 21 to 23 so Gradle resolves refactoring-miner's thin
+    // `runtimeElements` variant (declared jvm.version=23) instead of its
+    // `shadowRuntimeElements` fat jar — the fat jar bundles a 2008-era
+    // asm `SignatureVisitor` as an interface, which collides at runtime
+    // with PMD 7.13's modern asm 9.8 (where it's an abstract class).
+    jvmToolchain(23)
 }
 
 application {
@@ -19,12 +24,23 @@ repositories {
     mavenCentral()
 }
 
+// Exclude the ancient `asm:asm` coordinate that refactoring-miner drags
+// in transitively (via rendersnake → guice 3.0 → sisu-cglib). It ships
+// the same `org.objectweb.asm.*` classnames as the modern
+// `org.ow2.asm:asm:9.8` that PMD depends on — whichever loads first
+// wins, and the ancient one breaks PMD with `IncompatibleClassChangeError`
+// on `SignatureVisitor` (interface vs abstract class).
+configurations.all {
+    exclude(group = "asm", module = "asm")
+}
+
 dependencies {
     implementation(kotlin("stdlib"))
     implementation(project(":shared"))
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.ck)
     implementation(libs.pmd.java)
+    implementation(libs.refactoring.miner)
     implementation(libs.ktor.server.core)
     implementation(libs.ktor.server.netty)
     implementation(libs.ktor.server.content.negotiation)

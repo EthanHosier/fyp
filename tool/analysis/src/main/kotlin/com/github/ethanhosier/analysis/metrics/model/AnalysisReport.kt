@@ -1,5 +1,6 @@
 package com.github.ethanhosier.analysis.metrics.model
 
+import com.github.ethanhosier.analysis.miner.model.ManualRefactoringSegment
 import com.github.ethanhosier.ideplugin.model.EventType
 import com.github.ethanhosier.ideplugin.model.SessionMetadata
 import kotlinx.serialization.Serializable
@@ -21,6 +22,7 @@ data class AnalysisReport(
     val session: SessionMetadata,
     val run: RunInfo,
     val checkpoints: List<CheckpointReport>,
+    val manualRefactorings: List<ManualRefactoringSegment> = emptyList(),
 )
 
 @Serializable
