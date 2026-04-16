@@ -25,6 +25,7 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.ck)
     implementation(libs.pmd.java)
+    implementation(libs.refactoring.miner)
     implementation(libs.ktor.server.core)
     implementation(libs.ktor.server.netty)
     implementation(libs.ktor.server.content.negotiation)
