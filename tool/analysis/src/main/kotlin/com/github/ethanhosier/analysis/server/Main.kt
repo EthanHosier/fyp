@@ -33,5 +33,6 @@ fun Application.module() {
     }
     routing {
         health()
+        analyze()
     }
 }
