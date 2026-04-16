@@ -49,6 +49,14 @@ fun main(args: Array<String>) {
             "${result.metricsSummary.buildOk} build-ok, ${result.metricsSummary.testsOk} tests-ok " +
             "in ${result.metricsDurationMs / 1000}s (parallelism=${opts.parallelism})",
     )
+    val findings = result.minerSummary.findings
+    val ideRelevantCount = findings.sumOf { f -> f.refactorings.count { it.ideRelevant } }
+    val totalRefactorings = findings.sumOf { it.refactorings.size }
+    println(
+        "miner:      ${result.minerSummary.segmentsAnalysed} segment(s), " +
+            "${findings.size} finding(s), $totalRefactorings refactoring(s) " +
+            "($ideRelevantCount ide-relevant) in ${result.minerDurationMs / 1000}s",
+    )
     println("report:     ${reportPath.toAbsolutePath()}")
 }
 

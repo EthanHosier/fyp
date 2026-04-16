@@ -6,6 +6,7 @@ import com.github.ethanhosier.analysis.metrics.gradlebuild.BuildResult
 import com.github.ethanhosier.analysis.metrics.model.CheckpointMetrics
 import com.github.ethanhosier.analysis.metrics.pmd.PmdResult
 import com.github.ethanhosier.analysis.metrics.tests.TestResult
+import com.github.ethanhosier.analysis.miner.RefactoringMinerRunner
 import com.github.ethanhosier.analysis.model.ReconstructionResult
 import com.github.ethanhosier.analysis.model.Trace
 import com.github.ethanhosier.analysis.reconstruct.EventCommitMap
@@ -57,6 +58,7 @@ class AnalysisPipelineTest {
             trace = trace,
             reconstruction = reconstruction,
             metrics = metrics,
+            miner = emptyMinerSummary(),
             parallelism = 4,
             metricsDurationMs = 12_345,
         )
@@ -73,6 +75,8 @@ class AnalysisPipelineTest {
 
         val shaB = report.checkpoints[1]
         assertEquals(listOf("e3"), shaB.events.map { it.id })
+
+        assertEquals(emptyList(), report.manualRefactorings)
     }
 
     @Test
@@ -95,12 +99,24 @@ class AnalysisPipelineTest {
             checkpoints = listOf(checkpoint("sha-orphan")),
         )
 
-        val report = buildAnalysisReport(trace, reconstruction, metrics, parallelism = 1, metricsDurationMs = 0)
+        val report = buildAnalysisReport(
+            trace = trace,
+            reconstruction = reconstruction,
+            metrics = metrics,
+            miner = emptyMinerSummary(),
+            parallelism = 1,
+            metricsDurationMs = 0,
+        )
 
         assertEquals(1, report.checkpoints.size)
         assertEquals("sha-orphan", report.checkpoints[0].sha)
         assertEquals(emptyList(), report.checkpoints[0].events)
     }
+
+    private fun emptyMinerSummary() = RefactoringMinerRunner.Summary(
+        segmentsAnalysed = 0,
+        findings = emptyList(),
+    )
 
     private fun metadata(id: String) = SessionMetadata(
         sessionId = id,

@@ -6,6 +6,7 @@ import com.github.ethanhosier.analysis.metrics.model.AnalysisReport
 import com.github.ethanhosier.analysis.metrics.model.CheckpointReport
 import com.github.ethanhosier.analysis.metrics.model.EventSummary
 import com.github.ethanhosier.analysis.metrics.model.RunInfo
+import com.github.ethanhosier.analysis.miner.RefactoringMinerRunner
 import com.github.ethanhosier.analysis.model.ReconstructionResult
 import com.github.ethanhosier.analysis.model.Trace
 import com.github.ethanhosier.analysis.normalize.TraceNormalizer
@@ -39,6 +40,8 @@ class AnalysisPipeline(
         val reconstruction: ReconstructionResult,
         val metricsSummary: MetricsRunner.Summary,
         val metricsDurationMs: Long,
+        val minerSummary: RefactoringMinerRunner.Summary,
+        val minerDurationMs: Long,
         val report: AnalysisReport,
     )
 
@@ -53,7 +56,11 @@ class AnalysisPipeline(
         val metrics = MetricsRunner(parallelism = parallelism).run(reconstruction, sessionDir)
         val metricsDurationMs = System.currentTimeMillis() - metricsStart
 
-        val report = buildAnalysisReport(trace, reconstruction, metrics, parallelism, metricsDurationMs)
+        val minerStart = System.currentTimeMillis()
+        val miner = RefactoringMinerRunner(parallelism = parallelism).run(trace, reconstruction, sessionDir)
+        val minerDurationMs = System.currentTimeMillis() - minerStart
+
+        val report = buildAnalysisReport(trace, reconstruction, metrics, miner, parallelism, metricsDurationMs)
 
         return Result(
             trace = trace,
@@ -61,6 +68,8 @@ class AnalysisPipeline(
             reconstruction = reconstruction,
             metricsSummary = metrics,
             metricsDurationMs = metricsDurationMs,
+            minerSummary = miner,
+            minerDurationMs = minerDurationMs,
             report = report,
         )
     }
@@ -80,6 +89,7 @@ internal fun buildAnalysisReport(
     trace: Trace,
     reconstruction: ReconstructionResult,
     metrics: MetricsRunner.Summary,
+    miner: RefactoringMinerRunner.Summary,
     parallelism: Int,
     metricsDurationMs: Long,
 ): AnalysisReport {
@@ -110,5 +120,6 @@ internal fun buildAnalysisReport(
             metricsDurationMs = metricsDurationMs,
         ),
         checkpoints = checkpoints,
+        manualRefactorings = miner.findings,
     )
 }
