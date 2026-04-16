@@ -1,6 +1,9 @@
 .DS_Store
 .gradle
-.idea
+.idea/
+!/.idea/
+/.idea/*
+!/.idea/runConfigurations/
 .intellijPlatform
 .kotlin
 .qodana

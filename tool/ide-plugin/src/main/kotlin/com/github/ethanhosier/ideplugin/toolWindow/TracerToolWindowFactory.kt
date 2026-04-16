@@ -1,10 +1,17 @@
 package com.github.ethanhosier.ideplugin.toolWindow
 
+import com.github.ethanhosier.ideplugin.services.AnalysisClient
 import com.github.ethanhosier.ideplugin.services.SessionService
 import com.github.ethanhosier.ideplugin.services.StorageService
 import com.intellij.icons.AllIcons
+import com.intellij.notification.NotificationGroupManager
+import com.intellij.notification.NotificationType
 import com.intellij.openapi.components.service
+import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.ide.CopyPasteManager
+import com.intellij.openapi.progress.ProgressIndicator
+import com.intellij.openapi.progress.ProgressManager
+import com.intellij.openapi.progress.Task
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.InputValidator
 import com.intellij.openapi.ui.Messages
@@ -24,6 +31,7 @@ import java.awt.GridBagConstraints
 import java.awt.GridBagLayout
 import java.awt.Insets
 import java.awt.datatransfer.StringSelection
+import java.nio.file.Files
 import java.text.SimpleDateFormat
 import java.util.Date
 import javax.swing.Box
@@ -45,7 +53,7 @@ class TracerToolWindowFactory : ToolWindowFactory {
     override fun shouldBeAvailable(project: Project) = true
 }
 
-private class TracerStatusPanel(project: Project, toolWindow: ToolWindow) : JBPanel<TracerStatusPanel>(CardLayout()) {
+private class TracerStatusPanel(private val project: Project, toolWindow: ToolWindow) : JBPanel<TracerStatusPanel>(CardLayout()) {
 
     private val sessionService = project.service<SessionService>()
     private val storageService = project.service<StorageService>()
@@ -210,9 +218,46 @@ private class TracerStatusPanel(project: Project, toolWindow: ToolWindow) : JBPa
             refresh()
         }
         endSessionButton.addActionListener {
+            val sessionDir = storageService.getSessionDir()?.toPath()
             sessionService.endSession()
             refresh()
+            if (sessionDir != null) {
+                runAnalysisUpload(sessionDir)
+            }
         }
+    }
+
+    private fun runAnalysisUpload(sessionDir: java.nio.file.Path) {
+        ProgressManager.getInstance().run(object : Task.Backgroundable(project, "Analysing session…", /* canBeCancelled = */ false) {
+            override fun run(indicator: ProgressIndicator) {
+                indicator.isIndeterminate = true
+                indicator.text = "Uploading session to analysis server…"
+                val reportPath = sessionDir.resolve("analysis-report.json")
+                try {
+                    val reportBytes = project.service<AnalysisClient>().upload(sessionDir)
+                    Files.write(reportPath, reportBytes)
+                    notifyUser(
+                        NotificationType.INFORMATION,
+                        "Session analysed",
+                        "Report written to ${reportPath.toAbsolutePath()}",
+                    )
+                } catch (e: Exception) {
+                    thisLogger().warn("RefactoringTracer: analysis upload failed", e)
+                    notifyUser(
+                        NotificationType.ERROR,
+                        "Analysis failed",
+                        e.message ?: e.toString(),
+                    )
+                }
+            }
+        })
+    }
+
+    private fun notifyUser(type: NotificationType, title: String, content: String) {
+        NotificationGroupManager.getInstance()
+            .getNotificationGroup("RefactoringTracer.Analysis")
+            .createNotification(title, content, type)
+            .notify(project)
     }
 
     private fun refresh() {
