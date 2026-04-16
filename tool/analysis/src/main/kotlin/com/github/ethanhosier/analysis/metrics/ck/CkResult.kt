@@ -47,12 +47,12 @@ data class CkClassMetrics(
     val rfc: Int,
     // Lack of Cohesion of Methods (v1 definition). [0..∞); 0 = cohesive. Noisy — prefer lcomNormalized.
     val lcom: Int,
-    // LCOM* (Henderson-Sellers). [0.0..1.0]; 0 = cohesive, 1 = no cohesion.
-    val lcomNormalized: Float,
-    // Tight Class Cohesion. [0.0..1.0]; 1 = fully cohesive (direct connections between visible methods).
-    val tcc: Float,
-    // Loose Class Cohesion. [0.0..1.0]; 1 = fully cohesive. Invariant: lcc ≥ tcc.
-    val lcc: Float,
+    // LCOM* (Henderson-Sellers). [0.0..1.0] or null when undefined (e.g. < 2 methods). 0 = cohesive, 1 = no cohesion.
+    val lcomNormalized: Float?,
+    // Tight Class Cohesion. [0.0..1.0] or null when undefined (no eligible method pairs). 1 = fully cohesive.
+    val tcc: Float?,
+    // Loose Class Cohesion. [0.0..1.0] or null when undefined. Invariant: lcc ≥ tcc when both defined.
+    val lcc: Float?,
     // Depth of Inheritance Tree. [1..∞); 1 = direct java.lang.Object subclass.
     val dit: Int,
     // Number of Children — immediate subclasses within the project. [0..∞).

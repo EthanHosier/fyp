@@ -50,7 +50,7 @@ class PmdRunnerTest {
         assertEquals("sample.Greeter", greeter.className)
         assertEquals("src/main/java/sample/Greeter.java", greeter.file)
         assertTrue(greeter.ncss > 0, "ncss should be > 0, was ${greeter.ncss}")
-        assertTrue(greeter.woc in 0.0..1.0, "woc out of range: ${greeter.woc}")
+        assertTrue(greeter.woc != null && greeter.woc in 0.0..1.0, "woc out of range: ${greeter.woc}")
         // Greeter has one pure accessor (getCallCount) so noam should be >= 1.
         assertTrue(greeter.noam >= 1, "noam should be >= 1, was ${greeter.noam}")
 

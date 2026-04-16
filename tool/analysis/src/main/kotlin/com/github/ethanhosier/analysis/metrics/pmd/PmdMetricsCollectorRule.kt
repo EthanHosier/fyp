@@ -37,7 +37,7 @@ internal class PmdMetricsCollectorRule : AbstractJavaRulechainRule(
         val atfd: Int,
         val noam: Int,
         val nopa: Int,
-        val woc: Double,
+        val woc: Double?,
     )
 
     data class CollectedMethod(
@@ -93,7 +93,10 @@ internal class PmdMetricsCollectorRule : AbstractJavaRulechainRule(
             atfd = MetricsUtil.computeMetric(JavaMetrics.ACCESS_TO_FOREIGN_DATA, node),
             noam = MetricsUtil.computeMetric(JavaMetrics.NUMBER_OF_ACCESSORS, node),
             nopa = MetricsUtil.computeMetric(JavaMetrics.NUMBER_OF_PUBLIC_FIELDS, node),
-            woc = MetricsUtil.computeMetric(JavaMetrics.WEIGHT_OF_CLASS, node),
+            // PMD returns NaN for WOC when the class has no methods. Map
+            // NaN → null so we emit standard JSON and preserve the
+            // "undefined" distinction from a real 0.0.
+            woc = MetricsUtil.computeMetric(JavaMetrics.WEIGHT_OF_CLASS, node).takeIf { it.isFinite() },
         )
     }
 

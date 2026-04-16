@@ -59,9 +59,12 @@ class CkRunner {
         wmc = r.wmc,
         rfc = r.rfc,
         lcom = r.lcom,
-        lcomNormalized = r.lcomNormalized,
-        tcc = r.tightClassCohesion,
-        lcc = r.looseClassCohesion,
+        // CK returns NaN when a cohesion metric is undefined for the class
+        // (e.g. < 2 eligible methods). Map NaN → null so we emit standard
+        // JSON; downstream code can treat "undefined" distinctly from 0.
+        lcomNormalized = r.lcomNormalized.takeIf { it.isFinite() },
+        tcc = r.tightClassCohesion.takeIf { it.isFinite() },
+        lcc = r.looseClassCohesion.takeIf { it.isFinite() },
         dit = r.dit,
         noc = r.noc,
         loc = r.loc,

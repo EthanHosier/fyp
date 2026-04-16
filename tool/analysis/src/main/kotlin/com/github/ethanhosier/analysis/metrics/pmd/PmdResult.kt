@@ -36,8 +36,8 @@ data class PmdClassMetrics(
     val noam: Int,
     // number of public attributes. [0..numberOfFields].
     val nopa: Int,
-    // weight of class — ratio of non-trivial methods to total. [0.0..1.0]; 1.0 = all behavioural, 0.0 = pure data class.
-    val woc: Double,
+    // weight of class — ratio of non-trivial methods to total. [0.0..1.0] or null when undefined (class has no methods). 1.0 = all behavioural, 0.0 = pure data class.
+    val woc: Double?,
 )
 
 /**
