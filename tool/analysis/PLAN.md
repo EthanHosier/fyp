@@ -182,3 +182,14 @@ Expected:
 - `shadow-worktrees/` removed after run.
 - Re-run is a no-op on already-computed SHAs.
 - Spot-check: a deliberately broken-test session produces `tests.failed > 0` and `build.success` matching expectation.
+
+## Status: complete (2026-04-16)
+
+All 8 execution steps shipped. End-to-end run verified on a real session.
+
+Notable deviations/additions during implementation:
+
+- **Consolidated report.** In addition to per-SHA `checkpoint-metrics/<sha>.json` files, the CLI now also emits `analysis-report.json` at the session root — one entry per unique SHA joining the metrics with the slimmed event summaries that landed on it. Lets a reader trace "edits → state" without cross-referencing `events.jsonl`.
+- **Gradle runner flags.** Dropped `--stacktrace` from both build and test invocations: it buried the actionable "What went wrong" block under ~40KB of Gradle internals, which then dominated our stderr tail buffer.
+- **Open item "initial-src completeness" — closed.** The ide-plugin snapshot now walks the full project tree (NIO-based, filtered via `SnapshotFilter`) and preserves the POSIX `+x` bit, so `gradlew`, `gradle/wrapper/`, and the Gradle build config survive the round-trip into the shadow repo and out through a worktree.
+- **Deferred (as planned):** `--pmd-ruleset` flag; normalizer grouping of automated refactorings.
