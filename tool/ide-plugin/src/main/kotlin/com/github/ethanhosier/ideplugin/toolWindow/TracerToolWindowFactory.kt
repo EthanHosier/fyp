@@ -18,6 +18,7 @@ import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowFactory
+import com.intellij.ui.AnimatedIcon
 import com.intellij.ui.JBColor
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBPanel
@@ -85,6 +86,11 @@ private class TracerStatusPanel(private val project: Project, toolWindow: ToolWi
         font = font.deriveFont(Font.BOLD)
     }
     private val endSessionButton = JButton("End Session")
+
+    // Kept true from the moment End Session is clicked until the analysis
+    // upload finishes, so the active panel stays visible (with a spinner on
+    // the button) instead of flipping straight to idle.
+    @Volatile private var analysing = false
 
     private companion object {
         const val CARD_IDLE = "idle"
@@ -219,12 +225,28 @@ private class TracerStatusPanel(private val project: Project, toolWindow: ToolWi
         }
         endSessionButton.addActionListener {
             val sessionDir = storageService.getSessionDir()?.toPath()
+            if (sessionDir != null) {
+                analysing = true
+                setEndButtonAnalysing()
+            }
             sessionService.endSession()
             refresh()
             if (sessionDir != null) {
                 runAnalysisUpload(sessionDir)
             }
         }
+    }
+
+    private fun setEndButtonAnalysing() {
+        endSessionButton.text = "Analysing…"
+        endSessionButton.icon = AnimatedIcon.Default()
+        endSessionButton.isEnabled = false
+    }
+
+    private fun resetEndButton() {
+        endSessionButton.text = "End Session"
+        endSessionButton.icon = null
+        endSessionButton.isEnabled = true
     }
 
     private fun runAnalysisUpload(sessionDir: java.nio.file.Path) {
@@ -250,6 +272,12 @@ private class TracerStatusPanel(private val project: Project, toolWindow: ToolWi
                     )
                 }
             }
+
+            override fun onFinished() {
+                analysing = false
+                resetEndButton()
+                refresh()
+            }
         })
     }
 
@@ -261,7 +289,7 @@ private class TracerStatusPanel(private val project: Project, toolWindow: ToolWi
     }
 
     private fun refresh() {
-        val active = sessionService.isSessionActive()
+        val active = sessionService.isSessionActive() || analysing
         sessionLabelLabel.text = sessionService.getSessionName() ?: ""
         sessionIdLabel.text = sessionService.getSessionId()?.take(8)?.let { "$it…" } ?: ""
         startTimeLabel.text = sessionService.getStartTime()?.let { dateFormat.format(Date(it)) } ?: ""
