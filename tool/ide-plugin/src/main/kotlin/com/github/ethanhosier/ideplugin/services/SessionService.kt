@@ -1,17 +1,17 @@
 package com.github.ethanhosier.ideplugin.services
 
 import com.github.ethanhosier.ideplugin.model.*
-import com.github.ethanhosier.ideplugin.util.shouldCapture
+import com.github.ethanhosier.ideplugin.util.SnapshotFilter
 import com.intellij.openapi.application.ApplicationInfo
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.roots.ProjectRootManager
-import com.intellij.openapi.vfs.VfsUtilCore
-import com.intellij.openapi.vfs.VirtualFile
-import com.intellij.openapi.vfs.VirtualFileVisitor
+import java.nio.file.FileVisitResult
+import java.nio.file.Files
 import java.nio.file.Path
+import java.nio.file.SimpleFileVisitor
+import java.nio.file.attribute.BasicFileAttributes
 import java.util.UUID
 
 @Service(Service.Level.PROJECT)
@@ -72,53 +72,71 @@ class SessionService(private val project: Project) {
     }
 
     /**
-     * Copies every capturable file under each of the project's module source roots
-     * (as reported by [ProjectRootManager]) into `<sessionDir>/<subdir>/`, preserving
-     * the tree structure relative to the project base path.
+     * Copies every capturable file under the project root into
+     * `<sessionDir>/<subdir>/`, preserving the tree structure relative to the
+     * project base path.
      *
-     * Per-file filtering still goes through [shouldCapture] so the baseline stays
-     * consistent with what edit tracking records during the session.
+     * Filtering goes through [SnapshotFilter]: a hardcoded skip list for
+     * generated output, IDE/VCS metadata, dependency caches, and an
+     * extension/size cap. This captures not just sources but also build
+     * config (build.gradle*, settings.gradle*, gradle.properties) and the
+     * Gradle wrapper (gradlew, gradle/wrapper/) — all of which the analysis
+     * pipeline needs to run `./gradlew` on a reconstructed checkpoint.
      *
-     * The baseline snapshot at session start is what the analysis tool uses to
-     * reconstruct edit history via a shadow git repo. The same mechanism can later
-     * be reused for mid-session checkpoints.
+     * The baseline snapshot at session start is what the analysis tool uses
+     * to reconstruct edit history via a shadow git repo. The same mechanism
+     * can later be reused for mid-session checkpoints.
      */
     private fun snapshotSource(subdir: String) {
         val basePath = project.basePath ?: run {
             thisLogger().warn("RefactoringTracer: project has no basePath — skipping '$subdir' snapshot")
             return
         }
-        val sourceRoots = ProjectRootManager.getInstance(project).contentSourceRoots
-        if (sourceRoots.isEmpty()) {
-            thisLogger().warn("RefactoringTracer: project has no content source roots — '$subdir' snapshot will be empty")
+        val basePathNio = Path.of(basePath)
+        if (!Files.isDirectory(basePathNio)) {
+            thisLogger().warn("RefactoringTracer: basePath $basePath is not a directory — skipping '$subdir' snapshot")
             return
         }
 
-        val basePathNio = Path.of(basePath)
         val storage = project.service<StorageService>()
         var count = 0
+        var skipped = 0
 
-        for (sourceRoot in sourceRoots) {
-            VfsUtilCore.visitChildrenRecursively(sourceRoot, object : VirtualFileVisitor<Any?>() {
-                override fun visitFile(file: VirtualFile): Boolean {
-                    if (!file.shouldCapture()) return true
-                    try {
-                        val rel = basePathNio.relativize(Path.of(file.path)).toString()
-                        storage.writeSessionFile("$subdir/$rel", file.contentsToByteArray())
-                        count++
-                    } catch (e: Exception) {
-                        thisLogger().warn("RefactoringTracer: failed to snapshot ${file.path}: ${e.message}")
-                    }
-                    return true
+        Files.walkFileTree(basePathNio, object : SimpleFileVisitor<Path>() {
+            override fun preVisitDirectory(dir: Path, attrs: BasicFileAttributes): FileVisitResult {
+                if (dir == basePathNio) return FileVisitResult.CONTINUE
+                if (SnapshotFilter.shouldSkipDir(dir.fileName.toString())) {
+                    return FileVisitResult.SKIP_SUBTREE
                 }
-            })
-        }
+                return FileVisitResult.CONTINUE
+            }
 
-        thisLogger().info("RefactoringTracer: '$subdir' snapshot wrote $count files from ${sourceRoots.size} source root(s)")
+            override fun visitFile(file: Path, attrs: BasicFileAttributes): FileVisitResult {
+                val rel = basePathNio.relativize(file)
+                if (!SnapshotFilter.shouldCaptureFile(rel, attrs.size())) {
+                    skipped++
+                    return FileVisitResult.CONTINUE
+                }
+                try {
+                    storage.writeSessionFile(
+                        relativePath = "$subdir/$rel",
+                        bytes = Files.readAllBytes(file),
+                        executable = Files.isExecutable(file),
+                    )
+                    count++
+                } catch (e: Exception) {
+                    thisLogger().warn("RefactoringTracer: failed to snapshot $file: ${e.message}")
+                }
+                return FileVisitResult.CONTINUE
+            }
+        })
+
+        thisLogger().info("RefactoringTracer: '$subdir' snapshot wrote $count files ($skipped filtered)")
     }
 
     fun endSession() {
         val meta = metadata ?: return
+        if (meta.endTime != null) return
 
         // Close any in-flight refactoring first so its accumulated state is emitted
         // as REFACTORING_FINISHED before we tear down the session. Then drain pending

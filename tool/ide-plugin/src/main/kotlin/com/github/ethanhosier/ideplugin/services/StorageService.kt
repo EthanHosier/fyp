@@ -107,13 +107,18 @@ class StorageService {
      * Writes raw bytes into the active session directory at [relativePath].
      * Creates parent directories as needed. No-op if no session is active.
      * Generic primitive used for ad-hoc session artifacts (e.g. source snapshots).
+     *
+     * [executable] preserves the POSIX +x bit — required for things like
+     * `gradlew` to survive the round-trip into the shadow repo and back out
+     * through a worktree, since git tracks file mode.
      */
-    fun writeSessionFile(relativePath: String, bytes: ByteArray) = synchronized(lock) {
+    fun writeSessionFile(relativePath: String, bytes: ByteArray, executable: Boolean = false) = synchronized(lock) {
         val dir = sessionDir ?: return@synchronized
         try {
             val target = File(dir, relativePath)
             target.parentFile?.mkdirs()
             target.writeBytes(bytes)
+            if (executable) target.setExecutable(true, false)
         } catch (e: Exception) {
             thisLogger().warn("RefactoringTracer: failed to write session file $relativePath: ${e.message}")
         }
