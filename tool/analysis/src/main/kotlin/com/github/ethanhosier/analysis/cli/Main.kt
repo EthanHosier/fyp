@@ -2,6 +2,11 @@ package com.github.ethanhosier.analysis.cli
 
 import com.github.ethanhosier.analysis.ingest.TraceLoader
 import com.github.ethanhosier.analysis.metrics.MetricsRunner
+import com.github.ethanhosier.analysis.metrics.model.AnalysisReport
+import com.github.ethanhosier.analysis.metrics.model.CheckpointReport
+import com.github.ethanhosier.analysis.metrics.model.EventSummary
+import com.github.ethanhosier.analysis.metrics.model.RunInfo
+import com.github.ethanhosier.analysis.model.ReconstructionResult
 import com.github.ethanhosier.analysis.model.Trace
 import com.github.ethanhosier.analysis.normalize.TraceNormalizer
 import com.github.ethanhosier.analysis.reconstruct.ShadowRepoBuilder
@@ -18,7 +23,7 @@ import kotlin.system.exitProcess
  */
 
 /*
- ./gradlew :analysis:run --args="/path/to/session [--parallelism=N]" -q
+ ./gradlew :analysis:run --args="/Users/ethanhosier/IdeaProjects/gradleproject/.refactoring-traces/8b833c23-8803-449d-9de4-bcb5e71dfaa4" -q
  */
 
 fun main(args: Array<String>) {
@@ -29,12 +34,24 @@ fun main(args: Array<String>) {
 
     val raw = TraceLoader().load(opts.sessionFolder)
     val trace = TraceNormalizer.normalize(raw)
-
     val reordered = raw.events.indices.count { i -> raw.events[i].id != trace.events[i].id }
     val scratchPath = saveNormalizedTraceToJson(trace)
 
     val reconstruction = ShadowRepoBuilder().build(opts.sessionFolder, trace)
     val uniqueShas = reconstruction.eventCommits.mapping.values.toSet().size
+
+    val metricsStart = System.currentTimeMillis()
+    val metrics = MetricsRunner(parallelism = opts.parallelism).run(reconstruction, opts.sessionFolder)
+    val metricsDurationMs = System.currentTimeMillis() - metricsStart
+
+    val reportPath = writeAnalysisReport(
+        sessionFolder = opts.sessionFolder,
+        trace = trace,
+        reconstruction = reconstruction,
+        metrics = metrics,
+        parallelism = opts.parallelism,
+        metricsDurationMs = metricsDurationMs,
+    )
 
     println("session:    ${trace.metadata.sessionId}")
     println("name:       ${trace.metadata.name}")
@@ -46,17 +63,13 @@ fun main(args: Array<String>) {
     println("wrote:      ${scratchPath.toAbsolutePath()}")
     println("repo:       ${reconstruction.repoDir}")
     println("commits:    $uniqueShas unique (${trace.events.size - uniqueShas} events collapsed to prior SHA)")
-
-    val metricsStart = System.currentTimeMillis()
-    val metrics = MetricsRunner(parallelism = opts.parallelism).run(reconstruction, opts.sessionFolder)
-    val metricsDurationMs = System.currentTimeMillis() - metricsStart
-
     println(
         "metrics:    ${metrics.totalShas} SHAs processed " +
             "(${metrics.computed} computed, ${metrics.reused} reused), " +
             "${metrics.buildOk} build-ok, ${metrics.testsOk} tests-ok " +
             "in ${metricsDurationMs / 1000}s (parallelism=${opts.parallelism})",
     )
+    println("report:     ${reportPath.toAbsolutePath()}")
 }
 
 private data class CliOptions(val sessionFolder: Path, val parallelism: Int)
@@ -95,4 +108,48 @@ private fun saveNormalizedTraceToJson(trace: Trace): Path {
         }
     }
     return scratchPath
+}
+
+private val reportJson = Json { prettyPrint = true; encodeDefaults = true }
+
+private fun writeAnalysisReport(
+    sessionFolder: Path,
+    trace: Trace,
+    reconstruction: ReconstructionResult,
+    metrics: MetricsRunner.Summary,
+    parallelism: Int,
+    metricsDurationMs: Long,
+): Path {
+    // Group event summaries by the SHA they map to, preserving event order so
+    // each checkpoint's event list reads chronologically.
+    val eventsBySha = LinkedHashMap<String, MutableList<EventSummary>>()
+    val mapping = reconstruction.eventCommits.mapping
+    for (event in trace.events) {
+        val sha = mapping[event.id] ?: continue
+        eventsBySha.getOrPut(sha) { mutableListOf() }.add(
+            EventSummary(event.id, event.type, event.timestamp),
+        )
+    }
+
+    val checkpoints = metrics.checkpoints.map { m ->
+        CheckpointReport(
+            sha = m.sha,
+            events = eventsBySha[m.sha].orEmpty(),
+            metrics = m,
+        )
+    }
+
+    val report = AnalysisReport(
+        session = trace.metadata,
+        run = RunInfo(
+            parallelism = parallelism,
+            generatedAt = System.currentTimeMillis(),
+            metricsDurationMs = metricsDurationMs,
+        ),
+        checkpoints = checkpoints,
+    )
+
+    val path = sessionFolder.resolve("analysis-report.json")
+    Files.writeString(path, reportJson.encodeToString(AnalysisReport.serializer(), report))
+    return path
 }

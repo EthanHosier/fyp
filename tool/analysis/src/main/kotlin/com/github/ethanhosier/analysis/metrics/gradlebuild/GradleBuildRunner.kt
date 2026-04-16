@@ -46,7 +46,10 @@ class GradleBuildRunner(
             add(gradlew.toAbsolutePath().toString())
             add("--no-daemon")
             add("--console=plain")
-            add("--stacktrace")
+            // Deliberately no --stacktrace: it dumps ~40KB of Gradle internals
+            // after the actionable "What went wrong" block, which then gets
+            // kept by our tail buffer instead of the diagnostic. The "What
+            // went wrong" section alone is enough for compile/test failures.
             gradleUserHome?.let { add("--gradle-user-home=${it.toAbsolutePath()}") }
             add("build")
             add("-x")

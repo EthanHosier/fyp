@@ -48,6 +48,9 @@ class MetricsRunner(
         val reused: Int,
         val buildOk: Int,
         val testsOk: Int,
+        // Ordered by first-appearance of the SHA in the normalized event stream,
+        // so callers can build a chronological report without re-deriving order.
+        val checkpoints: List<CheckpointMetrics>,
     )
 
     fun run(reconstruction: ReconstructionResult, sessionFolder: Path): Summary {
@@ -91,6 +94,7 @@ class MetricsRunner(
             reused = reused.size,
             buildOk = results.count { it.build.success },
             testsOk = results.count { it.tests.success },
+            checkpoints = results,
         )
     }
 

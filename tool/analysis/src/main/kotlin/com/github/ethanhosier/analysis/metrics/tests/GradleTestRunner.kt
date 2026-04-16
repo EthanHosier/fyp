@@ -33,7 +33,9 @@ class GradleTestRunner(
             add(gradlew.toAbsolutePath().toString())
             add("--no-daemon")
             add("--console=plain")
-            add("--stacktrace")
+            // See GradleBuildRunner: skip --stacktrace so stderrTail keeps
+            // the actionable "What went wrong" block instead of 40KB of
+            // Gradle internals.
             gradleUserHome?.let { add("--gradle-user-home=${it.toAbsolutePath()}") }
             add("test")
         }
