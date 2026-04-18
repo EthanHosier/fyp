@@ -1,11 +1,14 @@
 package com.github.ethanhosier.analysis.metrics
 
 import com.github.ethanhosier.analysis.metrics.ck.CkRunner
+import com.github.ethanhosier.analysis.metrics.gitdiff.DiffRunner
+import com.github.ethanhosier.analysis.metrics.gitdiff.DiffStats
 import com.github.ethanhosier.analysis.metrics.gradlebuild.GradleBuildRunner
 import com.github.ethanhosier.analysis.metrics.model.CheckpointMetrics
 import com.github.ethanhosier.analysis.metrics.pmd.PmdRunner
 import com.github.ethanhosier.analysis.metrics.tests.GradleTestRunner
 import com.github.ethanhosier.analysis.model.ReconstructionResult
+import com.github.ethanhosier.analysis.reconstruct.GitRunner
 import kotlinx.serialization.json.Json
 import java.nio.file.Files
 import java.nio.file.Path
@@ -51,6 +54,10 @@ class MetricsRunner(
         // Ordered by first-appearance of the SHA in the normalized event stream,
         // so callers can build a chronological report without re-deriving order.
         val checkpoints: List<CheckpointMetrics>,
+        // Keyed by SHA. Diff is vs. the previous checkpoint (or the seed commit
+        // for the first). Never cached on disk — recomputed each run because it
+        // depends on the ordering of the current event stream, not just the SHA.
+        val diffBySha: Map<String, DiffStats> = emptyMap(),
     )
 
     fun run(reconstruction: ReconstructionResult, sessionFolder: Path): Summary {
@@ -88,6 +95,9 @@ class MetricsRunner(
             pool.close()
         }
 
+        val diffBySha = DiffRunner(GitRunner(reconstruction.repoDir))
+            .runAll(uniqueShas.toList())
+
         return Summary(
             totalShas = uniqueShas.size,
             computed = uniqueShas.size - reused.size,
@@ -95,6 +105,7 @@ class MetricsRunner(
             buildOk = results.count { it.build.success },
             testsOk = results.count { it.tests.success },
             checkpoints = results,
+            diffBySha = diffBySha,
         )
     }
 
