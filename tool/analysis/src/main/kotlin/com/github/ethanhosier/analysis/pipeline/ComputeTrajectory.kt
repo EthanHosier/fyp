@@ -3,6 +3,7 @@ package com.github.ethanhosier.analysis.pipeline
 import com.github.ethanhosier.analysis.metrics.model.CheckpointReport
 import com.github.ethanhosier.analysis.metrics.model.DuplicationTrajectoryStats
 import com.github.ethanhosier.analysis.metrics.model.MemberTouchStats
+import com.github.ethanhosier.analysis.metrics.model.ReadabilityTrajectoryStats
 import com.github.ethanhosier.analysis.metrics.model.TrajectoryStats
 import com.github.ethanhosier.ideplugin.model.TouchedMember
 
@@ -66,6 +67,39 @@ internal fun computeTrajectory(checkpoints: List<CheckpointReport>): TrajectoryS
         classes = classStats,
         methods = methodStats,
         duplication = computeDuplication(checkpoints),
+        readability = computeReadability(checkpoints),
+    )
+}
+
+/**
+ * Surface each checkpoint's [ReadabilitySummary] as a series so a reader can
+ * see readability drifting across a trajectory, plus net change from
+ * baseline. No composite score — follow-up PR when a validated model lands.
+ */
+private fun computeReadability(checkpoints: List<CheckpointReport>): ReadabilityTrajectoryStats {
+    if (checkpoints.isEmpty()) return ReadabilityTrajectoryStats.ZERO
+    val summaries = checkpoints.map { it.metrics.readability.summary }
+    val first = summaries.first()
+    val last = summaries.last()
+
+    return ReadabilityTrajectoryStats(
+        avgLineLengthPerStep = summaries.map { it.avgLineLength },
+        maxLineLengthPerStep = summaries.map { it.maxLineLength },
+        avgCommentRatioPerStep = summaries.map { it.avgCommentRatio },
+        avgIndentationPerStep = summaries.map { it.avgIndentation },
+        avgIdentifierLengthPerStep = summaries.map { it.avgIdentifierLength },
+        singleLetterRatioPerStep = summaries.map { it.singleLetterRatio },
+        avgWordCountPerStep = summaries.map { it.avgWordCount },
+        dictionaryWordRatioPerStep = summaries.map { it.dictionaryWordRatio },
+        worstClassLocPerStep = summaries.map { it.worstClassLoc },
+        worstMethodLocPerStep = summaries.map { it.worstMethodLoc },
+        netAvgLineLengthChange = last.avgLineLength - first.avgLineLength,
+        netAvgCommentRatioChange = last.avgCommentRatio - first.avgCommentRatio,
+        netAvgIdentifierLengthChange = last.avgIdentifierLength - first.avgIdentifierLength,
+        netSingleLetterRatioChange = last.singleLetterRatio - first.singleLetterRatio,
+        netDictionaryWordRatioChange = last.dictionaryWordRatio - first.dictionaryWordRatio,
+        netWorstMethodLocChange = last.worstMethodLoc - first.worstMethodLoc,
+        netWorstClassLocChange = last.worstClassLoc - first.worstClassLoc,
     )
 }
 
