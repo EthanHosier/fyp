@@ -23,4 +23,19 @@ data class FileSnapshot(
     val changeType: FileChangeType,
     // Populated for RENAMED / MOVED — the path the file had before the operation.
     val previousPath: String? = null,
+    // Class/method members the event actually touched inside this file. Empty
+    // for non-Java files, DELETED snapshots, or when PSI resolution failed.
+    val touchedMembers: List<TouchedMember> = emptyList(),
+)
+
+/**
+ * A class (and optionally a method within it) that an event edited. `className`
+ * is the fully-qualified name when resolvable, falling back to the simple name.
+ * `methodSignature` is `name(paramType1, paramType2, ...)` or null when the
+ * edit is at class level (e.g. a field declaration, extracted superclass).
+ */
+@Serializable
+data class TouchedMember(
+    val className: String?,
+    val methodSignature: String?,
 )
