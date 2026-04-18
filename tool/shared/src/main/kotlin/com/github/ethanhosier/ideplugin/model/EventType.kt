@@ -23,9 +23,6 @@ enum class EventType {
     REFACTORING_STARTED,
     REFACTORING_FINISHED,
 
-    // Problem / error state
-    FILE_ERRORS_CHANGED,
-
     // Build / test
     BUILD_STARTED,
     BUILD_FINISHED,

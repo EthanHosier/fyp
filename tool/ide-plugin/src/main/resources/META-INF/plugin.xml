@@ -24,11 +24,11 @@
              TracerStartupActivity runs after restoration is complete and handles both existing
              and future editors in one place with a single listener instance. -->
         <!-- File save -->
-<!--        <listener class="com.github.ethanhosier.ideplugin.listeners.FileSaveListener"-->
-<!--                  topic="com.intellij.openapi.fileEditor.FileDocumentManagerListener"/>-->
+        <listener class="com.github.ethanhosier.ideplugin.listeners.FileSaveListener"
+                  topic="com.intellij.openapi.fileEditor.FileDocumentManagerListener"/>
         <!-- Build lifecycle -->
-<!--        <listener class="com.github.ethanhosier.ideplugin.listeners.BuildListener"-->
-<!--                  topic="com.intellij.compiler.server.BuildManagerListener"/>-->
+        <listener class="com.github.ethanhosier.ideplugin.listeners.BuildListener"
+                  topic="com.intellij.compiler.server.BuildManagerListener"/>
     </applicationListeners>
 
     <projectListeners>
@@ -36,14 +36,11 @@
         <listener class="com.github.ethanhosier.ideplugin.listeners.ProjectCloseListener"
                   topic="com.intellij.openapi.project.ProjectManagerListener"/>
         <!-- File editor focus / open / close -->
-<!--        <listener class="com.github.ethanhosier.ideplugin.listeners.FileEditorListener"-->
-<!--                  topic="com.intellij.openapi.fileEditor.FileEditorManagerListener"/>-->
+        <listener class="com.github.ethanhosier.ideplugin.listeners.FileEditorListener"
+                  topic="com.intellij.openapi.fileEditor.FileEditorManagerListener"/>
         <!-- IntelliJ refactoring operations -->
         <listener class="com.github.ethanhosier.ideplugin.listeners.RefactoringListener"
                   topic="com.intellij.refactoring.listeners.RefactoringEventListener"/>
-        <!-- File error/problem state changes (WolfTheProblemSolver) -->
-<!--        <listener class="com.github.ethanhosier.ideplugin.listeners.ProblemListener"-->
-<!--                  topic="com.intellij.problems.ProblemListener"/>-->
     </projectListeners>
 
     <!-- TestRunListener subscribed dynamically in TracerStartupActivity (SMTRunnerEventsListener requires per-project subscription) -->
