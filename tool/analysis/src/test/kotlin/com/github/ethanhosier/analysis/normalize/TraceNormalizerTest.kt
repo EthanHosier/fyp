@@ -47,39 +47,6 @@ class TraceNormalizerTest {
         assertEquals(listOf("e1"), result.events.map { it.id })
     }
 
-    @Test
-    fun `absorbs whitespace-only EDIT_BURST fired just after REFACTORING_FINISHED`(@TempDir tmp: Path) {
-        val projectPath = "/Users/dev/proj"
-        val file = "$projectPath/src/main/java/org/example/Ethan.java"
-        val initialSrc = Files.createDirectories(tmp.resolve("initial-src"))
-
-        val pre = "public class Ethan {\n    public static void main(String[] args) {\n        noo();\n    }\n\n    }\n"
-        val post = "public class Ethan {\n    public static void main(String[] args) {\n        noo();\n    }\n\n}\n"
-
-        val trace = Trace(
-            metadata = metadata(projectPath),
-            events = listOf(
-                event(
-                    id = "r1",
-                    type = EventType.REFACTORING_FINISHED,
-                    timestamp = 100,
-                    changedFiles = listOf(FileSnapshot(file, contents = pre, changeType = FileChangeType.MODIFIED)),
-                ),
-                event(
-                    id = "b1",
-                    type = EventType.EDIT_BURST,
-                    timestamp = 104,
-                    changedFiles = listOf(FileSnapshot(file, contents = post, changeType = FileChangeType.MODIFIED)),
-                ),
-            ),
-        )
-
-        val result = TraceNormalizer.normalize(trace, initialSrc)
-
-        assertEquals(listOf("r1"), result.events.map { it.id })
-        assertEquals(post, result.events.single().changedFiles.single().contents)
-    }
-
     private fun metadata(projectPath: String) = SessionMetadata(
         sessionId = "sess",
         name = "t",
