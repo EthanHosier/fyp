@@ -102,7 +102,13 @@ internal fun buildAnalysisReport(
             eventMembers.addAll(snap.touchedMembers)
         }
         eventsBySha.getOrPut(sha) { mutableListOf() }.add(
-            EventSummary(event.id, event.type, event.timestamp, eventMembers.toList()),
+            EventSummary(
+                id = event.id,
+                type = event.type,
+                timestamp = event.timestamp,
+                touchedMembers = eventMembers.toList(),
+                refactoringId = event.payload["refactoringId"],
+            ),
         )
         membersBySha.getOrPut(sha) { LinkedHashSet() }.addAll(eventMembers)
     }

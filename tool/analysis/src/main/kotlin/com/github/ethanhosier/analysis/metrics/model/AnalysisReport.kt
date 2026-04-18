@@ -5,6 +5,8 @@ import com.github.ethanhosier.analysis.miner.model.ManualRefactoringSegment
 import com.github.ethanhosier.ideplugin.model.EventType
 import com.github.ethanhosier.ideplugin.model.SessionMetadata
 import com.github.ethanhosier.ideplugin.model.TouchedMember
+import kotlinx.serialization.EncodeDefault
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 
 /**
@@ -74,6 +76,7 @@ data class CheckpointReport(
     val touchedMembers: List<TouchedMember> = emptyList(),
 )
 
+@OptIn(ExperimentalSerializationApi::class)
 @Serializable
 data class EventSummary(
     val id: String,
@@ -82,4 +85,9 @@ data class EventSummary(
     // Flat, deduped union of every `(class, method?)` pair this event's
     // snapshots reported. Defaults empty for events with no file changes.
     val touchedMembers: List<TouchedMember> = emptyList(),
+    // IntelliJ `refactoringId` (e.g. `refactoring.extractSuper`), lifted
+    // from payload on REFACTORING_STARTED / REFACTORING_FINISHED. Omitted
+    // entirely from the serialised form for non-refactoring events.
+    @EncodeDefault(EncodeDefault.Mode.NEVER)
+    val refactoringId: String? = null,
 )
