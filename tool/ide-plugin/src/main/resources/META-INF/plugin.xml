@@ -29,6 +29,10 @@
         <!-- Build lifecycle -->
 <!--        <listener class="com.github.ethanhosier.ideplugin.listeners.BuildListener"-->
 <!--                  topic="com.intellij.compiler.server.BuildManagerListener"/>-->
+        <!-- Command boundary: triggers REFACTORING_FINISHED emission when the
+             enclosing command finishes so the trailing auto-format pass is captured. -->
+        <listener class="com.github.ethanhosier.ideplugin.listeners.RefactoringCommandListener"
+                  topic="com.intellij.openapi.command.CommandListener"/>
     </applicationListeners>
 
     <projectListeners>

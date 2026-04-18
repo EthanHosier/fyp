@@ -14,23 +14,28 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.refactoring.listeners.RefactoringEventData
 
 /**
- * Coordinates edit-burst routing around refactoring boundaries.
+ * Coordinates REFACTORING_FINISHED emission around the IntelliJ command
+ * boundary so the emitted snapshot reflects the final, post-auto-format
+ * state of every touched file.
  *
- * When no refactoring is active, document changes fall through to [EditBurstTracker]
- * which emits normal EDIT_BURST events via its 2 s debounce.
+ * Every refactoring runs inside a `CommandProcessor` command. Inside that
+ * command IntelliJ first runs the refactoring processor's PSI mutations
+ * (at the end of which `RefactoringEventListener.refactoringDone` fires),
+ * then runs the trailing "reformat at end of command" pass, then commits.
+ * `CommandListener.commandFinished` fires after the whole command commits.
  *
- * When a refactoring is active, document changes are intercepted and recorded per
- * touched file (no debounce, no EDIT_BURST). At refactoring end we combine those
- * with a per-refactoring-type snapshot pass driven by [RefactoringTypeRegistry]
- * (which reads the platform's before/after PSI state) and emit a single
- * REFACTORING_FINISHED event carrying accurate `changeType` for each file.
+ * The coordinator ignores `refactoringDone` as an emission trigger — it
+ * stashes the platform's `afterData` for later. Emission happens when
+ * `CommandListener` fires `commandFinished` (routed here via
+ * [RefactoringCommandListener]). Reading file contents at that moment
+ * gives the post-format text directly, so we no longer need any
+ * analysis-side heuristic to reconcile the refactoring snapshot with a
+ * trailing EDIT_BURST or a lagging VFS FILE_CREATED.
  *
- * Terminators can come from two sources: modal refactorings via
- * RefactoringEventListener (refactoringDone / conflictsDetected / undoRefactoring),
- * and in-place / preview refactorings via TemplateManagerListener (the platform
- * does not fire a RefactoringEventListener terminator when the user dismisses an
- * in-place refactoring with Esc). [endRefactoring] is idempotent — whichever
- * source fires first wins; the second is a no-op.
+ * In-place / preview refactorings terminated via [RefactoringTemplateListener]
+ * still call [endRefactoringNow] because templates dismissed with Esc don't
+ * fire `refactoringDone` and may not sit inside a command we can wait on.
+ * Same for conflict/undo paths.
  */
 @Service(Service.Level.PROJECT)
 class RefactoringBurstCoordinator(private val project: Project) {
@@ -38,6 +43,8 @@ class RefactoringBurstCoordinator(private val project: Project) {
     private val lock = Any()
     private var activeRefactoringId: String? = null
     private var activeBeforeData: RefactoringEventData? = null
+    private var pendingAfterData: RefactoringEventData? = null
+    private var awaitingCommandFinish: Boolean = false
     // path -> latest in-memory document text observed during the refactoring.
     // LinkedHashMap so the emitted changedFiles preserve first-touched order.
     private val accumulator: LinkedHashMap<String, String> = LinkedHashMap()
@@ -54,13 +61,15 @@ class RefactoringBurstCoordinator(private val project: Project) {
                     "RefactoringTracer: beginRefactoring($refactoringId) while " +
                     "$activeRefactoringId already active — closing previous as 'superseded'"
                 )
-                emitFinishedLocked(outcome = "superseded", refactoringId = activeRefactoringId!!, afterData = null)
+                emitFinishedLocked(outcome = "superseded", refactoringId = activeRefactoringId!!, afterData = pendingAfterData)
             }
             // Flush any pending edit burst so the pre-refactoring state is emitted as
             // its own EDIT_BURST before we start intercepting further changes.
             project.service<EditBurstTracker>().flushAllPending()
             activeRefactoringId = refactoringId
             activeBeforeData = beforeData
+            pendingAfterData = null
+            awaitingCommandFinish = false
             accumulator.clear()
         }
         project.service<SessionService>().addEvent(
@@ -70,16 +79,46 @@ class RefactoringBurstCoordinator(private val project: Project) {
     }
 
     /**
-     * Ends the active refactoring if any, emitting REFACTORING_FINISHED with the
-     * accumulated file snapshots. No-op if no refactoring is active.
-     *
-     * [refactoringId] is optional: the RefactoringEventListener knows the id; the
-     * template-based terminator does not. When supplied it must match the active
-     * id or we log and proceed (the terminator wins regardless). [afterData] is
-     * passed through to the per-type handler in [RefactoringTypeRegistry]; null
-     * when the terminator doesn't have one (e.g. template dismissal).
+     * Called from [com.github.ethanhosier.ideplugin.listeners.RefactoringListener]
+     * at `refactoringDone`. Stashes [afterData] and marks the refactoring as
+     * waiting for its enclosing command to finish — actual emission happens in
+     * [emitOnCommandFinish].
      */
-    fun endRefactoring(
+    fun markRefactoringDone(refactoringId: String, afterData: RefactoringEventData?) {
+        synchronized(lock) {
+            val active = activeRefactoringId ?: return
+            if (refactoringId != active) {
+                thisLogger().warn(
+                    "RefactoringTracer: markRefactoringDone($refactoringId) but active is $active — ignoring"
+                )
+                return
+            }
+            pendingAfterData = afterData
+            awaitingCommandFinish = true
+        }
+    }
+
+    /**
+     * Called from [com.github.ethanhosier.ideplugin.listeners.RefactoringCommandListener]
+     * on every `commandFinished`. Emits REFACTORING_FINISHED iff the coordinator is
+     * waiting on a command boundary. A no-op otherwise (commands fire for ordinary
+     * typing too).
+     */
+    fun emitOnCommandFinish() {
+        synchronized(lock) {
+            if (!awaitingCommandFinish) return
+            val active = activeRefactoringId ?: return
+            emitFinishedLocked(outcome = "done", refactoringId = active, afterData = pendingAfterData)
+        }
+    }
+
+    /**
+     * Immediate-emit path for terminators that don't sit inside a command we
+     * can wait on — conflicts, undo, template cancel. [afterData] is whatever
+     * the terminator had (often null for templates). No-op if no refactoring
+     * is active.
+     */
+    fun endRefactoringNow(
         refactoringId: String?,
         outcome: String,
         afterData: RefactoringEventData? = null,
@@ -88,7 +127,7 @@ class RefactoringBurstCoordinator(private val project: Project) {
             val active = activeRefactoringId ?: return
             if (refactoringId != null && refactoringId != active) {
                 thisLogger().warn(
-                    "RefactoringTracer: endRefactoring($refactoringId) but active is $active — ending anyway"
+                    "RefactoringTracer: endRefactoringNow($refactoringId) but active is $active — ending anyway"
                 )
             }
             emitFinishedLocked(outcome = outcome, refactoringId = active, afterData = afterData)
@@ -122,6 +161,8 @@ class RefactoringBurstCoordinator(private val project: Project) {
 
         activeRefactoringId = null
         activeBeforeData = null
+        pendingAfterData = null
+        awaitingCommandFinish = false
         accumulator.clear()
 
         project.service<SessionService>().addEvent(
@@ -135,6 +176,10 @@ class RefactoringBurstCoordinator(private val project: Project) {
      * If a refactoring is active, absorb the document change into the accumulator
      * and return true. Otherwise return false so the caller can route to
      * [EditBurstTracker] as normal.
+     *
+     * Stays active through the whole command including the auto-format pass, so
+     * the DocumentEvents the formatter fires for open files get folded in here
+     * rather than escaping as a trailing EDIT_BURST.
      */
     fun onDocumentChanged(vFile: VirtualFile, event: DocumentEvent): Boolean {
         synchronized(lock) {
@@ -146,6 +191,6 @@ class RefactoringBurstCoordinator(private val project: Project) {
 
     /** Called from [SessionService.endSession] to close any in-flight refactoring before EBT flush. */
     fun flushIfActive(outcome: String) {
-        endRefactoring(refactoringId = null, outcome = outcome)
+        endRefactoringNow(refactoringId = null, outcome = outcome)
     }
 }
