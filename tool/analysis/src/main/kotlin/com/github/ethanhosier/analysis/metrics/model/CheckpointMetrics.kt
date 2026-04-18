@@ -2,6 +2,7 @@ package com.github.ethanhosier.analysis.metrics.model
 
 import com.github.ethanhosier.analysis.metrics.gradlebuild.BuildResult
 import com.github.ethanhosier.analysis.metrics.ck.CkResult
+import com.github.ethanhosier.analysis.metrics.cpd.CpdResult
 import com.github.ethanhosier.analysis.metrics.pmd.PmdResult
 import com.github.ethanhosier.analysis.metrics.tests.TestResult
 import kotlinx.serialization.Serializable
@@ -19,6 +20,10 @@ data class CheckpointMetrics(
     val sha: String,
     val ck: CkResult,
     val pmd: PmdResult,
+    // Defaulted so already-cached `<sha>.json` files from before CPD landed
+    // still deserialise — they'll just carry an empty CpdResult. Bust the
+    // cache (`rm -rf <sessionDir>/checkpoint-metrics/`) to get real CPD data.
+    val cpd: CpdResult = CpdResult.EMPTY,
     val build: BuildResult,
     val tests: TestResult,
 )
