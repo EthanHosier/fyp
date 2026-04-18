@@ -1,11 +1,15 @@
 package com.github.ethanhosier.analysis.pipeline
 
 import com.github.ethanhosier.analysis.metrics.model.CheckpointReport
+import com.github.ethanhosier.analysis.metrics.model.DuplicationTrajectoryStats
 import com.github.ethanhosier.analysis.metrics.model.MemberTouchStats
 import com.github.ethanhosier.analysis.metrics.model.TrajectoryStats
 import com.github.ethanhosier.ideplugin.model.TouchedMember
 
 private const val TOP_N = 10
+private const val DUPLICATION_SPIKE_THRESHOLD = 20
+private const val DUPLICATION_DROP_THRESHOLD = 20
+private const val DUPLICATION_FOLLOWUP_WINDOW = 5
 
 /**
  * Reduce a chronological list of [CheckpointReport]s to trajectory-level
@@ -61,6 +65,82 @@ internal fun computeTrajectory(checkpoints: List<CheckpointReport>): TrajectoryS
         totalBrokenMs = totalBrokenMs,
         classes = classStats,
         methods = methodStats,
+        duplication = computeDuplication(checkpoints),
+    )
+}
+
+/**
+ * Aggregate per-checkpoint CPD output into trajectory-level duplication
+ * stats. `perStep` lists are aligned with [checkpoints] (include the seed
+ * baseline); deltas and totals cover transitions only.
+ *
+ * Spike-then-drop: single forward pass. On a positive line-delta >=
+ * [DUPLICATION_SPIKE_THRESHOLD], look forward up to [DUPLICATION_FOLLOWUP_WINDOW]
+ * transitions; if cumulative drop since the spike is >= [DUPLICATION_DROP_THRESHOLD]
+ * and duplication is back at or below the pre-spike level, count once and
+ * skip past the matched drop so overlapping spikes don't double-count.
+ */
+private fun computeDuplication(checkpoints: List<CheckpointReport>): DuplicationTrajectoryStats {
+    if (checkpoints.isEmpty()) return DuplicationTrajectoryStats.ZERO
+
+    val linesPerStep = checkpoints.map { it.metrics.cpd.duplicatedLines }
+    val blocksPerStep = checkpoints.map { it.metrics.cpd.duplicationBlocks }
+
+    val linesDelta = IntArray(checkpoints.size - 1) { i -> linesPerStep[i + 1] - linesPerStep[i] }
+    val blocksDelta = IntArray(checkpoints.size - 1) { i -> blocksPerStep[i + 1] - blocksPerStep[i] }
+
+    val totalLinesIntroduced = linesDelta.filter { it > 0 }.sum()
+    val totalLinesRemoved = linesDelta.filter { it < 0 }.sumOf { -it }
+    val totalBlocksIntroduced = blocksDelta.filter { it > 0 }.sum()
+    val totalBlocksRemoved = blocksDelta.filter { it < 0 }.sumOf { -it }
+
+    val baseline = linesPerStep.first()
+    val stepsAboveBaseline = linesPerStep.drop(1).count { it > baseline }
+
+    var spikeThenDrop = 0
+    var i = 0
+    while (i < linesDelta.size) {
+        val delta = linesDelta[i]
+        if (delta >= DUPLICATION_SPIKE_THRESHOLD) {
+            val preSpikeLevel = linesPerStep[i]
+            val end = minOf(linesDelta.size, i + 1 + DUPLICATION_FOLLOWUP_WINDOW)
+            var matched = -1
+            for (j in i + 1 until end) {
+                val levelAfter = linesPerStep[j + 1]
+                val dropFromPeak = linesPerStep[i + 1] - levelAfter
+                if (dropFromPeak >= DUPLICATION_DROP_THRESHOLD && levelAfter <= preSpikeLevel) {
+                    matched = j
+                    break
+                }
+            }
+            if (matched >= 0) {
+                spikeThenDrop++
+                i = matched + 1
+                continue
+            }
+        }
+        i++
+    }
+
+    return DuplicationTrajectoryStats(
+        duplicatedLinesPerStep = linesPerStep,
+        duplicatedBlocksPerStep = blocksPerStep,
+        linesDeltaPerStep = linesDelta.toList(),
+        blocksDeltaPerStep = blocksDelta.toList(),
+        totalLinesIntroduced = totalLinesIntroduced,
+        totalLinesRemoved = totalLinesRemoved,
+        netLinesChange = linesPerStep.last() - linesPerStep.first(),
+        totalBlocksIntroduced = totalBlocksIntroduced,
+        totalBlocksRemoved = totalBlocksRemoved,
+        maxDuplicatedLines = linesPerStep.max(),
+        maxSpikeLines = linesDelta.maxOrNull() ?: 0,
+        maxDropLines = linesDelta.minOrNull()?.let { if (it < 0) -it else 0 } ?: 0,
+        stepsIncreasing = linesDelta.count { it > 0 },
+        stepsAboveBaseline = stepsAboveBaseline,
+        spikeThenDropCount = spikeThenDrop,
+        spikeThreshold = DUPLICATION_SPIKE_THRESHOLD,
+        dropThreshold = DUPLICATION_DROP_THRESHOLD,
+        followupWindow = DUPLICATION_FOLLOWUP_WINDOW,
     )
 }
 
