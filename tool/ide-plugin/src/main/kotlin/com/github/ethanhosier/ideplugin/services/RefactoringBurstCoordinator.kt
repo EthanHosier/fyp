@@ -72,7 +72,11 @@ class RefactoringBurstCoordinator(private val project: Project) {
      * template-based terminator does not. When supplied it must match the active
      * id or we log and proceed (the terminator wins regardless).
      */
-    fun endRefactoring(refactoringId: String?, outcome: String) {
+    fun endRefactoring(
+        refactoringId: String?,
+        outcome: String,
+        extraSnapshots: Map<String, String> = emptyMap(),
+    ) {
         synchronized(lock) {
             val active = activeRefactoringId ?: return
             if (refactoringId != null && refactoringId != active) {
@@ -80,6 +84,12 @@ class RefactoringBurstCoordinator(private val project: Project) {
                     "RefactoringTracer: endRefactoring($refactoringId) but active is $active — ending anyway"
                 )
             }
+            // DocumentEvent-observed edits (for files the user had open) win over
+            // afterData-derived snapshots, so keystroke-accurate text isn't
+            // overwritten by a post-refactor PSI read. afterData only fills in
+            // files that had no editor — notably new files created by the
+            // refactoring itself, which the document listener never sees.
+            extraSnapshots.forEach { (path, contents) -> accumulator.putIfAbsent(path, contents) }
             emitFinishedLocked(outcome = outcome, refactoringId = active)
         }
     }
