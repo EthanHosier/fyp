@@ -50,9 +50,75 @@ data class TrajectoryStats(
     val totalBrokenMs: Long,
     val classes: MemberTouchStats = MemberTouchStats.ZERO,
     val methods: MemberTouchStats = MemberTouchStats.ZERO,
+    val duplication: DuplicationTrajectoryStats = DuplicationTrajectoryStats.ZERO,
 ) {
     companion object {
         val ZERO = TrajectoryStats(0, 0, 0.0, 0, 0, emptyMap(), 0, 0.0, 0, 0, 0)
+    }
+}
+
+/**
+ * Per-step PMD-CPD duplication aggregates across a trajectory. Captures the
+ * "copy first, clean later" signal — a spike followed by a drop coinciding
+ * with Extract Method / Extract Class is strong evidence that the
+ * refactoring worked.
+ *
+ * `perStep` lists are aligned with [AnalysisReport.checkpoints] (including
+ * the seed-state step, so readers see the baseline). Delta / intro /
+ * remove totals cover transitions only.
+ *
+ * Two natural follow-ups consciously deferred from the first PR:
+ *  1. **Per-group persistence** (first seen / last seen / checkpoints
+ *     survived). Cheap-ish — fingerprint each block by its normalised
+ *     occurrence set (sorted `(file, lines)` tuples) and accumulate across
+ *     checkpoints. Aggregate-level spike-then-drop already captures the
+ *     transient-duplication story.
+ *  2. **Duplication churn** (how often duplicated regions are re-edited).
+ *     Needs joining CPD occurrence line ranges to git-diff hunks per
+ *     transition.
+ */
+@Serializable
+data class DuplicationTrajectoryStats(
+    val duplicatedLinesPerStep: List<Int>,
+    val duplicatedBlocksPerStep: List<Int>,
+    val linesDeltaPerStep: List<Int>,
+    val blocksDeltaPerStep: List<Int>,
+    val totalLinesIntroduced: Int,
+    val totalLinesRemoved: Int,
+    val netLinesChange: Int,
+    val totalBlocksIntroduced: Int,
+    val totalBlocksRemoved: Int,
+    val maxDuplicatedLines: Int,
+    val maxSpikeLines: Int,
+    val maxDropLines: Int,
+    val stepsIncreasing: Int,
+    val stepsAboveBaseline: Int,
+    val spikeThenDropCount: Int,
+    val spikeThreshold: Int,
+    val dropThreshold: Int,
+    val followupWindow: Int,
+) {
+    companion object {
+        val ZERO = DuplicationTrajectoryStats(
+            duplicatedLinesPerStep = emptyList(),
+            duplicatedBlocksPerStep = emptyList(),
+            linesDeltaPerStep = emptyList(),
+            blocksDeltaPerStep = emptyList(),
+            totalLinesIntroduced = 0,
+            totalLinesRemoved = 0,
+            netLinesChange = 0,
+            totalBlocksIntroduced = 0,
+            totalBlocksRemoved = 0,
+            maxDuplicatedLines = 0,
+            maxSpikeLines = 0,
+            maxDropLines = 0,
+            stepsIncreasing = 0,
+            stepsAboveBaseline = 0,
+            spikeThenDropCount = 0,
+            spikeThreshold = 0,
+            dropThreshold = 0,
+            followupWindow = 0,
+        )
     }
 }
 

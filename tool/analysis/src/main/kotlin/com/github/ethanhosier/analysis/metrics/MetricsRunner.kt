@@ -1,6 +1,7 @@
 package com.github.ethanhosier.analysis.metrics
 
 import com.github.ethanhosier.analysis.metrics.ck.CkRunner
+import com.github.ethanhosier.analysis.metrics.cpd.CpdRunner
 import com.github.ethanhosier.analysis.metrics.gitdiff.DiffRunner
 import com.github.ethanhosier.analysis.metrics.gitdiff.DiffStats
 import com.github.ethanhosier.analysis.metrics.gradlebuild.GradleBuildRunner
@@ -125,6 +126,7 @@ class MetricsRunner(
         val metrics = try {
             val ck = CkRunner().run(worktree)
             val pmd = PmdRunner().run(worktree)
+            val cpd = CpdRunner().run(worktree)
             val build = GradleBuildRunner(
                 timeout = buildTimeout,
                 gradleUserHome = gradleUserHome,
@@ -133,7 +135,7 @@ class MetricsRunner(
                 timeout = testTimeout,
                 gradleUserHome = gradleUserHome,
             ).run(worktree)
-            CheckpointMetrics(sha, ck, pmd, build, tests)
+            CheckpointMetrics(sha, ck, pmd, cpd, build, tests)
         } finally {
             pool.release(worktree)
         }
