@@ -48,9 +48,35 @@ data class TrajectoryStats(
     val topN: Int,
     val totalElapsedMs: Long,
     val totalBrokenMs: Long,
+    val classes: MemberTouchStats = MemberTouchStats.ZERO,
+    val methods: MemberTouchStats = MemberTouchStats.ZERO,
 ) {
     companion object {
         val ZERO = TrajectoryStats(0, 0, 0.0, 0, 0, emptyMap(), 0, 0.0, 0, 0, 0)
+    }
+}
+
+/**
+ * Per-step touch concentration for a member kind over a trajectory. For
+ * classes the key is the class name; for methods the key is
+ * `className#signature` so the same signature in different classes stays
+ * distinct (and the class is recoverable by splitting on `#`). A "touch"
+ * means the member appears in a step's [CheckpointReport.touchedMembers];
+ * at most one touch per step per member.
+ */
+@Serializable
+data class MemberTouchStats(
+    val perTouchCount: Map<String, Int>,
+    val retouchCount: Int,
+    val consecutiveRetouchCount: Int,
+    val distinctTouched: Int,
+    val topTouched: List<String>,
+    val topNShare: Double,
+    val topN: Int,
+    val perStepIndices: Map<String, List<Int>>,
+) {
+    companion object {
+        val ZERO = MemberTouchStats(emptyMap(), 0, 0, 0, emptyList(), 0.0, 0, emptyMap())
     }
 }
 
