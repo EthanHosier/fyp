@@ -7,15 +7,14 @@ import com.intellij.refactoring.listeners.RefactoringEventData
 import com.intellij.refactoring.listeners.RefactoringEventListener
 
 /**
- * Bridges IntelliJ's RefactoringEventListener topic into [RefactoringBurstCoordinator],
- * which owns the `in-refactoring` flag, collects changed file contents during the
- * refactoring, and emits REFACTORING_STARTED / REFACTORING_FINISHED.
+ * Bridges IntelliJ's RefactoringEventListener topic into [RefactoringBurstCoordinator].
  *
- * Modal refactorings (Rename dialog, Move dialog, Change Signature, etc.) reliably
- * produce one of `refactoringDone` / `conflictsDetected` / `undoRefactoring` as a
- * terminator. In-place / preview refactorings do not — they are terminated via
- * [RefactoringTemplateListener] instead. The coordinator handles either source
- * idempotently.
+ * `refactoringDone` fires midway through the command that contains the refactoring
+ * — before the trailing auto-format pass runs. Rather than emit immediately (and
+ * miss the format), we stash `afterData` on the coordinator and let
+ * [RefactoringCommandListener] trigger emission when the enclosing command
+ * finishes. `conflictsDetected` / `undoRefactoring` don't benefit from that
+ * deferral, so they emit immediately via `endRefactoringNow`.
  */
 class RefactoringListener(private val project: Project) : RefactoringEventListener {
 
@@ -24,15 +23,14 @@ class RefactoringListener(private val project: Project) : RefactoringEventListen
     }
 
     override fun refactoringDone(refactoringId: String, afterData: RefactoringEventData?) {
-        project.service<RefactoringBurstCoordinator>()
-            .endRefactoring(refactoringId, outcome = "done", afterData = afterData)
+        project.service<RefactoringBurstCoordinator>().markRefactoringDone(refactoringId, afterData)
     }
 
     override fun conflictsDetected(refactoringId: String, conflictsData: RefactoringEventData) {
-        project.service<RefactoringBurstCoordinator>().endRefactoring(refactoringId, outcome = "conflicts")
+        project.service<RefactoringBurstCoordinator>().endRefactoringNow(refactoringId, outcome = "conflicts")
     }
 
     override fun undoRefactoring(refactoringId: String) {
-        project.service<RefactoringBurstCoordinator>().endRefactoring(refactoringId, outcome = "undone")
+        project.service<RefactoringBurstCoordinator>().endRefactoringNow(refactoringId, outcome = "undone")
     }
 }

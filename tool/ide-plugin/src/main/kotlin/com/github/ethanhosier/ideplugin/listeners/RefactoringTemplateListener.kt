@@ -34,7 +34,7 @@ class RefactoringTemplateListener(private val project: Project) : TemplateManage
         if (!coordinator.isActive()) return
         state.addTemplateStateListener(object : TemplateEditingAdapter() {
             override fun templateFinished(template: Template, brokenOff: Boolean) {
-                coordinator.endRefactoring(
+                coordinator.endRefactoringNow(
                     refactoringId = null,
                     outcome = if (brokenOff) "cancelled" else "committed",
                 )
