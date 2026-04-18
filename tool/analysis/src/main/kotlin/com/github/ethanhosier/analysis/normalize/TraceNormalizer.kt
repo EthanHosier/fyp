@@ -13,8 +13,9 @@ object TraceNormalizer {
     fun normalize(trace: Trace, initialSrc: Path): Trace =
         trace
             .let(::sortByTimestamp)
-            .let { dropDuplicateFileCreations(it, initialSrc) }
             .let(::absorbPostRefactoringFormattingBursts)
+            .let(::absorbDuplicateFileCreateContents)
+            .let { dropDuplicateFileCreations(it, initialSrc) }
 
     private fun sortByTimestamp(trace: Trace): Trace =
         trace.copy(events = trace.events.sortedBy { it.timestamp })
@@ -77,6 +78,48 @@ object TraceNormalizer {
             snap.copy(contents = formatted.contents)
         }
         return refactoring.copy(changedFiles = merged)
+    }
+
+    /**
+     * NOTE: THIS IS A TEMP FIX. PROBS IS GOING TO BE BUGGY IN FUTURE -> WILL NEED
+     * A SMARTER WAY TO HANDLE THE AUTO FORMATTING OF EDITOR.
+     * The EDIT_BURST absorption above only catches files the user had open in
+     * an editor — those are the ones whose auto-format triggers a DocumentEvent.
+     * Files created by a refactoring that aren't open (e.g. the new superclass
+     * from Extract Superclass) get formatted silently; the only signal is the
+     * lagging VFS `FILE_CREATED` a few seconds later, which carries the
+     * post-format text.
+     *
+     * This stage walks the trace and, for every `FILE_CREATED` whose path has
+     * a prior snapshot somewhere in the trace with whitespace-equal contents,
+     * replaces the prior snapshot's contents with the newer post-format text.
+     * The `FILE_CREATED` event itself is left in place; the dedup pass drops
+     * it immediately after.
+     */
+    private fun absorbDuplicateFileCreateContents(trace: Trace): Trace {
+        val events = trace.events.toMutableList()
+        val lastIndexByPath = HashMap<String, Int>()
+        for (i in events.indices) {
+            val event = events[i]
+            if (event.type == EventType.FILE_CREATED) {
+                for (snap in event.changedFiles) {
+                    val priorIdx = lastIndexByPath[snap.path] ?: continue
+                    val prior = events[priorIdx]
+                    val priorSnapIdx = prior.changedFiles.indexOfFirst { it.path == snap.path }
+                    if (priorSnapIdx < 0) continue
+                    val priorContents = prior.changedFiles[priorSnapIdx].contents ?: continue
+                    val newContents = snap.contents ?: continue
+                    if (priorContents.filterNot(Char::isWhitespace) !=
+                        newContents.filterNot(Char::isWhitespace)
+                    ) continue
+                    val updated = prior.changedFiles.toMutableList()
+                    updated[priorSnapIdx] = updated[priorSnapIdx].copy(contents = newContents)
+                    events[priorIdx] = prior.copy(changedFiles = updated)
+                }
+            }
+            for (snap in event.changedFiles) lastIndexByPath[snap.path] = i
+        }
+        return trace.copy(events = events)
     }
 
     /**
