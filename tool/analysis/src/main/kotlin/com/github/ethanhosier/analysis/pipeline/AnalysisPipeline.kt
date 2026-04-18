@@ -2,6 +2,7 @@ package com.github.ethanhosier.analysis.pipeline
 
 import com.github.ethanhosier.analysis.ingest.TraceLoader
 import com.github.ethanhosier.analysis.metrics.MetricsRunner
+import com.github.ethanhosier.analysis.metrics.gitdiff.DiffStats
 import com.github.ethanhosier.analysis.metrics.model.AnalysisReport
 import com.github.ethanhosier.analysis.metrics.model.CheckpointReport
 import com.github.ethanhosier.analysis.metrics.model.EventSummary
@@ -11,6 +12,7 @@ import com.github.ethanhosier.analysis.model.ReconstructionResult
 import com.github.ethanhosier.analysis.model.Trace
 import com.github.ethanhosier.analysis.normalize.TraceNormalizer
 import com.github.ethanhosier.analysis.reconstruct.ShadowRepoBuilder
+import com.github.ethanhosier.ideplugin.model.TouchedMember
 import java.nio.file.Path
 
 /**
@@ -91,19 +93,34 @@ internal fun buildAnalysisReport(
     // Preserve event order so each checkpoint's event list reads
     // chronologically — LinkedHashMap's insertion order is what we want.
     val eventsBySha = LinkedHashMap<String, MutableList<EventSummary>>()
+    val membersBySha = LinkedHashMap<String, LinkedHashSet<TouchedMember>>()
     val mapping = reconstruction.eventCommits.mapping
     for (event in trace.events) {
         val sha = mapping[event.id] ?: continue
+        val eventMembers = LinkedHashSet<TouchedMember>()
+        for (snap in event.changedFiles) {
+            eventMembers.addAll(snap.touchedMembers)
+        }
         eventsBySha.getOrPut(sha) { mutableListOf() }.add(
-            EventSummary(event.id, event.type, event.timestamp),
+            EventSummary(
+                id = event.id,
+                type = event.type,
+                timestamp = event.timestamp,
+                touchedMembers = eventMembers.toList(),
+                refactoringId = event.payload["refactoringId"],
+            ),
         )
+        membersBySha.getOrPut(sha) { LinkedHashSet() }.addAll(eventMembers)
     }
 
     val checkpoints = metrics.checkpoints.map { m ->
+        val events = eventsBySha[m.sha].orEmpty()
         CheckpointReport(
             sha = m.sha,
-            events = eventsBySha[m.sha].orEmpty(),
+            events = events,
             metrics = m,
+            diff = metrics.diffBySha[m.sha] ?: DiffStats.ZERO,
+            touchedMembers = membersBySha[m.sha]?.toList().orEmpty(),
         )
     }
 
@@ -116,5 +133,6 @@ internal fun buildAnalysisReport(
         ),
         checkpoints = checkpoints,
         manualRefactorings = miner.segments,
+        trajectory = computeTrajectory(checkpoints),
     )
 }
