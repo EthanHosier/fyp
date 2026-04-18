@@ -6,6 +6,7 @@ import com.github.ethanhosier.analysis.metrics.model.AnalysisReport
 import com.github.ethanhosier.analysis.metrics.model.CheckpointReport
 import com.github.ethanhosier.analysis.metrics.model.EventSummary
 import com.github.ethanhosier.analysis.metrics.model.RunInfo
+import com.github.ethanhosier.analysis.metrics.model.TrajectoryStats
 import com.github.ethanhosier.analysis.miner.RefactoringMinerRunner
 import com.github.ethanhosier.analysis.model.ReconstructionResult
 import com.github.ethanhosier.analysis.model.Trace
@@ -107,10 +108,12 @@ internal fun buildAnalysisReport(
     }
 
     val checkpoints = metrics.checkpoints.map { m ->
+        val events = eventsBySha[m.sha].orEmpty()
         CheckpointReport(
             sha = m.sha,
-            events = eventsBySha[m.sha].orEmpty(),
+            events = events,
             metrics = m,
+            diff = metrics.diffBySha[m.sha] ?: com.github.ethanhosier.analysis.metrics.gitdiff.DiffStats.ZERO,
             touchedMembers = membersBySha[m.sha]?.toList().orEmpty(),
         )
     }
@@ -124,5 +127,81 @@ internal fun buildAnalysisReport(
         ),
         checkpoints = checkpoints,
         manualRefactorings = miner.segments,
+        trajectory = computeTrajectory(checkpoints),
     )
+}
+
+private const val TOP_N = 10
+
+private fun computeTrajectory(checkpoints: List<CheckpointReport>): TrajectoryStats {
+    if (checkpoints.isEmpty()) return TrajectoryStats.ZERO
+
+    // checkpoints[0] is the starting state: its tree is identical to the seed
+    // (SESSION_STARTED etc. don't mutate files, so the first event commit
+    // collapses onto the seed). Real transitions are [0]→[1], [1]→[2], ...,
+    // so the number of steps is checkpoints.size - 1.
+    val transitions = checkpoints.drop(1)
+    val numSteps = transitions.size
+
+    val churns = transitions.map { it.diff.totalChurn }
+    val totalChurn = churns.sum()
+    val perFileTouchCount = LinkedHashMap<String, Int>()
+    val perFileChurn = LinkedHashMap<String, Int>()
+    for (c in transitions) {
+        for (pf in c.diff.perFileChurn) {
+            perFileTouchCount.merge(pf.path, 1) { a, b -> a + b }
+            perFileChurn.merge(pf.path, pf.linesAdded + pf.linesDeleted) { a, b -> a + b }
+        }
+    }
+    val topNChurn = perFileChurn.values.sortedDescending().take(TOP_N).sum()
+    val churnTopNShare = if (totalChurn == 0) 0.0 else topNChurn.toDouble() / totalChurn
+
+    val allEventTs = checkpoints.flatMap { it.events.map { e -> e.timestamp } }
+    val totalElapsedMs = if (allEventTs.isEmpty()) 0L else allEventTs.max() - allEventTs.min()
+
+    val totalBrokenMs = computeBrokenTime(checkpoints)
+
+    return TrajectoryStats(
+        numSteps = numSteps,
+        totalChurn = totalChurn,
+        avgChurnPerStep = if (numSteps == 0) 0.0 else totalChurn.toDouble() / numSteps,
+        maxChurnOnStep = churns.maxOrNull() ?: 0,
+        totalFilesTouched = perFileTouchCount.size,
+        perFileTouchCount = perFileTouchCount,
+        retouchCount = perFileTouchCount.values.sumOf { if (it > 1) it - 1 else 0 },
+        churnTopNShare = churnTopNShare,
+        topN = TOP_N,
+        totalElapsedMs = totalElapsedMs,
+        totalBrokenMs = totalBrokenMs,
+    )
+}
+
+/**
+ * Walk checkpoints in order. A checkpoint is healthy iff build + tests both
+ * pass. When we enter a failing run, remember its first event timestamp;
+ * when we hit a healthy checkpoint, add the elapsed ms to the broken total.
+ * If the trajectory ends failing, charge the interval up to its last event.
+ */
+private fun computeBrokenTime(checkpoints: List<CheckpointReport>): Long {
+    fun healthy(c: CheckpointReport) = c.metrics.build.success && c.metrics.tests.success
+    fun firstTs(c: CheckpointReport) = c.events.minOfOrNull { it.timestamp }
+    fun lastTs(c: CheckpointReport) = c.events.maxOfOrNull { it.timestamp }
+
+    var broken = 0L
+    var failStart: Long? = null
+    for (c in checkpoints) {
+        if (!healthy(c)) {
+            if (failStart == null) failStart = firstTs(c)
+        } else {
+            val start = failStart
+            val end = firstTs(c)
+            if (start != null && end != null) broken += end - start
+            failStart = null
+        }
+    }
+    if (failStart != null) {
+        val end = checkpoints.lastOrNull()?.let(::lastTs)
+        if (end != null) broken += end - failStart
+    }
+    return broken
 }

@@ -1,5 +1,6 @@
 package com.github.ethanhosier.analysis.metrics.model
 
+import com.github.ethanhosier.analysis.metrics.gitdiff.DiffStats
 import com.github.ethanhosier.analysis.miner.model.ManualRefactoringSegment
 import com.github.ethanhosier.ideplugin.model.EventType
 import com.github.ethanhosier.ideplugin.model.SessionMetadata
@@ -24,7 +25,32 @@ data class AnalysisReport(
     val run: RunInfo,
     val checkpoints: List<CheckpointReport>,
     val manualRefactorings: List<ManualRefactoringSegment> = emptyList(),
+    val trajectory: TrajectoryStats = TrajectoryStats.ZERO,
 )
+
+/**
+ * Trajectory-level aggregates across every checkpoint transition. "Step" =
+ * one checkpoint (one transition from its predecessor). Broken time uses
+ * build + tests success as the health signal.
+ */
+@Serializable
+data class TrajectoryStats(
+    val numSteps: Int,
+    val totalChurn: Int,
+    val avgChurnPerStep: Double,
+    val maxChurnOnStep: Int,
+    val totalFilesTouched: Int,
+    val perFileTouchCount: Map<String, Int>,
+    val retouchCount: Int,
+    val churnTopNShare: Double,
+    val topN: Int,
+    val totalElapsedMs: Long,
+    val totalBrokenMs: Long,
+) {
+    companion object {
+        val ZERO = TrajectoryStats(0, 0, 0.0, 0, 0, emptyMap(), 0, 0.0, 0, 0, 0)
+    }
+}
 
 @Serializable
 data class RunInfo(
@@ -38,6 +64,10 @@ data class CheckpointReport(
     val sha: String,
     val events: List<EventSummary>,
     val metrics: CheckpointMetrics,
+    // Diff against the previous checkpoint (or the seed commit for the first).
+    // Sibling of `metrics` — `metrics` describes this checkpoint's state,
+    // `diff` describes the transition into it.
+    val diff: DiffStats = DiffStats.ZERO,
     // Flat, deduped union of every `(class, method?)` pair touched by the
     // events attributed to this checkpoint — i.e. the transition from the
     // previous checkpoint.

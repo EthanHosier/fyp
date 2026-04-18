@@ -84,6 +84,34 @@ class GitRunner(private val workDir: Path) {
         run("worktree", "prune")
     }
 
+    /**
+     * Raw lines from `git diff --numstat -M <from> <to>`. Each line is
+     * `added\tdeleted\tpath` where `added` / `deleted` are `-` for binary
+     * files. Rename entries use the `{from => to}` path syntax.
+     */
+    fun diffNumstat(from: String, to: String): List<String> =
+        run("diff", "--numstat", "-M", from, to).lineSequence()
+            .map { it.trimEnd('\r') }
+            .filter { it.isNotBlank() }
+            .toList()
+
+    /**
+     * Raw lines from `git diff --name-status -M <from> <to>`. Each line is
+     * `status\tpath` for A/M/D or `R###\told\tnew` / `C###\told\tnew` for
+     * renames/copies (### = similarity percentage).
+     */
+    fun diffNameStatus(from: String, to: String): List<String> =
+        run("diff", "--name-status", "-M", from, to).lineSequence()
+            .map { it.trimEnd('\r') }
+            .filter { it.isNotBlank() }
+            .toList()
+
+    /** First-parent SHA of [sha], or null if it's the root commit. */
+    fun parentOf(sha: String): String? {
+        val result = exec(listOf("rev-parse", "--verify", "$sha^"), allowNonZero = true)
+        return if (result.exitCode == 0) result.stdout.trim() else null
+    }
+
     private data class ExecResult(val exitCode: Int, val stdout: String, val stderr: String)
 
     private fun run(vararg args: String): String =
