@@ -3,14 +3,18 @@ package com.github.ethanhosier.ideplugin.services
 import com.github.ethanhosier.ideplugin.model.EventType
 import com.github.ethanhosier.ideplugin.model.FileChangeType
 import com.github.ethanhosier.ideplugin.model.FileSnapshot
+import com.github.ethanhosier.ideplugin.model.TouchedMember
 import com.github.ethanhosier.ideplugin.model.TraceEvent
+import com.github.ethanhosier.ideplugin.refactoring.TouchedMemberResolver
 import com.intellij.openapi.Disposable
+import com.intellij.openapi.application.ReadAction
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.editor.event.DocumentEvent
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.psi.PsiDocumentManager
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors
@@ -52,6 +56,10 @@ class EditBurstTracker(private val project: Project) : Disposable {
         // Timestamp of the last edit — used as the event timestamp so it reflects when the
         // activity actually happened, not when the debounce timer fires.
         var latestTimestamp: Long = System.currentTimeMillis(),
+        // Class/method members touched by any DocumentEvent in this burst. Resolved
+        // per-event because merging regionStart/regionEnd across events would falsely
+        // include members that sit between two actually-edited regions.
+        val touchedMembers: LinkedHashSet<TouchedMember> = LinkedHashSet(),
     )
 
     fun onDocumentChanged(vFile: VirtualFile, event: DocumentEvent) {
@@ -60,6 +68,12 @@ class EditBurstTracker(private val project: Project) : Disposable {
         val deleted = maxOf(0, event.oldLength - event.newLength)
         val regionEnd = event.offset + maxOf(event.oldLength, event.newLength)
         val currentText = event.document.text
+        val document = event.document
+        val members = ReadAction.compute<List<TouchedMember>, RuntimeException> {
+            val psiFile = PsiDocumentManager.getInstance(project).getPsiFile(document)
+                ?: return@compute emptyList()
+            TouchedMemberResolver.fromRange(psiFile, event.offset, regionEnd)
+        }
 
         accumulators.compute(key) { _, existing ->
             val acc = existing ?: BurstAccumulator(fileUrl = key, filePath = vFile.path)
@@ -69,6 +83,7 @@ class EditBurstTracker(private val project: Project) : Disposable {
             acc.regionEnd = maxOf(acc.regionEnd, regionEnd)
             acc.latestContents = currentText
             acc.latestTimestamp = System.currentTimeMillis()
+            acc.touchedMembers.addAll(members)
             acc
         }
 
@@ -98,6 +113,7 @@ class EditBurstTracker(private val project: Project) : Disposable {
                 path = acc.filePath,
                 contents = acc.latestContents,
                 changeType = FileChangeType.MODIFIED,
+                touchedMembers = acc.touchedMembers.toList(),
             )
         )
 
