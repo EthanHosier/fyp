@@ -51,6 +51,7 @@ data class TrajectoryStats(
     val classes: MemberTouchStats = MemberTouchStats.ZERO,
     val methods: MemberTouchStats = MemberTouchStats.ZERO,
     val duplication: DuplicationTrajectoryStats = DuplicationTrajectoryStats.ZERO,
+    val readability: ReadabilityTrajectoryStats = ReadabilityTrajectoryStats.ZERO,
 ) {
     companion object {
         val ZERO = TrajectoryStats(0, 0, 0.0, 0, 0, emptyMap(), 0, 0.0, 0, 0, 0)
@@ -143,6 +144,48 @@ data class MemberTouchStats(
 ) {
     companion object {
         val ZERO = MemberTouchStats(emptyMap(), 0, 0, 0, emptyList(), 0.0, 0, emptyMap())
+    }
+}
+
+/**
+ * Trajectory-level readability aggregates. Per-step lists are aligned with
+ * [AnalysisReport.checkpoints] (the seed-equivalent first entry is included
+ * as the baseline). Delta lists cover transitions only, so their length is
+ * `checkpoints.size - 1`.
+ *
+ * All values come from each checkpoint's [ReadabilitySummary] — no composite
+ * score is computed here. A Scalabrino / Buse-Weimer model score is an
+ * explicit follow-up (phase 2); once it lands it fits naturally as another
+ * per-step series in this struct.
+ */
+@Serializable
+data class ReadabilityTrajectoryStats(
+    val avgLineLengthPerStep: List<Double>,
+    val maxLineLengthPerStep: List<Int>,
+    val avgCommentRatioPerStep: List<Double>,
+    val avgIndentationPerStep: List<Double>,
+    val avgIdentifierLengthPerStep: List<Double>,
+    val singleLetterRatioPerStep: List<Double>,
+    val avgWordCountPerStep: List<Double>,
+    val dictionaryWordRatioPerStep: List<Double>,
+    val worstClassLocPerStep: List<Int>,
+    val worstMethodLocPerStep: List<Int>,
+    // Net change from the baseline (first checkpoint) to the last.
+    val netAvgLineLengthChange: Double,
+    val netAvgCommentRatioChange: Double,
+    val netAvgIdentifierLengthChange: Double,
+    val netSingleLetterRatioChange: Double,
+    val netDictionaryWordRatioChange: Double,
+    val netWorstMethodLocChange: Int,
+    val netWorstClassLocChange: Int,
+) {
+    companion object {
+        val ZERO = ReadabilityTrajectoryStats(
+            emptyList(), emptyList(), emptyList(), emptyList(),
+            emptyList(), emptyList(), emptyList(), emptyList(),
+            emptyList(), emptyList(),
+            0.0, 0.0, 0.0, 0.0, 0.0, 0, 0,
+        )
     }
 }
 

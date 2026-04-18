@@ -3,11 +3,13 @@ package com.github.ethanhosier.analysis.metrics
 import com.github.ethanhosier.analysis.metrics.ck.CkRunner
 import com.github.ethanhosier.analysis.metrics.cpd.CpdRunner
 import com.github.ethanhosier.analysis.metrics.gitdiff.DiffRunner
+import com.github.ethanhosier.analysis.metrics.readability.ReadabilityRunner
 import com.github.ethanhosier.analysis.metrics.gitdiff.DiffStats
 import com.github.ethanhosier.analysis.metrics.gradlebuild.GradleBuildRunner
 import com.github.ethanhosier.analysis.metrics.model.CheckpointMetrics
 import com.github.ethanhosier.analysis.metrics.pmd.PmdRunner
 import com.github.ethanhosier.analysis.metrics.tests.GradleTestRunner
+import com.github.ethanhosier.analysis.metrics.tests.TestResult
 import com.github.ethanhosier.analysis.model.ReconstructionResult
 import com.github.ethanhosier.analysis.reconstruct.GitRunner
 import kotlinx.serialization.json.Json
@@ -127,15 +129,23 @@ class MetricsRunner(
             val ck = CkRunner().run(worktree)
             val pmd = PmdRunner().run(worktree)
             val cpd = CpdRunner().run(worktree)
+            val readability = ReadabilityRunner().run(worktree)
             val build = GradleBuildRunner(
                 timeout = buildTimeout,
                 gradleUserHome = gradleUserHome,
             ).run(worktree)
-            val tests = GradleTestRunner(
-                timeout = testTimeout,
-                gradleUserHome = gradleUserHome,
-            ).run(worktree)
-            CheckpointMetrics(sha, ck, pmd, cpd, build, tests)
+            // Skip tests when build failed — `./gradlew test` re-runs compileJava
+            // and hits the same error, wasting seconds per broken checkpoint
+            // without producing any test outcome we didn't already know.
+            val tests = if (build.success) {
+                GradleTestRunner(
+                    timeout = testTimeout,
+                    gradleUserHome = gradleUserHome,
+                ).run(worktree)
+            } else {
+                TestResult.skipped("build failed (exit ${build.exitCode})")
+            }
+            CheckpointMetrics(sha, ck, pmd, cpd, readability, build, tests)
         } finally {
             pool.release(worktree)
         }

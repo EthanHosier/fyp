@@ -27,7 +27,29 @@ data class TestResult(
     // Last N bytes of stderr — captures Gradle-level problems (compile errors,
     // dep resolution) that wouldn't show up in the JUnit XML at all.
     val stderrTail: String,
-)
+    // True when we never invoked Gradle's `test` task — currently because the
+    // build task already failed, so tests would just re-hit the same compile
+    // error. `success = false` when skipped; [skipReason] carries the "why".
+    val wasSkipped: Boolean = false,
+    val skipReason: String? = null,
+) {
+    companion object {
+        fun skipped(reason: String): TestResult = TestResult(
+            success = false,
+            exitCode = -1,
+            durationMs = 0,
+            timedOut = false,
+            total = 0,
+            passed = 0,
+            failed = 0,
+            skipped = 0,
+            failures = emptyList(),
+            stderrTail = "",
+            wasSkipped = true,
+            skipReason = reason,
+        )
+    }
+}
 
 /**
  * One failed testcase. `type` distinguishes the JUnit XML element the failure
