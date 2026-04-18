@@ -2,6 +2,7 @@ package com.github.ethanhosier.analysis.cli
 
 import com.github.ethanhosier.analysis.metrics.model.AnalysisReport
 import com.github.ethanhosier.analysis.pipeline.AnalysisPipeline
+import com.github.ethanhosier.ideplugin.model.TraceEvent
 import kotlinx.serialization.json.Json
 import java.nio.file.Files
 import java.nio.file.Path
@@ -19,6 +20,7 @@ import kotlin.system.exitProcess
  */
 
 private val reportJson = Json { prettyPrint = true; encodeDefaults = true }
+private val eventJson = Json { encodeDefaults = true }
 
 fun main(args: Array<String>) {
     val opts = parseArgs(args) ?: run {
@@ -31,6 +33,14 @@ fun main(args: Array<String>) {
     val reportPath = opts.sessionFolder.resolve("analysis-report.json")
     Files.writeString(reportPath, reportJson.encodeToString(AnalysisReport.serializer(), result.report))
 
+    val normalizedPath = opts.sessionFolder.resolve("normalized-events.jsonl")
+    Files.writeString(
+        normalizedPath,
+        result.trace.events.joinToString(separator = "\n", postfix = "\n") { event ->
+            eventJson.encodeToString(TraceEvent.serializer(), event)
+        },
+    )
+
     val meta = result.trace.metadata
     val uniqueShas = result.metricsSummary.totalShas
     val eventCount = result.trace.events.size
@@ -40,7 +50,6 @@ fun main(args: Array<String>) {
     println("started:    ${meta.startTime}")
     println("ended:      ${meta.endTime}")
     println("events:     $eventCount")
-    println("reordered:  ${result.reorderedEventCount} event(s) moved by normalize")
     println("repo:       ${result.reconstruction.repoDir}")
     println("commits:    $uniqueShas unique (${eventCount - uniqueShas} events collapsed to prior SHA)")
     println(
@@ -63,6 +72,7 @@ fun main(args: Array<String>) {
             "($ideRelevantCount ide-relevant) in ${result.minerDurationMs / 1000}s",
     )
     println("report:     ${reportPath.toAbsolutePath()}")
+    println("normalized: ${normalizedPath.toAbsolutePath()}")
 }
 
 private data class CliOptions(val sessionFolder: Path, val parallelism: Int)

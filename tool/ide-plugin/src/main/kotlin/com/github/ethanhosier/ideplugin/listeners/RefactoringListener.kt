@@ -20,11 +20,12 @@ import com.intellij.refactoring.listeners.RefactoringEventListener
 class RefactoringListener(private val project: Project) : RefactoringEventListener {
 
     override fun refactoringStarted(refactoringId: String, beforeData: RefactoringEventData?) {
-        project.service<RefactoringBurstCoordinator>().beginRefactoring(refactoringId)
+        project.service<RefactoringBurstCoordinator>().beginRefactoring(refactoringId, beforeData)
     }
 
     override fun refactoringDone(refactoringId: String, afterData: RefactoringEventData?) {
-        project.service<RefactoringBurstCoordinator>().endRefactoring(refactoringId, outcome = "done")
+        project.service<RefactoringBurstCoordinator>()
+            .endRefactoring(refactoringId, outcome = "done", afterData = afterData)
     }
 
     override fun conflictsDetected(refactoringId: String, conflictsData: RefactoringEventData) {

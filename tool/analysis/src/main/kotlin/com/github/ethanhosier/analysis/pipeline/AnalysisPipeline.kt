@@ -34,9 +34,6 @@ class AnalysisPipeline(
 
     data class Result(
         val trace: Trace,
-        // How many events moved position between raw-load order and the
-        // normalized order. Surfaced for CLI diagnostics; ignore on server.
-        val reorderedEventCount: Int,
         val reconstruction: ReconstructionResult,
         val metricsSummary: MetricsRunner.Summary,
         val metricsDurationMs: Long,
@@ -47,8 +44,7 @@ class AnalysisPipeline(
 
     fun run(sessionDir: Path): Result {
         val raw = TraceLoader().load(sessionDir)
-        val trace = TraceNormalizer.normalize(raw)
-        val reordered = raw.events.indices.count { i -> raw.events[i].id != trace.events[i].id }
+        val trace = TraceNormalizer.normalize(raw, sessionDir.resolve("initial-src"))
 
         val reconstruction = ShadowRepoBuilder().build(sessionDir, trace)
 
@@ -64,7 +60,6 @@ class AnalysisPipeline(
 
         return Result(
             trace = trace,
-            reorderedEventCount = reordered,
             reconstruction = reconstruction,
             metricsSummary = metrics,
             metricsDurationMs = metricsDurationMs,
