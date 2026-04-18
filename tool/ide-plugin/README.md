@@ -28,8 +28,7 @@ Every event is written to a single append-only `events.jsonl` file as the sessio
 | `FILE_MOVED` | File moved | Yes |
 | `FILE_MODIFIED_EXTERNAL` | File contents changed outside the IDE editor (git checkout, external editor, codemod) | Yes |
 | `REFACTORING_STARTED` | IntelliJ refactoring begins | No |
-| `REFACTORING_FINISHED` | IntelliJ refactoring completes | No (VFS events capture changed files) |
-| `FILE_ERRORS_CHANGED` | File gains or loses compile errors (2 s debounce) | Yes |
+| `REFACTORING_FINISHED` | IntelliJ refactoring completes | Yes — all files touched inside the refactoring boundary |
 | `BUILD_STARTED` | Compilation triggered | No |
 | `BUILD_FINISHED` | Compilation finishes | No |
 | `TEST_RUN_STARTED` | Test run begins | No |
