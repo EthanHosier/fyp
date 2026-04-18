@@ -3,6 +3,7 @@ package com.github.ethanhosier.analysis.metrics.model
 import com.github.ethanhosier.analysis.miner.model.ManualRefactoringSegment
 import com.github.ethanhosier.ideplugin.model.EventType
 import com.github.ethanhosier.ideplugin.model.SessionMetadata
+import com.github.ethanhosier.ideplugin.model.TouchedMember
 import kotlinx.serialization.Serializable
 
 /**
@@ -37,6 +38,10 @@ data class CheckpointReport(
     val sha: String,
     val events: List<EventSummary>,
     val metrics: CheckpointMetrics,
+    // Flat, deduped union of every `(class, method?)` pair touched by the
+    // events attributed to this checkpoint — i.e. the transition from the
+    // previous checkpoint.
+    val touchedMembers: List<TouchedMember> = emptyList(),
 )
 
 @Serializable
@@ -44,4 +49,7 @@ data class EventSummary(
     val id: String,
     val type: EventType,
     val timestamp: Long,
+    // Flat, deduped union of every `(class, method?)` pair this event's
+    // snapshots reported. Defaults empty for events with no file changes.
+    val touchedMembers: List<TouchedMember> = emptyList(),
 )

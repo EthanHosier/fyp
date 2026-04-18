@@ -11,6 +11,7 @@ import com.github.ethanhosier.analysis.model.ReconstructionResult
 import com.github.ethanhosier.analysis.model.Trace
 import com.github.ethanhosier.analysis.normalize.TraceNormalizer
 import com.github.ethanhosier.analysis.reconstruct.ShadowRepoBuilder
+import com.github.ethanhosier.ideplugin.model.TouchedMember
 import java.nio.file.Path
 
 /**
@@ -91,12 +92,18 @@ internal fun buildAnalysisReport(
     // Preserve event order so each checkpoint's event list reads
     // chronologically — LinkedHashMap's insertion order is what we want.
     val eventsBySha = LinkedHashMap<String, MutableList<EventSummary>>()
+    val membersBySha = LinkedHashMap<String, LinkedHashSet<TouchedMember>>()
     val mapping = reconstruction.eventCommits.mapping
     for (event in trace.events) {
         val sha = mapping[event.id] ?: continue
+        val eventMembers = LinkedHashSet<TouchedMember>()
+        for (snap in event.changedFiles) {
+            eventMembers.addAll(snap.touchedMembers)
+        }
         eventsBySha.getOrPut(sha) { mutableListOf() }.add(
-            EventSummary(event.id, event.type, event.timestamp),
+            EventSummary(event.id, event.type, event.timestamp, eventMembers.toList()),
         )
+        membersBySha.getOrPut(sha) { LinkedHashSet() }.addAll(eventMembers)
     }
 
     val checkpoints = metrics.checkpoints.map { m ->
@@ -104,6 +111,7 @@ internal fun buildAnalysisReport(
             sha = m.sha,
             events = eventsBySha[m.sha].orEmpty(),
             metrics = m,
+            touchedMembers = membersBySha[m.sha]?.toList().orEmpty(),
         )
     }
 
