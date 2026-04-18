@@ -24,11 +24,11 @@
              TracerStartupActivity runs after restoration is complete and handles both existing
              and future editors in one place with a single listener instance. -->
         <!-- File save -->
-<!--        <listener class="com.github.ethanhosier.ideplugin.listeners.FileSaveListener"-->
-<!--                  topic="com.intellij.openapi.fileEditor.FileDocumentManagerListener"/>-->
+        <listener class="com.github.ethanhosier.ideplugin.listeners.FileSaveListener"
+                  topic="com.intellij.openapi.fileEditor.FileDocumentManagerListener"/>
         <!-- Build lifecycle -->
-<!--        <listener class="com.github.ethanhosier.ideplugin.listeners.BuildListener"-->
-<!--                  topic="com.intellij.compiler.server.BuildManagerListener"/>-->
+        <listener class="com.github.ethanhosier.ideplugin.listeners.BuildListener"
+                  topic="com.intellij.compiler.server.BuildManagerListener"/>
         <!-- Command boundary: triggers REFACTORING_FINISHED emission when the
              enclosing command finishes so the trailing auto-format pass is captured. -->
         <listener class="com.github.ethanhosier.ideplugin.listeners.RefactoringCommandListener"
@@ -40,8 +40,8 @@
         <listener class="com.github.ethanhosier.ideplugin.listeners.ProjectCloseListener"
                   topic="com.intellij.openapi.project.ProjectManagerListener"/>
         <!-- File editor focus / open / close -->
-<!--        <listener class="com.github.ethanhosier.ideplugin.listeners.FileEditorListener"-->
-<!--                  topic="com.intellij.openapi.fileEditor.FileEditorManagerListener"/>-->
+        <listener class="com.github.ethanhosier.ideplugin.listeners.FileEditorListener"
+                  topic="com.intellij.openapi.fileEditor.FileEditorManagerListener"/>
         <!-- IntelliJ refactoring operations -->
         <listener class="com.github.ethanhosier.ideplugin.listeners.RefactoringListener"
                   topic="com.intellij.refactoring.listeners.RefactoringEventListener"/>
