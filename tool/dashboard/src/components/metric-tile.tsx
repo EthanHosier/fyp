@@ -21,7 +21,7 @@ export function MetricTile({
   better?: "lower" | "higher"
 }) {
   return (
-    <div className="flex flex-col gap-1.5 rounded-sm border border-border bg-bg-2 px-2.5 py-2">
+    <div className="flex flex-col gap-1.5 rounded-sm border border-border px-2.5 py-2">
       <Text as="div" variant="eyebrow" tone="fg-4" className="tracking-[0.06em]">
         {label}
       </Text>

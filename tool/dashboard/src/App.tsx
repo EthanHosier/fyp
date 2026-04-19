@@ -1,6 +1,7 @@
 import { Text } from "@/components/text"
 import { toViewModel } from "@/data/view-model"
 import { BottomStrip } from "@/features/bottom-strip/bottom-strip"
+import { DetailPanel } from "@/features/detail-panel/detail-panel"
 import { HeaderBar } from "@/features/header/header-bar"
 import { MetricRail } from "@/features/metric-rail/metric-rail"
 import { TrajectoryChart } from "@/features/trajectory-chart/trajectory-chart"
@@ -34,6 +35,7 @@ export default function App() {
           </section>
           <BottomStrip vm={vm} />
         </main>
+        <DetailPanel vm={vm} />
       </div>
     </div>
   )
