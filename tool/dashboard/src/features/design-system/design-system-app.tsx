@@ -1,7 +1,7 @@
 /*
- * Design-system preview page. Mounted when `?preview` is in the URL
- * (see main.tsx). Shows every primitive and every variant side-by-side
- * so we can iterate on look & feel without the real dashboard state.
+ * Design-system page. Mounted at `/design-system` (see main.tsx).
+ * Shows every primitive and every variant side-by-side so we can
+ * iterate on look & feel without the real dashboard state.
  */
 
 import { CheckIcon, FileIcon, HelpCircleIcon, XIcon } from "lucide-react"
@@ -21,12 +21,12 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { ColorSwatch } from "@/features/preview/color-swatch"
-import { PreviewPage, PreviewSection } from "@/features/preview/preview-section"
-import { TextSample } from "@/features/preview/text-sample"
-import { TokenCaption } from "@/features/preview/token-caption"
-import { TokenRow } from "@/features/preview/token-row"
-import { VariantCell } from "@/features/preview/variant-cell"
+import { ColorSwatch } from "@/features/design-system/color-swatch"
+import { DesignSystemPage, DesignSystemSection } from "@/features/design-system/design-system-section"
+import { TextSample } from "@/features/design-system/text-sample"
+import { TokenCaption } from "@/features/design-system/token-caption"
+import { TokenRow } from "@/features/design-system/token-row"
+import { VariantCell } from "@/features/design-system/variant-cell"
 
 const SURFACES = [
   ["bg", "shell"],
@@ -82,11 +82,11 @@ const TEXT_VARIANTS = [
   ["monoTiny", "t+03:42 · 9.5 mono"],
 ] as const
 
-export function PreviewApp() {
+export function DesignSystemApp() {
   return (
     <TooltipProvider>
-      <PreviewPage
-        title="Design system preview"
+      <DesignSystemPage
+        title="Design system"
         description={
           <>
             Tokens + shadcn primitives + app primitives wired to the IntelliJ-dark palette. See{" "}
@@ -94,48 +94,48 @@ export function PreviewApp() {
           </>
         }
       >
-        <PreviewSection title="Surfaces">
+        <DesignSystemSection title="Surfaces">
           {SURFACES.map(([token, label]) => (
             <TokenRow key={token} visual={<ColorSwatch token={token} />}>
               <TokenCaption token={token} label={label} />
             </TokenRow>
           ))}
-        </PreviewSection>
+        </DesignSystemSection>
 
-        <PreviewSection title="Text">
+        <DesignSystemSection title="Text">
           {TEXT_TIERS.map(([token, label]) => (
             <TokenRow key={token} visual={<TextSample token={token}>Aa</TextSample>}>
               <TokenCaption token={token} label={label} />
             </TokenRow>
           ))}
-        </PreviewSection>
+        </DesignSystemSection>
 
-        <PreviewSection title="Brand">
+        <DesignSystemSection title="Brand">
           {BRAND.map(([token, label]) => (
             <TokenRow key={token} visual={<ColorSwatch token={token} />}>
               <TokenCaption token={token} label={label} />
             </TokenRow>
           ))}
-        </PreviewSection>
+        </DesignSystemSection>
 
-        <PreviewSection title="Status">
+        <DesignSystemSection title="Status">
           {STATUS.map(([token, label]) => (
             <TokenRow key={token} visual={<ColorSwatch token={token} />}>
               <TokenCaption token={token} label={label} />
             </TokenRow>
           ))}
-        </PreviewSection>
+        </DesignSystemSection>
 
-        <PreviewSection title="Typography · families">
+        <DesignSystemSection title="Typography · families">
           <TokenRow visual={<TextSample family="sans">The quick brown fox</TextSample>}>
             <TokenCaption token="font-sans" label="default body" />
           </TokenRow>
           <TokenRow visual={<TextSample family="mono">const x = 42;</TextSample>}>
             <TokenCaption token="font-mono" label="code / numerics" />
           </TokenRow>
-        </PreviewSection>
+        </DesignSystemSection>
 
-        <PreviewSection title="Typography · Text variants" layout="stack">
+        <DesignSystemSection title="Typography · Text variants" layout="stack">
           {TEXT_VARIANTS.map(([variant, sample]) => (
             <VariantCell key={variant} label={variant}>
               <Text
@@ -146,9 +146,9 @@ export function PreviewApp() {
               </Text>
             </VariantCell>
           ))}
-        </PreviewSection>
+        </DesignSystemSection>
 
-        <PreviewSection title="Radii">
+        <DesignSystemSection title="Radii">
           {RADII.map(([radius, px]) => (
             <TokenRow
               key={radius}
@@ -157,17 +157,17 @@ export function PreviewApp() {
               <TokenCaption token={`radius-${radius}`} label={px} />
             </TokenRow>
           ))}
-        </PreviewSection>
+        </DesignSystemSection>
 
-        <PreviewSection title="Button · variants" layout="showcase">
+        <DesignSystemSection title="Button · variants" layout="showcase">
           {BUTTON_VARIANTS.map((variant) => (
             <VariantCell key={variant} label={variant}>
               <Button variant={variant}>Click me</Button>
             </VariantCell>
           ))}
-        </PreviewSection>
+        </DesignSystemSection>
 
-        <PreviewSection title="Button · sizes" layout="showcase">
+        <DesignSystemSection title="Button · sizes" layout="showcase">
           {BUTTON_SIZES.map((size) => (
             <VariantCell key={size} label={size}>
               <Button size={size}>Click me</Button>
@@ -181,17 +181,17 @@ export function PreviewApp() {
           <VariantCell label="disabled">
             <Button disabled>Disabled</Button>
           </VariantCell>
-        </PreviewSection>
+        </DesignSystemSection>
 
-        <PreviewSection title="Badge · variants" layout="showcase">
+        <DesignSystemSection title="Badge · variants" layout="showcase">
           {BADGE_VARIANTS.map((variant) => (
             <VariantCell key={variant} label={variant}>
               <Badge variant={variant}>badge</Badge>
             </VariantCell>
           ))}
-        </PreviewSection>
+        </DesignSystemSection>
 
-        <PreviewSection title="Badge · status tones" layout="showcase">
+        <DesignSystemSection title="Badge · status tones" layout="showcase">
           <VariantCell label="success · build pass">
             <Badge variant="success">
               <CheckIcon />
@@ -218,9 +218,9 @@ export function PreviewApp() {
               <Badge variant={variant}>{variant}</Badge>
             </VariantCell>
           ))}
-        </PreviewSection>
+        </DesignSystemSection>
 
-        <PreviewSection title="Checkbox · tones" layout="showcase">
+        <DesignSystemSection title="Checkbox · tones" layout="showcase">
           {CHECKBOX_TONES.map((tone) => (
             <VariantCell key={tone} label={`${tone} · checked`}>
               <Checkbox tone={tone} defaultChecked />
@@ -235,9 +235,9 @@ export function PreviewApp() {
           <VariantCell label="checked + disabled">
             <Checkbox defaultChecked disabled />
           </VariantCell>
-        </PreviewSection>
+        </DesignSystemSection>
 
-        <PreviewSection title="StatusDot" layout="showcase">
+        <DesignSystemSection title="StatusDot" layout="showcase">
           {STATUS_DOT_TONES.map((tone) => (
             <VariantCell key={tone} label={tone}>
               <div className="flex items-center gap-2">
@@ -246,9 +246,9 @@ export function PreviewApp() {
               </div>
             </VariantCell>
           ))}
-        </PreviewSection>
+        </DesignSystemSection>
 
-        <PreviewSection title="Sparkline" layout="showcase">
+        <DesignSystemSection title="Sparkline" layout="showcase">
           <VariantCell label="muted">
             <Sparkline values={[3, 5, 4, 6, 8, 7, 10, 9, 12]} />
           </VariantCell>
@@ -266,9 +266,9 @@ export function PreviewApp() {
               height={28}
             />
           </VariantCell>
-        </PreviewSection>
+        </DesignSystemSection>
 
-        <PreviewSection title="ScorePill" layout="showcase">
+        <DesignSystemSection title="ScorePill" layout="showcase">
           <VariantCell label="positive delta">
             <ScorePill label="Process score" value={72} delta={4} />
           </VariantCell>
@@ -281,9 +281,9 @@ export function PreviewApp() {
           <VariantCell label="size=sm">
             <ScorePill label="Coverage" value={91} total={100} delta={2} size="sm" />
           </VariantCell>
-        </PreviewSection>
+        </DesignSystemSection>
 
-        <PreviewSection title="RailSection" layout="showcase">
+        <DesignSystemSection title="RailSection" layout="showcase">
           <VariantCell label="with description + items">
             <div className="border-border bg-bg-1 w-60 rounded-md border">
               <RailSection title="PRIMARY METRIC">
@@ -298,9 +298,9 @@ export function PreviewApp() {
               </RailSection>
             </div>
           </VariantCell>
-        </PreviewSection>
+        </DesignSystemSection>
 
-        <PreviewSection title="MetricTile" layout="showcase">
+        <DesignSystemSection title="MetricTile" layout="showcase">
           <VariantCell label="lower is better · low">
             <div className="w-48">
               <MetricTile label="Complexity" value={12.4} unit="wmc" fraction={0.2} />
@@ -322,9 +322,9 @@ export function PreviewApp() {
               />
             </div>
           </VariantCell>
-        </PreviewSection>
+        </DesignSystemSection>
 
-        <PreviewSection title="StatusRow" layout="showcase">
+        <DesignSystemSection title="StatusRow" layout="showcase">
           <VariantCell label="build pass · tests pass">
             <StatusRow build="pass" tests="pass" />
           </VariantCell>
@@ -334,9 +334,9 @@ export function PreviewApp() {
           <VariantCell label="build fail · tests unknown">
             <StatusRow build="fail" tests="unknown" />
           </VariantCell>
-        </PreviewSection>
+        </DesignSystemSection>
 
-        <PreviewSection title="Meter · rainbow bar" layout="showcase">
+        <DesignSystemSection title="Meter · rainbow bar" layout="showcase">
           <VariantCell label="lower is better · 20%">
             <div className="w-40">
               <Meter value={0.2} better="lower" />
@@ -357,9 +357,9 @@ export function PreviewApp() {
               <Meter value={0.5} better="lower" size="md" />
             </div>
           </VariantCell>
-        </PreviewSection>
+        </DesignSystemSection>
 
-        <PreviewSection title="DataList · files touched" layout="showcase">
+        <DesignSystemSection title="DataList · files touched" layout="showcase">
           <VariantCell label="flex rows · icon + path + churn">
             <DataList className="w-[360px]">
               {[
@@ -378,9 +378,9 @@ export function PreviewApp() {
               ))}
             </DataList>
           </VariantCell>
-        </PreviewSection>
+        </DesignSystemSection>
 
-        <PreviewSection title="DataList · metric deltas" layout="showcase">
+        <DesignSystemSection title="DataList · metric deltas" layout="showcase">
           <VariantCell label="grid rows · label + from → to (delta)">
             <DataList className="w-[360px]">
               {[
@@ -411,9 +411,9 @@ export function PreviewApp() {
               })}
             </DataList>
           </VariantCell>
-        </PreviewSection>
+        </DesignSystemSection>
 
-        <PreviewSection title="Separator" layout="showcase">
+        <DesignSystemSection title="Separator" layout="showcase">
           <VariantCell label="horizontal">
             <div className="w-48">
               <Separator />
@@ -426,9 +426,9 @@ export function PreviewApp() {
               <span className="text-fg-2">right</span>
             </div>
           </VariantCell>
-        </PreviewSection>
+        </DesignSystemSection>
 
-        <PreviewSection title="Tooltip · surfaces" layout="showcase">
+        <DesignSystemSection title="Tooltip · surfaces" layout="showcase">
           {TOOLTIP_SURFACES.map((surface) => (
             <VariantCell key={surface} label={surface}>
               <Tooltip>
@@ -439,9 +439,9 @@ export function PreviewApp() {
               </Tooltip>
             </VariantCell>
           ))}
-        </PreviewSection>
+        </DesignSystemSection>
 
-        <PreviewSection title="Scroll area" layout="showcase">
+        <DesignSystemSection title="Scroll area" layout="showcase">
           <VariantCell label="vertical · 160px">
             <ScrollArea className="border-border bg-bg-1 h-40 w-60 rounded-md border p-3">
               <div className="flex flex-col gap-2 font-mono text-xs">
@@ -451,9 +451,9 @@ export function PreviewApp() {
               </div>
             </ScrollArea>
           </VariantCell>
-        </PreviewSection>
+        </DesignSystemSection>
 
-        <PreviewSection title="Card" layout="showcase">
+        <DesignSystemSection title="Card" layout="showcase">
           <VariantCell label="default">
             <Card className="w-64">
               <CardHeader>
@@ -478,8 +478,8 @@ export function PreviewApp() {
               </CardContent>
             </Card>
           </VariantCell>
-        </PreviewSection>
-      </PreviewPage>
+        </DesignSystemSection>
+      </DesignSystemPage>
     </TooltipProvider>
   )
 }

@@ -4,7 +4,7 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { Text } from "@/components/text"
 import { cn } from "@/lib/utils"
 
-const previewSectionBodyStyles = cva("", {
+const designSystemSectionBodyStyles = cva("", {
   variants: {
     layout: {
       tokens: "grid grid-cols-2 gap-x-8 gap-y-3 lg:grid-cols-4",
@@ -15,22 +15,22 @@ const previewSectionBodyStyles = cva("", {
   defaultVariants: { layout: "tokens" },
 })
 
-type PreviewSectionProps = VariantProps<typeof previewSectionBodyStyles> & {
+type DesignSystemSectionProps = VariantProps<typeof designSystemSectionBodyStyles> & {
   title: string
   children: ReactNode
   className?: string
 }
 
-export function PreviewSection({ title, layout, className, children }: PreviewSectionProps) {
+export function DesignSystemSection({ title, layout, className, children }: DesignSystemSectionProps) {
   return (
     <section className="flex flex-col gap-3">
       <Text as="h2" variant="eyebrow" tone="fg-2">{title}</Text>
-      <div className={cn(previewSectionBodyStyles({ layout }), className)}>{children}</div>
+      <div className={cn(designSystemSectionBodyStyles({ layout }), className)}>{children}</div>
     </section>
   )
 }
 
-export function PreviewPage({
+export function DesignSystemPage({
   title,
   description,
   children,

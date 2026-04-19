@@ -82,14 +82,16 @@ dashboard/src/
 │   └── status-dot.tsx            ← cva variants: tone (pass/fail/unknown), size (sm/md)
 │
 └── features/
-    ├── preview/                  ← design-system preview page (not a dashboard feature,
+    ├── design-system/            ← design-system page (not a dashboard feature,
     │   │                           but a standalone route — lives alongside features
     │   │                           for consistency)
-    │   ├── preview-section.tsx
+    │   ├── design-system-app.tsx
+    │   ├── design-system-section.tsx
     │   ├── token-row.tsx
     │   ├── token-caption.tsx
     │   ├── color-swatch.tsx
-    │   └── text-sample.tsx
+    │   ├── text-sample.tsx
+    │   └── variant-cell.tsx
     ├── header/
     │   └── header-bar.tsx
     ├── metric-rail/
@@ -155,13 +157,13 @@ Metric sources (first cut — extend later):
 
 ## Implementation order
 
-Design system first, preview page second, features after. Each step ends in a compiling, demoable state.
+Design system first, design-system page second, features after. Each step ends in a compiling, demoable state.
 
 - [x] **1. Tokens.** `index.css` with `@theme` tokens (colors, font families, radii) + base body styles. Dark-only. No components yet.
 - [x] **2. shadcn primitives wired to tokens.** Add `button`, `card`, `checkbox`, `separator`, `badge`, `scroll-area`, `tooltip`. Status-tone variants added to `badge`; colour tones added to `checkbox`; surface variants added to `tooltip`.
 - [x] **3. App primitives with `cva` variants.** `status-dot`, `sparkline`, `score-pill`, `rail-section`, `metric-tile`, `status-row`, plus the earlier `meter`. `icon` skipped (using lucide directly). `exp-block` dropped (no prose). `filter-chip` + `legend-swatch` deferred to the chart steps where their context lives.
-- [x] **4. Preview page.** Showcases moved into `features/preview/preview-app.tsx`, routed at `/preview` via `react-router-dom`. `App.tsx` at `/` is a placeholder until step 5.
-- [x] **5. Layout shell.** `App.tsx` with the three-region grid (header / side-rail + main / bottom-strip + explanation card). Static placeholders built from primitives. Added `Text` component (`components/text.tsx`) as the single source of typography variants (display/heading/body/bodySm/caption/eyebrow/mono/monoStat/monoCaption/monoTiny × tone); refactored `rail-section`, `metric-tile`, `score-pill`, preview page, and placeholders to use it. Preview now has a stacked "Typography · Text variants" section.
+- [x] **4. Design-system page.** Showcases moved into `features/design-system/design-system-app.tsx`, routed at `/design-system` via `react-router-dom`. `App.tsx` at `/` is a placeholder until step 5.
+- [x] **5. Layout shell.** `App.tsx` with the three-region grid (header / side-rail + main / bottom-strip + explanation card). Static placeholders built from primitives. Added `Text` component (`components/text.tsx`) as the single source of typography variants (display/heading/body/bodySm/caption/eyebrow/mono/monoStat/monoCaption/monoTiny × tone); refactored `rail-section`, `metric-tile`, `score-pill`, design-system page, and placeholders to use it. Design-system page now has a stacked "Typography · Text variants" section.
 - [x] **6. View-model + dashboard store.** Shipped `data/types.ts`, `data/view-model.ts` (mapping `AnalysisReport` → `DashboardViewModel`: complexity/coupling/duplication/readability/churn + per-checkpoint build/tests status + derived intervals), `lib/format.ts` (tLabel, duration, delta, shortSha). Cross-feature state moved into a zustand store (`stores/dashboard-store.ts`) rather than a hook — selection / primary / secondaries (cap 2, mutex with primary) / layers. `App.tsx` calls `useReport()` → `toViewModel()`, shows a loading state, surfaces real session name / branch / commit / duration in the header placeholder. Added `/data` debug route (`features/data/data-app.tsx`) showing raw report next to parsed view-model.
 - [ ] **7. Header.** `header-bar` composing `score-pill`, `status-dot`, `icon`, shadcn `button`/`separator`/`badge`.
 - [ ] **8. Metric rail.** `primary-metric-row` (radio behaviour), `overlay-metric-row` (checkbox, enforce max 2 in state). Drop "Annotation types" and "Suggested path" sub-sections. Keep only the "Build/test intervals" toggle.
@@ -171,7 +173,7 @@ Design system first, preview page second, features after. Each step ends in a co
 - [ ] **12. Chart — hover crosshair + tooltip.** `chart-hover-overlay` with `<foreignObject>` HTML tooltip. Click dispatches selection.
 - [ ] **13. Detail panel.** `detail-panel` animates in/out via `tw-animate-css` utility classes. `checkpoint-body` (metrics grid using `metric-tile`, `status-row` — **no** touched-files preview until we map `diff.perFileChurn`). `interval-body` (deltas between the two checkpoints, timing from checkpoint timestamps, churn from diff).
 - [ ] **14. Explanation card.** Minimal version: when a checkpoint is selected, render bullet list of biggest metric deltas vs previous checkpoint (computed in `view-model`). No prose. Hidden otherwise.
-- [ ] **15. Polish pass.** Keyboard focus outlines, `aria-*` on buttons, dark scrollbar styling, `@fontsource-variable/geist` for sans, JetBrains Mono for numerics. Side-by-side visual diff against reference HTML. Update the preview page with any primitives added during feature work.
+- [ ] **15. Polish pass.** Keyboard focus outlines, `aria-*` on buttons, dark scrollbar styling, `@fontsource-variable/geist` for sans, JetBrains Mono for numerics. Side-by-side visual diff against reference HTML. Update the design-system page with any primitives added during feature work.
 
 Each step: delete reference-only concepts as we reach them. Leave `dashboard/reference/` untouched as a living spec.
 

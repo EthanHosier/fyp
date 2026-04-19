@@ -2,7 +2,7 @@ import type { ReactNode } from "react"
 
 /**
  * Labels a rendered component variant with a small monospace caption.
- * Used inside a showcase-layout PreviewSection to put the label next to
+ * Used inside a showcase-layout DesignSystemSection to put the label next to
  * each example instead of above/below.
  */
 export function VariantCell({ label, children }: { label: string; children: ReactNode }) {
