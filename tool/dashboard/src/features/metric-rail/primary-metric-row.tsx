@@ -28,9 +28,11 @@ export function PrimaryMetricRow({
   return (
     <button
       type="button"
+      role="radio"
+      aria-checked={active}
       onClick={onClick}
       className={cn(
-        "flex w-full cursor-pointer items-center gap-2 px-3 py-[7px] text-left transition-colors",
+        "flex w-full cursor-pointer items-center gap-2 px-3 py-[7px] text-left transition-colors outline-none focus-visible:bg-bg-2",
         "border-l-2 border-transparent",
         active ? cn("bg-bg-3", TONE_BORDER[metric.tone]) : "hover:bg-bg-2",
       )}

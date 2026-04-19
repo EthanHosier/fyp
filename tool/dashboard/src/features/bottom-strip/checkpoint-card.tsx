@@ -20,9 +20,11 @@ export function CheckpointCard({
   return (
     <button
       type="button"
+      aria-pressed={selected}
+      aria-label={`Select checkpoint ${checkpoint.label}`}
       onClick={onClick}
       className={cn(
-        "flex w-[120px] shrink-0 cursor-pointer flex-col gap-1 rounded-sm border px-2 py-[7px] text-left transition-colors",
+        "flex w-[120px] shrink-0 cursor-pointer flex-col gap-1 rounded-sm border px-2 py-[7px] text-left transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
         selected
           ? "bg-bg-3 border-brand"
           : "bg-bg-2 border-border hover:border-border-strong",

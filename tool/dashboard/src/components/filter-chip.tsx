@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils"
  * reference's "x · checkpoint" / "zoom · fit" / "export" chips.
  */
 const filterChipStyles = cva(
-  "inline-flex h-7 shrink-0 cursor-pointer items-center rounded-sm border px-2.5 font-mono text-[11px] transition-colors",
+  "inline-flex h-7 shrink-0 cursor-pointer items-center rounded-sm border px-2.5 font-mono text-[11px] transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
   {
     variants: {
       active: {
@@ -28,6 +28,7 @@ export function FilterChip({ className, active, ...rest }: FilterChipProps) {
   return (
     <button
       type="button"
+      aria-pressed={active ?? undefined}
       className={cn(filterChipStyles({ active }), className)}
       {...rest}
     />

@@ -6,6 +6,8 @@
 
 import { CheckIcon, FileIcon, HelpCircleIcon, XIcon } from "lucide-react"
 import { DataList, DataListRow } from "@/components/data-list"
+import { FilterChip } from "@/components/filter-chip"
+import { LegendSwatch } from "@/components/legend-swatch"
 import { Meter } from "@/components/meter"
 import { MetricTile } from "@/components/metric-tile"
 import { RailSection } from "@/components/rail-section"
@@ -412,6 +414,37 @@ export function DesignSystemApp() {
                 )
               })}
             </DataList>
+          </VariantCell>
+        </DesignSystemSection>
+
+        <DesignSystemSection title="FilterChip" layout="showcase">
+          <VariantCell label="default">
+            <FilterChip>zoom · fit</FilterChip>
+          </VariantCell>
+          <VariantCell label="active">
+            <FilterChip active>x · checkpoint</FilterChip>
+          </VariantCell>
+        </DesignSystemSection>
+
+        <DesignSystemSection title="LegendSwatch" layout="showcase">
+          <VariantCell label="solid line">
+            <LegendSwatch label="primary · complexity">
+              <span className="bg-brand inline-block h-[2px] w-[18px]" />
+            </LegendSwatch>
+          </VariantCell>
+          <VariantCell label="dashed stub">
+            <LegendSwatch label="duplication">
+              <span className="inline-flex w-[18px] items-center justify-between">
+                <span className="bg-brand-3 h-[2px] w-[5px]" />
+                <span className="bg-brand-3 h-[2px] w-[5px]" />
+                <span className="bg-brand-3 h-[2px] w-[5px]" />
+              </span>
+            </LegendSwatch>
+          </VariantCell>
+          <VariantCell label="status square">
+            <LegendSwatch label="build pass">
+              <span className="bg-good/80 inline-block size-2.5 rounded-sm" />
+            </LegendSwatch>
           </VariantCell>
         </DesignSystemSection>
 
