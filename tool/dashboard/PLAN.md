@@ -157,21 +157,21 @@ Metric sources (first cut — extend later):
 
 Design system first, preview page second, features after. Each step ends in a compiling, demoable state.
 
-1. **Tokens.** `index.css` with `@theme` tokens (colors, font families, radii) + base body styles. Dark-only. No components yet.
-2. **shadcn primitives wired to tokens.** Add `button`, `card`, `checkbox`, `separator`, `badge`, `scroll-area`, `tooltip` via `npx shadcn@latest add`. Edit the generated files so they read from our tokens (`--bg`, `--fg`, `--accent`, etc.) instead of shadcn defaults.
-3. **App primitives with `cva` variants.** Build the reusable pieces the reference keeps repeating: `icon`, `sparkline`, `score-pill`, `status-dot`, `metric-tile`, `status-row`, `rail-section`, `filter-chip`, `legend-swatch`, `exp-block`. Each with `cva` variants for size / tone / state / emphasis where repetition warrants.
-4. **Preview page.** A single scrollable page mounted when `location.search` contains `preview` (or via a simple `?preview` check in `main.tsx` that renders `PreviewApp` instead of `App`). Shows every shadcn primitive and every app primitive with all variants rendered side-by-side, grouped by component, with static props. Iterate on look & feel here until happy — **gate** before moving on to step 5.
-5. **Layout shell.** `App.tsx` with the three-region grid (header / side-rail + main / bottom-strip). Static placeholders built from primitives. Verify palette + spacing against reference screenshot.
-6. **View-model + `useDashboardState`.** Ship `data/view-model.ts`, `data/types.ts`. Wire `useReport()` → `toViewModel()`. Empty/loading states. Expose `selection`, `primary`, `secondaries`, `layers` state + setters.
-7. **Header.** `header-bar` composing `score-pill`, `status-dot`, `icon`, shadcn `button`/`separator`/`badge`.
-8. **Metric rail.** `primary-metric-row` (radio behaviour), `overlay-metric-row` (checkbox, enforce max 2 in state). Drop "Annotation types" and "Suggested path" sub-sections. Keep only the "Build/test intervals" toggle.
-9. **Bottom strip — filmstrip first, explanation later.** `checkpoint-filmstrip` shows status dot + label + time + short description (first event summary if present, else short sha). Selection updates global state.
-10. **Trajectory chart — axes + primary line only.** Port `lib/scales.ts` from the reference's math. Build `chart-axes`, `chart-lines` (primary only), `chart-points`, `use-chart-scales`, `chart-toolbar`, `chart-legend` (primary swatch only). ResizeObserver in `trajectory-chart.tsx`.
-11. **Chart — secondaries + interval rail.** Extend `chart-lines` for dashed overlays; add `chart-interval-rail` driven by `vm.intervals`.
-12. **Chart — hover crosshair + tooltip.** `chart-hover-overlay` with `<foreignObject>` HTML tooltip. Click dispatches selection.
-13. **Detail panel.** `detail-panel` animates in/out via `tw-animate-css` utility classes. `checkpoint-body` (metrics grid using `metric-tile`, `status-row` — **no** touched-files preview until we map `diff.perFileChurn`). `interval-body` (deltas between the two checkpoints, timing from checkpoint timestamps, churn from diff).
-14. **Explanation card.** Minimal version: when a checkpoint is selected, render bullet list of biggest metric deltas vs previous checkpoint (computed in `view-model`). No prose. Hidden otherwise.
-15. **Polish pass.** Keyboard focus outlines, `aria-*` on buttons, dark scrollbar styling, `@fontsource-variable/geist` for sans, JetBrains Mono for numerics. Side-by-side visual diff against reference HTML. Update the preview page with any primitives added during feature work.
+- [x] **1. Tokens.** `index.css` with `@theme` tokens (colors, font families, radii) + base body styles. Dark-only. No components yet.
+- [x] **2. shadcn primitives wired to tokens.** Add `button`, `card`, `checkbox`, `separator`, `badge`, `scroll-area`, `tooltip`. Status-tone variants added to `badge`; colour tones added to `checkbox`; surface variants added to `tooltip`.
+- [x] **3. App primitives with `cva` variants.** `status-dot`, `sparkline`, `score-pill`, `rail-section`, `metric-tile`, `status-row`, plus the earlier `meter`. `icon` skipped (using lucide directly). `exp-block` dropped (no prose). `filter-chip` + `legend-swatch` deferred to the chart steps where their context lives.
+- [ ] **4. Preview page.** Move the showcases from `App.tsx` into `features/preview/preview-app.tsx`, gated via `?preview` (or similar) in `main.tsx`. Shows every primitive + variant side-by-side. Iterate on look & feel here — **gate** before moving on to step 5.
+- [ ] **5. Layout shell.** `App.tsx` with the three-region grid (header / side-rail + main / bottom-strip). Static placeholders built from primitives. Verify palette + spacing against reference screenshot.
+- [ ] **6. View-model + `useDashboardState`.** Ship `data/view-model.ts`, `data/types.ts`. Wire `useReport()` → `toViewModel()`. Empty/loading states. Expose `selection`, `primary`, `secondaries`, `layers` state + setters.
+- [ ] **7. Header.** `header-bar` composing `score-pill`, `status-dot`, `icon`, shadcn `button`/`separator`/`badge`.
+- [ ] **8. Metric rail.** `primary-metric-row` (radio behaviour), `overlay-metric-row` (checkbox, enforce max 2 in state). Drop "Annotation types" and "Suggested path" sub-sections. Keep only the "Build/test intervals" toggle.
+- [ ] **9. Bottom strip — filmstrip first, explanation later.** `checkpoint-filmstrip` shows status dot + label + time + short description (first event summary if present, else short sha). Selection updates global state.
+- [ ] **10. Trajectory chart — axes + primary line only.** Port `lib/scales.ts` from the reference's math. Build `chart-axes`, `chart-lines` (primary only), `chart-points`, `use-chart-scales`, `chart-toolbar`, `chart-legend` (primary swatch only). ResizeObserver in `trajectory-chart.tsx`. Build `filter-chip` + `legend-swatch` primitives here.
+- [ ] **11. Chart — secondaries + interval rail.** Extend `chart-lines` for dashed overlays; add `chart-interval-rail` driven by `vm.intervals`.
+- [ ] **12. Chart — hover crosshair + tooltip.** `chart-hover-overlay` with `<foreignObject>` HTML tooltip. Click dispatches selection.
+- [ ] **13. Detail panel.** `detail-panel` animates in/out via `tw-animate-css` utility classes. `checkpoint-body` (metrics grid using `metric-tile`, `status-row` — **no** touched-files preview until we map `diff.perFileChurn`). `interval-body` (deltas between the two checkpoints, timing from checkpoint timestamps, churn from diff).
+- [ ] **14. Explanation card.** Minimal version: when a checkpoint is selected, render bullet list of biggest metric deltas vs previous checkpoint (computed in `view-model`). No prose. Hidden otherwise.
+- [ ] **15. Polish pass.** Keyboard focus outlines, `aria-*` on buttons, dark scrollbar styling, `@fontsource-variable/geist` for sans, JetBrains Mono for numerics. Side-by-side visual diff against reference HTML. Update the preview page with any primitives added during feature work.
 
 Each step: delete reference-only concepts as we reach them. Leave `dashboard/reference/` untouched as a living spec.
 

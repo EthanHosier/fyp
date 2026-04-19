@@ -5,6 +5,12 @@
 
 import { CheckIcon, XIcon, HelpCircleIcon } from "lucide-react"
 import { Meter } from "@/components/meter"
+import { MetricTile } from "@/components/metric-tile"
+import { RailSection } from "@/components/rail-section"
+import { ScorePill } from "@/components/score-pill"
+import { Sparkline } from "@/components/sparkline"
+import { StatusDot } from "@/components/status-dot"
+import { StatusRow } from "@/components/status-row"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -197,6 +203,105 @@ export default function App() {
           </VariantCell>
           <VariantCell label="checked + disabled">
             <Checkbox defaultChecked disabled />
+          </VariantCell>
+        </PreviewSection>
+
+        <PreviewSection title="StatusDot" layout="showcase">
+          {(["success", "danger", "warning", "neutral"] as const).map((tone) => (
+            <VariantCell key={tone} label={tone}>
+              <div className="flex items-center gap-2">
+                <StatusDot tone={tone} />
+                <StatusDot tone={tone} size="md" />
+              </div>
+            </VariantCell>
+          ))}
+        </PreviewSection>
+
+        <PreviewSection title="Sparkline" layout="showcase">
+          <VariantCell label="muted">
+            <Sparkline values={[3, 5, 4, 6, 8, 7, 10, 9, 12]} />
+          </VariantCell>
+          <VariantCell label="brand (active)">
+            <Sparkline values={[3, 5, 4, 6, 8, 7, 10, 9, 12]} tone="brand" />
+          </VariantCell>
+          <VariantCell label="brand-2">
+            <Sparkline values={[12, 9, 10, 7, 8, 6, 4, 5, 3]} tone="brand2" />
+          </VariantCell>
+          <VariantCell label="brand-3 · larger">
+            <Sparkline
+              values={[5, 7, 6, 8, 6, 7, 9, 8, 10]}
+              tone="brand3"
+              width={120}
+              height={28}
+            />
+          </VariantCell>
+        </PreviewSection>
+
+        <PreviewSection title="ScorePill" layout="showcase">
+          <VariantCell label="positive delta">
+            <ScorePill label="Process score" value={72} delta={4} />
+          </VariantCell>
+          <VariantCell label="negative delta">
+            <ScorePill label="Process score" value={58} delta={-6} />
+          </VariantCell>
+          <VariantCell label="no delta">
+            <ScorePill label="Readability" value={83} />
+          </VariantCell>
+          <VariantCell label="size=sm">
+            <ScorePill label="Coverage" value={91} total={100} delta={2} size="sm" />
+          </VariantCell>
+        </PreviewSection>
+
+        <PreviewSection title="RailSection" layout="showcase">
+          <VariantCell label="with description + items">
+            <div className="w-60 rounded-md border border-border bg-bg-1">
+              <RailSection title="PRIMARY METRIC">
+                <div className="px-3 pb-2 text-fg-2 text-xs">Complexity · wmc</div>
+                <div className="px-3 pb-2 text-fg-2 text-xs">Coupling · cbo</div>
+              </RailSection>
+              <RailSection
+                title="OVERLAY (MAX 2)"
+                description="Dashed secondary lines on the graph"
+              >
+                <div className="px-3 pb-2 text-fg-3 text-xs">Readability</div>
+              </RailSection>
+            </div>
+          </VariantCell>
+        </PreviewSection>
+
+        <PreviewSection title="MetricTile" layout="showcase">
+          <VariantCell label="lower is better · low">
+            <div className="w-48">
+              <MetricTile label="Complexity" value={12.4} unit="wmc" fraction={0.2} />
+            </div>
+          </VariantCell>
+          <VariantCell label="lower is better · high">
+            <div className="w-48">
+              <MetricTile label="Duplication" value={18.7} unit="%" fraction={0.85} />
+            </div>
+          </VariantCell>
+          <VariantCell label="higher is better">
+            <div className="w-48">
+              <MetricTile
+                label="Readability"
+                value={83}
+                unit="score"
+                fraction={0.7}
+                better="higher"
+              />
+            </div>
+          </VariantCell>
+        </PreviewSection>
+
+        <PreviewSection title="StatusRow" layout="showcase">
+          <VariantCell label="build pass · tests pass">
+            <StatusRow build="pass" tests="pass" />
+          </VariantCell>
+          <VariantCell label="build pass · tests fail">
+            <StatusRow build="pass" tests="fail" />
+          </VariantCell>
+          <VariantCell label="build fail · tests unknown">
+            <StatusRow build="fail" tests="unknown" />
           </VariantCell>
         </PreviewSection>
 
