@@ -1,5 +1,6 @@
 import type { ReactNode } from "react"
 import { Clock, GitBranch, Layers, Settings } from "lucide-react"
+import { useNavigate } from "react-router-dom"
 
 import { Text } from "@/components/text"
 import { Badge } from "@/components/ui/badge"
@@ -16,6 +17,7 @@ import { formatClockTime, formatDurationShort, initials, shortSha } from "@/lib/
  */
 export function HeaderBar({ vm }: { vm: DashboardViewModel }) {
   const { session } = vm
+  const navigate = useNavigate()
   return (
     <header className="bg-bg-1 border-border flex h-12 shrink-0 items-center gap-4 border-b px-4">
       <BrandMark>{initials(session.name)}</BrandMark>
@@ -40,7 +42,7 @@ export function HeaderBar({ vm }: { vm: DashboardViewModel }) {
           {shortSha(session.commitHash)}
         </Badge>
       ) : null}
-      <Button variant="outline" size="sm">
+      <Button variant="outline" size="sm" onClick={() => navigate("/data")}>
         <Settings />
         <span>Settings</span>
       </Button>

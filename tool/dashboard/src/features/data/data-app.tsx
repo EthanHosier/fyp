@@ -1,4 +1,8 @@
+import { ArrowLeft } from "lucide-react"
+import { useNavigate } from "react-router-dom"
+
 import { Text } from "@/components/text"
+import { Button } from "@/components/ui/button"
 import { toViewModel } from "@/data/view-model"
 import { useReport } from "@/hooks/useReport"
 
@@ -11,14 +15,21 @@ import { useReport } from "@/hooks/useReport"
 export function DataApp() {
   const report = useReport()
   const vm = report ? toViewModel(report) : null
+  const navigate = useNavigate()
 
   return (
-    <div className="flex h-screen w-screen flex-col bg-bg text-fg">
+    <div className="flex h-full w-full flex-col bg-bg text-fg">
       <header className="border-border bg-bg-1 flex h-12 shrink-0 items-center gap-3 border-b px-4">
         <Text variant="heading" tone="fg">Data inspector</Text>
         <Text variant="mono" tone="fg-3">
           useReport() · toViewModel()
         </Text>
+        <div className="ml-auto">
+          <Button variant="outline" size="sm" onClick={() => navigate("/")}>
+            <ArrowLeft />
+            <span>Back</span>
+          </Button>
+        </div>
       </header>
       <div className="grid min-h-0 flex-1 grid-cols-2 divide-x divide-border">
         <JsonPane title="Raw · AnalysisReport" value={report} />
