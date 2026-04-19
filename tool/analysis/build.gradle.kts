@@ -45,6 +45,7 @@ dependencies {
     implementation(libs.ktor.server.netty)
     implementation(libs.ktor.server.content.negotiation)
     implementation(libs.ktor.serialization.kotlinx.json)
+    implementation(libs.kxs.ts.gen.core)
 
     testImplementation(libs.junit.jupiter)
     testImplementation(libs.kotlin.test.junit5)
@@ -60,4 +61,24 @@ tasks.register<JavaExec>("runServer") {
     description = "Runs the analysis HTTP server entrypoint."
     mainClass.set("com.github.ethanhosier.analysis.server.MainKt")
     classpath = sourceSets["main"].runtimeClasspath
+}
+
+// Emits TS types for the dashboard by walking AnalysisReport's kotlinx
+// serial descriptor. Output lives in the dashboard module's src/generated/
+// (gitignored) and `:ide-plugin:buildDashboard` depends on this task so
+// Vite always compiles against fresh types derived from the Kotlin model.
+val dashboardTypesOutput = rootProject.layout.projectDirectory
+    .file("dashboard/src/generated/report-types.ts")
+
+tasks.register<JavaExec>("generateDashboardTypes") {
+    group = "build"
+    description = "Generates TypeScript types for the React dashboard from AnalysisReport."
+    mainClass.set("com.github.ethanhosier.analysis.codegen.GenerateDashboardTypesKt")
+    classpath = sourceSets["main"].runtimeClasspath
+    args(dashboardTypesOutput.asFile.absolutePath)
+
+    inputs.dir(layout.projectDirectory.dir("src/main/kotlin/com/github/ethanhosier/analysis/metrics/model"))
+    inputs.dir(layout.projectDirectory.dir("src/main/kotlin/com/github/ethanhosier/analysis/metrics/gitdiff"))
+    inputs.dir(layout.projectDirectory.dir("src/main/kotlin/com/github/ethanhosier/analysis/miner/model"))
+    outputs.file(dashboardTypesOutput)
 }
