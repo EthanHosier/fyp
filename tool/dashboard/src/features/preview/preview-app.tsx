@@ -4,7 +4,8 @@
  * so we can iterate on look & feel without the real dashboard state.
  */
 
-import { CheckIcon, HelpCircleIcon, XIcon } from "lucide-react"
+import { CheckIcon, FileIcon, HelpCircleIcon, XIcon } from "lucide-react"
+import { DataList, DataListRow } from "@/components/data-list"
 import { Meter } from "@/components/meter"
 import { MetricTile } from "@/components/metric-tile"
 import { RailSection } from "@/components/rail-section"
@@ -355,6 +356,60 @@ export function PreviewApp() {
             <div className="w-40">
               <Meter value={0.5} better="lower" size="md" />
             </div>
+          </VariantCell>
+        </PreviewSection>
+
+        <PreviewSection title="DataList · files touched" layout="showcase">
+          <VariantCell label="flex rows · icon + path + churn">
+            <DataList className="w-[360px]">
+              {[
+                ["src/order/CheckoutService.ts", 34, 11],
+                ["src/order/computeDiscount.ts", 12, 3],
+                ["test/order/checkout.spec.ts", 7, 2],
+              ].map(([path, added, removed]) => (
+                <DataListRow key={path as string} className="flex items-center gap-2">
+                  <FileIcon className="text-fg-4 size-3" />
+                  <Text variant="mono" tone="fg-2" className="flex-1 truncate">
+                    {path}
+                  </Text>
+                  <Text variant="mono" tone="good">+{added}</Text>
+                  <Text variant="mono" tone="bad">−{removed}</Text>
+                </DataListRow>
+              ))}
+            </DataList>
+          </VariantCell>
+        </PreviewSection>
+
+        <PreviewSection title="DataList · metric deltas" layout="showcase">
+          <VariantCell label="grid rows · label + from → to (delta)">
+            <DataList className="w-[360px]">
+              {[
+                ["Complexity", 18.2, 14.1, "lower"],
+                ["Coupling", 6.4, 7.2, "lower"],
+                ["Duplication", 11.0, 9.3, "lower"],
+                ["Readability", 72, 80, "higher"],
+              ].map(([label, from, to, better]) => {
+                const diff = (to as number) - (from as number)
+                const improved = better === "lower" ? diff < 0 : diff > 0
+                const tone = diff === 0 ? "fg-3" : improved ? "good" : "bad"
+                return (
+                  <DataListRow
+                    key={label as string}
+                    className="grid grid-cols-[1fr_auto_auto_auto] items-center gap-2.5"
+                  >
+                    <Text variant="body" tone="fg-2">{label}</Text>
+                    <Text variant="mono" tone="fg-4">{from}</Text>
+                    <Text tone="fg-4">→</Text>
+                    <Text variant="mono" tone={tone} className="w-14 text-right">
+                      {to}{" "}
+                      <span className="opacity-65">
+                        ({diff > 0 ? "+" : ""}{diff.toFixed(1)})
+                      </span>
+                    </Text>
+                  </DataListRow>
+                )
+              })}
+            </DataList>
           </VariantCell>
         </PreviewSection>
 
