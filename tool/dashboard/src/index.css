@@ -36,10 +36,12 @@
   --border-color: #393b40;
   --border-strong: #4a4d54;
 
-  /* Brand (accent trio — mint / blue / violet) */
+  /* Brand (accent quintet — mint / blue / violet / amber / cyan) */
   --brand: #7ee8d4;
   --brand-2: #548af7;
   --brand-3: #c27bff;
+  --brand-4: #f0a868;
+  --brand-5: #5cc0d4;
 
   /* Status */
   --good: #5fb865;
@@ -105,6 +107,8 @@
   --color-brand: var(--brand);
   --color-brand-2: var(--brand-2);
   --color-brand-3: var(--brand-3);
+  --color-brand-4: var(--brand-4);
+  --color-brand-5: var(--brand-5);
   --color-good: var(--good);
   --color-bad: var(--bad);
   --color-warn: var(--warn);

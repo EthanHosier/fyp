@@ -1,10 +1,10 @@
 import { Lightbulb } from "lucide-react"
 
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { RailSection } from "@/components/rail-section"
 import { Text } from "@/components/text"
 import { toViewModel } from "@/data/view-model"
 import { HeaderBar } from "@/features/header/header-bar"
+import { MetricRail } from "@/features/metric-rail/metric-rail"
 import { useReport } from "@/hooks/useReport"
 
 /*
@@ -29,7 +29,7 @@ export default function App() {
     <div className="flex h-screen w-screen flex-col bg-bg text-fg">
       <HeaderBar vm={vm} />
       <div className="relative flex min-h-0 flex-1">
-        <MetricRailPlaceholder />
+        <MetricRail vm={vm} />
         <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
           <section className="min-h-0 flex-1 overflow-auto px-5 pt-[14px] pb-1">
             <ChartToolbarPlaceholder />
@@ -51,26 +51,6 @@ function LoadingState() {
   )
 }
 
-
-function MetricRailPlaceholder() {
-  return (
-    <aside className="w-[260px] shrink-0 border-r border-border bg-bg-1">
-      <ScrollArea className="h-full">
-        <div className="flex flex-col">
-          <RailSection title="Primary metric" description="Step 8 — radio list">
-            <Placeholder lines={5} />
-          </RailSection>
-          <RailSection title="Overlays" description="Step 8 — up to two">
-            <Placeholder lines={4} />
-          </RailSection>
-          <RailSection title="Layers">
-            <Placeholder lines={1} />
-          </RailSection>
-        </div>
-      </ScrollArea>
-    </aside>
-  )
-}
 
 function ChartToolbarPlaceholder() {
   return (

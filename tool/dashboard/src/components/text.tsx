@@ -41,6 +41,8 @@ const textStyles = cva("", {
       brand: "text-brand",
       "brand-2": "text-brand-2",
       "brand-3": "text-brand-3",
+      "brand-4": "text-brand-4",
+      "brand-5": "text-brand-5",
       good: "text-good",
       bad: "text-bad",
       warn: "text-warn",

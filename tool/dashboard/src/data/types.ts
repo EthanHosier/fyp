@@ -7,12 +7,17 @@ export type MetricId =
 
 export type StatusTone = "pass" | "fail" | "unknown"
 
+export type MetricTone = "brand" | "brand-2" | "brand-3" | "brand-4" | "brand-5"
+
 export type MetricVM = {
   id: MetricId
   label: string
   unit: string
   better: "lower" | "higher"
   group: "code" | "process"
+  /** Stable visual identity used everywhere the metric is rendered —
+   * sparkline, overlay checkbox, trajectory line, etc. */
+  tone: MetricTone
 }
 
 export type CheckpointVM = {

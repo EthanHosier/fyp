@@ -17,11 +17,11 @@ import type {
 } from "./types"
 
 const METRICS: MetricVM[] = [
-  { id: "complexity",  label: "Complexity",  unit: "wmc",   better: "lower", group: "code" },
-  { id: "coupling",    label: "Coupling",    unit: "cbo",   better: "lower", group: "code" },
-  { id: "duplication", label: "Duplication", unit: "%",     better: "lower", group: "code" },
-  { id: "readability", label: "Readability", unit: "chars", better: "lower", group: "code" },
-  { id: "churn",       label: "Churn",       unit: "lines", better: "lower", group: "code" },
+  { id: "complexity",  label: "Complexity",  unit: "wmc",   better: "lower", group: "code", tone: "brand"   },
+  { id: "coupling",    label: "Coupling",    unit: "cbo",   better: "lower", group: "code", tone: "brand-2" },
+  { id: "duplication", label: "Duplication", unit: "%",     better: "lower", group: "code", tone: "brand-3" },
+  { id: "readability", label: "Readability", unit: "chars", better: "lower", group: "code", tone: "brand-4" },
+  { id: "churn",       label: "Churn",       unit: "lines", better: "lower", group: "code", tone: "brand-5" },
 ]
 
 function mean(xs: number[]): number {

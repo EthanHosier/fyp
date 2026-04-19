@@ -11,13 +11,15 @@ import { CheckIcon } from "lucide-react"
  * on the chart (blue / violet), or `fg` for a neutral dark tick.
  */
 const checkboxStyles = cva(
-  "peer relative flex size-4 shrink-0 cursor-pointer items-center justify-center rounded-[4px] border border-input transition-colors outline-none group-has-disabled/field:opacity-50 after:absolute after:-inset-x-3 after:-inset-y-2 focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 dark:bg-input/30 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40",
+  "peer relative flex size-4 shrink-0 cursor-pointer items-center justify-center rounded-[4px] border border-input outline-none group-has-disabled/field:opacity-50 after:absolute after:-inset-x-3 after:-inset-y-2 focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 dark:bg-input/30 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40",
   {
     variants: {
       tone: {
         brand: "focus-visible:border-ring data-checked:border-brand data-checked:bg-brand data-checked:text-bg",
         "brand-2": "focus-visible:border-brand-2 data-checked:border-brand-2 data-checked:bg-brand-2 data-checked:text-bg",
         "brand-3": "focus-visible:border-brand-3 data-checked:border-brand-3 data-checked:bg-brand-3 data-checked:text-bg",
+        "brand-4": "focus-visible:border-brand-4 data-checked:border-brand-4 data-checked:bg-brand-4 data-checked:text-bg",
+        "brand-5": "focus-visible:border-brand-5 data-checked:border-brand-5 data-checked:bg-brand-5 data-checked:text-bg",
         fg: "focus-visible:border-fg-2 data-checked:border-fg-2 data-checked:bg-fg-2 data-checked:text-bg",
       },
     },

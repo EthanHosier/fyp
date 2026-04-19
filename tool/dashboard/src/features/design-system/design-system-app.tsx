@@ -43,9 +43,11 @@ const TEXT_TIERS = [
 ] as const
 
 const BRAND = [
-  ["brand", "mint (primary accent)"],
-  ["brand-2", "blue (overlay 1)"],
-  ["brand-3", "violet (overlay 2)"],
+  ["brand", "mint"],
+  ["brand-2", "blue"],
+  ["brand-3", "violet"],
+  ["brand-4", "amber"],
+  ["brand-5", "cyan"],
 ] as const
 
 const STATUS = [
@@ -65,7 +67,7 @@ const BUTTON_VARIANTS = ["default", "secondary", "outline", "ghost", "destructiv
 const BUTTON_SIZES = ["xs", "sm", "default", "lg"] as const
 const BADGE_VARIANTS = ["default", "secondary", "outline", "ghost", "destructive"] as const
 const BADGE_STATUS_VARIANTS = ["success", "danger", "warning", "neutral"] as const
-const CHECKBOX_TONES = ["brand", "brand-2", "brand-3", "fg"] as const
+const CHECKBOX_TONES = ["brand", "brand-2", "brand-3", "brand-4", "brand-5", "fg"] as const
 const STATUS_DOT_TONES = ["success", "danger", "warning", "neutral"] as const
 const TOOLTIP_SURFACES = ["bg-1", "bg-2", "bg-3", "inverted"] as const
 
@@ -256,12 +258,12 @@ export function DesignSystemApp() {
             <Sparkline values={[3, 5, 4, 6, 8, 7, 10, 9, 12]} tone="brand" />
           </VariantCell>
           <VariantCell label="brand-2">
-            <Sparkline values={[12, 9, 10, 7, 8, 6, 4, 5, 3]} tone="brand2" />
+            <Sparkline values={[12, 9, 10, 7, 8, 6, 4, 5, 3]} tone="brand-2" />
           </VariantCell>
           <VariantCell label="brand-3 · larger">
             <Sparkline
               values={[5, 7, 6, 8, 6, 7, 9, 8, 10]}
-              tone="brand3"
+              tone="brand-3"
               width={120}
               height={28}
             />
