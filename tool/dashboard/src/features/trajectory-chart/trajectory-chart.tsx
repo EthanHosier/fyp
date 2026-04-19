@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react"
 
 import type { DashboardViewModel, MetricVM } from "@/data/types"
 import { ChartAxes } from "@/features/trajectory-chart/chart-axes"
+import { ChartHoverOverlay } from "@/features/trajectory-chart/chart-hover-overlay"
 import { ChartIntervalRail, INTERVAL_RAIL_HEIGHT, INTERVAL_RAIL_OFFSET } from "@/features/trajectory-chart/chart-interval-rail"
 import { ChartLegend } from "@/features/trajectory-chart/chart-legend"
 import { ChartLines } from "@/features/trajectory-chart/chart-lines"
@@ -85,6 +86,13 @@ export function TrajectoryChart({ vm }: { vm: DashboardViewModel }) {
             {layers.intervals ? (
               <ChartIntervalRail vm={vm} scales={scales} onSelect={setSelection} />
             ) : null}
+            <ChartHoverOverlay
+              vm={vm}
+              primary={primary}
+              secondaries={secondaries}
+              scales={scales}
+              onSelect={setSelection}
+            />
           </g>
         </svg>
       </div>
