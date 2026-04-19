@@ -10,6 +10,7 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+.vite
 *.local
 
 # Generated TS types from Kotlin @Serializable models (produced by

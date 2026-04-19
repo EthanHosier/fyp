@@ -22,7 +22,7 @@ export function HeaderBar({ vm }: { vm: DashboardViewModel }) {
     <header className="bg-bg-1 border-border flex h-12 shrink-0 items-center gap-4 border-b px-4">
       <BrandMark>{initials(session.name)}</BrandMark>
       <Text variant="mono" tone="fg-2">{session.name}</Text>
-      <Separator orientation="vertical" className="h-5" />
+      <Separator orientation="vertical" className="h-full" />
 
       <HeaderMeta icon={<GitBranch className="size-3" />} mono>
         {session.projectName} · {session.branch ?? "(detached)"}

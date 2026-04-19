@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react"
+
 import type { AnalysisReport } from "@/generated/report-types"
+// import reportData from "./analysis-report.json"
 
 declare global {
   interface Window {
@@ -10,12 +12,18 @@ declare global {
 const REPORT_EVENT = "refdash:report-loaded"
 
 /**
- * Returns the analysis report injected by the plugin, or `null` while
- * waiting. The plugin sets `window.__REPORT__` and dispatches
- * `refdash:report-loaded` after the page finishes loading — we handle both
- * orderings (set-before-mount and set-after-mount).
+ * Reads the analysis report injected by the IntelliJ plugin as
+ * `window.__REPORT__`. The plugin fires a `refdash:report-loaded`
+ * CustomEvent after assigning the global, which may land before or
+ * after this hook mounts — we cover both by seeding state from
+ * `window.__REPORT__` and re-reading it from the listener.
+ *
+ * For local dev without the plugin, swap the import/return below for
+ * the `analysis-report.json` bundled next to this file.
  */
 export function useReport(): AnalysisReport | null {
+  // return reportData as AnalysisReport
+
   const [report, setReport] = useState<AnalysisReport | null>(
     () => window.__REPORT__ ?? null,
   )
