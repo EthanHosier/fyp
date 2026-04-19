@@ -12,6 +12,7 @@ import { ScorePill } from "@/components/score-pill"
 import { Sparkline } from "@/components/sparkline"
 import { StatusDot } from "@/components/status-dot"
 import { StatusRow } from "@/components/status-row"
+import { Text } from "@/components/text"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -67,6 +68,19 @@ const CHECKBOX_TONES = ["brand", "brand-2", "brand-3", "fg"] as const
 const STATUS_DOT_TONES = ["success", "danger", "warning", "neutral"] as const
 const TOOLTIP_SURFACES = ["bg-1", "bg-2", "bg-3", "inverted"] as const
 
+const TEXT_VARIANTS = [
+  ["display", "Chart toolbar title · 17 sans semibold"],
+  ["heading", "Detail-panel sub-heading · 15 sans semibold"],
+  ["body", "Default prose / label · 13 sans"],
+  ["bodySm", "Smaller prose / tooltip · 11.5 sans"],
+  ["caption", "Muted inline caption · 11 sans"],
+  ["eyebrow", "SECTION TITLE · 10.5 MONO UPPER"],
+  ["mono", "const x = 42  · 12 mono"],
+  ["monoStat", "72.4 · 17 mono semibold"],
+  ["monoCaption", "wmc · 10 mono"],
+  ["monoTiny", "t+03:42 · 9.5 mono"],
+] as const
+
 export function PreviewApp() {
   return (
     <TooltipProvider>
@@ -111,13 +125,26 @@ export function PreviewApp() {
           ))}
         </PreviewSection>
 
-        <PreviewSection title="Typography">
+        <PreviewSection title="Typography · families">
           <TokenRow visual={<TextSample family="sans">The quick brown fox</TextSample>}>
             <TokenCaption token="font-sans" label="default body" />
           </TokenRow>
           <TokenRow visual={<TextSample family="mono">const x = 42;</TextSample>}>
             <TokenCaption token="font-mono" label="code / numerics" />
           </TokenRow>
+        </PreviewSection>
+
+        <PreviewSection title="Typography · Text variants" layout="stack">
+          {TEXT_VARIANTS.map(([variant, sample]) => (
+            <VariantCell key={variant} label={variant}>
+              <Text
+                variant={variant as Parameters<typeof Text>[0]["variant"]}
+                tone="fg-2"
+              >
+                {sample}
+              </Text>
+            </VariantCell>
+          ))}
         </PreviewSection>
 
         <PreviewSection title="Radii">

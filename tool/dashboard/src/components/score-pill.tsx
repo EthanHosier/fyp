@@ -1,4 +1,6 @@
 import { cva, type VariantProps } from "class-variance-authority"
+
+import { Text } from "@/components/text"
 import { cn } from "@/lib/utils"
 
 /**
@@ -33,21 +35,24 @@ export function ScorePill({ label, value, total = 100, delta, size, className }:
   const up = (delta ?? 0) >= 0
   return (
     <div className={cn(scorePillStyles({ size }), className)}>
-      <span className="text-fg-3 text-[11px]">{label}</span>
-      <span className="font-mono text-sm font-semibold text-fg">
+      <Text variant="caption" tone="fg-3">
+        {label}
+      </Text>
+      <Text variant="mono" tone="fg" className="font-semibold">
         {value}
-        <span className="text-fg-4 font-normal">/{total}</span>
-      </span>
+        <Text variant="mono" tone="fg-4" className="font-normal">
+          /{total}
+        </Text>
+      </Text>
       {showDelta ? (
-        <span
-          className={cn(
-            "inline-flex items-center gap-1 font-mono text-[11px]",
-            up ? "text-good" : "text-bad",
-          )}
+        <Text
+          variant="mono"
+          tone={up ? "good" : "bad"}
+          className="inline-flex items-center gap-1 text-[11px]"
         >
           <span>{up ? "▲" : "▼"}</span>
           <span>{Math.abs(delta as number)}</span>
-        </span>
+        </Text>
       ) : null}
     </div>
   )

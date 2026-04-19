@@ -1,5 +1,7 @@
 import type { ReactNode } from "react"
 
+import { Text } from "@/components/text"
+
 /**
  * Sidebar section wrapper: uppercase monospace title + body + bottom
  * divider. Used to group the metric rail's PRIMARY METRIC / OVERLAY /
@@ -7,20 +9,30 @@ import type { ReactNode } from "react"
  */
 export function RailSection({
   title,
+  icon,
   children,
   description,
 }: {
   title: string
+  icon?: ReactNode
   description?: ReactNode
   children: ReactNode
 }) {
   return (
     <div className="border-b border-border py-3">
-      <div className="font-mono text-[10.5px] tracking-[0.1em] text-fg-4 px-3 pb-2">
-        {title}
-      </div>
+      <Text
+        as="div"
+        variant="eyebrow"
+        tone="fg-4"
+        className="flex items-center gap-1.5 px-3 pb-2"
+      >
+        {icon}
+        <span>{title}</span>
+      </Text>
       {description ? (
-        <div className="text-fg-4 px-3 pb-2 text-[11px]">{description}</div>
+        <Text as="div" variant="caption" tone="fg-4" className="px-3 pb-2">
+          {description}
+        </Text>
       ) : null}
       {children}
     </div>

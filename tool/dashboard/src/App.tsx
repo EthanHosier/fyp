@@ -1,17 +1,137 @@
+import { Lightbulb } from "lucide-react"
+
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Separator } from "@/components/ui/separator"
+import { RailSection } from "@/components/rail-section"
+import { Text } from "@/components/text"
+
 /*
- * Placeholder — the real three-region dashboard shell lands in step 5
- * of PLAN.md. For the design-system showcase, navigate to `?preview`.
+ * Step 5 — static layout shell. Three regions:
+ *   ┌──────────────────────────── Header ────────────────────────────┐
+ *   │                                                                 │
+ *   │ MetricRail │           Main (toolbar + chart + legend)          │
+ *   │            │                                                    │
+ *   │            ├────────────────────────────────────────────────────┤
+ *   │            │                  BottomStrip                       │
+ *   └──────────────────────────────────────────────────────────────────┘
+ *
+ * Everything here is a placeholder block — real features land in later steps.
  */
 export default function App() {
   return (
-    <div className="flex h-full w-full items-center justify-center bg-bg">
-      <div className="flex flex-col items-center gap-2 text-center">
-        <h1 className="text-fg text-lg font-semibold">Refactoring Dashboard</h1>
-        <p className="text-fg-3 text-sm">
-          Dashboard shell coming in step 5. Visit{" "}
-          <code className="font-mono text-fg-2">/preview</code> to browse the design system.
-        </p>
+    <div className="flex h-screen w-screen flex-col bg-bg text-fg">
+      <HeaderPlaceholder />
+      <div className="relative flex min-h-0 flex-1">
+        <MetricRailPlaceholder />
+        <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
+          <section className="min-h-0 flex-1 overflow-auto px-5 pt-[14px] pb-1">
+            <ChartToolbarPlaceholder />
+            <ChartPlaceholder />
+            <ChartLegendPlaceholder />
+          </section>
+          <BottomStripPlaceholder />
+        </main>
       </div>
+    </div>
+  )
+}
+
+function HeaderPlaceholder() {
+  return (
+    <header className="flex h-12 shrink-0 items-center gap-3 border-b border-border bg-bg-1 px-4">
+      <Text variant="heading" tone="fg">Refactoring Session</Text>
+      <Separator orientation="vertical" className="h-5" />
+      <Text variant="mono" tone="fg-3">header · step 7</Text>
+      <Text variant="caption" tone="fg-4" className="ml-auto">placeholder</Text>
+    </header>
+  )
+}
+
+function MetricRailPlaceholder() {
+  return (
+    <aside className="w-[260px] shrink-0 border-r border-border bg-bg-1">
+      <ScrollArea className="h-full">
+        <div className="flex flex-col">
+          <RailSection title="Primary metric" description="Step 8 — radio list">
+            <Placeholder lines={5} />
+          </RailSection>
+          <RailSection title="Overlays" description="Step 8 — up to two">
+            <Placeholder lines={4} />
+          </RailSection>
+          <RailSection title="Layers">
+            <Placeholder lines={1} />
+          </RailSection>
+        </div>
+      </ScrollArea>
+    </aside>
+  )
+}
+
+function ChartToolbarPlaceholder() {
+  return (
+    <div className="flex items-center gap-3 px-1 pb-[10px] pt-1">
+      <div>
+        <Text as="div" variant="eyebrow" tone="fg-4">TRAJECTORY · PRIMARY</Text>
+        <Text as="div" variant="display" tone="fg" className="mt-0.5">
+          Chart toolbar — step 10
+        </Text>
+      </div>
+    </div>
+  )
+}
+
+function ChartPlaceholder() {
+  return (
+    <div className="border-border bg-bg-1 flex h-[360px] items-center justify-center rounded-md border px-[10px] pb-2 pt-[6px]">
+      <Text variant="mono" tone="fg-4">trajectory-chart · steps 10–12</Text>
+    </div>
+  )
+}
+
+function ChartLegendPlaceholder() {
+  return (
+    <Text as="div" variant="mono" tone="fg-4" className="flex items-center gap-4 px-1 pb-1 pt-[10px]">
+      <span>primary ──</span>
+      <span>overlays ╌╌</span>
+      <span>intervals ▢</span>
+    </Text>
+  )
+}
+
+function BottomStripPlaceholder() {
+  return (
+    <div className="border-border bg-bg-1 grid h-[170px] shrink-0 grid-cols-[1fr_420px] border-t">
+      <div className="border-border overflow-hidden border-r">
+        <RailSection title="Checkpoints" description="Step 9 — filmstrip">
+          <Placeholder lines={2} />
+        </RailSection>
+      </div>
+      <ExplanationCardPlaceholder />
+    </div>
+  )
+}
+
+function ExplanationCardPlaceholder() {
+  return (
+    <div className="overflow-auto">
+      <RailSection title="Why it matters" icon={<Lightbulb className="size-3 text-brand" />}>
+        <Text as="p" variant="bodySm" tone="fg-3" className="px-3">
+          Click a <Text as="strong" variant="bodySm" tone="fg-2" className="font-semibold">checkpoint</Text>, a{" "}
+          <Text as="strong" variant="bodySm" tone="fg-2" className="font-semibold">build interval</Text>, or an{" "}
+          <Text as="strong" variant="bodySm" tone="fg-2" className="font-semibold">annotation</Text>{" "}
+          to see a narrated explanation here.
+        </Text>
+      </RailSection>
+    </div>
+  )
+}
+
+function Placeholder({ lines }: { lines: number }) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      {Array.from({ length: lines }).map((_, i) => (
+        <div key={i} className="bg-bg-2 h-3 w-full rounded-sm" />
+      ))}
     </div>
   )
 }
