@@ -1,32 +1,53 @@
+import { Text } from "@/components/text"
+import { toViewModel } from "@/data/view-model"
+import { BottomStrip } from "@/features/bottom-strip/bottom-strip"
+import { DetailPanel } from "@/features/detail-panel/detail-panel"
+import { HeaderBar } from "@/features/header/header-bar"
+import { MetricRail } from "@/features/metric-rail/metric-rail"
+import { TrajectoryChart } from "@/features/trajectory-chart/trajectory-chart"
 import { useReport } from "@/hooks/useReport"
 
-export function App() {
+/*
+ * Three-region shell. Real features: header bar (step 7), metric rail
+ * (step 8), bottom strip (step 9). Chart region (steps 10–12) and
+ * detail panel (steps 13+) still pending.
+ *
+ *   ┌──────────────────────────── Header ────────────────────────────┐
+ *   │ MetricRail │           Main (toolbar + chart + legend)          │
+ *   │            ├────────────────────────────────────────────────────┤
+ *   │            │                  BottomStrip                       │
+ *   └────────────────────────────────────────────────────────────────┘
+ */
+export default function App() {
   const report = useReport()
+  const vm = report ? toViewModel(report) : null
 
-  if (!report) {
-    return (
-      <div className="flex min-h-svh items-center p-6 text-sm text-muted-foreground">
-        Waiting for analysis report…
-      </div>
-    )
-  }
+  if (!vm) return <LoadingState />
 
   return (
-    <div className="flex min-h-svh flex-col gap-4 p-6 text-sm">
-      <header>
-        <h1 className="text-lg font-medium">Refactoring Dashboard</h1>
-        <p className="text-muted-foreground">
-          Session <code>{report.session.sessionId}</code> ·{" "}
-          {report.checkpoints.length} checkpoint(s) ·{" "}
-          {report.trajectory?.numSteps ?? 0} step(s)
-        </p>
-      </header>
-
-      <pre className="max-h-[70vh] overflow-auto rounded bg-muted p-3 font-mono text-xs">
-        {JSON.stringify(report, null, 2)}
-      </pre>
+    <div className="flex h-full w-full flex-col bg-bg text-fg">
+      <HeaderBar vm={vm} />
+      <div className="relative flex min-h-0 flex-1">
+        <MetricRail vm={vm} />
+        <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
+          <section className="min-h-0 flex-1 overflow-auto pl-5 pt-[14px] pb-1">
+            <TrajectoryChart vm={vm} />
+          </section>
+          <BottomStrip vm={vm} />
+        </main>
+        <DetailPanel vm={vm} />
+      </div>
     </div>
   )
 }
 
-export default App
+function LoadingState() {
+  return (
+    <div className="flex h-full w-full items-center justify-center bg-bg">
+      <Text variant="mono" tone="fg-4">
+        waiting for analysis report…
+      </Text>
+    </div>
+  )
+}
+
