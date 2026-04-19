@@ -16,14 +16,14 @@ import { TONE_BG, TONE_TEXT } from "@/lib/metric-tone"
 import { cn } from "@/lib/utils"
 
 const TOOLTIP_W = 240
-const TOOLTIP_H = 140
-/** Snap radius around each checkpoint x — inside this band we hover
- * the checkpoint; outside it we hover the enclosing interval. */
-const CHECKPOINT_SNAP_PX = 10
+const TOOLTIP_H = 110
+/** Hit radius around each checkpoint circle (distance in px from the
+ * point's centre). Inside → checkpoint hover; outside → interval hover. */
+const CHECKPOINT_HIT_PX = 12
 
 type Hover =
-  | { kind: "checkpoint"; index: number }
-  | { kind: "interval"; index: number }
+  | { kind: "checkpoint"; index: number; mx: number; my: number }
+  | { kind: "interval"; index: number; mx: number; my: number }
   | null
 
 /**
@@ -51,11 +51,13 @@ export function ChartHoverOverlay({
   function handleMove(e: React.MouseEvent<SVGRectElement>) {
     const rect = e.currentTarget.getBoundingClientRect()
     const mx = e.clientX - rect.left
+    const my = e.clientY - rect.top
     if (mx < -4 || mx > innerW + 4) {
       setHover(null)
       return
     }
-    setHover(hoverAt(vm, scales, mx))
+    const base = hoverAt(vm, primary, scales, mx, my)
+    setHover(base ? { ...base, mx, my } : null)
   }
 
   return (
@@ -79,6 +81,8 @@ export function ChartHoverOverlay({
           primary={primary}
           secondaries={secondaries}
           scales={scales}
+          mouseX={hover.mx}
+          mouseY={hover.my}
         />
       ) : null}
       {hover?.kind === "interval" ? (
@@ -87,28 +91,38 @@ export function ChartHoverOverlay({
           interval={vm.intervals[hover.index]}
           primary={primary}
           scales={scales}
+          mouseX={hover.mx}
+          mouseY={hover.my}
         />
       ) : null}
     </g>
   )
 }
 
+type HoverKind = { kind: "checkpoint" | "interval"; index: number }
+
 function hoverAt(
   vm: DashboardViewModel,
+  primary: MetricVM,
   scales: ChartScales,
   mx: number,
-): Hover {
-  const { xs } = scales
+  my: number,
+): HoverKind | null {
+  const { xs, ys } = scales
   const raw = xs.invert(mx)
   const nearest = Math.max(
     0,
     Math.min(vm.checkpoints.length - 1, Math.round(raw)),
   )
-  const nearestX = xs(nearest)
-  if (Math.abs(mx - nearestX) <= CHECKPOINT_SNAP_PX) {
-    return { kind: "checkpoint", index: nearest }
+  const nearestCp = vm.checkpoints[nearest]
+  const v = nearestCp?.values[primary.id]
+  if (typeof v === "number") {
+    const dx = mx - xs(nearest)
+    const dy = my - ys(v)
+    if (Math.hypot(dx, dy) <= CHECKPOINT_HIT_PX) {
+      return { kind: "checkpoint", index: nearest }
+    }
   }
-  // Otherwise find the interval whose [fromX, toX] contains mx.
   const floor = Math.max(0, Math.min(vm.intervals.length - 1, Math.floor(raw)))
   const iv = vm.intervals[floor]
   if (!iv) return { kind: "checkpoint", index: nearest }
@@ -120,19 +134,22 @@ function CheckpointCrosshair({
   primary,
   secondaries,
   scales,
+  mouseX,
+  mouseY,
 }: {
   checkpoint: CheckpointVM
   primary: MetricVM
   secondaries: MetricVM[]
   scales: ChartScales
+  mouseX: number
+  mouseY: number
 }) {
   const { xs, ys, innerW, innerH } = scales
   const v = checkpoint.values[primary.id]
   if (typeof v !== "number") return null
   const tx = xs(checkpoint.index)
   const ty = ys(v)
-  const tLeft = tx + TOOLTIP_W + 16 > innerW ? tx - TOOLTIP_W - 12 : tx + 12
-  const tTop = Math.max(4, ty - 70)
+  const { left, top } = tooltipPos(mouseX, mouseY, innerW, innerH)
 
   return (
     <g pointerEvents="none">
@@ -154,7 +171,7 @@ function CheckpointCrosshair({
         fillOpacity={0.15}
         stroke="currentColor"
       />
-      <foreignObject x={tLeft} y={tTop} width={TOOLTIP_W} height={TOOLTIP_H}>
+      <foreignObject x={left} y={top} width={TOOLTIP_W} height={TOOLTIP_H} overflow="visible">
         <CheckpointTooltip
           checkpoint={checkpoint}
           primary={primary}
@@ -171,17 +188,20 @@ function IntervalCrosshair({
   interval,
   primary,
   scales,
+  mouseX,
+  mouseY,
 }: {
   vm: DashboardViewModel
   interval: IntervalVM
   primary: MetricVM
   scales: ChartScales
+  mouseX: number
+  mouseY: number
 }) {
   const { xs, innerW, innerH } = scales
   const x0 = xs(interval.from)
   const x1 = xs(interval.to)
-  const midX = (x0 + x1) / 2
-  const tLeft = midX + TOOLTIP_W / 2 > innerW ? innerW - TOOLTIP_W : Math.max(0, midX - TOOLTIP_W / 2)
+  const { left, top } = tooltipPos(mouseX, mouseY, innerW, innerH)
 
   return (
     <g pointerEvents="none">
@@ -209,11 +229,29 @@ function IntervalCrosshair({
         className="stroke-border-strong"
         strokeOpacity={0.5}
       />
-      <foreignObject x={tLeft} y={16} width={TOOLTIP_W} height={TOOLTIP_H}>
+      <foreignObject x={left} y={top} width={TOOLTIP_W} height={TOOLTIP_H} overflow="visible">
         <IntervalTooltip vm={vm} interval={interval} />
       </foreignObject>
     </g>
   )
+}
+
+function tooltipPos(
+  mx: number,
+  my: number,
+  innerW: number,
+  innerH: number,
+): { left: number; top: number } {
+  const OFFSET = 14
+  const left =
+    mx + OFFSET + TOOLTIP_W > innerW
+      ? Math.max(0, mx - OFFSET - TOOLTIP_W)
+      : mx + OFFSET
+  const top =
+    my + OFFSET + TOOLTIP_H > innerH
+      ? Math.max(0, my - OFFSET - TOOLTIP_H)
+      : my + OFFSET
+  return { left, top }
 }
 
 function CheckpointTooltip({
