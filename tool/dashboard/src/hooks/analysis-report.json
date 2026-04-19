@@ -1,0 +1,2528 @@
+{
+  "session": {
+    "sessionId": "5f2b255d-1a4e-4ed1-aa8e-d9277aa3047e",
+    "name": "test session",
+    "projectName": "j17yeah",
+    "projectPath": "/Users/ethanhosier/IdeaProjects/j17yeah",
+    "branch": null,
+    "commitHash": null,
+    "startTime": 1776609914446,
+    "endTime": 1776609991352,
+    "ideVersion": "IntelliJ IDEA 2025.2.6.1",
+    "pluginVersion": "dev"
+  },
+  "run": {
+    "parallelism": 7,
+    "generatedAt": 1776610008890,
+    "metricsDurationMs": 16419
+  },
+  "checkpoints": [
+    {
+      "sha": "1a74905056081d177a567408a0804380830e31eb",
+      "events": [
+        {
+          "id": "c52cf310-42d1-4d5e-ad03-ecf7c6eab8e1",
+          "type": "SESSION_STARTED",
+          "timestamp": 1776609914446,
+          "touchedMembers": []
+        },
+        {
+          "id": "f5025a52-a65a-41e9-b5a9-22a088ef2009",
+          "type": "REFACTORING_STARTED",
+          "timestamp": 1776609926054,
+          "touchedMembers": [],
+          "refactoringId": "refactoring.extract.method"
+        }
+      ],
+      "metrics": {
+        "sha": "1a74905056081d177a567408a0804380830e31eb",
+        "ck": {
+          "perClass": [
+            {
+              "className": "org.example.Main",
+              "file": "src/main/java/org/example/Main.java",
+              "type": "class",
+              "cbo": 0,
+              "cboModified": 2,
+              "fanin": 1,
+              "fanout": 1,
+              "wmc": 2,
+              "rfc": 2,
+              "lcom": 0,
+              "lcomNormalized": 0.0,
+              "tcc": null,
+              "lcc": null,
+              "dit": 1,
+              "noc": 0,
+              "loc": 10,
+              "numberOfMethods": 1,
+              "numberOfFields": 0,
+              "returnQty": 0,
+              "loopQty": 1,
+              "comparisonsQty": 0,
+              "tryCatchQty": 0,
+              "variablesQty": 1,
+              "maxNestedBlocks": 1,
+              "uniqueWordsQty": 6
+            }
+          ],
+          "parseErrors": []
+        },
+        "pmd": {
+          "violations": [
+            {
+              "file": "src/main/java/org/example/Main.java",
+              "rule": "UseUtilityClass",
+              "ruleSet": "Design",
+              "priority": 3,
+              "beginLine": 5,
+              "endLine": 5,
+              "message": "This utility class has a non-private constructor"
+            },
+            {
+              "file": "src/main/java/org/example/Main.java",
+              "rule": "SystemPrintln",
+              "ruleSet": "Best Practices",
+              "priority": 2,
+              "beginLine": 9,
+              "endLine": 9,
+              "message": "Usage of System.out/err"
+            },
+            {
+              "file": "src/main/java/org/example/Main.java",
+              "rule": "SystemPrintln",
+              "ruleSet": "Best Practices",
+              "priority": 2,
+              "beginLine": 14,
+              "endLine": 14,
+              "message": "Usage of System.out/err"
+            },
+            {
+              "file": "src/main/java/org/example/Main.java",
+              "rule": "SystemPrintln",
+              "ruleSet": "Best Practices",
+              "priority": 2,
+              "beginLine": 15,
+              "endLine": 15,
+              "message": "Usage of System.out/err"
+            },
+            {
+              "file": "src/main/java/org/example/Main.java",
+              "rule": "SystemPrintln",
+              "ruleSet": "Best Practices",
+              "priority": 2,
+              "beginLine": 16,
+              "endLine": 16,
+              "message": "Usage of System.out/err"
+            }
+          ],
+          "classMetrics": [
+            {
+              "className": "org.example.Main",
+              "file": "src/main/java/org/example/Main.java",
+              "ncss": 7,
+              "atfd": 0,
+              "noam": 0,
+              "nopa": 0,
+              "woc": 1.0
+            }
+          ],
+          "methodMetrics": [
+            {
+              "className": "org.example.Main",
+              "signature": "main(String[])",
+              "file": "src/main/java/org/example/Main.java",
+              "cyclo": 2,
+              "cognitive": 1,
+              "npath": "2",
+              "ncss": 6,
+              "atfd": 0
+            }
+          ],
+          "processingErrors": []
+        },
+        "cpd": {
+          "duplicationBlocks": 0,
+          "duplicatedLines": 0,
+          "duplicatedTokens": 0,
+          "totalLines": 19,
+          "totalTokens": 65,
+          "duplicatedLinesShare": 0.0,
+          "largestBlockLines": 0,
+          "largestBlockTokens": 0,
+          "filesInvolvedInDuplication": 0,
+          "duplications": [],
+          "processingErrors": []
+        },
+        "readability": {
+          "perFile": [
+            {
+              "file": "src/main/java/org/example/Main.java",
+              "totalLines": 19,
+              "codeLines": 11,
+              "commentLines": 6,
+              "blankLines": 2,
+              "commentLineRatio": 0.3157894736842105,
+              "blankLineRatio": 0.10526315789473684,
+              "avgLineLength": 51.11764705882353,
+              "maxLineLength": 159,
+              "avgIndentation": 6.352941176470588,
+              "maxIndentation": 12,
+              "identifiers": {
+                "count": 4,
+                "avgLength": 3.25,
+                "singleLetterRatio": 0.25,
+                "avgWordCount": 1.0,
+                "dictionaryWordRatio": 0.6666666666666666
+              }
+            }
+          ],
+          "perClass": [
+            {
+              "className": "org.example.Main",
+              "file": "src/main/java/org/example/Main.java",
+              "loc": 15,
+              "identifiers": {
+                "count": 1,
+                "avgLength": 4.0,
+                "singleLetterRatio": 0.0,
+                "avgWordCount": 1.0,
+                "dictionaryWordRatio": 1.0
+              }
+            }
+          ],
+          "perMethod": [
+            {
+              "className": "org.example.Main",
+              "signature": "main(String[])",
+              "file": "src/main/java/org/example/Main.java",
+              "loc": 13,
+              "identifiers": {
+                "count": 3,
+                "avgLength": 3.0,
+                "singleLetterRatio": 0.3333333333333333,
+                "avgWordCount": 1.0,
+                "dictionaryWordRatio": 0.5
+              }
+            }
+          ],
+          "summary": {
+            "fileCount": 1,
+            "classCount": 1,
+            "methodCount": 1,
+            "avgLineLength": 51.11764705882353,
+            "maxLineLength": 159,
+            "avgCommentRatio": 0.3157894736842105,
+            "avgBlankRatio": 0.10526315789473684,
+            "avgIndentation": 6.352941176470588,
+            "maxIndentation": 12,
+            "avgIdentifierLength": 3.25,
+            "singleLetterRatio": 0.25,
+            "avgWordCount": 1.0,
+            "dictionaryWordRatio": 0.625,
+            "worstClassLoc": 15,
+            "worstMethodLoc": 13
+          }
+        },
+        "build": {
+          "success": true,
+          "exitCode": 0,
+          "durationMs": 7301,
+          "timedOut": false,
+          "stderrTail": ""
+        },
+        "tests": {
+          "success": true,
+          "exitCode": 0,
+          "durationMs": 5174,
+          "timedOut": false,
+          "total": 0,
+          "passed": 0,
+          "failed": 0,
+          "skipped": 0,
+          "failures": [],
+          "stderrTail": "",
+          "wasSkipped": false,
+          "skipReason": null
+        }
+      },
+      "diff": {
+        "filesTouched": 0,
+        "linesAdded": 0,
+        "linesDeleted": 0,
+        "totalChurn": 0,
+        "filesAdded": 0,
+        "filesModified": 0,
+        "filesDeleted": 0,
+        "filesRenamed": 0,
+        "perFileChurn": []
+      },
+      "touchedMembers": []
+    },
+    {
+      "sha": "2d415955c02a370b04b4e77c35628c29133d7b99",
+      "events": [
+        {
+          "id": "170e6e38-1872-49fb-8c2a-c217eeaf32cf",
+          "type": "REFACTORING_FINISHED",
+          "timestamp": 1776609929081,
+          "touchedMembers": [],
+          "refactoringId": "refactoring.extract.method"
+        }
+      ],
+      "metrics": {
+        "sha": "2d415955c02a370b04b4e77c35628c29133d7b99",
+        "ck": {
+          "perClass": [
+            {
+              "className": "org.example.Main",
+              "file": "src/main/java/org/example/Main.java",
+              "type": "class",
+              "cbo": 1,
+              "cboModified": 2,
+              "fanin": 1,
+              "fanout": 1,
+              "wmc": 3,
+              "rfc": 3,
+              "lcom": 1,
+              "lcomNormalized": 0.0,
+              "tcc": null,
+              "lcc": null,
+              "dit": 1,
+              "noc": 0,
+              "loc": 13,
+              "numberOfMethods": 2,
+              "numberOfFields": 0,
+              "returnQty": 0,
+              "loopQty": 1,
+              "comparisonsQty": 0,
+              "tryCatchQty": 0,
+              "variablesQty": 1,
+              "maxNestedBlocks": 1,
+              "uniqueWordsQty": 7
+            }
+          ],
+          "parseErrors": []
+        },
+        "pmd": {
+          "violations": [
+            {
+              "file": "src/main/java/org/example/Main.java",
+              "rule": "UseUtilityClass",
+              "ruleSet": "Design",
+              "priority": 3,
+              "beginLine": 5,
+              "endLine": 5,
+              "message": "This utility class has a non-private constructor"
+            },
+            {
+              "file": "src/main/java/org/example/Main.java",
+              "rule": "SystemPrintln",
+              "ruleSet": "Best Practices",
+              "priority": 2,
+              "beginLine": 9,
+              "endLine": 9,
+              "message": "Usage of System.out/err"
+            },
+            {
+              "file": "src/main/java/org/example/Main.java",
+              "rule": "SystemPrintln",
+              "ruleSet": "Best Practices",
+              "priority": 2,
+              "beginLine": 14,
+              "endLine": 14,
+              "message": "Usage of System.out/err"
+            },
+            {
+              "file": "src/main/java/org/example/Main.java",
+              "rule": "SystemPrintln",
+              "ruleSet": "Best Practices",
+              "priority": 2,
+              "beginLine": 15,
+              "endLine": 15,
+              "message": "Usage of System.out/err"
+            },
+            {
+              "file": "src/main/java/org/example/Main.java",
+              "rule": "SystemPrintln",
+              "ruleSet": "Best Practices",
+              "priority": 2,
+              "beginLine": 21,
+              "endLine": 21,
+              "message": "Usage of System.out/err"
+            }
+          ],
+          "classMetrics": [
+            {
+              "className": "org.example.Main",
+              "file": "src/main/java/org/example/Main.java",
+              "ncss": 9,
+              "atfd": 0,
+              "noam": 0,
+              "nopa": 0,
+              "woc": 1.0
+            }
+          ],
+          "methodMetrics": [
+            {
+              "className": "org.example.Main",
+              "signature": "main(String[])",
+              "file": "src/main/java/org/example/Main.java",
+              "cyclo": 2,
+              "cognitive": 1,
+              "npath": "2",
+              "ncss": 6,
+              "atfd": 0
+            },
+            {
+              "className": "org.example.Main",
+              "signature": "uhuh()",
+              "file": "src/main/java/org/example/Main.java",
+              "cyclo": 1,
+              "cognitive": 0,
+              "npath": "1",
+              "ncss": 2,
+              "atfd": 0
+            }
+          ],
+          "processingErrors": []
+        },
+        "cpd": {
+          "duplicationBlocks": 0,
+          "duplicatedLines": 0,
+          "duplicatedTokens": 0,
+          "totalLines": 23,
+          "totalTokens": 76,
+          "duplicatedLinesShare": 0.0,
+          "largestBlockLines": 0,
+          "largestBlockTokens": 0,
+          "filesInvolvedInDuplication": 0,
+          "duplications": [],
+          "processingErrors": []
+        },
+        "readability": {
+          "perFile": [
+            {
+              "file": "src/main/java/org/example/Main.java",
+              "totalLines": 23,
+              "codeLines": 14,
+              "commentLines": 6,
+              "blankLines": 3,
+              "commentLineRatio": 0.2608695652173913,
+              "blankLineRatio": 0.13043478260869565,
+              "avgLineLength": 46.05,
+              "maxLineLength": 159,
+              "avgIndentation": 6.2,
+              "maxIndentation": 12,
+              "identifiers": {
+                "count": 5,
+                "avgLength": 3.4,
+                "singleLetterRatio": 0.2,
+                "avgWordCount": 1.0,
+                "dictionaryWordRatio": 0.5
+              }
+            }
+          ],
+          "perClass": [
+            {
+              "className": "org.example.Main",
+              "file": "src/main/java/org/example/Main.java",
+              "loc": 19,
+              "identifiers": {
+                "count": 1,
+                "avgLength": 4.0,
+                "singleLetterRatio": 0.0,
+                "avgWordCount": 1.0,
+                "dictionaryWordRatio": 1.0
+              }
+            }
+          ],
+          "perMethod": [
+            {
+              "className": "org.example.Main",
+              "signature": "main(String[])",
+              "file": "src/main/java/org/example/Main.java",
+              "loc": 13,
+              "identifiers": {
+                "count": 3,
+                "avgLength": 3.0,
+                "singleLetterRatio": 0.3333333333333333,
+                "avgWordCount": 1.0,
+                "dictionaryWordRatio": 0.5
+              }
+            },
+            {
+              "className": "org.example.Main",
+              "signature": "uhuh()",
+              "file": "src/main/java/org/example/Main.java",
+              "loc": 3,
+              "identifiers": {
+                "count": 1,
+                "avgLength": 4.0,
+                "singleLetterRatio": 0.0,
+                "avgWordCount": 1.0,
+                "dictionaryWordRatio": 0.0
+              }
+            }
+          ],
+          "summary": {
+            "fileCount": 1,
+            "classCount": 1,
+            "methodCount": 2,
+            "avgLineLength": 46.05,
+            "maxLineLength": 159,
+            "avgCommentRatio": 0.2608695652173913,
+            "avgBlankRatio": 0.13043478260869565,
+            "avgIndentation": 6.2,
+            "maxIndentation": 12,
+            "avgIdentifierLength": 3.4,
+            "singleLetterRatio": 0.2,
+            "avgWordCount": 1.0,
+            "dictionaryWordRatio": 0.5,
+            "worstClassLoc": 19,
+            "worstMethodLoc": 13
+          }
+        },
+        "build": {
+          "success": true,
+          "exitCode": 0,
+          "durationMs": 5962,
+          "timedOut": false,
+          "stderrTail": ""
+        },
+        "tests": {
+          "success": true,
+          "exitCode": 0,
+          "durationMs": 3783,
+          "timedOut": false,
+          "total": 0,
+          "passed": 0,
+          "failed": 0,
+          "skipped": 0,
+          "failures": [],
+          "stderrTail": "",
+          "wasSkipped": false,
+          "skipReason": null
+        }
+      },
+      "diff": {
+        "filesTouched": 1,
+        "linesAdded": 5,
+        "linesDeleted": 1,
+        "totalChurn": 6,
+        "filesAdded": 0,
+        "filesModified": 1,
+        "filesDeleted": 0,
+        "filesRenamed": 0,
+        "perFileChurn": [
+          {
+            "path": "src/main/java/org/example/Main.java",
+            "linesAdded": 5,
+            "linesDeleted": 1
+          }
+        ]
+      },
+      "touchedMembers": []
+    },
+    {
+      "sha": "b03e1ebfe61b0d32dc27da2284b68533d3e412a9",
+      "events": [
+        {
+          "id": "0ddab06d-4881-4f74-84dc-544e93e7edfc",
+          "type": "EDIT_BURST",
+          "timestamp": 1776609934223,
+          "touchedMembers": [
+            {
+              "className": "org.example.Main",
+              "methodSignature": "main(String[])"
+            },
+            {
+              "className": "org.example.Main",
+              "methodSignature": "uhuh(String)"
+            }
+          ]
+        },
+        {
+          "id": "2bce1954-afbc-474a-9e98-77184bd3d29a",
+          "type": "FILE_SAVED",
+          "timestamp": 1776609935385,
+          "touchedMembers": []
+        }
+      ],
+      "metrics": {
+        "sha": "b03e1ebfe61b0d32dc27da2284b68533d3e412a9",
+        "ck": {
+          "perClass": [
+            {
+              "className": "org.example.Main",
+              "file": "src/main/java/org/example/Main.java",
+              "type": "class",
+              "cbo": 1,
+              "cboModified": 2,
+              "fanin": 1,
+              "fanout": 1,
+              "wmc": 3,
+              "rfc": 3,
+              "lcom": 1,
+              "lcomNormalized": 0.0,
+              "tcc": null,
+              "lcc": null,
+              "dit": 1,
+              "noc": 0,
+              "loc": 13,
+              "numberOfMethods": 2,
+              "numberOfFields": 0,
+              "returnQty": 0,
+              "loopQty": 1,
+              "comparisonsQty": 0,
+              "tryCatchQty": 0,
+              "variablesQty": 1,
+              "maxNestedBlocks": 1,
+              "uniqueWordsQty": 7
+            }
+          ],
+          "parseErrors": []
+        },
+        "pmd": {
+          "violations": [
+            {
+              "file": "src/main/java/org/example/Main.java",
+              "rule": "UseUtilityClass",
+              "ruleSet": "Design",
+              "priority": 3,
+              "beginLine": 5,
+              "endLine": 5,
+              "message": "This utility class has a non-private constructor"
+            },
+            {
+              "file": "src/main/java/org/example/Main.java",
+              "rule": "SystemPrintln",
+              "ruleSet": "Best Practices",
+              "priority": 2,
+              "beginLine": 9,
+              "endLine": 9,
+              "message": "Usage of System.out/err"
+            },
+            {
+              "file": "src/main/java/org/example/Main.java",
+              "rule": "SystemPrintln",
+              "ruleSet": "Best Practices",
+              "priority": 2,
+              "beginLine": 14,
+              "endLine": 14,
+              "message": "Usage of System.out/err"
+            },
+            {
+              "file": "src/main/java/org/example/Main.java",
+              "rule": "SystemPrintln",
+              "ruleSet": "Best Practices",
+              "priority": 2,
+              "beginLine": 21,
+              "endLine": 21,
+              "message": "Usage of System.out/err"
+            }
+          ],
+          "classMetrics": [
+            {
+              "className": "org.example.Main",
+              "file": "src/main/java/org/example/Main.java",
+              "ncss": 9,
+              "atfd": 0,
+              "noam": 0,
+              "nopa": 0,
+              "woc": 1.0
+            }
+          ],
+          "methodMetrics": [
+            {
+              "className": "org.example.Main",
+              "signature": "uhuh(String)",
+              "file": "src/main/java/org/example/Main.java",
+              "cyclo": 1,
+              "cognitive": 0,
+              "npath": "1",
+              "ncss": 2,
+              "atfd": 0
+            },
+            {
+              "className": "org.example.Main",
+              "signature": "main(String[])",
+              "file": "src/main/java/org/example/Main.java",
+              "cyclo": 2,
+              "cognitive": 1,
+              "npath": "2",
+              "ncss": 6,
+              "atfd": 0
+            }
+          ],
+          "processingErrors": []
+        },
+        "cpd": {
+          "duplicationBlocks": 0,
+          "duplicatedLines": 0,
+          "duplicatedTokens": 0,
+          "totalLines": 23,
+          "totalTokens": 75,
+          "duplicatedLinesShare": 0.0,
+          "largestBlockLines": 0,
+          "largestBlockTokens": 0,
+          "filesInvolvedInDuplication": 0,
+          "duplications": [],
+          "processingErrors": []
+        },
+        "readability": {
+          "perFile": [
+            {
+              "file": "src/main/java/org/example/Main.java",
+              "totalLines": 23,
+              "codeLines": 14,
+              "commentLines": 6,
+              "blankLines": 3,
+              "commentLineRatio": 0.2608695652173913,
+              "blankLineRatio": 0.13043478260869565,
+              "avgLineLength": 46.1,
+              "maxLineLength": 159,
+              "avgIndentation": 6.2,
+              "maxIndentation": 12,
+              "identifiers": {
+                "count": 6,
+                "avgLength": 3.5,
+                "singleLetterRatio": 0.16666666666666666,
+                "avgWordCount": 1.0,
+                "dictionaryWordRatio": 0.4
+              }
+            }
+          ],
+          "perClass": [
+            {
+              "className": "org.example.Main",
+              "file": "src/main/java/org/example/Main.java",
+              "loc": 19,
+              "identifiers": {
+                "count": 1,
+                "avgLength": 4.0,
+                "singleLetterRatio": 0.0,
+                "avgWordCount": 1.0,
+                "dictionaryWordRatio": 1.0
+              }
+            }
+          ],
+          "perMethod": [
+            {
+              "className": "org.example.Main",
+              "signature": "uhuh(String)",
+              "file": "src/main/java/org/example/Main.java",
+              "loc": 3,
+              "identifiers": {
+                "count": 2,
+                "avgLength": 4.0,
+                "singleLetterRatio": 0.0,
+                "avgWordCount": 1.0,
+                "dictionaryWordRatio": 0.0
+              }
+            },
+            {
+              "className": "org.example.Main",
+              "signature": "main(String[])",
+              "file": "src/main/java/org/example/Main.java",
+              "loc": 13,
+              "identifiers": {
+                "count": 3,
+                "avgLength": 3.0,
+                "singleLetterRatio": 0.3333333333333333,
+                "avgWordCount": 1.0,
+                "dictionaryWordRatio": 0.5
+              }
+            }
+          ],
+          "summary": {
+            "fileCount": 1,
+            "classCount": 1,
+            "methodCount": 2,
+            "avgLineLength": 46.1,
+            "maxLineLength": 159,
+            "avgCommentRatio": 0.2608695652173913,
+            "avgBlankRatio": 0.13043478260869565,
+            "avgIndentation": 6.2,
+            "maxIndentation": 12,
+            "avgIdentifierLength": 3.5,
+            "singleLetterRatio": 0.16666666666666666,
+            "avgWordCount": 1.0,
+            "dictionaryWordRatio": 0.4166666666666667,
+            "worstClassLoc": 19,
+            "worstMethodLoc": 13
+          }
+        },
+        "build": {
+          "success": true,
+          "exitCode": 0,
+          "durationMs": 7613,
+          "timedOut": false,
+          "stderrTail": ""
+        },
+        "tests": {
+          "success": true,
+          "exitCode": 0,
+          "durationMs": 5957,
+          "timedOut": false,
+          "total": 0,
+          "passed": 0,
+          "failed": 0,
+          "skipped": 0,
+          "failures": [],
+          "stderrTail": "",
+          "wasSkipped": false,
+          "skipReason": null
+        }
+      },
+      "diff": {
+        "filesTouched": 1,
+        "linesAdded": 4,
+        "linesDeleted": 4,
+        "totalChurn": 8,
+        "filesAdded": 0,
+        "filesModified": 1,
+        "filesDeleted": 0,
+        "filesRenamed": 0,
+        "perFileChurn": [
+          {
+            "path": "src/main/java/org/example/Main.java",
+            "linesAdded": 4,
+            "linesDeleted": 4
+          }
+        ]
+      },
+      "touchedMembers": [
+        {
+          "className": "org.example.Main",
+          "methodSignature": "main(String[])"
+        },
+        { "className": "org.example.Main", "methodSignature": "uhuh(String)" }
+      ]
+    },
+    {
+      "sha": "a6f559922cf56270b0d82c1da73f03fad2d544b8",
+      "events": [
+        {
+          "id": "e83e644c-af5b-4d54-bc69-ff4655f4a0cc",
+          "type": "EDIT_BURST",
+          "timestamp": 1776609942587,
+          "touchedMembers": [
+            {
+              "className": "org.example.Main",
+              "methodSignature": "uhuh(String)"
+            },
+            { "className": "org.example.Main", "methodSignature": null }
+          ]
+        }
+      ],
+      "metrics": {
+        "sha": "a6f559922cf56270b0d82c1da73f03fad2d544b8",
+        "ck": {
+          "perClass": [
+            {
+              "className": "org.example.Main",
+              "file": "src/main/java/org/example/Main.java",
+              "type": "class",
+              "cbo": 1,
+              "cboModified": 2,
+              "fanin": 1,
+              "fanout": 1,
+              "wmc": 3,
+              "rfc": 3,
+              "lcom": 1,
+              "lcomNormalized": 0.0,
+              "tcc": null,
+              "lcc": null,
+              "dit": 1,
+              "noc": 0,
+              "loc": 12,
+              "numberOfMethods": 2,
+              "numberOfFields": 0,
+              "returnQty": 0,
+              "loopQty": 1,
+              "comparisonsQty": 0,
+              "tryCatchQty": 0,
+              "variablesQty": 1,
+              "maxNestedBlocks": 1,
+              "uniqueWordsQty": 7
+            }
+          ],
+          "parseErrors": []
+        },
+        "pmd": {
+          "violations": [
+            {
+              "file": "src/main/java/org/example/Main.java",
+              "rule": "UseUtilityClass",
+              "ruleSet": "Design",
+              "priority": 3,
+              "beginLine": 5,
+              "endLine": 5,
+              "message": "This utility class has a non-private constructor"
+            },
+            {
+              "file": "src/main/java/org/example/Main.java",
+              "rule": "SystemPrintln",
+              "ruleSet": "Best Practices",
+              "priority": 2,
+              "beginLine": 9,
+              "endLine": 9,
+              "message": "Usage of System.out/err"
+            },
+            {
+              "file": "src/main/java/org/example/Main.java",
+              "rule": "SystemPrintln",
+              "ruleSet": "Best Practices",
+              "priority": 2,
+              "beginLine": 14,
+              "endLine": 14,
+              "message": "Usage of System.out/err"
+            },
+            {
+              "file": "src/main/java/org/example/Main.java",
+              "rule": "SystemPrintln",
+              "ruleSet": "Best Practices",
+              "priority": 2,
+              "beginLine": 21,
+              "endLine": 21,
+              "message": "Usage of System.out/err"
+            }
+          ],
+          "classMetrics": [
+            {
+              "className": "org.example.Main",
+              "file": "src/main/java/org/example/Main.java",
+              "ncss": 10,
+              "atfd": 0,
+              "noam": 0,
+              "nopa": 0,
+              "woc": 1.0
+            }
+          ],
+          "methodMetrics": [
+            {
+              "className": "org.example.Main",
+              "signature": "uhuh(String)",
+              "file": "src/main/java/org/example/Main.java",
+              "cyclo": 1,
+              "cognitive": 0,
+              "npath": "1",
+              "ncss": 3,
+              "atfd": 0
+            },
+            {
+              "className": "org.example.Main",
+              "signature": "main(String[])",
+              "file": "src/main/java/org/example/Main.java",
+              "cyclo": 2,
+              "cognitive": 1,
+              "npath": "2",
+              "ncss": 6,
+              "atfd": 0
+            }
+          ],
+          "processingErrors": []
+        },
+        "cpd": {
+          "duplicationBlocks": 0,
+          "duplicatedLines": 0,
+          "duplicatedTokens": 0,
+          "totalLines": 24,
+          "totalTokens": 76,
+          "duplicatedLinesShare": 0.0,
+          "largestBlockLines": 0,
+          "largestBlockTokens": 0,
+          "filesInvolvedInDuplication": 0,
+          "duplications": [],
+          "processingErrors": []
+        },
+        "readability": {
+          "perFile": [
+            {
+              "file": "src/main/java/org/example/Main.java",
+              "totalLines": 24,
+              "codeLines": 15,
+              "commentLines": 6,
+              "blankLines": 3,
+              "commentLineRatio": 0.25,
+              "blankLineRatio": 0.125,
+              "avgLineLength": 44.523809523809526,
+              "maxLineLength": 159,
+              "avgIndentation": 6.285714285714286,
+              "maxIndentation": 12,
+              "identifiers": {
+                "count": 6,
+                "avgLength": 3.5,
+                "singleLetterRatio": 0.16666666666666666,
+                "avgWordCount": 1.0,
+                "dictionaryWordRatio": 0.4
+              }
+            }
+          ],
+          "perClass": [
+            {
+              "className": "org.example.Main",
+              "file": "src/main/java/org/example/Main.java",
+              "loc": 20,
+              "identifiers": {
+                "count": 1,
+                "avgLength": 4.0,
+                "singleLetterRatio": 0.0,
+                "avgWordCount": 1.0,
+                "dictionaryWordRatio": 1.0
+              }
+            }
+          ],
+          "perMethod": [
+            {
+              "className": "org.example.Main",
+              "signature": "main(String[])",
+              "file": "src/main/java/org/example/Main.java",
+              "loc": 13,
+              "identifiers": {
+                "count": 3,
+                "avgLength": 3.0,
+                "singleLetterRatio": 0.3333333333333333,
+                "avgWordCount": 1.0,
+                "dictionaryWordRatio": 0.5
+              }
+            },
+            {
+              "className": "org.example.Main",
+              "signature": "uhuh(String)",
+              "file": "src/main/java/org/example/Main.java",
+              "loc": 4,
+              "identifiers": {
+                "count": 2,
+                "avgLength": 4.0,
+                "singleLetterRatio": 0.0,
+                "avgWordCount": 1.0,
+                "dictionaryWordRatio": 0.0
+              }
+            }
+          ],
+          "summary": {
+            "fileCount": 1,
+            "classCount": 1,
+            "methodCount": 2,
+            "avgLineLength": 44.523809523809526,
+            "maxLineLength": 159,
+            "avgCommentRatio": 0.25,
+            "avgBlankRatio": 0.125,
+            "avgIndentation": 6.285714285714286,
+            "maxIndentation": 12,
+            "avgIdentifierLength": 3.5,
+            "singleLetterRatio": 0.16666666666666666,
+            "avgWordCount": 1.0,
+            "dictionaryWordRatio": 0.4166666666666667,
+            "worstClassLoc": 20,
+            "worstMethodLoc": 13
+          }
+        },
+        "build": {
+          "success": false,
+          "exitCode": 1,
+          "durationMs": 6414,
+          "timedOut": false,
+          "stderrTail": "/private/var/folders/6g/kbnc25qj6cj8grn551g_d7h40000gn/T/analysis-16120341290573973817/shadow-worktrees/w3/src/main/java/org/example/Main.java:22: error: not a statement\n        ssss;\n        ^\n1 error\n\nFAILURE: Build failed with an exception.\n\n* What went wrong:\nExecution failed for task ':compileJava'.\n> Compilation failed; see the compiler output below.\n  /private/var/folders/6g/kbnc25qj6cj8grn551g_d7h40000gn/T/analysis-16120341290573973817/shadow-worktrees/w3/src/main/java/org/example/Main.java:22: error: not a statement\n          ssss;\n          ^\n  1 error\n\n* Try:\n> Check your code and dependencies to fix the compilation error(s)\n> Run with --scan to get full insights.\n\nBUILD FAILED in 5s\n"
+        },
+        "tests": {
+          "success": false,
+          "exitCode": -1,
+          "durationMs": 0,
+          "timedOut": false,
+          "total": 0,
+          "passed": 0,
+          "failed": 0,
+          "skipped": 0,
+          "failures": [],
+          "stderrTail": "",
+          "wasSkipped": true,
+          "skipReason": "build failed (exit 1)"
+        }
+      },
+      "diff": {
+        "filesTouched": 1,
+        "linesAdded": 1,
+        "linesDeleted": 0,
+        "totalChurn": 1,
+        "filesAdded": 0,
+        "filesModified": 1,
+        "filesDeleted": 0,
+        "filesRenamed": 0,
+        "perFileChurn": [
+          {
+            "path": "src/main/java/org/example/Main.java",
+            "linesAdded": 1,
+            "linesDeleted": 0
+          }
+        ]
+      },
+      "touchedMembers": [
+        { "className": "org.example.Main", "methodSignature": "uhuh(String)" },
+        { "className": "org.example.Main", "methodSignature": null }
+      ]
+    },
+    {
+      "sha": "f834ef969709b2f6d620e54713d7d6e0cc0fa2f4",
+      "events": [
+        {
+          "id": "ea7e904d-2029-41d1-9a6a-e32feb9cc15d",
+          "type": "EDIT_BURST",
+          "timestamp": 1776609948362,
+          "touchedMembers": [
+            {
+              "className": "org.example.Main",
+              "methodSignature": "uhuh(String)"
+            }
+          ]
+        },
+        {
+          "id": "e8e79b54-2336-4a5e-ac04-825905e2116c",
+          "type": "REFACTORING_STARTED",
+          "timestamp": 1776609965672,
+          "touchedMembers": [],
+          "refactoringId": "refactoring.extractSuper"
+        },
+        {
+          "id": "784fba2e-98f4-46a9-b8e2-3089c488ed97",
+          "type": "FILE_SAVED",
+          "timestamp": 1776609965772,
+          "touchedMembers": []
+        }
+      ],
+      "metrics": {
+        "sha": "f834ef969709b2f6d620e54713d7d6e0cc0fa2f4",
+        "ck": {
+          "perClass": [
+            {
+              "className": "org.example.Main",
+              "file": "src/main/java/org/example/Main.java",
+              "type": "class",
+              "cbo": 1,
+              "cboModified": 2,
+              "fanin": 1,
+              "fanout": 1,
+              "wmc": 3,
+              "rfc": 3,
+              "lcom": 1,
+              "lcomNormalized": 0.0,
+              "tcc": null,
+              "lcc": null,
+              "dit": 1,
+              "noc": 0,
+              "loc": 13,
+              "numberOfMethods": 2,
+              "numberOfFields": 0,
+              "returnQty": 0,
+              "loopQty": 1,
+              "comparisonsQty": 0,
+              "tryCatchQty": 0,
+              "variablesQty": 1,
+              "maxNestedBlocks": 1,
+              "uniqueWordsQty": 7
+            }
+          ],
+          "parseErrors": []
+        },
+        "pmd": {
+          "violations": [
+            {
+              "file": "src/main/java/org/example/Main.java",
+              "rule": "UseUtilityClass",
+              "ruleSet": "Design",
+              "priority": 3,
+              "beginLine": 5,
+              "endLine": 5,
+              "message": "This utility class has a non-private constructor"
+            },
+            {
+              "file": "src/main/java/org/example/Main.java",
+              "rule": "SystemPrintln",
+              "ruleSet": "Best Practices",
+              "priority": 2,
+              "beginLine": 9,
+              "endLine": 9,
+              "message": "Usage of System.out/err"
+            },
+            {
+              "file": "src/main/java/org/example/Main.java",
+              "rule": "SystemPrintln",
+              "ruleSet": "Best Practices",
+              "priority": 2,
+              "beginLine": 14,
+              "endLine": 14,
+              "message": "Usage of System.out/err"
+            },
+            {
+              "file": "src/main/java/org/example/Main.java",
+              "rule": "SystemPrintln",
+              "ruleSet": "Best Practices",
+              "priority": 2,
+              "beginLine": 21,
+              "endLine": 21,
+              "message": "Usage of System.out/err"
+            }
+          ],
+          "classMetrics": [
+            {
+              "className": "org.example.Main",
+              "file": "src/main/java/org/example/Main.java",
+              "ncss": 9,
+              "atfd": 0,
+              "noam": 0,
+              "nopa": 0,
+              "woc": 1.0
+            }
+          ],
+          "methodMetrics": [
+            {
+              "className": "org.example.Main",
+              "signature": "main(String[])",
+              "file": "src/main/java/org/example/Main.java",
+              "cyclo": 2,
+              "cognitive": 1,
+              "npath": "2",
+              "ncss": 6,
+              "atfd": 0
+            },
+            {
+              "className": "org.example.Main",
+              "signature": "uhuh(String)",
+              "file": "src/main/java/org/example/Main.java",
+              "cyclo": 1,
+              "cognitive": 0,
+              "npath": "1",
+              "ncss": 2,
+              "atfd": 0
+            }
+          ],
+          "processingErrors": []
+        },
+        "cpd": {
+          "duplicationBlocks": 0,
+          "duplicatedLines": 0,
+          "duplicatedTokens": 0,
+          "totalLines": 23,
+          "totalTokens": 75,
+          "duplicatedLinesShare": 0.0,
+          "largestBlockLines": 0,
+          "largestBlockTokens": 0,
+          "filesInvolvedInDuplication": 0,
+          "duplications": [],
+          "processingErrors": []
+        },
+        "readability": {
+          "perFile": [
+            {
+              "file": "src/main/java/org/example/Main.java",
+              "totalLines": 23,
+              "codeLines": 14,
+              "commentLines": 6,
+              "blankLines": 3,
+              "commentLineRatio": 0.2608695652173913,
+              "blankLineRatio": 0.13043478260869565,
+              "avgLineLength": 46.1,
+              "maxLineLength": 159,
+              "avgIndentation": 6.2,
+              "maxIndentation": 12,
+              "identifiers": {
+                "count": 6,
+                "avgLength": 3.5,
+                "singleLetterRatio": 0.16666666666666666,
+                "avgWordCount": 1.0,
+                "dictionaryWordRatio": 0.4
+              }
+            }
+          ],
+          "perClass": [
+            {
+              "className": "org.example.Main",
+              "file": "src/main/java/org/example/Main.java",
+              "loc": 19,
+              "identifiers": {
+                "count": 1,
+                "avgLength": 4.0,
+                "singleLetterRatio": 0.0,
+                "avgWordCount": 1.0,
+                "dictionaryWordRatio": 1.0
+              }
+            }
+          ],
+          "perMethod": [
+            {
+              "className": "org.example.Main",
+              "signature": "main(String[])",
+              "file": "src/main/java/org/example/Main.java",
+              "loc": 13,
+              "identifiers": {
+                "count": 3,
+                "avgLength": 3.0,
+                "singleLetterRatio": 0.3333333333333333,
+                "avgWordCount": 1.0,
+                "dictionaryWordRatio": 0.5
+              }
+            },
+            {
+              "className": "org.example.Main",
+              "signature": "uhuh(String)",
+              "file": "src/main/java/org/example/Main.java",
+              "loc": 3,
+              "identifiers": {
+                "count": 2,
+                "avgLength": 4.0,
+                "singleLetterRatio": 0.0,
+                "avgWordCount": 1.0,
+                "dictionaryWordRatio": 0.0
+              }
+            }
+          ],
+          "summary": {
+            "fileCount": 1,
+            "classCount": 1,
+            "methodCount": 2,
+            "avgLineLength": 46.1,
+            "maxLineLength": 159,
+            "avgCommentRatio": 0.2608695652173913,
+            "avgBlankRatio": 0.13043478260869565,
+            "avgIndentation": 6.2,
+            "maxIndentation": 12,
+            "avgIdentifierLength": 3.5,
+            "singleLetterRatio": 0.16666666666666666,
+            "avgWordCount": 1.0,
+            "dictionaryWordRatio": 0.4166666666666667,
+            "worstClassLoc": 19,
+            "worstMethodLoc": 13
+          }
+        },
+        "build": {
+          "success": true,
+          "exitCode": 0,
+          "durationMs": 8017,
+          "timedOut": false,
+          "stderrTail": ""
+        },
+        "tests": {
+          "success": true,
+          "exitCode": 0,
+          "durationMs": 5321,
+          "timedOut": false,
+          "total": 0,
+          "passed": 0,
+          "failed": 0,
+          "skipped": 0,
+          "failures": [],
+          "stderrTail": "",
+          "wasSkipped": false,
+          "skipReason": null
+        }
+      },
+      "diff": {
+        "filesTouched": 1,
+        "linesAdded": 0,
+        "linesDeleted": 1,
+        "totalChurn": 1,
+        "filesAdded": 0,
+        "filesModified": 1,
+        "filesDeleted": 0,
+        "filesRenamed": 0,
+        "perFileChurn": [
+          {
+            "path": "src/main/java/org/example/Main.java",
+            "linesAdded": 0,
+            "linesDeleted": 1
+          }
+        ]
+      },
+      "touchedMembers": [
+        { "className": "org.example.Main", "methodSignature": "uhuh(String)" }
+      ]
+    },
+    {
+      "sha": "f84ba322c5fe18d00246da5d4f7ee50fd4880974",
+      "events": [
+        {
+          "id": "35032f7a-11a3-47bf-9106-fc4de39ddccd",
+          "type": "REFACTORING_FINISHED",
+          "timestamp": 1776609965853,
+          "touchedMembers": [
+            { "className": "org.example.SuperMain", "methodSignature": null },
+            {
+              "className": "org.example.SuperMain",
+              "methodSignature": "uhuh(String)"
+            },
+            { "className": "org.example.Main", "methodSignature": null },
+            {
+              "className": "org.example.Main",
+              "methodSignature": "uhuh(String)"
+            }
+          ],
+          "refactoringId": "refactoring.extractSuper"
+        },
+        {
+          "id": "582313d1-e64b-4512-84be-3376f9ab9403",
+          "type": "FILE_SAVED",
+          "timestamp": 1776609969670,
+          "touchedMembers": []
+        },
+        {
+          "id": "38b968d9-ff2a-4a9b-8da1-66e0aae16a4e",
+          "type": "FILE_SAVED",
+          "timestamp": 1776609969673,
+          "touchedMembers": []
+        },
+        {
+          "id": "d9b7a02c-a899-49ae-9832-b06b7a47b931",
+          "type": "FILE_UNFOCUSED",
+          "timestamp": 1776609973204,
+          "touchedMembers": []
+        },
+        {
+          "id": "a91d50b5-98d1-4cb6-b9d3-1f6fed040930",
+          "type": "FILE_FOCUSED",
+          "timestamp": 1776609973204,
+          "touchedMembers": []
+        },
+        {
+          "id": "e0ea7c04-5b09-4c2e-abc2-476b75060114",
+          "type": "FILE_OPENED",
+          "timestamp": 1776609973207,
+          "touchedMembers": []
+        }
+      ],
+      "metrics": {
+        "sha": "f84ba322c5fe18d00246da5d4f7ee50fd4880974",
+        "ck": {
+          "perClass": [
+            {
+              "className": "org.example.SuperMain",
+              "file": "src/main/java/org/example/SuperMain.java",
+              "type": "class",
+              "cbo": 0,
+              "cboModified": 0,
+              "fanin": 0,
+              "fanout": 0,
+              "wmc": 1,
+              "rfc": 1,
+              "lcom": 0,
+              "lcomNormalized": 0.0,
+              "tcc": null,
+              "lcc": null,
+              "dit": 1,
+              "noc": 0,
+              "loc": 5,
+              "numberOfMethods": 1,
+              "numberOfFields": 0,
+              "returnQty": 0,
+              "loopQty": 0,
+              "comparisonsQty": 0,
+              "tryCatchQty": 0,
+              "variablesQty": 0,
+              "maxNestedBlocks": 0,
+              "uniqueWordsQty": 3
+            },
+            {
+              "className": "org.example.Main",
+              "file": "src/main/java/org/example/Main.java",
+              "type": "class",
+              "cbo": 1,
+              "cboModified": 3,
+              "fanin": 1,
+              "fanout": 2,
+              "wmc": 2,
+              "rfc": 3,
+              "lcom": 0,
+              "lcomNormalized": 0.0,
+              "tcc": null,
+              "lcc": null,
+              "dit": 2,
+              "noc": 0,
+              "loc": 10,
+              "numberOfMethods": 1,
+              "numberOfFields": 0,
+              "returnQty": 0,
+              "loopQty": 1,
+              "comparisonsQty": 0,
+              "tryCatchQty": 0,
+              "variablesQty": 1,
+              "maxNestedBlocks": 1,
+              "uniqueWordsQty": 8
+            }
+          ],
+          "parseErrors": []
+        },
+        "pmd": {
+          "violations": [
+            {
+              "file": "src/main/java/org/example/Main.java",
+              "rule": "SystemPrintln",
+              "ruleSet": "Best Practices",
+              "priority": 2,
+              "beginLine": 9,
+              "endLine": 9,
+              "message": "Usage of System.out/err"
+            },
+            {
+              "file": "src/main/java/org/example/Main.java",
+              "rule": "SystemPrintln",
+              "ruleSet": "Best Practices",
+              "priority": 2,
+              "beginLine": 14,
+              "endLine": 14,
+              "message": "Usage of System.out/err"
+            },
+            {
+              "file": "src/main/java/org/example/SuperMain.java",
+              "rule": "UseUtilityClass",
+              "ruleSet": "Design",
+              "priority": 3,
+              "beginLine": 3,
+              "endLine": 3,
+              "message": "This utility class has a non-private constructor"
+            },
+            {
+              "file": "src/main/java/org/example/SuperMain.java",
+              "rule": "SystemPrintln",
+              "ruleSet": "Best Practices",
+              "priority": 2,
+              "beginLine": 5,
+              "endLine": 5,
+              "message": "Usage of System.out/err"
+            }
+          ],
+          "classMetrics": [
+            {
+              "className": "org.example.SuperMain",
+              "file": "src/main/java/org/example/SuperMain.java",
+              "ncss": 3,
+              "atfd": 0,
+              "noam": 0,
+              "nopa": 0,
+              "woc": 1.0
+            },
+            {
+              "className": "org.example.Main",
+              "file": "src/main/java/org/example/Main.java",
+              "ncss": 7,
+              "atfd": 0,
+              "noam": 0,
+              "nopa": 0,
+              "woc": 1.0
+            }
+          ],
+          "methodMetrics": [
+            {
+              "className": "org.example.SuperMain",
+              "signature": "uhuh(String)",
+              "file": "src/main/java/org/example/SuperMain.java",
+              "cyclo": 1,
+              "cognitive": 0,
+              "npath": "1",
+              "ncss": 2,
+              "atfd": 0
+            },
+            {
+              "className": "org.example.Main",
+              "signature": "main(String[])",
+              "file": "src/main/java/org/example/Main.java",
+              "cyclo": 2,
+              "cognitive": 1,
+              "npath": "2",
+              "ncss": 6,
+              "atfd": 0
+            }
+          ],
+          "processingErrors": []
+        },
+        "cpd": {
+          "duplicationBlocks": 0,
+          "duplicatedLines": 0,
+          "duplicatedTokens": 0,
+          "totalLines": 27,
+          "totalTokens": 82,
+          "duplicatedLinesShare": 0.0,
+          "largestBlockLines": 0,
+          "largestBlockTokens": 0,
+          "filesInvolvedInDuplication": 0,
+          "duplications": [],
+          "processingErrors": []
+        },
+        "readability": {
+          "perFile": [
+            {
+              "file": "src/main/java/org/example/Main.java",
+              "totalLines": 20,
+              "codeLines": 11,
+              "commentLines": 6,
+              "blankLines": 3,
+              "commentLineRatio": 0.3,
+              "blankLineRatio": 0.15,
+              "avgLineLength": 50.529411764705884,
+              "maxLineLength": 159,
+              "avgIndentation": 6.352941176470588,
+              "maxIndentation": 12,
+              "identifiers": {
+                "count": 4,
+                "avgLength": 3.25,
+                "singleLetterRatio": 0.25,
+                "avgWordCount": 1.0,
+                "dictionaryWordRatio": 0.6666666666666666
+              }
+            },
+            {
+              "file": "src/main/java/org/example/SuperMain.java",
+              "totalLines": 7,
+              "codeLines": 6,
+              "commentLines": 0,
+              "blankLines": 1,
+              "commentLineRatio": 0.0,
+              "blankLineRatio": 0.14285714285714285,
+              "avgLineLength": 21.333333333333332,
+              "maxLineLength": 45,
+              "avgIndentation": 2.6666666666666665,
+              "maxIndentation": 8,
+              "identifiers": {
+                "count": 3,
+                "avgLength": 5.666666666666667,
+                "singleLetterRatio": 0.0,
+                "avgWordCount": 1.3333333333333333,
+                "dictionaryWordRatio": 0.5
+              }
+            }
+          ],
+          "perClass": [
+            {
+              "className": "org.example.Main",
+              "file": "src/main/java/org/example/Main.java",
+              "loc": 16,
+              "identifiers": {
+                "count": 1,
+                "avgLength": 4.0,
+                "singleLetterRatio": 0.0,
+                "avgWordCount": 1.0,
+                "dictionaryWordRatio": 1.0
+              }
+            },
+            {
+              "className": "org.example.SuperMain",
+              "file": "src/main/java/org/example/SuperMain.java",
+              "loc": 5,
+              "identifiers": {
+                "count": 1,
+                "avgLength": 9.0,
+                "singleLetterRatio": 0.0,
+                "avgWordCount": 2.0,
+                "dictionaryWordRatio": 1.0
+              }
+            }
+          ],
+          "perMethod": [
+            {
+              "className": "org.example.SuperMain",
+              "signature": "uhuh(String)",
+              "file": "src/main/java/org/example/SuperMain.java",
+              "loc": 3,
+              "identifiers": {
+                "count": 2,
+                "avgLength": 4.0,
+                "singleLetterRatio": 0.0,
+                "avgWordCount": 1.0,
+                "dictionaryWordRatio": 0.0
+              }
+            },
+            {
+              "className": "org.example.Main",
+              "signature": "main(String[])",
+              "file": "src/main/java/org/example/Main.java",
+              "loc": 13,
+              "identifiers": {
+                "count": 3,
+                "avgLength": 3.0,
+                "singleLetterRatio": 0.3333333333333333,
+                "avgWordCount": 1.0,
+                "dictionaryWordRatio": 0.5
+              }
+            }
+          ],
+          "summary": {
+            "fileCount": 2,
+            "classCount": 2,
+            "methodCount": 2,
+            "avgLineLength": 35.931372549019606,
+            "maxLineLength": 159,
+            "avgCommentRatio": 0.15,
+            "avgBlankRatio": 0.1464285714285714,
+            "avgIndentation": 4.509803921568627,
+            "maxIndentation": 12,
+            "avgIdentifierLength": 4.285714285714286,
+            "singleLetterRatio": 0.14285714285714285,
+            "avgWordCount": 1.1428571428571428,
+            "dictionaryWordRatio": 0.5,
+            "worstClassLoc": 16,
+            "worstMethodLoc": 13
+          }
+        },
+        "build": {
+          "success": true,
+          "exitCode": 0,
+          "durationMs": 7021,
+          "timedOut": false,
+          "stderrTail": ""
+        },
+        "tests": {
+          "success": true,
+          "exitCode": 0,
+          "durationMs": 3945,
+          "timedOut": false,
+          "total": 0,
+          "passed": 0,
+          "failed": 0,
+          "skipped": 0,
+          "failures": [],
+          "stderrTail": "",
+          "wasSkipped": false,
+          "skipReason": null
+        }
+      },
+      "diff": {
+        "filesTouched": 2,
+        "linesAdded": 8,
+        "linesDeleted": 4,
+        "totalChurn": 12,
+        "filesAdded": 1,
+        "filesModified": 1,
+        "filesDeleted": 0,
+        "filesRenamed": 0,
+        "perFileChurn": [
+          {
+            "path": "src/main/java/org/example/Main.java",
+            "linesAdded": 1,
+            "linesDeleted": 4
+          },
+          {
+            "path": "src/main/java/org/example/SuperMain.java",
+            "linesAdded": 7,
+            "linesDeleted": 0
+          }
+        ]
+      },
+      "touchedMembers": [
+        { "className": "org.example.SuperMain", "methodSignature": null },
+        {
+          "className": "org.example.SuperMain",
+          "methodSignature": "uhuh(String)"
+        },
+        { "className": "org.example.Main", "methodSignature": null },
+        { "className": "org.example.Main", "methodSignature": "uhuh(String)" }
+      ]
+    },
+    {
+      "sha": "671155bc8d05c791b604437442483cf7a436db06",
+      "events": [
+        {
+          "id": "5900bce0-b357-4d17-b77d-7338c70d4ad6",
+          "type": "EDIT_BURST",
+          "timestamp": 1776609982983,
+          "touchedMembers": [
+            { "className": "org.example.SuperMain", "methodSignature": null }
+          ]
+        }
+      ],
+      "metrics": {
+        "sha": "671155bc8d05c791b604437442483cf7a436db06",
+        "ck": {
+          "perClass": [
+            {
+              "className": "org.example.SuperMain",
+              "file": "src/main/java/org/example/SuperMain.java",
+              "type": "class",
+              "cbo": 0,
+              "cboModified": 0,
+              "fanin": 0,
+              "fanout": 0,
+              "wmc": 1,
+              "rfc": 1,
+              "lcom": 0,
+              "lcomNormalized": 0.0,
+              "tcc": null,
+              "lcc": null,
+              "dit": 1,
+              "noc": 0,
+              "loc": 5,
+              "numberOfMethods": 1,
+              "numberOfFields": 0,
+              "returnQty": 0,
+              "loopQty": 0,
+              "comparisonsQty": 0,
+              "tryCatchQty": 0,
+              "variablesQty": 0,
+              "maxNestedBlocks": 0,
+              "uniqueWordsQty": 3
+            },
+            {
+              "className": "org.example.Main",
+              "file": "src/main/java/org/example/Main.java",
+              "type": "class",
+              "cbo": 1,
+              "cboModified": 3,
+              "fanin": 1,
+              "fanout": 2,
+              "wmc": 2,
+              "rfc": 3,
+              "lcom": 0,
+              "lcomNormalized": 0.0,
+              "tcc": null,
+              "lcc": null,
+              "dit": 2,
+              "noc": 0,
+              "loc": 10,
+              "numberOfMethods": 1,
+              "numberOfFields": 0,
+              "returnQty": 0,
+              "loopQty": 1,
+              "comparisonsQty": 0,
+              "tryCatchQty": 0,
+              "variablesQty": 1,
+              "maxNestedBlocks": 1,
+              "uniqueWordsQty": 8
+            }
+          ],
+          "parseErrors": []
+        },
+        "pmd": {
+          "violations": [
+            {
+              "file": "src/main/java/org/example/Main.java",
+              "rule": "SystemPrintln",
+              "ruleSet": "Best Practices",
+              "priority": 2,
+              "beginLine": 9,
+              "endLine": 9,
+              "message": "Usage of System.out/err"
+            },
+            {
+              "file": "src/main/java/org/example/Main.java",
+              "rule": "SystemPrintln",
+              "ruleSet": "Best Practices",
+              "priority": 2,
+              "beginLine": 14,
+              "endLine": 14,
+              "message": "Usage of System.out/err"
+            }
+          ],
+          "classMetrics": [
+            {
+              "className": "org.example.Main",
+              "file": "src/main/java/org/example/Main.java",
+              "ncss": 7,
+              "atfd": 0,
+              "noam": 0,
+              "nopa": 0,
+              "woc": 1.0
+            }
+          ],
+          "methodMetrics": [
+            {
+              "className": "org.example.Main",
+              "signature": "main(String[])",
+              "file": "src/main/java/org/example/Main.java",
+              "cyclo": 2,
+              "cognitive": 1,
+              "npath": "2",
+              "ncss": 6,
+              "atfd": 0
+            }
+          ],
+          "processingErrors": [
+            {
+              "file": "src/main/java/org/example/SuperMain.java",
+              "message": "ParseException: Parse exception in file '/var/folders/6g/kbnc25qj6cj8grn551g_d7h40000gn/T/analysis-16120341290573973817/shadow-worktrees/w6/src/main/java/org/example/SuperMain.java' at line 7, column 5: Encountered .\nWas expecting one of:\n    "
+            }
+          ]
+        },
+        "cpd": {
+          "duplicationBlocks": 0,
+          "duplicatedLines": 0,
+          "duplicatedTokens": 0,
+          "totalLines": 28,
+          "totalTokens": 83,
+          "duplicatedLinesShare": 0.0,
+          "largestBlockLines": 0,
+          "largestBlockTokens": 0,
+          "filesInvolvedInDuplication": 0,
+          "duplications": [],
+          "processingErrors": []
+        },
+        "readability": {
+          "perFile": [
+            {
+              "file": "src/main/java/org/example/Main.java",
+              "totalLines": 20,
+              "codeLines": 11,
+              "commentLines": 6,
+              "blankLines": 3,
+              "commentLineRatio": 0.3,
+              "blankLineRatio": 0.15,
+              "avgLineLength": 50.529411764705884,
+              "maxLineLength": 159,
+              "avgIndentation": 6.352941176470588,
+              "maxIndentation": 12,
+              "identifiers": {
+                "count": 4,
+                "avgLength": 3.25,
+                "singleLetterRatio": 0.25,
+                "avgWordCount": 1.0,
+                "dictionaryWordRatio": 0.6666666666666666
+              }
+            },
+            {
+              "file": "src/main/java/org/example/SuperMain.java",
+              "totalLines": 8,
+              "codeLines": 7,
+              "commentLines": 0,
+              "blankLines": 1,
+              "commentLineRatio": 0.0,
+              "blankLineRatio": 0.125,
+              "avgLineLength": 20.142857142857142,
+              "maxLineLength": 45,
+              "avgIndentation": 2.857142857142857,
+              "maxIndentation": 8,
+              "identifiers": {
+                "count": 0,
+                "avgLength": 0.0,
+                "singleLetterRatio": 0.0,
+                "avgWordCount": 0.0,
+                "dictionaryWordRatio": 0.0
+              }
+            }
+          ],
+          "perClass": [
+            {
+              "className": "org.example.Main",
+              "file": "src/main/java/org/example/Main.java",
+              "loc": 16,
+              "identifiers": {
+                "count": 1,
+                "avgLength": 4.0,
+                "singleLetterRatio": 0.0,
+                "avgWordCount": 1.0,
+                "dictionaryWordRatio": 1.0
+              }
+            }
+          ],
+          "perMethod": [
+            {
+              "className": "org.example.Main",
+              "signature": "main(String[])",
+              "file": "src/main/java/org/example/Main.java",
+              "loc": 13,
+              "identifiers": {
+                "count": 3,
+                "avgLength": 3.0,
+                "singleLetterRatio": 0.3333333333333333,
+                "avgWordCount": 1.0,
+                "dictionaryWordRatio": 0.5
+              }
+            }
+          ],
+          "summary": {
+            "fileCount": 2,
+            "classCount": 1,
+            "methodCount": 1,
+            "avgLineLength": 35.33613445378151,
+            "maxLineLength": 159,
+            "avgCommentRatio": 0.15,
+            "avgBlankRatio": 0.1375,
+            "avgIndentation": 4.605042016806722,
+            "maxIndentation": 12,
+            "avgIdentifierLength": 3.25,
+            "singleLetterRatio": 0.25,
+            "avgWordCount": 1.0,
+            "dictionaryWordRatio": 0.625,
+            "worstClassLoc": 16,
+            "worstMethodLoc": 13
+          }
+        },
+        "build": {
+          "success": false,
+          "exitCode": 1,
+          "durationMs": 6695,
+          "timedOut": false,
+          "stderrTail": "/private/var/folders/6g/kbnc25qj6cj8grn551g_d7h40000gn/T/analysis-16120341290573973817/shadow-worktrees/w6/src/main/java/org/example/SuperMain.java:7: error: <identifier> expected\n    asdasdasd\n             ^\n1 error\n\nFAILURE: Build failed with an exception.\n\n* What went wrong:\nExecution failed for task ':compileJava'.\n> Compilation failed; see the compiler output below.\n  /private/var/folders/6g/kbnc25qj6cj8grn551g_d7h40000gn/T/analysis-16120341290573973817/shadow-worktrees/w6/src/main/java/org/example/SuperMain.java:7: error: <identifier> expected\n      asdasdasd\n               ^\n  1 error\n\n* Try:\n> Check your code and dependencies to fix the compilation error(s)\n> Run with --scan to get full insights.\n\nBUILD FAILED in 6s\n"
+        },
+        "tests": {
+          "success": false,
+          "exitCode": -1,
+          "durationMs": 0,
+          "timedOut": false,
+          "total": 0,
+          "passed": 0,
+          "failed": 0,
+          "skipped": 0,
+          "failures": [],
+          "stderrTail": "",
+          "wasSkipped": true,
+          "skipReason": "build failed (exit 1)"
+        }
+      },
+      "diff": {
+        "filesTouched": 1,
+        "linesAdded": 1,
+        "linesDeleted": 0,
+        "totalChurn": 1,
+        "filesAdded": 0,
+        "filesModified": 1,
+        "filesDeleted": 0,
+        "filesRenamed": 0,
+        "perFileChurn": [
+          {
+            "path": "src/main/java/org/example/SuperMain.java",
+            "linesAdded": 1,
+            "linesDeleted": 0
+          }
+        ]
+      },
+      "touchedMembers": [
+        { "className": "org.example.SuperMain", "methodSignature": null }
+      ]
+    },
+    {
+      "sha": "30df9f617ac0f2cd2f1a74b9d941dd6654be505b",
+      "events": [
+        {
+          "id": "d0dc066b-97a6-4c02-a258-9701a7a473b5",
+          "type": "EDIT_BURST",
+          "timestamp": 1776609988045,
+          "touchedMembers": [
+            { "className": "org.example.SuperMain", "methodSignature": null }
+          ]
+        },
+        {
+          "id": "a5d3024e-ca76-4159-b45b-16f346703cbb",
+          "type": "SESSION_ENDED",
+          "timestamp": 1776609991352,
+          "touchedMembers": []
+        }
+      ],
+      "metrics": {
+        "sha": "30df9f617ac0f2cd2f1a74b9d941dd6654be505b",
+        "ck": {
+          "perClass": [
+            {
+              "className": "org.example.SuperMain",
+              "file": "src/main/java/org/example/SuperMain.java",
+              "type": "class",
+              "cbo": 0,
+              "cboModified": 1,
+              "fanin": 1,
+              "fanout": 0,
+              "wmc": 1,
+              "rfc": 1,
+              "lcom": 0,
+              "lcomNormalized": 0.0,
+              "tcc": null,
+              "lcc": null,
+              "dit": 1,
+              "noc": 2,
+              "loc": 5,
+              "numberOfMethods": 1,
+              "numberOfFields": 0,
+              "returnQty": 0,
+              "loopQty": 0,
+              "comparisonsQty": 0,
+              "tryCatchQty": 0,
+              "variablesQty": 0,
+              "maxNestedBlocks": 0,
+              "uniqueWordsQty": 3
+            },
+            {
+              "className": "org.example.Main",
+              "file": "src/main/java/org/example/Main.java",
+              "type": "class",
+              "cbo": 1,
+              "cboModified": 3,
+              "fanin": 1,
+              "fanout": 2,
+              "wmc": 2,
+              "rfc": 3,
+              "lcom": 0,
+              "lcomNormalized": 0.0,
+              "tcc": null,
+              "lcc": null,
+              "dit": 2,
+              "noc": 0,
+              "loc": 10,
+              "numberOfMethods": 1,
+              "numberOfFields": 0,
+              "returnQty": 0,
+              "loopQty": 1,
+              "comparisonsQty": 0,
+              "tryCatchQty": 0,
+              "variablesQty": 1,
+              "maxNestedBlocks": 1,
+              "uniqueWordsQty": 8
+            }
+          ],
+          "parseErrors": []
+        },
+        "pmd": {
+          "violations": [
+            {
+              "file": "src/main/java/org/example/Main.java",
+              "rule": "SystemPrintln",
+              "ruleSet": "Best Practices",
+              "priority": 2,
+              "beginLine": 9,
+              "endLine": 9,
+              "message": "Usage of System.out/err"
+            },
+            {
+              "file": "src/main/java/org/example/Main.java",
+              "rule": "SystemPrintln",
+              "ruleSet": "Best Practices",
+              "priority": 2,
+              "beginLine": 14,
+              "endLine": 14,
+              "message": "Usage of System.out/err"
+            },
+            {
+              "file": "src/main/java/org/example/SuperMain.java",
+              "rule": "UseUtilityClass",
+              "ruleSet": "Design",
+              "priority": 3,
+              "beginLine": 3,
+              "endLine": 3,
+              "message": "This utility class has a non-private constructor"
+            },
+            {
+              "file": "src/main/java/org/example/SuperMain.java",
+              "rule": "SystemPrintln",
+              "ruleSet": "Best Practices",
+              "priority": 2,
+              "beginLine": 5,
+              "endLine": 5,
+              "message": "Usage of System.out/err"
+            }
+          ],
+          "classMetrics": [
+            {
+              "className": "org.example.SuperMain",
+              "file": "src/main/java/org/example/SuperMain.java",
+              "ncss": 3,
+              "atfd": 0,
+              "noam": 0,
+              "nopa": 0,
+              "woc": 1.0
+            },
+            {
+              "className": "org.example.Main",
+              "file": "src/main/java/org/example/Main.java",
+              "ncss": 7,
+              "atfd": 0,
+              "noam": 0,
+              "nopa": 0,
+              "woc": 1.0
+            }
+          ],
+          "methodMetrics": [
+            {
+              "className": "org.example.SuperMain",
+              "signature": "uhuh(String)",
+              "file": "src/main/java/org/example/SuperMain.java",
+              "cyclo": 1,
+              "cognitive": 0,
+              "npath": "1",
+              "ncss": 2,
+              "atfd": 0
+            },
+            {
+              "className": "org.example.Main",
+              "signature": "main(String[])",
+              "file": "src/main/java/org/example/Main.java",
+              "cyclo": 2,
+              "cognitive": 1,
+              "npath": "2",
+              "ncss": 6,
+              "atfd": 0
+            }
+          ],
+          "processingErrors": []
+        },
+        "cpd": {
+          "duplicationBlocks": 0,
+          "duplicatedLines": 0,
+          "duplicatedTokens": 0,
+          "totalLines": 27,
+          "totalTokens": 82,
+          "duplicatedLinesShare": 0.0,
+          "largestBlockLines": 0,
+          "largestBlockTokens": 0,
+          "filesInvolvedInDuplication": 0,
+          "duplications": [],
+          "processingErrors": []
+        },
+        "readability": {
+          "perFile": [
+            {
+              "file": "src/main/java/org/example/Main.java",
+              "totalLines": 20,
+              "codeLines": 11,
+              "commentLines": 6,
+              "blankLines": 3,
+              "commentLineRatio": 0.3,
+              "blankLineRatio": 0.15,
+              "avgLineLength": 50.529411764705884,
+              "maxLineLength": 159,
+              "avgIndentation": 6.352941176470588,
+              "maxIndentation": 12,
+              "identifiers": {
+                "count": 4,
+                "avgLength": 3.25,
+                "singleLetterRatio": 0.25,
+                "avgWordCount": 1.0,
+                "dictionaryWordRatio": 0.6666666666666666
+              }
+            },
+            {
+              "file": "src/main/java/org/example/SuperMain.java",
+              "totalLines": 7,
+              "codeLines": 6,
+              "commentLines": 0,
+              "blankLines": 1,
+              "commentLineRatio": 0.0,
+              "blankLineRatio": 0.14285714285714285,
+              "avgLineLength": 21.333333333333332,
+              "maxLineLength": 45,
+              "avgIndentation": 2.6666666666666665,
+              "maxIndentation": 8,
+              "identifiers": {
+                "count": 3,
+                "avgLength": 5.666666666666667,
+                "singleLetterRatio": 0.0,
+                "avgWordCount": 1.3333333333333333,
+                "dictionaryWordRatio": 0.5
+              }
+            }
+          ],
+          "perClass": [
+            {
+              "className": "org.example.SuperMain",
+              "file": "src/main/java/org/example/SuperMain.java",
+              "loc": 5,
+              "identifiers": {
+                "count": 1,
+                "avgLength": 9.0,
+                "singleLetterRatio": 0.0,
+                "avgWordCount": 2.0,
+                "dictionaryWordRatio": 1.0
+              }
+            },
+            {
+              "className": "org.example.Main",
+              "file": "src/main/java/org/example/Main.java",
+              "loc": 16,
+              "identifiers": {
+                "count": 1,
+                "avgLength": 4.0,
+                "singleLetterRatio": 0.0,
+                "avgWordCount": 1.0,
+                "dictionaryWordRatio": 1.0
+              }
+            }
+          ],
+          "perMethod": [
+            {
+              "className": "org.example.SuperMain",
+              "signature": "uhuh(String)",
+              "file": "src/main/java/org/example/SuperMain.java",
+              "loc": 3,
+              "identifiers": {
+                "count": 2,
+                "avgLength": 4.0,
+                "singleLetterRatio": 0.0,
+                "avgWordCount": 1.0,
+                "dictionaryWordRatio": 0.0
+              }
+            },
+            {
+              "className": "org.example.Main",
+              "signature": "main(String[])",
+              "file": "src/main/java/org/example/Main.java",
+              "loc": 13,
+              "identifiers": {
+                "count": 3,
+                "avgLength": 3.0,
+                "singleLetterRatio": 0.3333333333333333,
+                "avgWordCount": 1.0,
+                "dictionaryWordRatio": 0.5
+              }
+            }
+          ],
+          "summary": {
+            "fileCount": 2,
+            "classCount": 2,
+            "methodCount": 2,
+            "avgLineLength": 35.931372549019606,
+            "maxLineLength": 159,
+            "avgCommentRatio": 0.15,
+            "avgBlankRatio": 0.1464285714285714,
+            "avgIndentation": 4.509803921568627,
+            "maxIndentation": 12,
+            "avgIdentifierLength": 4.285714285714286,
+            "singleLetterRatio": 0.14285714285714285,
+            "avgWordCount": 1.1428571428571428,
+            "dictionaryWordRatio": 0.5,
+            "worstClassLoc": 16,
+            "worstMethodLoc": 13
+          }
+        },
+        "build": {
+          "success": true,
+          "exitCode": 0,
+          "durationMs": 4931,
+          "timedOut": false,
+          "stderrTail": ""
+        },
+        "tests": {
+          "success": true,
+          "exitCode": 0,
+          "durationMs": 3200,
+          "timedOut": false,
+          "total": 0,
+          "passed": 0,
+          "failed": 0,
+          "skipped": 0,
+          "failures": [],
+          "stderrTail": "",
+          "wasSkipped": false,
+          "skipReason": null
+        }
+      },
+      "diff": {
+        "filesTouched": 1,
+        "linesAdded": 0,
+        "linesDeleted": 1,
+        "totalChurn": 1,
+        "filesAdded": 0,
+        "filesModified": 1,
+        "filesDeleted": 0,
+        "filesRenamed": 0,
+        "perFileChurn": [
+          {
+            "path": "src/main/java/org/example/SuperMain.java",
+            "linesAdded": 0,
+            "linesDeleted": 1
+          }
+        ]
+      },
+      "touchedMembers": [
+        { "className": "org.example.SuperMain", "methodSignature": null }
+      ]
+    }
+  ],
+  "manualRefactorings": [
+    {
+      "segmentIndex": 0,
+      "fromSha": "2d415955c02a370b04b4e77c35628c29133d7b99",
+      "toSha": "f834ef969709b2f6d620e54713d7d6e0cc0fa2f4",
+      "segmentRefactorings": [
+        {
+          "type": "Add Parameter",
+          "description": "Add Parameter\tuhuh : String in method private uhuh(uhuh String) : void from class org.example.Main",
+          "leftSideLocations": [
+            {
+              "key": "src/main/java/org/example/Main.java:20-22 [METHOD_DECLARATION] private uhuh() : void",
+              "filePath": "src/main/java/org/example/Main.java",
+              "startLine": 20,
+              "endLine": 22,
+              "startColumn": 5,
+              "endColumn": 6,
+              "codeElementType": "METHOD_DECLARATION",
+              "codeElement": "private uhuh() : void"
+            }
+          ],
+          "rightSideLocations": [
+            {
+              "key": "src/main/java/org/example/Main.java:20-20 [SINGLE_VARIABLE_DECLARATION] uhuh : String",
+              "filePath": "src/main/java/org/example/Main.java",
+              "startLine": 20,
+              "endLine": 20,
+              "startColumn": 30,
+              "endColumn": 41,
+              "codeElementType": "SINGLE_VARIABLE_DECLARATION",
+              "codeElement": "uhuh : String"
+            },
+            {
+              "key": "src/main/java/org/example/Main.java:20-22 [METHOD_DECLARATION] private uhuh(uhuh String) : void",
+              "filePath": "src/main/java/org/example/Main.java",
+              "startLine": 20,
+              "endLine": 22,
+              "startColumn": 5,
+              "endColumn": 6,
+              "codeElementType": "METHOD_DECLARATION",
+              "codeElement": "private uhuh(uhuh String) : void"
+            }
+          ],
+          "ideRelevant": true
+        }
+      ],
+      "innerFindings": [
+        {
+          "fromSha": "2d415955c02a370b04b4e77c35628c29133d7b99",
+          "toSha": "b03e1ebfe61b0d32dc27da2284b68533d3e412a9",
+          "refactorings": [
+            {
+              "type": "Add Parameter",
+              "description": "Add Parameter\tuhuh : String in method private uhuh(uhuh String) : void from class org.example.Main",
+              "leftSideLocations": [
+                {
+                  "key": "src/main/java/org/example/Main.java:20-22 [METHOD_DECLARATION] private uhuh() : void",
+                  "filePath": "src/main/java/org/example/Main.java",
+                  "startLine": 20,
+                  "endLine": 22,
+                  "startColumn": 5,
+                  "endColumn": 6,
+                  "codeElementType": "METHOD_DECLARATION",
+                  "codeElement": "private uhuh() : void"
+                }
+              ],
+              "rightSideLocations": [
+                {
+                  "key": "src/main/java/org/example/Main.java:20-20 [SINGLE_VARIABLE_DECLARATION] uhuh : String",
+                  "filePath": "src/main/java/org/example/Main.java",
+                  "startLine": 20,
+                  "endLine": 20,
+                  "startColumn": 30,
+                  "endColumn": 41,
+                  "codeElementType": "SINGLE_VARIABLE_DECLARATION",
+                  "codeElement": "uhuh : String"
+                },
+                {
+                  "key": "src/main/java/org/example/Main.java:20-22 [METHOD_DECLARATION] private uhuh(uhuh String) : void",
+                  "filePath": "src/main/java/org/example/Main.java",
+                  "startLine": 20,
+                  "endLine": 22,
+                  "startColumn": 5,
+                  "endColumn": 6,
+                  "codeElementType": "METHOD_DECLARATION",
+                  "codeElement": "private uhuh(uhuh String) : void"
+                }
+              ],
+              "ideRelevant": true
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "trajectory": {
+    "numSteps": 7,
+    "totalChurn": 30,
+    "avgChurnPerStep": 4.285714285714286,
+    "maxChurnOnStep": 12,
+    "totalFilesTouched": 2,
+    "perFileTouchCount": {
+      "src/main/java/org/example/Main.java": 5,
+      "src/main/java/org/example/SuperMain.java": 3
+    },
+    "retouchCount": 6,
+    "churnTopNShare": 1.0,
+    "topN": 10,
+    "totalElapsedMs": 76906,
+    "totalBrokenMs": 10837,
+    "classes": {
+      "perTouchCount": { "org.example.Main": 4, "org.example.SuperMain": 3 },
+      "retouchCount": 5,
+      "consecutiveRetouchCount": 5,
+      "distinctTouched": 2,
+      "topTouched": ["org.example.Main", "org.example.SuperMain"],
+      "topNShare": 1.0,
+      "topN": 10,
+      "perStepIndices": {
+        "org.example.Main": [1, 2, 3, 4],
+        "org.example.SuperMain": [4, 5, 6]
+      }
+    },
+    "methods": {
+      "perTouchCount": {
+        "org.example.Main#main(String[])": 1,
+        "org.example.Main#uhuh(String)": 4,
+        "org.example.SuperMain#uhuh(String)": 1
+      },
+      "retouchCount": 3,
+      "consecutiveRetouchCount": 3,
+      "distinctTouched": 3,
+      "topTouched": [
+        "org.example.Main#uhuh(String)",
+        "org.example.Main#main(String[])",
+        "org.example.SuperMain#uhuh(String)"
+      ],
+      "topNShare": 1.0,
+      "topN": 10,
+      "perStepIndices": {
+        "org.example.Main#main(String[])": [1],
+        "org.example.Main#uhuh(String)": [1, 2, 3, 4],
+        "org.example.SuperMain#uhuh(String)": [4]
+      }
+    },
+    "duplication": {
+      "duplicatedLinesPerStep": [0, 0, 0, 0, 0, 0, 0, 0],
+      "duplicatedBlocksPerStep": [0, 0, 0, 0, 0, 0, 0, 0],
+      "linesDeltaPerStep": [0, 0, 0, 0, 0, 0, 0],
+      "blocksDeltaPerStep": [0, 0, 0, 0, 0, 0, 0],
+      "totalLinesIntroduced": 0,
+      "totalLinesRemoved": 0,
+      "netLinesChange": 0,
+      "totalBlocksIntroduced": 0,
+      "totalBlocksRemoved": 0,
+      "maxDuplicatedLines": 0,
+      "maxSpikeLines": 0,
+      "maxDropLines": 0,
+      "stepsIncreasing": 0,
+      "stepsAboveBaseline": 0,
+      "spikeThenDropCount": 0,
+      "spikeThreshold": 20,
+      "dropThreshold": 20,
+      "followupWindow": 5
+    },
+    "readability": {
+      "avgLineLengthPerStep": [
+        51.11764705882353, 46.05, 46.1, 44.523809523809526, 46.1,
+        35.931372549019606, 35.33613445378151, 35.931372549019606
+      ],
+      "maxLineLengthPerStep": [159, 159, 159, 159, 159, 159, 159, 159],
+      "avgCommentRatioPerStep": [
+        0.3157894736842105, 0.2608695652173913, 0.2608695652173913, 0.25,
+        0.2608695652173913, 0.15, 0.15, 0.15
+      ],
+      "avgIndentationPerStep": [
+        6.352941176470588, 6.2, 6.2, 6.285714285714286, 6.2, 4.509803921568627,
+        4.605042016806722, 4.509803921568627
+      ],
+      "avgIdentifierLengthPerStep": [
+        3.25, 3.4, 3.5, 3.5, 3.5, 4.285714285714286, 3.25, 4.285714285714286
+      ],
+      "singleLetterRatioPerStep": [
+        0.25, 0.2, 0.16666666666666666, 0.16666666666666666,
+        0.16666666666666666, 0.14285714285714285, 0.25, 0.14285714285714285
+      ],
+      "avgWordCountPerStep": [
+        1.0, 1.0, 1.0, 1.0, 1.0, 1.1428571428571428, 1.0, 1.1428571428571428
+      ],
+      "dictionaryWordRatioPerStep": [
+        0.625, 0.5, 0.4166666666666667, 0.4166666666666667, 0.4166666666666667,
+        0.5, 0.625, 0.5
+      ],
+      "worstClassLocPerStep": [15, 19, 19, 20, 19, 16, 16, 16],
+      "worstMethodLocPerStep": [13, 13, 13, 13, 13, 13, 13, 13],
+      "netAvgLineLengthChange": -15.186274509803923,
+      "netAvgCommentRatioChange": -0.16578947368421051,
+      "netAvgIdentifierLengthChange": 1.0357142857142856,
+      "netSingleLetterRatioChange": -0.10714285714285715,
+      "netDictionaryWordRatioChange": -0.125,
+      "netWorstMethodLocChange": 0,
+      "netWorstClassLocChange": 1
+    }
+  }
+}

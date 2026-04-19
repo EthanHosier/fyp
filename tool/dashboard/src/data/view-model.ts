@@ -1,3 +1,21 @@
+/**
+ * Adapter: `AnalysisReport` → `DashboardViewModel`. The chart + rail
+ * consume a single number per (checkpoint, metric), so each metric is
+ * a deliberately crude collapse of a much richer underlying structure:
+ *
+ *   complexity  · wmc    mean of `ck.perClass[].wmc`    (per-class avg)
+ *   coupling    · cbo    mean of `ck.perClass[].cbo`    (per-class avg)
+ *   duplication · %      `cpd.duplicatedLinesShare`     × 100
+ *   readability · chars  `readability.summary.avgLineLength` — placeholder
+ *                         proxy; real composite (comments, identifiers,
+ *                         indentation…) is deferred
+ *   churn       · lines  `diff.totalChurn`              (added + deleted)
+ *
+ * Everything else in the report (per-file churn, PMD violations, CPD
+ * blocks, per-method cognitive complexity, readability sub-fields) is
+ * currently dropped. Feature code only sees `values[metricId]: number`,
+ * so richer scoring can be swapped in here without touching the UI.
+ */
 import type {
   AnalysisReport,
   CheckpointReport,
