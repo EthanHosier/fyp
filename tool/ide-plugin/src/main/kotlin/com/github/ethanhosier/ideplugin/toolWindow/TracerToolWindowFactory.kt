@@ -1,8 +1,10 @@
 package com.github.ethanhosier.ideplugin.toolWindow
 
+import com.github.ethanhosier.ideplugin.dashboard.DashboardWindow
 import com.github.ethanhosier.ideplugin.services.AnalysisClient
 import com.github.ethanhosier.ideplugin.services.SessionService
 import com.github.ethanhosier.ideplugin.services.StorageService
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.icons.AllIcons
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
@@ -263,6 +265,7 @@ private class TracerStatusPanel(private val project: Project, toolWindow: ToolWi
                         "Session analysed",
                         "Report written to ${reportPath.toAbsolutePath()}",
                     )
+                    openDashboard(reportPath)
                 } catch (e: Exception) {
                     thisLogger().warn("RefactoringTracer: analysis upload failed", e)
                     notifyUser(
@@ -279,6 +282,21 @@ private class TracerStatusPanel(private val project: Project, toolWindow: ToolWi
                 refresh()
             }
         })
+    }
+
+    private fun openDashboard(reportPath: java.nio.file.Path) {
+        if (System.getenv("REFDASH_DISABLED") == "1") return
+        if (!DashboardWindow.isSupported()) {
+            thisLogger().warn("RefactoringTracer: JCEF unsupported, skipping dashboard")
+            return
+        }
+        ApplicationManager.getApplication().invokeLater {
+            try {
+                DashboardWindow(project, reportPath).show()
+            } catch (e: Exception) {
+                thisLogger().warn("RefactoringTracer: failed to open dashboard", e)
+            }
+        }
     }
 
     private fun notifyUser(type: NotificationType, title: String, content: String) {
