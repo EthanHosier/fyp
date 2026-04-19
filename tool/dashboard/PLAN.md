@@ -82,6 +82,14 @@ dashboard/src/
 │   └── status-dot.tsx            ← cva variants: tone (pass/fail/unknown), size (sm/md)
 │
 └── features/
+    ├── preview/                  ← design-system preview page (not a dashboard feature,
+    │   │                           but a standalone route — lives alongside features
+    │   │                           for consistency)
+    │   ├── preview-section.tsx
+    │   ├── token-row.tsx
+    │   ├── token-caption.tsx
+    │   ├── color-swatch.tsx
+    │   └── text-sample.tsx
     ├── header/
     │   └── header-bar.tsx
     ├── metric-rail/
