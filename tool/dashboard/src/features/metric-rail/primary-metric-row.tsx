@@ -1,6 +1,7 @@
 import { Sparkline } from "@/components/sparkline"
 import { Text } from "@/components/text"
-import type { MetricTone, MetricVM } from "@/data/types"
+import type { MetricVM } from "@/data/types"
+import { TONE_BORDER } from "@/lib/metric-tone"
 import { cn } from "@/lib/utils"
 
 /**
@@ -31,7 +32,7 @@ export function PrimaryMetricRow({
       className={cn(
         "flex w-full cursor-pointer items-center gap-2 px-3 py-[7px] text-left transition-colors",
         "border-l-2 border-transparent",
-        active ? cn("bg-bg-3", borderClass[metric.tone]) : "hover:bg-bg-2",
+        active ? cn("bg-bg-3", TONE_BORDER[metric.tone]) : "hover:bg-bg-2",
       )}
     >
       <div className="min-w-0 flex-1">
@@ -60,10 +61,3 @@ export function PrimaryMetricRow({
   )
 }
 
-const borderClass: Record<MetricTone, string> = {
-  "brand": "border-brand",
-  "brand-2": "border-brand-2",
-  "brand-3": "border-brand-3",
-  "brand-4": "border-brand-4",
-  "brand-5": "border-brand-5",
-}
