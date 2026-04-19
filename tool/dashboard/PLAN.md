@@ -160,7 +160,7 @@ Design system first, preview page second, features after. Each step ends in a co
 - [x] **1. Tokens.** `index.css` with `@theme` tokens (colors, font families, radii) + base body styles. Dark-only. No components yet.
 - [x] **2. shadcn primitives wired to tokens.** Add `button`, `card`, `checkbox`, `separator`, `badge`, `scroll-area`, `tooltip`. Status-tone variants added to `badge`; colour tones added to `checkbox`; surface variants added to `tooltip`.
 - [x] **3. App primitives with `cva` variants.** `status-dot`, `sparkline`, `score-pill`, `rail-section`, `metric-tile`, `status-row`, plus the earlier `meter`. `icon` skipped (using lucide directly). `exp-block` dropped (no prose). `filter-chip` + `legend-swatch` deferred to the chart steps where their context lives.
-- [ ] **4. Preview page.** Move the showcases from `App.tsx` into `features/preview/preview-app.tsx`, gated via `?preview` (or similar) in `main.tsx`. Shows every primitive + variant side-by-side. Iterate on look & feel here — **gate** before moving on to step 5.
+- [x] **4. Preview page.** Showcases moved into `features/preview/preview-app.tsx`, routed at `/preview` via `react-router-dom`. `App.tsx` at `/` is a placeholder until step 5.
 - [ ] **5. Layout shell.** `App.tsx` with the three-region grid (header / side-rail + main / bottom-strip). Static placeholders built from primitives. Verify palette + spacing against reference screenshot.
 - [ ] **6. View-model + `useDashboardState`.** Ship `data/view-model.ts`, `data/types.ts`. Wire `useReport()` → `toViewModel()`. Empty/loading states. Expose `selection`, `primary`, `secondaries`, `layers` state + setters.
 - [ ] **7. Header.** `header-bar` composing `score-pill`, `status-dot`, `icon`, shadcn `button`/`separator`/`badge`.
