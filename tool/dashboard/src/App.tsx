@@ -1,13 +1,11 @@
 import { Lightbulb } from "lucide-react"
 
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Separator } from "@/components/ui/separator"
 import { RailSection } from "@/components/rail-section"
 import { Text } from "@/components/text"
-import type { DashboardViewModel } from "@/data/types"
 import { toViewModel } from "@/data/view-model"
+import { HeaderBar } from "@/features/header/header-bar"
 import { useReport } from "@/hooks/useReport"
-import { formatDurationShort } from "@/lib/format"
 
 /*
  * Step 5 — static layout shell. Three regions:
@@ -29,7 +27,7 @@ export default function App() {
 
   return (
     <div className="flex h-screen w-screen flex-col bg-bg text-fg">
-      <HeaderPlaceholder vm={vm} />
+      <HeaderBar vm={vm} />
       <div className="relative flex min-h-0 flex-1">
         <MetricRailPlaceholder />
         <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
@@ -53,28 +51,6 @@ function LoadingState() {
   )
 }
 
-function HeaderPlaceholder({ vm }: { vm: DashboardViewModel }) {
-  const { session } = vm
-  return (
-    <header className="flex h-12 shrink-0 items-center gap-3 border-b border-border bg-bg-1 px-4">
-      <Text variant="heading" tone="fg">{session.name}</Text>
-      <Separator orientation="vertical" className="h-5" />
-      <Text variant="mono" tone="fg-3">{session.branch ?? "(detached)"}</Text>
-      {session.commitHash ? (
-        <Text variant="mono" tone="fg-4">{session.commitHash.slice(0, 7)}</Text>
-      ) : null}
-      <div className="ml-auto flex items-center gap-3">
-        <Text variant="mono" tone="fg-3">
-          {session.checkpointCount} checkpoints
-        </Text>
-        <Separator orientation="vertical" className="h-4" />
-        <Text variant="mono" tone="fg-3">
-          {formatDurationShort(session.durationMs)}
-        </Text>
-      </div>
-    </header>
-  )
-}
 
 function MetricRailPlaceholder() {
   return (

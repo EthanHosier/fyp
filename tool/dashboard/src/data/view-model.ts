@@ -114,6 +114,7 @@ export function toViewModel(report: AnalysisReport): DashboardViewModel {
 
   const session: SessionVM = {
     name: report.session.name,
+    projectName: report.session.projectName,
     branch: report.session.branch ?? null,
     startedAt,
     durationMs: Math.max(0, endedAt - startedAt),

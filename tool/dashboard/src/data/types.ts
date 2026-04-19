@@ -49,6 +49,7 @@ export type IntervalVM = {
 
 export type SessionVM = {
   name: string
+  projectName: string
   branch: string | null
   startedAt: number
   durationMs: number
