@@ -16,7 +16,10 @@ export function CheckpointFilmstrip({
   const setSelection = useDashboardStore((s) => s.setSelection)
 
   return (
-    <RailSection title={`Checkpoints (${checkpoints.length})`}>
+    <RailSection
+      title={`Checkpoints (${checkpoints.length})`}
+      className="flex h-full flex-col"
+    >
       <div className="flex gap-1.5 overflow-x-auto px-3 pb-1">
         {checkpoints.map((c) => (
           <CheckpointCard

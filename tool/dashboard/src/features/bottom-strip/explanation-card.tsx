@@ -39,6 +39,7 @@ export function ExplanationCard({ vm }: { vm: DashboardViewModel }) {
       <RailSection
         title="What changed"
         icon={<Lightbulb className="size-3 text-brand" />}
+        className="flex h-full flex-col"
       >
         <div className="px-3">
           {selection ? (

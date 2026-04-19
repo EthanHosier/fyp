@@ -1,6 +1,7 @@
 import type { ReactNode } from "react"
 
 import { Text } from "@/components/text"
+import { cn } from "@/lib/utils"
 
 /**
  * Sidebar section wrapper: uppercase monospace title + body + bottom
@@ -12,14 +13,16 @@ export function RailSection({
   icon,
   children,
   description,
+  className,
 }: {
   title: string
   icon?: ReactNode
   description?: ReactNode
   children: ReactNode
+  className?: string
 }) {
   return (
-    <div className="border-b border-border py-3">
+    <div className={cn("border-b border-border py-3", className)}>
       <Text
         as="div"
         variant="eyebrow"

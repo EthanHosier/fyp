@@ -8,8 +8,8 @@ import { ExplanationCard } from "@/features/bottom-strip/explanation-card"
  */
 export function BottomStrip({ vm }: { vm: DashboardViewModel }) {
   return (
-    <div className="border-border bg-bg-1 grid shrink-0 grid-cols-[1fr_420px] border-t">
-      <div className="border-border overflow-hidden border-r">
+    <div className="border-border bg-bg-1 grid min-h-[150px] shrink-0 grid-cols-[1fr_420px] items-stretch border-t">
+      <div className="border-border flex flex-col overflow-hidden border-r">
         <CheckpointFilmstrip checkpoints={vm.checkpoints} />
       </div>
       <ExplanationCard vm={vm} />
