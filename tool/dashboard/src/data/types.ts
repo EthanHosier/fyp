@@ -83,5 +83,6 @@ export type Selection =
   | null
 
 export type Layers = {
-  intervals: boolean
+  buildIntervals: boolean
+  testIntervals: boolean
 }

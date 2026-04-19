@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react"
 import type { DashboardViewModel, MetricVM } from "@/data/types"
 import { ChartAxes } from "@/features/trajectory-chart/chart-axes"
 import { ChartHoverOverlay } from "@/features/trajectory-chart/chart-hover-overlay"
-import { ChartIntervalRail, INTERVAL_RAIL_HEIGHT, INTERVAL_RAIL_OFFSET } from "@/features/trajectory-chart/chart-interval-rail"
+import { ChartIntervalRail, INTERVAL_RAIL_GAP, INTERVAL_RAIL_HEIGHT, INTERVAL_RAIL_OFFSET } from "@/features/trajectory-chart/chart-interval-rail"
 import { ChartLegend } from "@/features/trajectory-chart/chart-legend"
 import { ChartLines } from "@/features/trajectory-chart/chart-lines"
 import { ChartPoints } from "@/features/trajectory-chart/chart-points"
@@ -11,9 +11,18 @@ import { ChartToolbar } from "@/features/trajectory-chart/chart-toolbar"
 import { useChartScales } from "@/features/trajectory-chart/use-chart-scales"
 import { useDashboardStore } from "@/stores/dashboard-store"
 
-const CHART_HEIGHT = 360
-const BASE_BOTTOM = 32
-const RAIL_EXTRA = INTERVAL_RAIL_OFFSET + INTERVAL_RAIL_HEIGHT + 6
+const CHART_HEIGHT = 460
+const BASE_BOTTOM = 18
+
+function railExtra(count: number): number {
+  if (count <= 0) return 0
+  return (
+    INTERVAL_RAIL_OFFSET +
+    count * INTERVAL_RAIL_HEIGHT +
+    (count - 1) * INTERVAL_RAIL_GAP +
+    6
+  )
+}
 
 /**
  * Public chart feature — owns the ResizeObserver and composes axes,
@@ -45,15 +54,17 @@ export function TrajectoryChart({ vm }: { vm: DashboardViewModel }) {
     .map((id) => vm.metrics.find((m) => m.id === id))
     .filter((m): m is MetricVM => Boolean(m))
 
+  const railCount =
+    (layers.buildIntervals ? 1 : 0) + (layers.testIntervals ? 1 : 0)
   const scales = useChartScales({
     vm,
     primary: primary.id,
     width,
     height: CHART_HEIGHT,
     margin: {
-      top: 24,
+      top: 40,
       right: 28,
-      bottom: layers.intervals ? BASE_BOTTOM + RAIL_EXTRA : BASE_BOTTOM,
+      bottom: BASE_BOTTOM + railExtra(railCount),
       left: 58,
     },
   })
@@ -73,7 +84,7 @@ export function TrajectoryChart({ vm }: { vm: DashboardViewModel }) {
               vm={vm}
               primary={primary}
               secondaries={secondaries}
-              showIntervals={layers.intervals}
+              showIntervals={railCount > 0}
               scales={scales}
             />
             <ChartPoints
@@ -83,8 +94,23 @@ export function TrajectoryChart({ vm }: { vm: DashboardViewModel }) {
               selection={selection}
               onSelect={setSelection}
             />
-            {layers.intervals ? (
-              <ChartIntervalRail vm={vm} scales={scales} onSelect={setSelection} />
+            {layers.buildIntervals ? (
+              <ChartIntervalRail
+                vm={vm}
+                scales={scales}
+                kind="build"
+                row={0}
+                onSelect={setSelection}
+              />
+            ) : null}
+            {layers.testIntervals ? (
+              <ChartIntervalRail
+                vm={vm}
+                scales={scales}
+                kind="tests"
+                row={layers.buildIntervals ? 1 : 0}
+                onSelect={setSelection}
+              />
             ) : null}
             <ChartHoverOverlay
               vm={vm}
@@ -99,7 +125,7 @@ export function TrajectoryChart({ vm }: { vm: DashboardViewModel }) {
       <ChartLegend
         primary={primary}
         secondaries={secondaries}
-        showIntervals={layers.intervals}
+        showIntervals={railCount > 0}
       />
     </div>
   )

@@ -3,27 +3,53 @@ import type { ChartScales } from "@/features/trajectory-chart/use-chart-scales"
 import { cn } from "@/lib/utils"
 
 export const INTERVAL_RAIL_HEIGHT = 18
-export const INTERVAL_RAIL_OFFSET = 22
+export const INTERVAL_RAIL_GAP = 10
+export const INTERVAL_RAIL_OFFSET = 40
+
+type IntervalStatusKind = "build" | "tests"
 
 /**
  * Thin status rail below the X-axis. One rect per interval, coloured
- * by the combined build/tests status. Clicks dispatch an interval
+ * by either the build or tests status. Clicks dispatch an interval
  * selection to the dashboard store.
+ *
+ * Multiple rails stack vertically — caller provides `row` (0-indexed)
+ * and we push further down by (railHeight + gap).
  */
 export function ChartIntervalRail({
   vm,
   scales,
+  kind,
+  row = 0,
   onSelect,
 }: {
   vm: DashboardViewModel
   scales: ChartScales
+  kind: IntervalStatusKind
+  row?: number
   onSelect: (s: Selection) => void
 }) {
   const { xs, innerH } = scales
-  const y = innerH + INTERVAL_RAIL_OFFSET
+  const y =
+    innerH +
+    INTERVAL_RAIL_OFFSET +
+    row * (INTERVAL_RAIL_HEIGHT + INTERVAL_RAIL_GAP)
+  const hatchId = `unk-hatch-${kind}`
 
   return (
     <g transform={`translate(0,${y})`}>
+      <defs>
+        <pattern
+          id={hatchId}
+          width={6}
+          height={6}
+          patternUnits="userSpaceOnUse"
+          patternTransform="rotate(45)"
+        >
+          <rect width={6} height={6} className="fill-unknown/20" />
+          <rect width={2} height={6} className="fill-unknown/50" />
+        </pattern>
+      </defs>
       <text
         x={-8}
         y={INTERVAL_RAIL_HEIGHT / 2 + 3}
@@ -31,9 +57,11 @@ export function ChartIntervalRail({
         className="fill-fg-4 font-mono"
         fontSize={9.5}
       >
-        BUILD
+        {kind === "build" ? "BUILD" : "TESTS"}
       </text>
       {vm.intervals.map((iv) => {
+        const status = kind === "build" ? iv.build : iv.tests
+        const unknown = status === "unknown"
         const x0 = xs(iv.from)
         const x1 = xs(iv.to)
         return (
@@ -44,10 +72,11 @@ export function ChartIntervalRail({
             width={Math.max(0, x1 - x0)}
             height={INTERVAL_RAIL_HEIGHT}
             className={cn(
-              STATUS_FILL[iv.status],
-              STATUS_STROKE[iv.status],
+              !unknown && STATUS_FILL[status],
+              STATUS_STROKE[status],
               "cursor-pointer",
             )}
+            fill={unknown ? `url(#${hatchId})` : undefined}
             strokeOpacity={0.4}
             strokeWidth={0.75}
             onClick={() => onSelect({ kind: "interval", index: iv.index })}

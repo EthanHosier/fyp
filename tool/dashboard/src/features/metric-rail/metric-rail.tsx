@@ -57,23 +57,50 @@ export function MetricRail({ vm }: { vm: DashboardViewModel }) {
         </RailSection>
 
         <RailSection title="Layers">
-          <label
-            htmlFor="layer-intervals"
-            className="hover:bg-bg-2 flex cursor-pointer items-center gap-2.5 px-3 py-[5px]"
-          >
-            <Checkbox
-              id="layer-intervals"
-              tone="brand"
-              checked={layers.intervals}
-              onCheckedChange={(v) => setLayer("intervals", v === true)}
-            />
-            <Text variant="body" tone="fg-2" className="text-[12px]">
-              Build / test intervals
-            </Text>
-          </label>
+          <LayerToggle
+            id="layer-build-intervals"
+            label="Build intervals"
+            checked={layers.buildIntervals}
+            onChange={(v) => setLayer("buildIntervals", v)}
+          />
+          <LayerToggle
+            id="layer-test-intervals"
+            label="Test intervals"
+            checked={layers.testIntervals}
+            onChange={(v) => setLayer("testIntervals", v)}
+          />
         </RailSection>
       </ScrollArea>
     </aside>
+  )
+}
+
+function LayerToggle({
+  id,
+  label,
+  checked,
+  onChange,
+}: {
+  id: string
+  label: string
+  checked: boolean
+  onChange: (v: boolean) => void
+}) {
+  return (
+    <label
+      htmlFor={id}
+      className="hover:bg-bg-2 flex cursor-pointer items-center gap-2.5 px-3 py-[5px]"
+    >
+      <Checkbox
+        id={id}
+        tone="brand"
+        checked={checked}
+        onCheckedChange={(v) => onChange(v === true)}
+      />
+      <Text variant="body" tone="fg-2" className="text-[12px]">
+        {label}
+      </Text>
+    </label>
   )
 }
 

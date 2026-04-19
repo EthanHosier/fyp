@@ -31,14 +31,14 @@ export function ChartLegend({
       {showIntervals ? (
         <>
           <Separator orientation="vertical" className="h-3.5" />
-          <LegendSwatch label="build pass">
-            <span className="bg-good/80 inline-block size-2.5 rounded-sm" />
+          <LegendSwatch label="pass">
+            <span className="bg-good/80 inline-block size-2.5 rounded-[2px]" />
           </LegendSwatch>
-          <LegendSwatch label="build fail">
-            <span className="bg-bad/80 inline-block size-2.5 rounded-sm" />
+          <LegendSwatch label="fail">
+            <span className="bg-bad/80 inline-block size-2.5 rounded-[2px]" />
           </LegendSwatch>
-          <LegendSwatch label="unknown">
-            <span className="bg-unknown/60 inline-block size-2.5 rounded-sm" />
+          <LegendSwatch label="skipped">
+            <span className="bg-unknown/60 inline-block size-2.5 rounded-[2px]" />
           </LegendSwatch>
         </>
       ) : null}

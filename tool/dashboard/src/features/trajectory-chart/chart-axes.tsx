@@ -52,7 +52,7 @@ export function ChartAxes({
 
       <text
         x={-margin.left + 6}
-        y={-8}
+        y={-20}
         className="fill-fg-3 font-mono"
         fontSize={10.5}
       >
