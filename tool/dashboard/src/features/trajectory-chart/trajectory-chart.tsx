@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react"
 
-import type { DashboardViewModel } from "@/data/types"
+import type { DashboardViewModel, MetricVM } from "@/data/types"
 import { ChartAxes } from "@/features/trajectory-chart/chart-axes"
+import { ChartIntervalRail, INTERVAL_RAIL_HEIGHT, INTERVAL_RAIL_OFFSET } from "@/features/trajectory-chart/chart-interval-rail"
 import { ChartLegend } from "@/features/trajectory-chart/chart-legend"
 import { ChartLines } from "@/features/trajectory-chart/chart-lines"
 import { ChartPoints } from "@/features/trajectory-chart/chart-points"
@@ -10,11 +11,13 @@ import { useChartScales } from "@/features/trajectory-chart/use-chart-scales"
 import { useDashboardStore } from "@/stores/dashboard-store"
 
 const CHART_HEIGHT = 360
+const BASE_BOTTOM = 32
+const RAIL_EXTRA = INTERVAL_RAIL_OFFSET + INTERVAL_RAIL_HEIGHT + 6
 
 /**
  * Public chart feature — owns the ResizeObserver and composes axes,
- * primary line, checkpoint points, toolbar and legend. Secondaries,
- * the build/test interval rail, and hover tooltip land in steps 11–12.
+ * primary / secondary lines, interval rail, checkpoint points,
+ * toolbar and legend.
  */
 export function TrajectoryChart({ vm }: { vm: DashboardViewModel }) {
   const hostRef = useRef<HTMLDivElement>(null)
@@ -31,17 +34,29 @@ export function TrajectoryChart({ vm }: { vm: DashboardViewModel }) {
   }, [])
 
   const primaryId = useDashboardStore((s) => s.primary)
+  const secondaryIds = useDashboardStore((s) => s.secondaries)
+  const layers = useDashboardStore((s) => s.layers)
   const selection = useDashboardStore((s) => s.selection)
   const setSelection = useDashboardStore((s) => s.setSelection)
 
   const primary = vm.metrics.find((m) => m.id === primaryId) ?? vm.metrics[0]
+  const secondaries = secondaryIds
+    .map((id) => vm.metrics.find((m) => m.id === id))
+    .filter((m): m is MetricVM => Boolean(m))
+
   const scales = useChartScales({
     vm,
     primary: primary.id,
     width,
     height: CHART_HEIGHT,
+    margin: {
+      top: 24,
+      right: 28,
+      bottom: layers.intervals ? BASE_BOTTOM + RAIL_EXTRA : BASE_BOTTOM,
+      left: 58,
+    },
   })
-  const { margin, innerW, innerH } = scales
+  const { margin } = scales
 
   return (
     <div>
@@ -50,14 +65,16 @@ export function TrajectoryChart({ vm }: { vm: DashboardViewModel }) {
         ref={hostRef}
         className="border-border bg-bg-1 relative rounded-md border px-[10px] pt-[6px] pb-2"
       >
-        <svg
-          width={width}
-          height={CHART_HEIGHT}
-          className="block select-none"
-        >
+        <svg width={width} height={CHART_HEIGHT} className="block select-none">
           <g transform={`translate(${margin.left},${margin.top})`}>
             <ChartAxes vm={vm} primary={primary} scales={scales} />
-            <ChartLines vm={vm} primary={primary} scales={scales} />
+            <ChartLines
+              vm={vm}
+              primary={primary}
+              secondaries={secondaries}
+              showIntervals={layers.intervals}
+              scales={scales}
+            />
             <ChartPoints
               vm={vm}
               primary={primary}
@@ -65,18 +82,17 @@ export function TrajectoryChart({ vm }: { vm: DashboardViewModel }) {
               selection={selection}
               onSelect={setSelection}
             />
-            <rect
-              x={0}
-              y={0}
-              width={innerW}
-              height={innerH}
-              fill="transparent"
-              pointerEvents="none"
-            />
+            {layers.intervals ? (
+              <ChartIntervalRail vm={vm} scales={scales} onSelect={setSelection} />
+            ) : null}
           </g>
         </svg>
       </div>
-      <ChartLegend primary={primary} />
+      <ChartLegend
+        primary={primary}
+        secondaries={secondaries}
+        showIntervals={layers.intervals}
+      />
     </div>
   )
 }

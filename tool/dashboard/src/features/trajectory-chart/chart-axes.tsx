@@ -6,6 +6,15 @@ import type { ChartScales } from "@/features/trajectory-chart/use-chart-scales"
  * X baseline + cX labels. Renders inside the translated `<g>` set up by
  * trajectory-chart.
  */
+function tickDecimals(ticks: number[]): number {
+  if (ticks.length < 2) return 0
+  const step = Math.abs(ticks[1] - ticks[0])
+  if (step >= 10) return 0
+  if (step >= 1) return 1
+  if (step >= 0.1) return 2
+  return 3
+}
+
 export function ChartAxes({
   vm,
   primary,
@@ -16,7 +25,7 @@ export function ChartAxes({
   scales: ChartScales
 }) {
   const { xs, ys, innerW, innerH, yTicks, margin } = scales
-  const decimals = primary.unit === "%" ? 1 : 0
+  const decimals = tickDecimals(yTicks)
   const every = vm.checkpoints.length > 10 ? 2 : 1
 
   return (
