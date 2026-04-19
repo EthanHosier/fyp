@@ -25,12 +25,12 @@ export default function App() {
   if (!vm) return <LoadingState />
 
   return (
-    <div className="flex h-screen w-screen flex-col bg-bg text-fg">
+    <div className="flex h-full w-full flex-col bg-bg text-fg">
       <HeaderBar vm={vm} />
       <div className="relative flex min-h-0 flex-1">
         <MetricRail vm={vm} />
         <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
-          <section className="min-h-0 flex-1 overflow-auto px-5 pt-[14px] pb-1">
+          <section className="min-h-0 flex-1 overflow-auto pl-5 pt-[14px] pb-1">
             <TrajectoryChart vm={vm} />
           </section>
           <BottomStrip vm={vm} />
@@ -43,7 +43,7 @@ export default function App() {
 
 function LoadingState() {
   return (
-    <div className="flex h-screen w-screen items-center justify-center bg-bg">
+    <div className="flex h-full w-full items-center justify-center bg-bg">
       <Text variant="mono" tone="fg-4">
         waiting for analysis report…
       </Text>

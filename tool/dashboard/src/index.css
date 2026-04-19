@@ -166,13 +166,19 @@
     margin: 0;
   }
   body {
-    @apply bg-bg text-fg font-sans antialiased;
+    /* IntelliJ dialog chrome grey — exposed at the rounded corners of #root */
+    background: #2b2d30;
+    @apply text-fg font-sans antialiased;
     font-size: 13px;
     overflow: hidden;
+    padding: 3px;
   }
   #root {
-    height: 100vh;
-    width: 100vw;
+    height: calc(100vh - 6px);
+    width: calc(100vw - 6px);
+    border-radius: 14px;
+    overflow: hidden;
+    background: var(--bg);
   }
 
   /* Dark-only custom scrollbars matching the reference */
