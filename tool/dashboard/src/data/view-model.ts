@@ -94,8 +94,22 @@ function combineStatus(a: StatusTone, b: StatusTone): StatusTone {
 
 function describeCheckpoint(c: CheckpointReport): string {
   const ev = c.events[0]
-  if (ev) return ev.type.toLowerCase().replaceAll("_", " ")
-  return shortSha(c.sha)
+  if (!ev) return shortSha(c.sha)
+  return eventTypeLabel(ev.type)
+}
+
+function eventTypeLabel(type: string): string {
+  if (type === "SESSION_STARTED") return "Start"
+  if (type === "SESSION_ENDED") return "End"
+  if (type === "EDIT_BURST") return "Manual Edit"
+  if (type === "REFACTORING_FINISHED" || type === "REFACTORING_STARTED") {
+    return "IDE Refactoring"
+  }
+  return type
+    .toLowerCase()
+    .split("_")
+    .map((s) => (s ? s[0].toUpperCase() + s.slice(1) : s))
+    .join(" ")
 }
 
 export function toViewModel(report: AnalysisReport): DashboardViewModel {

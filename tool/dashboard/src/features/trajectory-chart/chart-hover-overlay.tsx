@@ -310,7 +310,7 @@ function RefactoringTooltip({ step }: { step: RefactoringStepVM }) {
   return (
     <TooltipCard>
       <Text as="div" variant="mono" tone="fg">
-        r{step.index} · {step.refactoringType}
+        {step.refactoringType}
       </Text>
       <div className="mt-0.5 flex items-center gap-1.5">
         <Text variant="monoTiny" tone="fg-4">
@@ -362,7 +362,7 @@ function CheckpointTooltip({
   return (
     <TooltipCard>
       <Text as="div" variant="mono" tone="fg">
-        {checkpoint.label}
+        {checkpoint.description}
       </Text>
       <div className="mt-0.5 flex items-center gap-1.5">
         <Text variant="monoTiny" tone="fg-4">
@@ -404,10 +404,7 @@ function IntervalTooltip({
   const to = vm.checkpoints[interval.to]
   return (
     <TooltipCard>
-      <Text as="div" variant="mono" tone="fg">
-        {from.label} → {to.label}
-      </Text>
-      <div className="mt-0.5 flex items-center gap-1.5">
+      <div className="flex items-center gap-1.5">
         <Text variant="monoTiny" tone="fg-4">
           {formatDurationShort(interval.durationMs)}
         </Text>
