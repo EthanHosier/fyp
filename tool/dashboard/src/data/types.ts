@@ -40,6 +40,9 @@ export type CheckpointVM = {
   /** aggregate of build+tests used for the filmstrip dot */
   status: StatusTone
   churn: number
+  /** Unified-diff patch for the transition into this checkpoint (from the
+   *  previous checkpoint, or empty for the seed state). */
+  patch: string
 }
 
 export type IntervalVM = {
@@ -90,6 +93,9 @@ export type RefactoringStepVM = {
   shortFromSha: string
   shortToSha: string
   ideRelevant: boolean
+  /** Hunk-filtered unified-diff patch scoped to the refactoring's
+   *  left/right files — empty if the server didn't produce one. */
+  patch: string
 }
 
 export type DashboardViewModel = {

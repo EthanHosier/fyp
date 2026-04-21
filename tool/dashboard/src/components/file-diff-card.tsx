@@ -107,7 +107,10 @@ export function FileDiffCard({
       </button>
 
       {open && (
-        <div className="w-full max-h-[360px] overflow-auto">
+        // No vertical scroll here — let the body grow to full content
+        // height so the panel's outer ScrollArea is the only scrollbar.
+        // Horizontal overflow still scrolls inside for long diff lines.
+        <div className="w-full overflow-x-auto">
           <FileDiff
             fileDiff={fileDiff}
             options={{

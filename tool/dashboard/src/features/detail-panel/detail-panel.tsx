@@ -104,7 +104,7 @@ export function DetailPanel({ vm }: { vm: DashboardViewModel }) {
           <X />
         </Button>
       </header>
-      <ScrollArea className="flex-1">
+      <ScrollArea className="min-h-0 flex-1">
         <div className="px-4 py-3">{body}</div>
       </ScrollArea>
     </aside>

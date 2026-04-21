@@ -2,6 +2,7 @@ import { MetricTile } from "@/components/metric-tile"
 import { StatusRow } from "@/components/status-row"
 import { Text } from "@/components/text"
 import type { CheckpointVM, DashboardViewModel, MetricId } from "@/data/types"
+import { DiffSection } from "@/features/detail-panel/diff-section"
 
 type Range = { min: number; max: number }
 
@@ -50,6 +51,13 @@ export function CheckpointBody({
         </Text>
         <StatusRow build={checkpoint.build} tests={checkpoint.tests} />
       </section>
+
+      <DiffSection
+        title="Diff"
+        patch={checkpoint.patch}
+        cacheKey={`checkpoint-${checkpoint.sha}`}
+        emptyMessage="No diff captured for this checkpoint."
+      />
     </div>
   )
 }

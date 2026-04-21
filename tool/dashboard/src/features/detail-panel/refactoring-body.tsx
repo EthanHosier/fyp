@@ -4,6 +4,7 @@ import type {
   DashboardViewModel,
   RefactoringStepVM,
 } from "@/data/types"
+import { DiffSection } from "@/features/detail-panel/diff-section"
 
 /**
  * Details for a detected refactoring step — the RefactoringMiner
@@ -91,6 +92,13 @@ export function RefactoringBody({
           </DataList>
         </section>
       ) : null}
+
+      <DiffSection
+        title="Diff"
+        patch={step.patch}
+        cacheKey={`refactoring-${step.index}`}
+        emptyMessage="No filtered diff for this refactoring."
+      />
     </div>
   )
 }

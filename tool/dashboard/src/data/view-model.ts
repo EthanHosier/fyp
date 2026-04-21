@@ -134,6 +134,7 @@ export function toViewModel(report: AnalysisReport): DashboardViewModel {
       tests,
       status: combineStatus(build, tests),
       churn: c.diff?.totalChurn ?? 0,
+      patch: report.checkpointPatches?.[c.sha] ?? "",
     }
   })
 
@@ -154,6 +155,7 @@ export function toViewModel(report: AnalysisReport): DashboardViewModel {
       tMs: Math.max(0, endedAt - startedAt),
       description: "End",
       churn: 0,
+      patch: "",
     })
   }
 
@@ -206,6 +208,7 @@ export function toViewModel(report: AnalysisReport): DashboardViewModel {
       shortFromSha: shortSha(s.fromSha),
       shortToSha: shortSha(s.toSha),
       ideRelevant: s.refactoring.ideRelevant,
+      patch: report.refactoringPatches?.[i] ?? "",
     }),
   )
 
