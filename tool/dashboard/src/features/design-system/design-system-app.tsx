@@ -5,7 +5,9 @@
  */
 
 import { CheckIcon, FileIcon, HelpCircleIcon, XIcon } from "lucide-react"
+import { parsePatchFiles } from "@pierre/diffs"
 import { DataList, DataListRow } from "@/components/data-list"
+import { FileDiffCard } from "@/components/file-diff-card"
 import { FilterChip } from "@/components/filter-chip"
 import { LegendSwatch } from "@/components/legend-swatch"
 import { Meter } from "@/components/meter"
@@ -72,6 +74,62 @@ const BADGE_STATUS_VARIANTS = ["success", "danger", "warning", "neutral"] as con
 const CHECKBOX_TONES = ["brand", "brand-2", "brand-3", "brand-4", "brand-5", "fg"] as const
 const STATUS_DOT_TONES = ["success", "danger", "warning", "neutral"] as const
 const TOOLTIP_SURFACES = ["bg-1", "bg-2", "bg-3", "inverted"] as const
+
+// Hand-crafted multi-file Java patch covering modify + new file + rename —
+// the three kinds a FileDiffCard renders distinctly.
+const SAMPLE_PATCH = `diff --git a/src/main/java/com/example/order/CheckoutService.java b/src/main/java/com/example/order/CheckoutService.java
+--- a/src/main/java/com/example/order/CheckoutService.java
++++ b/src/main/java/com/example/order/CheckoutService.java
+@@ -1,12 +1,16 @@
+ package com.example.order;
+
++import java.util.List;
++
+ public class CheckoutService {
+-    public double computeTotal(List<Item> items) {
+-        double sum = 0;
+-        for (Item it : items) sum += it.getPrice();
+-        return sum;
++    /** Compute the order total, applying an optional discount factor. */
++    public double computeTotal(List<Item> items, double discount) {
++        double subtotal = 0;
++        for (Item it : items) subtotal += it.getPrice();
++        return subtotal * (1 - discount);
+     }
+ }
+diff --git a/src/main/java/com/example/order/DiscountCodes.java b/src/main/java/com/example/order/DiscountCodes.java
+new file mode 100644
+--- /dev/null
++++ b/src/main/java/com/example/order/DiscountCodes.java
+@@ -0,0 +1,11 @@
++package com.example.order;
++
++public final class DiscountCodes {
++    private DiscountCodes() {}
++
++    public static double fractionFor(String code) {
++        if ("SPRING10".equals(code)) return 0.10;
++        if ("WELCOME".equals(code)) return 0.05;
++        return 0.0;
++    }
++}
+diff --git a/src/main/java/com/example/order/cart.java b/src/main/java/com/example/order/Cart.java
+similarity index 85%
+rename from src/main/java/com/example/order/cart.java
+rename to src/main/java/com/example/order/Cart.java
+--- a/src/main/java/com/example/order/cart.java
++++ b/src/main/java/com/example/order/Cart.java
+@@ -1,6 +1,6 @@
+ package com.example.order;
+
+-public class cart {
++public class Cart {
+     public void add(Item item) {}
+     public void remove(Item item) {}
+ }
+`
+
+const SAMPLE_PATCH_FILES = parsePatchFiles(SAMPLE_PATCH, "design-system-sample")[0]?.files ?? []
 
 const TEXT_VARIANTS = [
   ["display", "Chart toolbar title · 17 sans semibold"],
@@ -485,6 +543,21 @@ export function DesignSystemApp() {
                 ))}
               </div>
             </ScrollArea>
+          </VariantCell>
+        </DesignSystemSection>
+
+        <DesignSystemSection title="FileDiffCard" layout="stack">
+          <VariantCell label="multi-file patch · modify + new + rename · width=640">
+            <div className="flex flex-col gap-2">
+              {SAMPLE_PATCH_FILES.map((file, i) => (
+                <FileDiffCard
+                  key={file.name + i}
+                  fileDiff={file}
+                  defaultOpen={i === 0}
+                  width={640}
+                />
+              ))}
+            </div>
           </VariantCell>
         </DesignSystemSection>
 

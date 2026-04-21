@@ -1,5 +1,6 @@
 package com.github.ethanhosier.analysis.pipeline
 
+import com.github.ethanhosier.analysis.diffs.DiffsRunner
 import com.github.ethanhosier.analysis.ingest.TraceLoader
 import com.github.ethanhosier.analysis.metrics.MetricsRunner
 import com.github.ethanhosier.analysis.metrics.gitdiff.DiffStats
@@ -11,6 +12,7 @@ import com.github.ethanhosier.analysis.miner.RefactoringMinerRunner
 import com.github.ethanhosier.analysis.model.ReconstructionResult
 import com.github.ethanhosier.analysis.model.Trace
 import com.github.ethanhosier.analysis.normalize.TraceNormalizer
+import com.github.ethanhosier.analysis.reconstruct.GitRunner
 import com.github.ethanhosier.analysis.reconstruct.ShadowRepoBuilder
 import com.github.ethanhosier.ideplugin.model.TouchedMember
 import java.nio.file.Path
@@ -41,6 +43,8 @@ class AnalysisPipeline(
         val metricsDurationMs: Long,
         val minerSummary: RefactoringMinerRunner.Summary,
         val minerDurationMs: Long,
+        val diffsSummary: DiffsRunner.Summary,
+        val diffsDurationMs: Long,
         val report: AnalysisReport,
     )
 
@@ -58,7 +62,11 @@ class AnalysisPipeline(
         val miner = RefactoringMinerRunner(parallelism = parallelism).run(trace, reconstruction, sessionDir)
         val minerDurationMs = System.currentTimeMillis() - minerStart
 
-        val report = buildAnalysisReport(trace, reconstruction, metrics, miner, parallelism, metricsDurationMs)
+        val diffsStart = System.currentTimeMillis()
+        val diffs = DiffsRunner(GitRunner(reconstruction.repoDir)).run(reconstruction, miner.steps)
+        val diffsDurationMs = System.currentTimeMillis() - diffsStart
+
+        val report = buildAnalysisReport(trace, reconstruction, metrics, miner, diffs, parallelism, metricsDurationMs)
 
         return Result(
             trace = trace,
@@ -67,6 +75,8 @@ class AnalysisPipeline(
             metricsDurationMs = metricsDurationMs,
             minerSummary = miner,
             minerDurationMs = minerDurationMs,
+            diffsSummary = diffs,
+            diffsDurationMs = diffsDurationMs,
             report = report,
         )
     }
@@ -87,6 +97,7 @@ internal fun buildAnalysisReport(
     reconstruction: ReconstructionResult,
     metrics: MetricsRunner.Summary,
     miner: RefactoringMinerRunner.Summary,
+    diffs: DiffsRunner.Summary,
     parallelism: Int,
     metricsDurationMs: Long,
 ): AnalysisReport {
@@ -134,5 +145,7 @@ internal fun buildAnalysisReport(
         checkpoints = checkpoints,
         refactoringSteps = miner.steps,
         trajectory = computeTrajectory(checkpoints),
+        checkpointPatches = diffs.checkpointPatches,
+        refactoringPatches = diffs.refactoringPatches,
     )
 }
