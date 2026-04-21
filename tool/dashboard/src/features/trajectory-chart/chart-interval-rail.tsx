@@ -59,32 +59,67 @@ export function ChartIntervalRail({
       >
         {kind === "build" ? "BUILD" : "TESTS"}
       </text>
-      {vm.intervals.map((iv) => {
-        const status = kind === "build" ? iv.build : iv.tests
-        const unknown = status === "unknown"
-        const x0 = xs(vm.checkpoints[iv.from].tMs)
-        const x1 = xs(vm.checkpoints[iv.to].tMs)
+      {mergeRuns(vm, kind).map((run) => {
+        const unknown = run.status === "unknown"
+        const x0 = xs(vm.checkpoints[run.fromCheckpoint].tMs)
+        const x1 = xs(vm.checkpoints[run.toCheckpoint].tMs)
         return (
           <rect
-            key={iv.index}
+            key={run.firstIntervalIndex}
             x={x0}
             y={0}
             width={Math.max(0, x1 - x0)}
             height={INTERVAL_RAIL_HEIGHT}
             className={cn(
-              !unknown && STATUS_FILL[status],
-              STATUS_STROKE[status],
+              !unknown && STATUS_FILL[run.status],
+              STATUS_STROKE[run.status],
               "cursor-pointer",
             )}
             fill={unknown ? `url(#${hatchId})` : undefined}
             strokeOpacity={0.4}
             strokeWidth={0.75}
-            onClick={() => onSelect({ kind: "interval", index: iv.index })}
+            onClick={() =>
+              onSelect({
+                kind: "status",
+                intervalIndex: run.firstIntervalIndex,
+                statusKind: kind,
+              })
+            }
           />
         )
       })}
     </g>
   )
+}
+
+// Collapse consecutive intervals that share the same status into a
+// single rect so long green or red stretches render without visible
+// seams between their segments. Clicks dispatch the run's first
+// interval index — the detail panel keys off that.
+type Run = {
+  status: StatusTone
+  firstIntervalIndex: number
+  fromCheckpoint: number
+  toCheckpoint: number
+}
+
+function mergeRuns(vm: DashboardViewModel, kind: IntervalStatusKind): Run[] {
+  const runs: Run[] = []
+  for (const iv of vm.intervals) {
+    const status = kind === "build" ? iv.build : iv.tests
+    const last = runs[runs.length - 1]
+    if (last && last.status === status) {
+      last.toCheckpoint = iv.to
+    } else {
+      runs.push({
+        status,
+        firstIntervalIndex: iv.index,
+        fromCheckpoint: iv.from,
+        toCheckpoint: iv.to,
+      })
+    }
+  }
+  return runs
 }
 
 const STATUS_FILL: Record<StatusTone, string> = {

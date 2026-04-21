@@ -1,4 +1,5 @@
 import { Text } from "@/components/text"
+import { TooltipProvider } from "@/components/ui/tooltip"
 import { toViewModel } from "@/data/view-model"
 import { BottomStrip } from "@/features/bottom-strip/bottom-strip"
 import { DetailPanel } from "@/features/detail-panel/detail-panel"
@@ -25,19 +26,21 @@ export default function App() {
   if (!vm) return <LoadingState />
 
   return (
-    <div className="flex h-full w-full flex-col bg-bg text-fg">
-      <HeaderBar vm={vm} />
-      <div className="relative flex min-h-0 flex-1">
-        <MetricRail vm={vm} />
-        <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
-          <section className="min-h-0 flex-1 overflow-auto pl-5 pt-[14px] pb-1">
-            <TrajectoryChart vm={vm} />
-          </section>
-          <BottomStrip vm={vm} />
-        </main>
-        <DetailPanel vm={vm} />
+    <TooltipProvider>
+      <div className="flex h-full w-full flex-col bg-bg text-fg">
+        <HeaderBar vm={vm} />
+        <div className="relative flex min-h-0 flex-1">
+          <MetricRail vm={vm} />
+          <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
+            <section className="min-h-0 flex-1 overflow-auto pl-5 pt-[14px] pb-1">
+              <TrajectoryChart vm={vm} />
+            </section>
+            <BottomStrip vm={vm} />
+          </main>
+          <DetailPanel vm={vm} />
+        </div>
       </div>
-    </div>
+    </TooltipProvider>
   )
 }
 

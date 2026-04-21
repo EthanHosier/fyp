@@ -106,6 +106,28 @@ class GitRunner(private val workDir: Path) {
             .filter { it.isNotBlank() }
             .toList()
 
+    /**
+     * Full unified-diff patch text for `git diff -M -U<contextLines> <from> <to> [-- paths]`.
+     *
+     * `-M` so renames collapse (matches what RefactoringMiner sees). Pass
+     * [paths] to scope the diff to a subset of files; an empty list means
+     * the whole tree. Result is the raw patch, untrimmed — empty string if
+     * there is no textual delta for the scope.
+     */
+    fun diffPatch(
+        from: String,
+        to: String,
+        paths: List<String> = emptyList(),
+        contextLines: Int = 3,
+    ): String {
+        val args = mutableListOf("diff", "-M", "-U$contextLines", from, to)
+        if (paths.isNotEmpty()) {
+            args += "--"
+            args += paths
+        }
+        return exec(args, allowNonZero = false).stdout
+    }
+
     /** First-parent SHA of [sha], or null if it's the root commit. */
     fun parentOf(sha: String): String? {
         val result = exec(listOf("rev-parse", "--verify", "$sha^"), allowNonZero = true)

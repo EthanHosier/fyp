@@ -1,13 +1,16 @@
 import { Lightbulb } from "lucide-react"
 
 import { RailSection } from "@/components/rail-section"
+import { StatusDot } from "@/components/status-dot"
 import { Text } from "@/components/text"
 import type {
   CheckpointVM,
   DashboardViewModel,
   MetricVM,
   Selection,
+  StatusTone,
 } from "@/data/types"
+import { formatDurationShort } from "@/lib/format"
 import { TONE_BG } from "@/lib/metric-tone"
 import { cn } from "@/lib/utils"
 import { useDashboardStore } from "@/stores/dashboard-store"
@@ -42,14 +45,14 @@ export function ExplanationCard({ vm }: { vm: DashboardViewModel }) {
         className="flex h-full flex-col"
       >
         <div className="px-3">
-          {selection ? (
-            deltas.length === 0 ? (
-              <EmptyNote selection={selection} />
-            ) : (
-              <DeltaList deltas={deltas.slice(0, MAX_BULLETS)} />
-            )
-          ) : (
+          {!selection ? (
             <Prompt />
+          ) : selection.kind === "status" ? (
+            <StatusNote vm={vm} selection={selection} />
+          ) : deltas.length === 0 ? (
+            <EmptyNote selection={selection} />
+          ) : (
+            <DeltaList deltas={deltas.slice(0, MAX_BULLETS)} />
           )}
         </div>
       </RailSection>
@@ -75,6 +78,54 @@ function Prompt() {
       to see a narrated explanation here.
     </Text>
   )
+}
+
+function StatusNote({
+  vm,
+  selection,
+}: {
+  vm: DashboardViewModel
+  selection: Extract<Selection, { kind: "status" }>
+}) {
+  const iv = vm.intervals[selection.intervalIndex]
+  if (!iv) return null
+  const status = selection.statusKind === "build" ? iv.build : iv.tests
+  const kindLabel = selection.statusKind === "build" ? "Build" : "Tests"
+  const statusLabel =
+    selection.statusKind === "tests" && status === "unknown" ? "skipped" : status
+
+  // Walk forward while the run's status matches — aggregate duration +
+  // number of intervals so the note reads "Tests skipped — 4 intervals
+  // · 01:23" without assuming the caller precomputed it.
+  let durationMs = 0
+  let count = 0
+  for (let i = selection.intervalIndex; i < vm.intervals.length; i++) {
+    const x = vm.intervals[i]
+    const s = selection.statusKind === "build" ? x.build : x.tests
+    if (s !== status) break
+    durationMs += x.durationMs
+    count++
+  }
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <div className="flex items-center gap-1.5">
+        <StatusDot tone={statusDotTone(status)} />
+        <Text variant="body" tone="fg-2" className="text-[12px]">
+          {kindLabel} {statusLabel}
+        </Text>
+      </div>
+      <Text variant="bodySm" tone="fg-3">
+        {count} change{count === 1 ? "" : "s"} · {formatDurationShort(durationMs)}
+      </Text>
+    </div>
+  )
+}
+
+function statusDotTone(s: StatusTone): "success" | "danger" | "neutral" {
+  if (s === "pass") return "success"
+  if (s === "fail") return "danger"
+  return "neutral"
 }
 
 function EmptyNote({ selection }: { selection: Selection }) {
@@ -120,6 +171,7 @@ function DeltaList({ deltas }: { deltas: Delta[] }) {
 
 function deltasFor(vm: DashboardViewModel, selection: Selection): Delta[] {
   if (!selection) return []
+  if (selection.kind === "status") return []
   if (selection.kind === "checkpoint") {
     if (selection.index <= 0) return []
     return computeDeltas(

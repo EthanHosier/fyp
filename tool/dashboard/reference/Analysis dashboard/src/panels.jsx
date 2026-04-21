@@ -458,24 +458,82 @@ function CheckpointBody({ c, data }) {
       {annotsHere.length === 0 && <Empty>No annotations at this checkpoint.</Empty>}
       {annotsHere.map(a => <AnnotItem key={a.id} a={a}/>)}
 
-      <Subhead style={{ marginTop: 16 }}>FILES TOUCHED (preview)</Subhead>
-      <div style={{ border: "1px solid var(--border)", borderRadius: 5, overflow: "hidden" }}>
-        {["src/order/CheckoutService.ts", "src/order/computeDiscount.ts", "test/order/checkout.spec.ts"]
-          .map((f, i) => (
-          <div key={f} style={{
-            display: "flex", alignItems: "center", gap: 8,
-            padding: "7px 10px", fontFamily: "var(--mono)", fontSize: 11,
-            borderBottom: i < 2 ? "1px solid var(--border)" : "none",
-            background: i % 2 ? "var(--bg-1)" : "var(--bg-2)"
-          }}>
-            <Icon name="file" size={11} style={{ color: "var(--fg-4)" }}/>
-            <span style={{ color: "var(--fg-2)", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f}</span>
-            <span style={{ color: "var(--good)" }}>+{[34, 12, 7][i]}</span>
-            <span style={{ color: "var(--bad)" }}>-{[11, 3, 2][i]}</span>
-          </div>
-        ))}
-      </div>
+      <Subhead style={{ marginTop: 16 }}>DIFF · c{c.i}</Subhead>
+      <DiffView files={data.DIFFS[c.i] || []}/>
     </>
+  );
+}
+
+/* Diff viewer — IntelliJ-inspired unified diff with add/del gutters. */
+function DiffView({ files }) {
+  const [openIdx, setOpenIdx] = React.useState(0);
+  if (!files.length) {
+    return <Empty>No diff captured for this checkpoint.</Empty>;
+  }
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      {files.map((f, i) => (
+        <DiffFile key={f.path + i} file={f} open={openIdx === i} onToggle={() => setOpenIdx(openIdx === i ? -1 : i)}/>
+      ))}
+    </div>
+  );
+}
+function DiffFile({ file, open, onToggle }) {
+  const kindColor = {
+    "new":"#5fb865","broken":"#e55765","revert":"#e8a33d",
+  }[file.kind] || "var(--fg-3)";
+  return (
+    <div style={{ border: "1px solid var(--border-strong)", borderRadius: 5, overflow: "hidden", background: "var(--bg-3)" }}>
+      <button onClick={onToggle} style={{
+        display: "flex", alignItems: "center", gap: 8, width: "100%",
+        padding: "7px 10px", background: "var(--bg-2)",
+        border: "none", borderBottom: open ? "1px solid var(--border-strong)" : "none",
+        color: "var(--fg-2)", cursor: "pointer", textAlign: "left",
+        fontFamily: "var(--mono)", fontSize: 11
+      }}>
+        <Icon name={open ? "chevron-down" : "chevron-right"} size={11} style={{ color: "var(--fg-4)" }}/>
+        <Icon name="file" size={11} style={{ color: "var(--fg-4)" }}/>
+        <span style={{ color: "var(--fg)", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          {file.path}
+        </span>
+        <span style={{ color: kindColor, fontSize: 10, textTransform: "uppercase", letterSpacing: 0.6 }}>{file.kind}</span>
+        <span style={{ color: "var(--good)" }}>+{file.plus}</span>
+        <span style={{ color: "var(--bad)" }}>−{file.minus}</span>
+      </button>
+      {open && (
+        <div style={{ fontFamily: "var(--mono)", fontSize: 11, lineHeight: "17px", overflow: "auto", maxHeight: 360 }}>
+          {file.lines.map((ln, i) => <DiffLine key={i} ln={ln}/>)}
+        </div>
+      )}
+    </div>
+  );
+}
+function DiffLine({ ln }) {
+  if (ln.t === "hunk") {
+    return (
+      <div style={{
+        padding: "3px 10px", background: "rgba(84,138,247,0.08)",
+        color: "#9cb6f3", borderTop: "1px solid var(--border-strong)", borderBottom: "1px solid var(--border-strong)"
+      }}>{ln.s}</div>
+    );
+  }
+  const bg = ln.t === "add" ? "rgba(95,184,101,0.14)" : ln.t === "del" ? "rgba(229,87,101,0.14)" : "transparent";
+  const mark = ln.t === "add" ? "+" : ln.t === "del" ? "−" : " ";
+  const markColor = ln.t === "add" ? "var(--good)" : ln.t === "del" ? "var(--bad)" : "var(--fg-4)";
+  const textColor = ln.t === "add" ? "#d3ecd5" : ln.t === "del" ? "#f2c7cb" : "var(--fg-2)";
+  return (
+    <div style={{ display: "flex", background: bg, whiteSpace: "pre" }}>
+      <span style={{ width: 34, textAlign: "right", paddingRight: 6, color: "var(--fg-4)",
+                     borderRight: "1px solid var(--border-strong)", background: "var(--bg-2)" }}>
+        {ln.a ?? ""}
+      </span>
+      <span style={{ width: 34, textAlign: "right", paddingRight: 6, color: "var(--fg-4)",
+                     borderRight: "1px solid var(--border-strong)", background: "var(--bg-2)" }}>
+        {ln.b ?? ""}
+      </span>
+      <span style={{ width: 16, textAlign: "center", color: markColor, flexShrink: 0 }}>{mark}</span>
+      <span style={{ color: textColor, paddingRight: 10 }}>{ln.s}</span>
+    </div>
   );
 }
 function IntervalBody({ selection, data }) {

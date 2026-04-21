@@ -134,6 +134,7 @@ export function toViewModel(report: AnalysisReport): DashboardViewModel {
       tests,
       status: combineStatus(build, tests),
       churn: c.diff?.totalChurn ?? 0,
+      patch: report.checkpointPatches?.[c.sha] ?? "",
     }
   })
 
@@ -154,21 +155,23 @@ export function toViewModel(report: AnalysisReport): DashboardViewModel {
       tMs: Math.max(0, endedAt - startedAt),
       description: "End",
       churn: 0,
+      patch: "",
     })
   }
 
   const intervals: IntervalVM[] = checkpoints.slice(1).map((to, i) => {
     const from = checkpoints[i]
-    const build = combineStatus(from.build, to.build)
-    const tests = combineStatus(from.tests, to.tests)
+    // Edge colour mirrors the LEFT endpoint only — an interval is red
+    // iff the checkpoint it's leaving was failing. The right side's
+    // status belongs to that checkpoint's own dot.
     return {
       index: i,
       from: from.index,
       to: to.index,
       durationMs: Math.max(0, to.timestamp - from.timestamp),
-      build,
-      tests,
-      status: combineStatus(build, tests),
+      build: from.build,
+      tests: from.tests,
+      status: from.status,
       churn: to.churn,
     }
   })
@@ -206,6 +209,7 @@ export function toViewModel(report: AnalysisReport): DashboardViewModel {
       shortFromSha: shortSha(s.fromSha),
       shortToSha: shortSha(s.toSha),
       ideRelevant: s.refactoring.ideRelevant,
+      patch: report.refactoringPatches?.[i] ?? "",
     }),
   )
 

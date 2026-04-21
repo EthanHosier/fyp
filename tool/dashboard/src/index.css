@@ -85,6 +85,12 @@
   --sidebar-accent-foreground: var(--fg);
   --sidebar-border: var(--border-color);
   --sidebar-ring: var(--brand);
+
+  /* @pierre/diffs font overrides — inherits into the library's shadow DOM
+     so all FileDiff bodies render in JetBrains Mono, matching IntelliJ. */
+  --diffs-font-family: 'JetBrains Mono Variable', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --diffs-font-size: 12.5px;
+  --diffs-font-features: "liga" 1, "calt" 1;
 }
 
 @custom-variant dark (&:is(.dark *));
