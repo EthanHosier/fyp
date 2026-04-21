@@ -50,10 +50,67 @@ dependencies {
     testImplementation(libs.junit.jupiter)
     testImplementation(libs.kotlin.test.junit5)
     testImplementation(libs.ktor.server.test.host)
+
+    // JDT extract-method spike — test-only, scoped to `jdt` package.
+    // Scaled up as missing-class errors surface; start minimal.
+    testImplementation("org.eclipse.jdt:org.eclipse.jdt.core:3.38.0")
+    testImplementation("org.eclipse.jdt:org.eclipse.jdt.core.manipulation:1.23.0") {
+        // JDT manipulation transitively drags JFace/SWT for UI bits we
+        // don't touch; SWT's platform fragment uses an unresolved Gradle
+        // variable (${osgi.platform}) and fails to resolve.
+        exclude(group = "org.eclipse.platform", module = "org.eclipse.swt")
+    }
+    testImplementation("org.eclipse.platform:org.eclipse.core.runtime:3.31.100")
+    testImplementation("org.eclipse.platform:org.eclipse.core.resources:3.21.0")
+    testImplementation("org.eclipse.platform:org.eclipse.text:3.14.0")
+    testImplementation("org.eclipse.platform:org.eclipse.jface.text:3.25.0") {
+        exclude(group = "org.eclipse.platform", module = "org.eclipse.swt")
+        exclude(group = "org.eclipse.platform", module = "org.eclipse.jface")
+    }
+    testImplementation("org.eclipse.platform:org.eclipse.ltk.core.refactoring:3.14.0")
+    // Declarative Services runtime — Eclipse platform bundles register
+    // their services via DS components, so they stay unresolved until a
+    // DS container is present.
+    testImplementation("org.apache.felix:org.apache.felix.scr:2.2.12")
+    // OSGi compendium APIs Felix SCR + Eclipse bundles import.
+    testImplementation("org.osgi:org.osgi.service.component:1.5.1")
+    testImplementation("org.osgi:org.osgi.util.function:1.2.0")
+    testImplementation("org.osgi:org.osgi.util.promise:1.3.0")
+    testImplementation("org.osgi:org.osgi.util.tracker:1.5.4")
+    // SWT's Maven POM uses an unresolved `${osgi.platform}` variable
+    // that fails to resolve transitively. Explicitly depend on the
+    // platform-specific artifact that actually contains the classes,
+    // then let Gradle upgrade the transitive `org.eclipse.swt` stub to
+    // match. Only the native matching the host is needed.
+    testImplementation("org.eclipse.platform:org.eclipse.swt.cocoa.macosx.aarch64:3.130.0") {
+        exclude(group = "org.eclipse.platform", module = "org.eclipse.swt.\${osgi.platform}")
+    }
+}
+
+// Dedicated resolvable configuration that pulls the refactoring bundle
+// jar from `:refactoring-bundle`. Consuming via a configuration (not
+// direct cross-project task access) keeps Gradle's configuration cache
+// happy — the value becomes a file-collection input the test task can
+// depend on without reaching into another project at config time.
+val refactoringBundle: Configuration by configurations.creating {
+    isCanBeConsumed = false
+    isCanBeResolved = true
+    isTransitive = false
+}
+
+dependencies {
+    refactoringBundle(project(":refactoring-bundle"))
 }
 
 tasks.test {
     useJUnitPlatform()
+    val bundleFiles: FileCollection = refactoringBundle
+    inputs.files(bundleFiles)
+    jvmArgumentProviders.add(
+        CommandLineArgumentProvider {
+            listOf("-Drefactoring.bundle.jar=" + bundleFiles.singleFile.absolutePath)
+        },
+    )
 }
 
 tasks.register<JavaExec>("runServer") {
