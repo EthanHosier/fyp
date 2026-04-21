@@ -15,6 +15,7 @@ import { useState } from "react"
 import { FileDiff } from "@pierre/diffs/react"
 import type { FileDiffMetadata } from "@pierre/diffs"
 import { Text } from "@/components/text"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
 
 type Kind = "new" | "deleted" | "renamed" | "modified"
@@ -63,6 +64,15 @@ export function FileDiffCard({
   const kind = kindOf(fileDiff)
   const { added, deleted } = countChanges(fileDiff)
   const path = fileDiff.name
+  const prevPath = fileDiff.prevName
+  const renamed = prevPath && prevPath !== path
+  // Bare filename for the header title; full path(s) live in the hover
+  // tooltip so the card reads cleanly at narrow panel widths but the
+  // full context is still one hover away.
+  const headerLabel = renamed
+    ? `${basename(prevPath)} → ${basename(path)}`
+    : basename(path)
+  const fullLabel = renamed ? `${prevPath} → ${path}` : path
   const Chevron = open ? ChevronDownIcon : ChevronRightIcon
 
   return (
@@ -81,15 +91,21 @@ export function FileDiffCard({
       >
         <Chevron className="text-fg-4 size-3 shrink-0" />
         <FileIcon className="text-fg-4 size-3 shrink-0" />
-        <Text
-          variant="mono"
-          tone="fg"
-          className="flex-1 truncate text-[11px]"
-        >
-          {fileDiff.prevName && fileDiff.prevName !== path
-            ? `${fileDiff.prevName} → ${path}`
-            : path}
-        </Text>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Text
+              as="span"
+              variant="mono"
+              tone="fg"
+              className="min-w-0 flex-1 truncate text-[11px]"
+            >
+              {headerLabel}
+            </Text>
+          </TooltipTrigger>
+          <TooltipContent className="max-w-[520px] break-all">
+            {fullLabel}
+          </TooltipContent>
+        </Tooltip>
         <span
           className={cn(
             "font-mono text-[10px] tracking-[0.06em] uppercase",
@@ -124,6 +140,11 @@ export function FileDiffCard({
       )}
     </div>
   )
+}
+
+function basename(path: string): string {
+  const slash = path.lastIndexOf("/")
+  return slash === -1 ? path : path.substring(slash + 1)
 }
 
 function kindOf(file: FileDiffMetadata): Kind {

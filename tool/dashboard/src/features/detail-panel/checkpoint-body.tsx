@@ -7,22 +7,43 @@ import { DiffSection } from "@/features/detail-panel/diff-section"
 type Range = { min: number; max: number }
 
 /**
- * Details for a single checkpoint — metric tiles (with rainbow meter
- * driven by where the value sits in its observed min/max range) plus
- * a build/tests StatusRow. No touched-files preview until we map
- * `diff.perFileChurn` into the view-model (out of scope per PLAN).
+ * Unified body for both checkpoint and refactoring selections. A
+ * refactoring is rendered as the metrics + status of its `to` checkpoint,
+ * plus the RM description at the top and the hunk-filtered patch instead
+ * of the raw transition diff — passed in via the optional props.
  */
 export function CheckpointBody({
   vm,
   checkpoint,
+  description,
+  patch,
+  patchCacheKey,
+  patchEmptyMessage = "No diff captured for this checkpoint.",
 }: {
   vm: DashboardViewModel
   checkpoint: CheckpointVM
+  description?: string
+  patch?: string
+  patchCacheKey?: string
+  patchEmptyMessage?: string
 }) {
   const ranges = metricRanges(vm)
+  const effectivePatch = patch ?? checkpoint.patch
+  const effectiveKey = patchCacheKey ?? `checkpoint-${checkpoint.sha}`
 
   return (
     <div className="flex flex-col gap-4">
+      {description ? (
+        <section className="flex flex-col gap-2">
+          <Text as="h3" variant="eyebrow" tone="fg-4">
+            Description
+          </Text>
+          <Text variant="body" tone="fg-2" className="text-[12px]">
+            {description}
+          </Text>
+        </section>
+      ) : null}
+
       <section className="flex flex-col gap-2">
         <Text as="h3" variant="eyebrow" tone="fg-4">
           Metrics at {checkpoint.label}
@@ -37,7 +58,7 @@ export function CheckpointBody({
                 label={m.label}
                 value={v}
                 unit={m.unit}
-                fraction={fractionFor(v, ranges[m.id], m.better)}
+                fraction={fractionFor(v, ranges[m.id])}
                 better={m.better}
               />
             )
@@ -54,9 +75,9 @@ export function CheckpointBody({
 
       <DiffSection
         title="Diff"
-        patch={checkpoint.patch}
-        cacheKey={`checkpoint-${checkpoint.sha}`}
-        emptyMessage="No diff captured for this checkpoint."
+        patch={effectivePatch}
+        cacheKey={effectiveKey}
+        emptyMessage={patchEmptyMessage}
       />
     </div>
   )
@@ -75,11 +96,7 @@ function metricRanges(vm: DashboardViewModel): Partial<Record<MetricId, Range>> 
   return out
 }
 
-function fractionFor(
-  value: number,
-  range: Range | undefined,
-  _better: "lower" | "higher",
-): number {
+function fractionFor(value: number, range: Range | undefined): number {
   if (!range) return 0.5
   const span = range.max - range.min || 1
   return Math.max(0, Math.min(1, (value - range.min) / span))

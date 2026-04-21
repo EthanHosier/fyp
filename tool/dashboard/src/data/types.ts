@@ -111,6 +111,10 @@ export type Selection =
   | { kind: "checkpoint"; index: number }
   | { kind: "interval"; index: number }
   | { kind: "refactoring"; index: number }
+  // Click on the build / tests rail below the chart. `intervalIndex`
+  // points at the first interval in a merged same-status run; the
+  // detail panel walks forward to compute the run's total duration.
+  | { kind: "status"; intervalIndex: number; statusKind: "build" | "tests" }
   | null
 
 export type Layers = {

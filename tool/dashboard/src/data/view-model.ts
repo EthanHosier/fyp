@@ -161,16 +161,17 @@ export function toViewModel(report: AnalysisReport): DashboardViewModel {
 
   const intervals: IntervalVM[] = checkpoints.slice(1).map((to, i) => {
     const from = checkpoints[i]
-    const build = combineStatus(from.build, to.build)
-    const tests = combineStatus(from.tests, to.tests)
+    // Edge colour mirrors the LEFT endpoint only — an interval is red
+    // iff the checkpoint it's leaving was failing. The right side's
+    // status belongs to that checkpoint's own dot.
     return {
       index: i,
       from: from.index,
       to: to.index,
       durationMs: Math.max(0, to.timestamp - from.timestamp),
-      build,
-      tests,
-      status: combineStatus(build, tests),
+      build: from.build,
+      tests: from.tests,
+      status: from.status,
       churn: to.churn,
     }
   })
