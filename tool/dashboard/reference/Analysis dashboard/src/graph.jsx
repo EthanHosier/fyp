@@ -231,13 +231,59 @@ function TrajectoryGraph({
             const r = isSel ? 5.5 : isHov ? 4.5 : 3.4;
             const fill = "var(--bg)";
             const stroke = "var(--accent)";
+            const cx = xs(c.i);
+            const cy = ys(c[primary]);
+            // glyph cluster y: just above the dot (with tooltip-safe offset)
+            const gy = cy - 14;
             return (
               <g key={c.i} style={{ cursor: "pointer" }}
                  onClick={() => onSelect({ kind: "checkpoint", i: c.i })}>
-                <circle cx={xs(c.i)} cy={ys(c[primary])} r={r + 6} fill="transparent"/>
-                <circle cx={xs(c.i)} cy={ys(c[primary])} r={r} fill={fill} stroke={stroke} strokeWidth={1.6}/>
+                {/* test-run indicator: small circle with tick / dash / slashed */}
+                {c.tests === "run" && (
+                  <g transform={`translate(${cx - 8},${gy})`}>
+                    <title>Tests run after this checkpoint</title>
+                    <circle r={4.2} fill="rgba(95,184,101,0.18)" stroke="#5fb865" strokeWidth={1}/>
+                    <path d="M-2 0 L-0.5 1.6 L2 -1.5" fill="none" stroke="#5fb865" strokeWidth={1.2} strokeLinecap="round" strokeLinejoin="round"/>
+                  </g>
+                )}
+                {c.tests === "partial" && (
+                  <g transform={`translate(${cx - 8},${gy})`}>
+                    <title>Only a subset of tests run</title>
+                    <circle r={4.2} fill="rgba(232,163,61,0.18)" stroke="#e8a33d" strokeWidth={1}/>
+                    <path d="M-2 0 L2 0" stroke="#e8a33d" strokeWidth={1.2} strokeLinecap="round"/>
+                  </g>
+                )}
+                {c.tests === "skipped" && (
+                  <g transform={`translate(${cx - 8},${gy})`}>
+                    <title>No tests were run after this refactoring</title>
+                    <circle r={4.2} fill="rgba(229,87,101,0.14)" stroke="#e55765" strokeWidth={1} strokeDasharray="1.6 1.4"/>
+                    <path d="M-2 -2 L2 2 M2 -2 L-2 2" stroke="#e55765" strokeWidth={1.1} strokeLinecap="round"/>
+                  </g>
+                )}
+                {c.tests === "none" && (
+                  <g transform={`translate(${cx - 8},${gy})`}>
+                    <title>No tests exist in the touched area</title>
+                    <circle r={4.2} fill="transparent" stroke="var(--fg-4)" strokeWidth={1} strokeDasharray="1.4 1.4"/>
+                  </g>
+                )}
+                {/* IDE-able: lightning bolt marking a manual refactor the IDE could have done */}
+                {c.manualIdeAble && (
+                  <g transform={`translate(${cx + 8},${gy})`}>
+                    <title>{`Manual refactor — IDE action available: ${c.manualIdeAble.action}`}</title>
+                    <circle r={4.6} fill="rgba(232,163,61,0.18)" stroke="#e8a33d" strokeWidth={1}/>
+                    <path d="M0.4 -2.6 L-1.6 0.3 L-0.1 0.3 L-0.6 2.6 L1.6 -0.4 L0.1 -0.4 Z"
+                          fill="#e8a33d"/>
+                  </g>
+                )}
+                {/* Vertical tick connecting glyph row to dot */}
+                {(c.tests !== undefined || c.manualIdeAble) && (
+                  <line x1={cx} x2={cx} y1={gy + 5} y2={cy - r - 1}
+                        stroke="var(--border-strong)" strokeOpacity={0.55} strokeWidth={0.8}/>
+                )}
+                <circle cx={cx} cy={cy} r={r + 6} fill="transparent"/>
+                <circle cx={cx} cy={cy} r={r} fill={fill} stroke={stroke} strokeWidth={1.6}/>
                 {isSel && (
-                  <circle cx={xs(c.i)} cy={ys(c[primary])} r={r + 4}
+                  <circle cx={cx} cy={cy} r={r + 4}
                           fill="none" stroke="var(--accent)" strokeOpacity={0.35} strokeWidth={1}/>
                 )}
               </g>
