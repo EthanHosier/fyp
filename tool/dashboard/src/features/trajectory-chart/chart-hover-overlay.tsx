@@ -39,12 +39,14 @@ export function ChartHoverOverlay({
   primary,
   secondaries,
   scales,
+  showSubsteps,
   onSelect,
 }: {
   vm: DashboardViewModel
   primary: MetricVM
   secondaries: MetricVM[]
   scales: ChartScales
+  showSubsteps: boolean
   onSelect: (s: Selection) => void
 }) {
   const [hover, setHover] = useState<Hover>(null)
@@ -58,7 +60,7 @@ export function ChartHoverOverlay({
       setHover(null)
       return
     }
-    const base = hoverAt(vm, primary, scales, mx, my)
+    const base = hoverAt(vm, primary, scales, mx, my, showSubsteps)
     setHover(base ? { ...base, mx, my } : null)
   }
 
@@ -122,6 +124,7 @@ function hoverAt(
   scales: ChartScales,
   mx: number,
   my: number,
+  showSubsteps: boolean,
 ): HoverKind | null {
   const { xs, ys } = scales
   const raw = xs.invert(mx)
@@ -140,12 +143,20 @@ function hoverAt(
       // the checkpoint is the sub-point hidden beneath it.
       const step = vm.refactoringSteps.find((s) => s.checkpointIndex === nearest)
       if (step) return { kind: "refactoring", index: step.index }
-      return { kind: "checkpoint", index: nearest }
+      // When substeps are hidden, "bare" checkpoints have no visible
+      // dot — but the first/last anchors still render, so keep them
+      // hoverable.
+      const isAnchor = nearest === 0 || nearest === vm.checkpoints.length - 1
+      if (showSubsteps || isAnchor) return { kind: "checkpoint", index: nearest }
     }
   }
   const floor = Math.max(0, Math.min(vm.intervals.length - 1, Math.floor(raw)))
   const iv = vm.intervals[floor]
-  if (!iv) return { kind: "checkpoint", index: nearest }
+  if (!iv) {
+    const isAnchor = nearest === 0 || nearest === vm.checkpoints.length - 1
+    if (showSubsteps || isAnchor) return { kind: "checkpoint", index: nearest }
+    return null
+  }
   return { kind: "interval", index: iv.index }
 }
 

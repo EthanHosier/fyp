@@ -35,7 +35,7 @@ export const useDashboardStore = create<DashboardStore>((set) => ({
   selection: null,
   primary: "complexity",
   secondaries: ["duplication", "churn"],
-  layers: { buildIntervals: true, testIntervals: true },
+  layers: { buildIntervals: true, testIntervals: true, substeps: false },
 
   setSelection: (selection) => set({ selection }),
 

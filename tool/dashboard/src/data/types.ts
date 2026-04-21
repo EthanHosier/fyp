@@ -105,4 +105,5 @@ export type Selection =
 export type Layers = {
   buildIntervals: boolean
   testIntervals: boolean
+  substeps: boolean
 }

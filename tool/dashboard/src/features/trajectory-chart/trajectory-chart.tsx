@@ -93,6 +93,7 @@ export function TrajectoryChart({ vm }: { vm: DashboardViewModel }) {
               primary={primary}
               scales={scales}
               selection={selection}
+              showAll={layers.substeps}
               onSelect={setSelection}
             />
             <ChartRefactoringPoints
@@ -125,6 +126,7 @@ export function TrajectoryChart({ vm }: { vm: DashboardViewModel }) {
               primary={primary}
               secondaries={secondaries}
               scales={scales}
+              showSubsteps={layers.substeps}
               onSelect={setSelection}
             />
           </g>
