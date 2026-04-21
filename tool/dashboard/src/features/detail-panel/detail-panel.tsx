@@ -7,6 +7,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import type { CheckpointVM, DashboardViewModel, StatusTone } from "@/data/types"
 import { CheckpointBody } from "@/features/detail-panel/checkpoint-body"
 import { IntervalBody } from "@/features/detail-panel/interval-body"
+import { RefactoringPitfalls } from "@/features/detail-panel/refactoring-pitfalls"
 import { StatusIntervalBody } from "@/features/detail-panel/status-interval-body"
 import { useDashboardStore } from "@/stores/dashboard-store"
 
@@ -48,6 +49,7 @@ export function DetailPanel({ vm }: { vm: DashboardViewModel }) {
         vm={vm}
         checkpoint={to}
         description={step.description}
+        pitfalls={<RefactoringPitfalls step={step} />}
         patch={step.patch}
         patchCacheKey={`refactoring-${step.index}`}
         patchEmptyMessage="No filtered diff for this refactoring."

@@ -1,3 +1,5 @@
+import type { ReactNode } from "react"
+
 import { MetricTile } from "@/components/metric-tile"
 import { StatusRow } from "@/components/status-row"
 import { Text } from "@/components/text"
@@ -16,6 +18,7 @@ export function CheckpointBody({
   vm,
   checkpoint,
   description,
+  pitfalls,
   patch,
   patchCacheKey,
   patchEmptyMessage = "No diff captured for this checkpoint.",
@@ -23,6 +26,7 @@ export function CheckpointBody({
   vm: DashboardViewModel
   checkpoint: CheckpointVM
   description?: string
+  pitfalls?: ReactNode
   patch?: string
   patchCacheKey?: string
   patchEmptyMessage?: string
@@ -72,6 +76,8 @@ export function CheckpointBody({
         </Text>
         <StatusRow build={checkpoint.build} tests={checkpoint.tests} />
       </section>
+
+      {pitfalls}
 
       <DiffSection
         title="Diff"

@@ -6,6 +6,7 @@ import com.github.ethanhosier.analysis.miner.model.RefactoringLocation
 import com.github.ethanhosier.analysis.miner.model.RefactoringStep
 import com.github.ethanhosier.analysis.model.ReconstructionResult
 import com.github.ethanhosier.analysis.model.Trace
+import com.github.ethanhosier.ideplugin.model.EventType
 import gr.uom.java.xmi.diff.CodeRange
 import org.refactoringminer.api.Refactoring
 import org.refactoringminer.api.RefactoringHandler
@@ -52,6 +53,7 @@ class RefactoringMinerRunner(
         if (checkpoints.size < 2) return Summary(checkpoints.size, emptyList())
 
         val shaToTimestamp = firstTimestampPerSha(trace, reconstruction)
+        val idePerformedShas = shasWithIdeRefactoring(trace, reconstruction)
 
         // Pool size = 2 per concurrent RM call; the sliding window is
         // sequential here (probe walks dominate), so parallelism × 2
@@ -96,6 +98,7 @@ class RefactoringMinerRunner(
                             toCheckpointIndex = toCheckpointIndex,
                             timestamp = timestamp,
                             refactoring = toDetected(d),
+                            wasPerformedByIde = rSha in idePerformedShas,
                         ),
                     )
                 }
@@ -180,6 +183,20 @@ class RefactoringMinerRunner(
 
     private fun orderedUniqueShas(reconstruction: ReconstructionResult): List<String> =
         reconstruction.eventCommits.mapping.values.toCollection(LinkedHashSet()).toList()
+
+    private fun shasWithIdeRefactoring(
+        trace: Trace,
+        reconstruction: ReconstructionResult,
+    ): Set<String> {
+        val mapping = reconstruction.eventCommits.mapping
+        val out = HashSet<String>()
+        for (event in trace.events) {
+            if (event.type != EventType.REFACTORING_FINISHED) continue
+            val sha = mapping[event.id] ?: continue
+            out.add(sha)
+        }
+        return out
+    }
 
     private fun firstTimestampPerSha(
         trace: Trace,
