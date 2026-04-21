@@ -93,6 +93,12 @@ export type RefactoringStepVM = {
   shortFromSha: string
   shortToSha: string
   ideRelevant: boolean
+  /** True iff a REFACTORING_FINISHED event landed on the toSha
+   *  checkpoint — distinguishes IDE-performed vs manually-made refactors. */
+  wasPerformedByIde: boolean
+  /** True iff the toSha checkpoint has a TEST_RUN_FINISHED event — i.e.
+   *  the user ran tests right after this refactoring. */
+  userRanTests: boolean
   /** Hunk-filtered unified-diff patch scoped to the refactoring's
    *  left/right files — empty if the server didn't produce one. */
   patch: string

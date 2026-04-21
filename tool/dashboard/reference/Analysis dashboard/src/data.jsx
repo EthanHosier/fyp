@@ -28,20 +28,22 @@ const METRICS = [
 // - Duplication spikes around checkpoints 6-8 (extraction gone wrong)
 // - Recovery in the final third.
 const CHECKPOINTS = [
-  { i: 0,  t: "00:00", label: "c0  initial",        complexity: 48, coupling: 22, duplication: 9.1,  readability: 54, churn: 0,   process: 55, status: "pass"    },
-  { i: 1,  t: "00:12", label: "c1  extract helper", complexity: 46, coupling: 22, duplication: 8.7,  readability: 56, churn: 34,  process: 58, status: "pass"    },
-  { i: 2,  t: "00:28", label: "c2  rename symbols", complexity: 46, coupling: 21, duplication: 8.7,  readability: 60, churn: 18,  process: 61, status: "pass"    },
-  { i: 3,  t: "00:41", label: "c3  inline method",  complexity: 44, coupling: 20, duplication: 9.4,  readability: 61, churn: 52,  process: 60, status: "fail"    },
-  { i: 4,  t: "01:02", label: "c4  split module",   complexity: 50, coupling: 26, duplication: 12.2, readability: 57, churn: 188, process: 49, status: "fail"    },
-  { i: 5,  t: "01:18", label: "c5  fix imports",    complexity: 49, coupling: 24, duplication: 11.8, readability: 58, churn: 41,  process: 52, status: "unknown" },
-  { i: 6,  t: "01:33", label: "c6  extract class",  complexity: 44, coupling: 23, duplication: 14.6, readability: 59, churn: 96,  process: 54, status: "pass"    },
-  { i: 7,  t: "01:49", label: "c7  move method",    complexity: 42, coupling: 25, duplication: 15.1, readability: 58, churn: 62,  process: 53, status: "fail"    },
-  { i: 8,  t: "02:06", label: "c8  revert partial", complexity: 43, coupling: 22, duplication: 11.2, readability: 60, churn: 148, process: 56, status: "pass"    },
-  { i: 9,  t: "02:22", label: "c9  introduce iface",complexity: 40, coupling: 19, duplication: 10.3, readability: 63, churn: 58,  process: 64, status: "pass"    },
-  { i: 10, t: "02:38", label: "c10 parameterize",   complexity: 38, coupling: 18, duplication: 9.5,  readability: 65, churn: 31,  process: 68, status: "pass"    },
-  { i: 11, t: "02:51", label: "c11 dedupe service", complexity: 37, coupling: 18, duplication: 6.8,  readability: 67, churn: 74,  process: 71, status: "pass"    },
-  { i: 12, t: "03:01", label: "c12 cleanup tests",  complexity: 36, coupling: 17, duplication: 6.4,  readability: 70, churn: 22,  process: 73, status: "pass"    },
-  { i: 13, t: "03:07", label: "c13 final",          complexity: 35, coupling: 17, duplication: 6.1,  readability: 72, churn: 9,   process: 76, status: "pass"    },
+  // tests: "run" (tests executed), "skipped" (no test run after change), "partial" (some suites), "none" (no tests in touched area)
+  // manualIdeAble: the user hand-edited something the IDE has a safe automated refactoring for; suggestion = which one.
+  { i: 0,  t: "00:00", label: "c0  initial",        complexity: 48, coupling: 22, duplication: 9.1,  readability: 54, churn: 0,   process: 55, status: "pass",    tests: "run",     manualIdeAble: null },
+  { i: 1,  t: "00:12", label: "c1  extract helper", complexity: 46, coupling: 22, duplication: 8.7,  readability: 56, churn: 34,  process: 58, status: "pass",    tests: "run",     manualIdeAble: null },
+  { i: 2,  t: "00:28", label: "c2  rename symbols", complexity: 46, coupling: 21, duplication: 8.7,  readability: 60, churn: 18,  process: 61, status: "pass",    tests: "skipped", manualIdeAble: { action: "Rename", why: "6 identifiers renamed by hand-edit in multiple files — IDE 'Rename' (⇧F6) would have done this atomically with reference updates." } },
+  { i: 3,  t: "00:41", label: "c3  inline method",  complexity: 44, coupling: 20, duplication: 9.4,  readability: 61, churn: 52,  process: 60, status: "fail",    tests: "skipped", manualIdeAble: { action: "Inline Method", why: "Method body was copy-pasted at 3 call sites and the definition deleted — IDE 'Inline Method' (⌘⌥N) would have handled all call sites and avoided the tsc break." } },
+  { i: 4,  t: "01:02", label: "c4  split module",   complexity: 50, coupling: 26, duplication: 12.2, readability: 57, churn: 188, process: 49, status: "fail",    tests: "skipped", manualIdeAble: { action: "Move Class", why: "Classes relocated to new files with manual import rewiring — IDE 'Move' (F6) tracks all imports." } },
+  { i: 5,  t: "01:18", label: "c5  fix imports",    complexity: 49, coupling: 24, duplication: 11.8, readability: 58, churn: 41,  process: 52, status: "unknown", tests: "none",    manualIdeAble: { action: "Optimize Imports", why: "Hand-edited import statements — 'Optimize Imports' (⌃⌥O) sorts and dedupes automatically." } },
+  { i: 6,  t: "01:33", label: "c6  extract class",  complexity: 44, coupling: 23, duplication: 14.6, readability: 59, churn: 96,  process: 54, status: "pass",    tests: "partial", manualIdeAble: null },
+  { i: 7,  t: "01:49", label: "c7  move method",    complexity: 42, coupling: 25, duplication: 15.1, readability: 58, churn: 62,  process: 53, status: "fail",    tests: "skipped", manualIdeAble: { action: "Move Method", why: "Cut+paste across files leaves refs dangling — IDE 'Move Method' (F6) updates them." } },
+  { i: 8,  t: "02:06", label: "c8  revert partial", complexity: 43, coupling: 22, duplication: 11.2, readability: 60, churn: 148, process: 56, status: "pass",    tests: "run",     manualIdeAble: null },
+  { i: 9,  t: "02:22", label: "c9  introduce iface",complexity: 40, coupling: 19, duplication: 10.3, readability: 63, churn: 58,  process: 64, status: "pass",    tests: "run",     manualIdeAble: { action: "Extract Interface", why: "Interface written by hand and three classes manually annotated — 'Extract Interface' (⌃T) would produce and wire it up." } },
+  { i: 10, t: "02:38", label: "c10 parameterize",   complexity: 38, coupling: 18, duplication: 9.5,  readability: 65, churn: 31,  process: 68, status: "pass",    tests: "partial", manualIdeAble: { action: "Change Signature", why: "New parameter added by editing the declaration and every call site — 'Change Signature' (⌘F6) handles call-site updates." } },
+  { i: 11, t: "02:51", label: "c11 dedupe service", complexity: 37, coupling: 18, duplication: 6.8,  readability: 67, churn: 74,  process: 71, status: "pass",   tests: "run",     manualIdeAble: null },
+  { i: 12, t: "03:01", label: "c12 cleanup tests",  complexity: 36, coupling: 17, duplication: 6.4,  readability: 70, churn: 22,  process: 73, status: "pass",    tests: "run",     manualIdeAble: null },
+  { i: 13, t: "03:07", label: "c13 final",          complexity: 35, coupling: 17, duplication: 6.1,  readability: 72, churn: 9,   process: 76, status: "pass",    tests: "run",     manualIdeAble: null },
 ];
 
 // Intervals between adjacent checkpoints: status (pass/fail/unknown) for color bands
