@@ -49,7 +49,7 @@ export function DetailPanel({ vm }: { vm: DashboardViewModel }) {
         vm={vm}
         checkpoint={to}
         description={step.description}
-        pitfalls={<RefactoringPitfalls step={step} />}
+        pitfalls={<RefactoringPitfalls vm={vm} step={step} />}
         patch={step.patch}
         patchCacheKey={`refactoring-${step.index}`}
         patchEmptyMessage="No filtered diff for this refactoring."
