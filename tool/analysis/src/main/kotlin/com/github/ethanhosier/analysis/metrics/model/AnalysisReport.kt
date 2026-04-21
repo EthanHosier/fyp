@@ -28,6 +28,16 @@ data class AnalysisReport(
     val checkpoints: List<CheckpointReport>,
     val refactoringSteps: List<RefactoringStep> = emptyList(),
     val trajectory: TrajectoryStats = TrajectoryStats.ZERO,
+    // Unified-diff patch text for the transition *into* each checkpoint,
+    // keyed by the checkpoint's SHA. Empty string when there is no previous
+    // commit (root). Kept as a side table so [CheckpointReport] stays
+    // compact — patches can be kilobytes.
+    val checkpointPatches: Map<String, String> = emptyMap(),
+    // Unified-diff patch text for each refactoring step, keyed by its
+    // `stepIndex`. Scoped to the files RefactoringMiner flagged and
+    // hunk-filtered against the detection's left/right line ranges, so
+    // unrelated edits in the same window are excluded.
+    val refactoringPatches: Map<Int, String> = emptyMap(),
 )
 
 /**
