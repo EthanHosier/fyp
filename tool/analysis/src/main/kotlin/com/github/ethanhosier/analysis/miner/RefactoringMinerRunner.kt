@@ -2,48 +2,45 @@ package com.github.ethanhosier.analysis.miner
 
 import com.github.ethanhosier.analysis.metrics.WorktreePool
 import com.github.ethanhosier.analysis.miner.model.DetectedRefactoring
-import com.github.ethanhosier.analysis.miner.model.ManualRefactoringSegment
-import com.github.ethanhosier.analysis.miner.model.RefactoringFinding
 import com.github.ethanhosier.analysis.miner.model.RefactoringLocation
+import com.github.ethanhosier.analysis.miner.model.RefactoringStep
 import com.github.ethanhosier.analysis.model.ReconstructionResult
 import com.github.ethanhosier.analysis.model.Trace
-import com.github.ethanhosier.ideplugin.model.EventType
 import gr.uom.java.xmi.diff.CodeRange
 import org.refactoringminer.api.Refactoring
 import org.refactoringminer.api.RefactoringHandler
 import org.refactoringminer.rm1.GitHistoryRefactoringMinerImpl
 import java.nio.file.Path
-import java.util.concurrent.ExecutionException
-import java.util.concurrent.Executors
-import java.util.concurrent.TimeUnit
 
 /**
  * Runs RefactoringMiner on pairs of shadow-repo commits to detect
- * refactoring patterns in manual-edit intervals between automated IDE
- * refactorings.
+ * refactorings across the whole session — one end-to-end sliding window
+ * over every consecutive checkpoint, regardless of whether a checkpoint
+ * came from an edit burst or an automated IDE refactoring.
  *
- * Two passes per segment (run between two consecutive anchors — an anchor
- * being a checkpoint reached via `SESSION_STARTED` or
- * `REFACTORING_FINISHED`):
+ * Earlier iterations anchored at `SESSION_STARTED` / `REFACTORING_FINISHED`
+ * events and treated IDE refactorings as a separate source. That produced
+ * two parallel streams and split co-located manual + automated work. A
+ * single unified pass gives one list of refactoring steps, which is what
+ * the dashboard renders as primary chart points.
  *
- *  - **Segment-level** — one RM run spanning `(A_L → last_manual)`.
- *    Captures the net refactorings the user made across the segment.
- *  - **Inner sliding window** — grows `R` forward from the first manual
- *    checkpoint; on the first non-empty detection, shrinks `L` forward while
- *    the detection set stays equal (canonical-keyed) to lock onto the
- *    tightest window `[L*, R*]`. Then restarts with `L = R*` and continues.
+ * Algorithm (sliding window):
+ *  - Grow `R` forward from `L = checkpoint 0`.
+ *  - On the first non-empty detection between `(L, R)`, shrink `L` forward
+ *    while the canonical-keyed detection set stays equal — locking onto
+ *    the tightest window `[L*, R]`.
+ *  - Emit one [RefactoringStep] per detection, then restart with `L = R`.
  *
  * RM is invoked via [GitHistoryRefactoringMinerImpl.detectAtDirectories]
- * against two worktrees borrowed from [WorktreePool] at the two SHAs — no
- * JGit code in our codebase.
+ * against two worktrees borrowed from [WorktreePool] at the two SHAs.
  */
 class RefactoringMinerRunner(
     private val parallelism: Int = defaultParallelism(),
 ) {
 
     data class Summary(
-        val segmentsAnalysed: Int,
-        val segments: List<ManualRefactoringSegment>,
+        val checkpointsAnalysed: Int,
+        val steps: List<RefactoringStep>,
     )
 
     fun run(
@@ -52,100 +49,63 @@ class RefactoringMinerRunner(
         sessionFolder: Path,
     ): Summary {
         val checkpoints = orderedUniqueShas(reconstruction)
-        val anchors = anchorSet(trace, reconstruction)
-        val segments = partitionSegments(checkpoints, anchors)
+        if (checkpoints.size < 2) return Summary(checkpoints.size, emptyList())
 
-        if (segments.isEmpty()) return Summary(0, emptyList())
+        val shaToTimestamp = firstTimestampPerSha(trace, reconstruction)
 
-        // Two worktrees per RM call; a segment processes one call at a time,
-        // so pool size = 2 × parallelism is enough.
+        // Pool size = 2 per concurrent RM call; the sliding window is
+        // sequential here (probe walks dominate), so parallelism × 2
+        // covers the single-call worst case without oversubscription.
         val poolSize = (parallelism * 2).coerceAtLeast(2)
         val worktreeBase = sessionFolder.resolve("refactoring-miner-worktrees")
         val pool = WorktreePool(reconstruction.repoDir, worktreeBase, poolSize)
-        val executor = Executors.newFixedThreadPool(parallelism)
 
-        val results = try {
-            val futures = segments.mapIndexed { i, seg ->
-                executor.submit<ManualRefactoringSegment?> { processSegment(i, seg, pool) }
-            }
-            futures.mapNotNull { future ->
-                try {
-                    future.get()
-                } catch (e: ExecutionException) {
-                    throw e.cause ?: e
+        val steps = mutableListOf<RefactoringStep>()
+        pool.use { pool ->
+            var lIdx = 0
+            var rIdx = 1
+            while (rIdx < checkpoints.size) {
+                val lSha = checkpoints[lIdx]
+                val rSha = checkpoints[rIdx]
+                val detections = runRM(pool, lSha, rSha)
+                if (detections.isEmpty()) {
+                    rIdx++
+                    continue
                 }
-            }
-        } finally {
-            executor.shutdownNow()
-            executor.awaitTermination(1, TimeUnit.MINUTES)
-            pool.close()
-        }
 
-        return Summary(segmentsAnalysed = segments.size, segments = results)
-    }
+                val targetKeys = detections.map(::canonicalKey).toSet()
+                var tightestLSha = lSha
+                var probeIdx = lIdx + 1
+                while (probeIdx < rIdx) {
+                    val probeSha = checkpoints[probeIdx]
+                    val probeKeys = runRM(pool, probeSha, rSha).map(::canonicalKey).toSet()
+                    if (probeKeys == targetKeys) {
+                        tightestLSha = probeSha
+                        probeIdx++
+                    } else break
+                }
 
-    /**
-     * Returns null if the segment had no manual checkpoints or no
-     * refactorings at either scope — empty entries are not worth
-     * surfacing.
-     */
-    private fun processSegment(
-        index: Int,
-        segment: Segment,
-        pool: WorktreePool,
-    ): ManualRefactoringSegment? {
-        val manuals = segment.manuals
-        if (manuals.isEmpty()) return null
+                val toCheckpointIndex = rIdx
+                val timestamp = shaToTimestamp[rSha] ?: 0L
+                for (d in detections) {
+                    steps.add(
+                        RefactoringStep(
+                            stepIndex = steps.size,
+                            fromSha = tightestLSha,
+                            toSha = rSha,
+                            toCheckpointIndex = toCheckpointIndex,
+                            timestamp = timestamp,
+                            refactoring = toDetected(d),
+                        ),
+                    )
+                }
 
-        val segmentLevel = runRM(pool, segment.leftAnchor, manuals.last())
-
-        val innerFindings = mutableListOf<RefactoringFinding>()
-        // lIdx == -1 means L is the left anchor; otherwise L = manuals[lIdx].
-        var lIdx = -1
-        var rIdx = 0
-        while (rIdx < manuals.size) {
-            val lSha = if (lIdx == -1) segment.leftAnchor else manuals[lIdx]
-            val rSha = manuals[rIdx]
-            val detections = runRM(pool, lSha, rSha)
-            if (detections.isEmpty()) {
+                lIdx = rIdx
                 rIdx++
-                continue
             }
-
-            val targetKeys = detections.map(::canonicalKey).toSet()
-            var tightestLSha = lSha
-            var probeIdx = lIdx + 1
-            while (probeIdx < rIdx) {
-                val probeSha = manuals[probeIdx]
-                val probeKeys = runRM(pool, probeSha, rSha).map(::canonicalKey).toSet()
-                if (probeKeys == targetKeys) {
-                    tightestLSha = probeSha
-                    probeIdx++
-                } else break
-            }
-
-            innerFindings.add(
-                RefactoringFinding(
-                    fromSha = tightestLSha,
-                    toSha = rSha,
-                    refactorings = detections.map(::toDetected),
-                ),
-            )
-
-            // Restart: new baseline = locked R; continue from R+1.
-            lIdx = rIdx
-            rIdx++
         }
 
-        if (segmentLevel.isEmpty() && innerFindings.isEmpty()) return null
-
-        return ManualRefactoringSegment(
-            segmentIndex = index,
-            fromSha = segment.leftAnchor,
-            toSha = manuals.last(),
-            segmentRefactorings = segmentLevel.map(::toDetected),
-            innerFindings = innerFindings,
-        )
+        return Summary(checkpointsAnalysed = checkpoints.size, steps = steps)
     }
 
     private fun runRM(pool: WorktreePool, fromSha: String, toSha: String): List<Refactoring> {
@@ -218,44 +178,20 @@ class RefactoringMinerRunner(
     private fun codeRangeKey(c: CodeRange): String =
         "${c.filePath}:${c.startLine}-${c.endLine} [${c.codeElementType}] ${c.codeElement}"
 
-    private data class Segment(val leftAnchor: String, val manuals: List<String>)
-
     private fun orderedUniqueShas(reconstruction: ReconstructionResult): List<String> =
         reconstruction.eventCommits.mapping.values.toCollection(LinkedHashSet()).toList()
 
-    private fun anchorSet(trace: Trace, reconstruction: ReconstructionResult): Set<String> {
-        val anchors = mutableSetOf<String>()
-        val seen = mutableSetOf<String>()
+    private fun firstTimestampPerSha(
+        trace: Trace,
+        reconstruction: ReconstructionResult,
+    ): Map<String, Long> {
+        val out = LinkedHashMap<String, Long>()
         val mapping = reconstruction.eventCommits.mapping
         for (event in trace.events) {
             val sha = mapping[event.id] ?: continue
-            if (!seen.add(sha)) continue
-            if (event.type == EventType.SESSION_STARTED || event.type == EventType.REFACTORING_FINISHED) {
-                anchors.add(sha)
-            }
+            if (sha !in out) out[sha] = event.timestamp
         }
-        return anchors
-    }
-
-    private fun partitionSegments(checkpoints: List<String>, anchors: Set<String>): List<Segment> {
-        val segments = mutableListOf<Segment>()
-        var currentAnchor: String? = null
-        var currentManuals = mutableListOf<String>()
-        for (sha in checkpoints) {
-            if (sha in anchors) {
-                if (currentAnchor != null && currentManuals.isNotEmpty()) {
-                    segments.add(Segment(currentAnchor, currentManuals.toList()))
-                }
-                currentAnchor = sha
-                currentManuals = mutableListOf()
-            } else if (currentAnchor != null) {
-                currentManuals.add(sha)
-            }
-        }
-        if (currentAnchor != null && currentManuals.isNotEmpty()) {
-            segments.add(Segment(currentAnchor, currentManuals.toList()))
-        }
-        return segments
+        return out
     }
 
     companion object {
