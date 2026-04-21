@@ -69,17 +69,37 @@ export type TrajectoryVM = {
   totalBrokenMs: number
 }
 
+export type RefactoringStepVM = {
+  /** 0-based, chronological, matches server stepIndex */
+  index: number
+  /** X position on the chart (index into checkpoints[]) */
+  checkpointIndex: number
+  timestamp: number
+  tLabel: string
+  /** RefactoringMiner display name, e.g. "Extract Method" */
+  refactoringType: string
+  /** human-readable description from RefactoringMiner */
+  description: string
+  fromSha: string
+  toSha: string
+  shortFromSha: string
+  shortToSha: string
+  ideRelevant: boolean
+}
+
 export type DashboardViewModel = {
   session: SessionVM
   metrics: MetricVM[]
   checkpoints: CheckpointVM[]
   intervals: IntervalVM[]
+  refactoringSteps: RefactoringStepVM[]
   trajectory: TrajectoryVM | undefined
 }
 
 export type Selection =
   | { kind: "checkpoint"; index: number }
   | { kind: "interval"; index: number }
+  | { kind: "refactoring"; index: number }
   | null
 
 export type Layers = {

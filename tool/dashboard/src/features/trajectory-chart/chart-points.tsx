@@ -4,8 +4,10 @@ import { TONE_TEXT } from "@/lib/metric-tone"
 import { cn } from "@/lib/utils"
 
 /**
- * Checkpoint circles on the primary line. Selected circles get a halo;
- * clicking dispatches the selection.
+ * Sub-point layer — every checkpoint as a small muted dot on the primary
+ * line. Refactoring steps are rendered on top via `ChartRefactoringPoints`
+ * as the primary dots; these remain clickable for checkpoints that aren't
+ * a refactoring-step target.
  */
 export function ChartPoints({
   vm,
@@ -29,7 +31,7 @@ export function ChartPoints({
         if (typeof v !== "number") return null
         const selected =
           selection?.kind === "checkpoint" && selection.index === c.index
-        const r = selected ? 5.5 : 3.4
+        const r = selected ? 3 : 2
         return (
           <g
             key={c.index}
@@ -41,15 +43,14 @@ export function ChartPoints({
               cx={xs(c.index)}
               cy={ys(v)}
               r={r}
-              className="fill-bg"
-              stroke="currentColor"
-              strokeWidth={1.6}
+              fill="currentColor"
+              fillOpacity={selected ? 0.9 : 0.5}
             />
             {selected ? (
               <circle
                 cx={xs(c.index)}
                 cy={ys(v)}
-                r={r + 4}
+                r={r + 3}
                 fill="none"
                 stroke="currentColor"
                 strokeOpacity={0.35}

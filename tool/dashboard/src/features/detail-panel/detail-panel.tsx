@@ -7,6 +7,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import type { DashboardViewModel, StatusTone } from "@/data/types"
 import { CheckpointBody } from "@/features/detail-panel/checkpoint-body"
 import { IntervalBody } from "@/features/detail-panel/interval-body"
+import { RefactoringBody } from "@/features/detail-panel/refactoring-body"
 import { useDashboardStore } from "@/stores/dashboard-store"
 
 const PANEL_WIDTH = 380
@@ -46,6 +47,24 @@ export function DetailPanel({ vm }: { vm: DashboardViewModel }) {
       </span>
     )
     body = <CheckpointBody vm={vm} checkpoint={c} />
+  } else if (selection.kind === "refactoring") {
+    const step = vm.refactoringSteps[selection.index]
+    if (!step) return null
+    title = step.refactoringType
+    subtitle = (
+      <span className="inline-flex items-center gap-1.5">
+        <Text variant="mono" tone="fg-3">
+          r{step.index}
+        </Text>
+        <Text variant="mono" tone="fg-4">
+          ·
+        </Text>
+        <Text variant="mono" tone="fg-3">
+          {step.tLabel}
+        </Text>
+      </span>
+    )
+    body = <RefactoringBody vm={vm} step={step} />
   } else {
     const iv = vm.intervals[selection.index]
     if (!iv) return null

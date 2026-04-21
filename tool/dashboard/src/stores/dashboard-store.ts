@@ -8,8 +8,8 @@ import type { Layers, MetricId, Selection } from "@/data/types"
  * holds user-controlled selections (selection / primary / secondaries
  * / layers) so features can read/write without prop-drilling.
  *
- *  - `selection` — checkpoint or interval currently focused in the
- *    detail panel.
+ *  - `selection` — checkpoint, interval, or refactoring step currently
+ *    focused in the detail panel.
  *  - `primary` — metric drawn as the solid trajectory line.
  *  - `secondaries` — up to two dashed overlay metrics; mutually
  *    exclusive with `primary` (changing primary evicts it from the
