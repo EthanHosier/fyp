@@ -126,4 +126,235 @@ const EXPLANATIONS = {
   },
 };
 
-window.REFACTOR_DATA = { SESSION, METRICS, CHECKPOINTS, INTERVALS, ANNOTATIONS, SUGGESTED_PATH, EXPLANATIONS };
+// Mock diffs per checkpoint — unified hunk format.
+// Lines: { t: "ctx"|"add"|"del"|"hunk", a?: oldLineNo, b?: newLineNo, s: text }
+function hunk(header) { return { t: "hunk", s: header }; }
+function ctx(a, b, s)  { return { t: "ctx", a, b, s }; }
+function add(b, s)     { return { t: "add", b, s }; }
+function del(a, s)     { return { t: "del", a, s }; }
+
+const DIFFS = {
+  0: [
+    { path: "src/order/CheckoutService.ts", plus: 0, minus: 0, kind: "init",
+      lines: [ hunk("@@ initial snapshot @@"),
+               ctx(1,1," export class CheckoutService {"),
+               ctx(2,2,"   process(order: Order) {"),
+               ctx(3,3,"     /* ... baseline ... */"),
+               ctx(4,4,"   }"),
+               ctx(5,5," }") ] },
+  ],
+  1: [
+    { path: "src/order/CheckoutService.ts", plus: 7, minus: 3, kind: "modify",
+      lines: [
+        hunk("@@ -12,8 +12,12 @@ process(order)"),
+        ctx(12,12,"   const subtotal = order.items.reduce((a,i)=>a+i.price,0);"),
+        del(13,     "   let discount = 0;"),
+        del(14,     "   if (order.coupon) discount = subtotal * 0.1;"),
+        del(15,     "   if (order.vip)    discount = Math.max(discount, subtotal*0.15);"),
+        add(13,     "   const discount = this.computeDiscount(order, subtotal);"),
+        ctx(16,14,"   return subtotal - discount;"),
+        ctx(17,15," }"),
+        ctx(18,16,""),
+        add(17,     " private computeDiscount(order: Order, subtotal: number) {"),
+        add(18,     "   let d = 0;"),
+        add(19,     "   if (order.coupon) d = subtotal * 0.1;"),
+        add(20,     "   if (order.vip)    d = Math.max(d, subtotal * 0.15);"),
+        add(21,     "   return d;"),
+        add(22,     " }"),
+      ] },
+  ],
+  2: [
+    { path: "src/order/CheckoutService.ts", plus: 6, minus: 6, kind: "rename",
+      lines: [
+        hunk("@@ -12,6 +12,6 @@ process()"),
+        del(12,"   const subtotal = order.items.reduce((a,i)=>a+i.price,0);"),
+        add(12,"   const lineSum = order.items.reduce((a,i)=>a+i.price,0);"),
+        del(13,"   const discount = this.computeDiscount(order, subtotal);"),
+        add(13,"   const discount = this.computeDiscount(order, lineSum);"),
+        del(14,"   return subtotal - discount;"),
+        add(14,"   return lineSum - discount;"),
+      ] },
+    { path: "src/order/types.ts", plus: 2, minus: 2, kind: "rename",
+      lines: [
+        hunk("@@ -4,4 +4,4 @@ Order"),
+        del(4," export interface Order { coupon?: string; vip?: boolean;"),
+        add(4," export interface Order { couponCode?: string; isVip?: boolean;"),
+        ctx(5,5,"   items: LineItem[];"),
+        del(6,"   userId: string;"),
+        add(6,"   customerId: string;"),
+      ] },
+  ],
+  3: [
+    { path: "src/order/CheckoutService.ts", plus: 5, minus: 9, kind: "inline",
+      lines: [
+        hunk("@@ -10,16 +10,12 @@ process()"),
+        ctx(10,10," process(order: Order) {"),
+        ctx(11,11,"   const lineSum = order.items.reduce((a,i)=>a+i.price,0);"),
+        del(12,"   const discount = this.computeDiscount(order, lineSum);"),
+        del(13,"   return lineSum - discount;"),
+        del(14," }"),
+        del(15,""),
+        del(16," private computeDiscount(order: Order, subtotal: number) {"),
+        del(17,"   let d = 0;"),
+        del(18,"   if (order.couponCode) d = subtotal * 0.1;"),
+        del(19,"   if (order.isVip)      d = Math.max(d, subtotal * 0.15);"),
+        add(12,"   let d = 0;"),
+        add(13,"   if (order.couponCode) d = lineSum * 0.1;"),
+        add(14,"   if (order.isVip)      d = Math.max(d, lineSum * 0.15);"),
+        add(15,"   return lineSum - d;"),
+        add(16," }"),
+      ] },
+    { path: "src/order/OrderPipeline.ts", plus: 0, minus: 0, kind: "broken",
+      lines: [
+        hunk("@@ tsc error @@"),
+        ctx(41,41," import { CheckoutService } from './CheckoutService';"),
+        ctx(42,42," const svc = new CheckoutService();"),
+        ctx(43,43," svc.computeDiscount(order, 0);  // ✖ TS2339: no such member"),
+      ] },
+  ],
+  4: [
+    { path: "src/order/CheckoutService.ts", plus: 8, minus: 72, kind: "split",
+      lines: [
+        hunk("@@ -1,80 +1,12 @@ split module"),
+        del(1," import { applyTax, computeShipping, validateAddress, ..."),
+        del(2,"   /* 60 lines of utilities */"),
+        del(3,"   /* extracted below */"),
+        add(1," import { Pricing } from './pricing';"),
+        add(2," import { Shipping } from './shipping';"),
+        ctx(4,3," export class CheckoutService {"),
+        ctx(5,4,"   constructor(private p: Pricing, private s: Shipping) {}"),
+        add(5,"   /* body reduced to orchestration */"),
+      ] },
+    { path: "src/order/pricing.ts", plus: 42, minus: 0, kind: "new",
+      lines: [
+        hunk("@@ new file @@"),
+        add(1," export class Pricing {"),
+        add(2,"   apply(order: Order, sum: number) {"),
+        add(3,"     let d = 0;"),
+        add(4,"     if (order.couponCode) d = sum * 0.1;"),
+        add(5,"     /* … 37 more lines … */"),
+        add(6,"   }"),
+        add(7," }"),
+      ] },
+  ],
+  5: [
+    { path: "src/order/OrderPipeline.ts", plus: 4, minus: 4, kind: "fix",
+      lines: [
+        hunk("@@ -1,8 +1,8 @@ fix imports"),
+        del(1," import { CheckoutService } from './CheckoutService';"),
+        add(1," import { CheckoutService } from './CheckoutService';"),
+        del(2," /* computeDiscount no longer exists */"),
+        add(2," import { Pricing } from './pricing';"),
+        ctx(3,3," const svc = new CheckoutService(new Pricing(), new Shipping());"),
+        del(4," svc.computeDiscount(order, 0);"),
+        add(4," new Pricing().apply(order, 0);"),
+      ] },
+  ],
+  6: [
+    { path: "src/order/pricing.ts", plus: 26, minus: 4, kind: "extract-class",
+      lines: [
+        hunk("@@ -1,10 +1,32 @@ Extract Class"),
+        ctx(1,1," export class Pricing {"),
+        del(2,"   apply(order: Order, sum: number) {"),
+        add(2,"   apply(order: Order, sum: number) {"),
+        add(3,"     return new DiscountRules(order).reduce(sum);"),
+        add(4,"   }"),
+        add(5," }"),
+        add(6,""),
+        add(7," export class DiscountRules {"),
+        add(8,"   constructor(private order: Order) {}"),
+        add(9,"   reduce(sum: number) {"),
+        add(10,"    let d = 0;"),
+        add(11,"    if (this.order.couponCode) d = sum * 0.1;"),
+        add(12,"    if (this.order.isVip)      d = Math.max(d, sum*0.15);"),
+        add(13,"    return sum - d;"),
+        add(14,"  }"),
+        add(15," }"),
+      ] },
+  ],
+  7: [
+    { path: "src/order/DiscountRules.ts", plus: 20, minus: 0, kind: "move",
+      lines: [
+        hunk("@@ new file (moved) @@"),
+        add(1," import { Order } from './types';"),
+        add(2," export class DiscountRules { /* moved from pricing.ts */ }"),
+      ] },
+    { path: "src/order/pricing.ts", plus: 1, minus: 15, kind: "broken",
+      lines: [
+        hunk("@@ -6,16 +6,2 @@ post-move"),
+        del(6," export class DiscountRules { /* moved */ }"),
+        add(6," /* DiscountRules moved to DiscountRules.ts — import missing */"),
+      ] },
+  ],
+  8: [
+    { path: "src/order/pricing.ts", plus: 2, minus: 1, kind: "revert",
+      lines: [
+        hunk("@@ -1,3 +1,4 @@ partial revert"),
+        add(1," import { DiscountRules } from './DiscountRules';"),
+        ctx(2,2," export class Pricing {"),
+        del(3,"   /* broken */"),
+        add(3,"   apply(o: Order, sum: number) { return new DiscountRules(o).reduce(sum); }"),
+      ] },
+  ],
+  9: [
+    { path: "src/order/IOrderSink.ts", plus: 6, minus: 0, kind: "extract-iface",
+      lines: [
+        hunk("@@ new file @@"),
+        add(1," export interface IOrderSink {"),
+        add(2,"   accept(order: Order): Promise<void>;"),
+        add(3,"   reject(order: Order, reason: string): void;"),
+        add(4," }"),
+      ] },
+    { path: "src/order/CheckoutService.ts", plus: 3, minus: 2, kind: "implement",
+      lines: [
+        hunk("@@ -3,5 +3,6 @@"),
+        del(3," export class CheckoutService {"),
+        add(3," export class CheckoutService implements IOrderSink {"),
+        ctx(4,4,"   constructor(private p: Pricing, private s: Shipping) {}"),
+        add(5,"   accept(o: Order) { return this.p.apply(o, 0), Promise.resolve(); }"),
+      ] },
+  ],
+  10: [
+    { path: "src/order/pricing.ts", plus: 4, minus: 2, kind: "param",
+      lines: [
+        hunk("@@ -2,5 +2,7 @@ parameterize"),
+        del(2,"   apply(o: Order, sum: number) {"),
+        add(2,"   apply(o: Order, sum: number, rules: DiscountRules = new DiscountRules(o)) {"),
+        ctx(3,3,"     return rules.reduce(sum);"),
+        del(4,"   }"),
+        add(4,"   }"),
+      ] },
+  ],
+  11: [
+    { path: "src/order/DiscountRules.ts", plus: 2, minus: 8, kind: "dedupe",
+      lines: [
+        hunk("@@ -10,10 +10,2 @@ dedupe"),
+        del(10,"   reduceCoupon(s:number){ return this.order.couponCode? s*0.1:0; }"),
+        del(11,"   reduceVip(s:number){ return this.order.isVip? s*0.15:0; }"),
+        del(12,"   reduceAll(s:number){ /* dup of reduce() */ }"),
+        add(10,"   // consolidated into reduce()"),
+      ] },
+  ],
+  12: [
+    { path: "test/order/checkout.spec.ts", plus: 6, minus: 3, kind: "tests",
+      lines: [
+        hunk("@@ -40,6 +40,9 @@"),
+        del(40,"   it('discounts vip',()=>{ /* old */ });"),
+        add(40,"   it('applies vip discount at 15%',()=>{"),
+        add(41,"     const svc = new CheckoutService(new Pricing(), new Shipping());"),
+        add(42,"     expect(svc.accept(vipOrder)).resolves.toBeUndefined();"),
+        add(43,"   });"),
+      ] },
+  ],
+  13: [
+    { path: "src/order/CheckoutService.ts", plus: 1, minus: 2, kind: "cleanup",
+      lines: [
+        hunk("@@ final @@"),
+        del(9,"   // TODO: revisit"),
+        del(10,"   // FIXME"),
+        add(9,"   // stable"),
+      ] },
+  ],
+};
+
+window.REFACTOR_DATA = { SESSION, METRICS, CHECKPOINTS, INTERVALS, ANNOTATIONS, SUGGESTED_PATH, EXPLANATIONS, DIFFS };
