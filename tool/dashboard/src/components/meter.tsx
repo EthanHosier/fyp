@@ -19,11 +19,14 @@ const meterTrackStyles = cva("w-full overflow-hidden rounded-[2px] bg-bg-3", {
   defaultVariants: { size: "sm" },
 })
 
+// Gradient ramps into fully-saturated red at the 60% mark rather than
+// the end, so meters hit the red zone a bit earlier — long bars look
+// alarming sooner and short bars stay reassuringly green.
 const meterFillStyles = cva("h-full", {
   variants: {
     better: {
-      lower: "bg-gradient-to-r from-good to-bad",
-      higher: "bg-gradient-to-r from-bad to-good",
+      lower: "bg-[linear-gradient(to_right,var(--good),var(--bad)_60%)]",
+      higher: "bg-[linear-gradient(to_left,var(--good),var(--bad)_60%)]",
     },
   },
   defaultVariants: { better: "lower" },
@@ -40,7 +43,24 @@ export function Meter({ value, better, size, className }: MeterProps) {
   const frac = Math.max(0, Math.min(1, value))
   return (
     <div className={cn(meterTrackStyles({ size }), className)}>
-      <div className={meterFillStyles({ better })} style={{ width: `${frac * 100}%` }} />
+      {/*
+        The gradient is anchored to the full TRACK width — the fill is a
+        window onto a track-wide rainbow, so a 20% value shows only the
+        first 20% of the good→bad gradient (all green), a 100% value
+        shows the whole thing. Inner div width = 1/frac so it scales up
+        to track width inside the clipped fill.
+      */}
+      <div
+        className="h-full overflow-hidden"
+        style={{ width: `${frac * 100}%` }}
+      >
+        {frac > 0 ? (
+          <div
+            className={meterFillStyles({ better })}
+            style={{ width: `${100 / frac}%` }}
+          />
+        ) : null}
+      </div>
     </div>
   )
 }
