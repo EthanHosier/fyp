@@ -39,14 +39,12 @@ export function ChartHoverOverlay({
   primary,
   secondaries,
   scales,
-  showSubsteps,
   onSelect,
 }: {
   vm: DashboardViewModel
   primary: MetricVM
   secondaries: MetricVM[]
   scales: ChartScales
-  showSubsteps: boolean
   onSelect: (s: Selection) => void
 }) {
   const [hover, setHover] = useState<Hover>(null)
@@ -60,7 +58,7 @@ export function ChartHoverOverlay({
       setHover(null)
       return
     }
-    const base = hoverAt(vm, primary, scales, mx, my, showSubsteps)
+    const base = hoverAt(vm, primary, scales, mx, my)
     setHover(base ? { ...base, mx, my } : null)
   }
 
@@ -124,18 +122,23 @@ function hoverAt(
   scales: ChartScales,
   mx: number,
   my: number,
-  showSubsteps: boolean,
 ): HoverKind | null {
   const { xs, ys } = scales
-  const raw = xs.invert(mx)
-  const nearest = Math.max(
-    0,
-    Math.min(vm.checkpoints.length - 1, Math.round(raw)),
-  )
+  const tAtMouse = xs.invert(mx)
+  // Nearest checkpoint by time, not by index.
+  let nearest = 0
+  let bestDt = Infinity
+  for (const c of vm.checkpoints) {
+    const dt = Math.abs(c.tMs - tAtMouse)
+    if (dt < bestDt) {
+      bestDt = dt
+      nearest = c.index
+    }
+  }
   const nearestCp = vm.checkpoints[nearest]
   const v = nearestCp?.values[primary.id]
   if (typeof v === "number") {
-    const dx = mx - xs(nearest)
+    const dx = mx - xs(nearestCp.tMs)
     const dy = my - ys(v)
     if (Math.hypot(dx, dy) <= CHECKPOINT_HIT_PX) {
       // A checkpoint hit that coincides with a refactoring step is
@@ -143,20 +146,14 @@ function hoverAt(
       // the checkpoint is the sub-point hidden beneath it.
       const step = vm.refactoringSteps.find((s) => s.checkpointIndex === nearest)
       if (step) return { kind: "refactoring", index: step.index }
-      // When substeps are hidden, "bare" checkpoints have no visible
-      // dot — but the first/last anchors still render, so keep them
-      // hoverable.
-      const isAnchor = nearest === 0 || nearest === vm.checkpoints.length - 1
-      if (showSubsteps || isAnchor) return { kind: "checkpoint", index: nearest }
+      return { kind: "checkpoint", index: nearest }
     }
   }
-  const floor = Math.max(0, Math.min(vm.intervals.length - 1, Math.floor(raw)))
-  const iv = vm.intervals[floor]
-  if (!iv) {
-    const isAnchor = nearest === 0 || nearest === vm.checkpoints.length - 1
-    if (showSubsteps || isAnchor) return { kind: "checkpoint", index: nearest }
-    return null
-  }
+  // Enclosing interval: largest `from` whose tMs <= mouse time.
+  const iv = vm.intervals.findLast(
+    (x) => vm.checkpoints[x.from].tMs <= tAtMouse,
+  )
+  if (!iv) return { kind: "checkpoint", index: nearest }
   return { kind: "interval", index: iv.index }
 }
 
@@ -178,7 +175,7 @@ function CheckpointCrosshair({
   const { xs, ys, innerW, innerH } = scales
   const v = checkpoint.values[primary.id]
   if (typeof v !== "number") return null
-  const tx = xs(checkpoint.index)
+  const tx = xs(checkpoint.tMs)
   const ty = ys(v)
   const { left, top } = tooltipPos(mouseX, mouseY, innerW, innerH)
 
@@ -189,7 +186,7 @@ function CheckpointCrosshair({
         x2={tx}
         y1={0}
         y2={innerH}
-        className={cn("stroke-current", TONE_TEXT[primary.tone])}
+        className="stroke-current text-fg-3"
         strokeOpacity={0.35}
         strokeDasharray="3 3"
       />
@@ -197,7 +194,7 @@ function CheckpointCrosshair({
         cx={tx}
         cy={ty}
         r={5}
-        className={cn(TONE_TEXT[primary.tone])}
+        className="text-fg-3"
         fill="currentColor"
         fillOpacity={0.15}
         stroke="currentColor"
@@ -230,8 +227,8 @@ function IntervalCrosshair({
   mouseY: number
 }) {
   const { xs, innerW, innerH } = scales
-  const x0 = xs(interval.from)
-  const x1 = xs(interval.to)
+  const x0 = xs(vm.checkpoints[interval.from].tMs)
+  const x1 = xs(vm.checkpoints[interval.to].tMs)
   const { left, top } = tooltipPos(mouseX, mouseY, innerW, innerH)
 
   return (
@@ -286,7 +283,7 @@ function RefactoringCrosshair({
   const cp = vm.checkpoints[step.checkpointIndex]
   const v = cp?.values[primary.id]
   if (typeof v !== "number") return null
-  const tx = xs(step.checkpointIndex)
+  const tx = xs(step.tMs)
   const ty = ys(v)
   const { left, top } = tooltipPos(mouseX, mouseY, innerW, innerH)
 
@@ -311,13 +308,19 @@ function RefactoringCrosshair({
         stroke="currentColor"
       />
       <foreignObject x={left} y={top} width={TOOLTIP_W} height={TOOLTIP_H} overflow="visible">
-        <RefactoringTooltip step={step} />
+        <RefactoringTooltip step={step} checkpoint={cp} />
       </foreignObject>
     </g>
   )
 }
 
-function RefactoringTooltip({ step }: { step: RefactoringStepVM }) {
+function RefactoringTooltip({
+  step,
+  checkpoint,
+}: {
+  step: RefactoringStepVM
+  checkpoint: CheckpointVM
+}) {
   return (
     <TooltipCard>
       <Text as="div" variant="mono" tone="fg">
@@ -330,8 +333,9 @@ function RefactoringTooltip({ step }: { step: RefactoringStepVM }) {
         <Text variant="monoTiny" tone="fg-4">
           ·
         </Text>
+        <StatusDot tone={statusDotTone(checkpoint.status)} />
         <Text variant="monoTiny" tone="fg-3">
-          {step.shortFromSha} → {step.shortToSha}
+          {checkpoint.status}
         </Text>
       </div>
       <Text as="div" variant="bodySm" tone="fg-2" className="mt-1.5 line-clamp-3">

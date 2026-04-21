@@ -44,9 +44,9 @@ export function ChartRefactoringPoints({
             className="cursor-pointer"
             onClick={() => onSelect({ kind: "refactoring", index: s.index })}
           >
-            <circle cx={xs(s.checkpointIndex)} cy={ys(v)} r={r + 6} fill="transparent" />
+            <circle cx={xs(s.tMs)} cy={ys(v)} r={r + 6} fill="transparent" />
             <circle
-              cx={xs(s.checkpointIndex)}
+              cx={xs(s.tMs)}
               cy={ys(v)}
               r={r}
               fill="currentColor"
@@ -55,7 +55,7 @@ export function ChartRefactoringPoints({
             />
             {selected ? (
               <circle
-                cx={xs(s.checkpointIndex)}
+                cx={xs(s.tMs)}
                 cy={ys(v)}
                 r={r + 4}
                 fill="none"

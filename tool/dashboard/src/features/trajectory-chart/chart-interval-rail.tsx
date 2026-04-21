@@ -62,8 +62,8 @@ export function ChartIntervalRail({
       {vm.intervals.map((iv) => {
         const status = kind === "build" ? iv.build : iv.tests
         const unknown = status === "unknown"
-        const x0 = xs(iv.from)
-        const x1 = xs(iv.to)
+        const x0 = xs(vm.checkpoints[iv.from].tMs)
+        const x1 = xs(vm.checkpoints[iv.to].tMs)
         return (
           <rect
             key={iv.index}

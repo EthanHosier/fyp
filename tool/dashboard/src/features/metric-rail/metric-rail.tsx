@@ -69,12 +69,6 @@ export function MetricRail({ vm }: { vm: DashboardViewModel }) {
             checked={layers.testIntervals}
             onChange={(v) => setLayer("testIntervals", v)}
           />
-          <LayerToggle
-            id="layer-substeps"
-            label="Show substeps"
-            checked={layers.substeps}
-            onChange={(v) => setLayer("substeps", v)}
-          />
         </RailSection>
       </ScrollArea>
     </aside>
