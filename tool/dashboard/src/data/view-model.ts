@@ -137,6 +137,26 @@ export function toViewModel(report: AnalysisReport): DashboardViewModel {
     }
   })
 
+  // SESSION_ENDED gets merged into the last real checkpoint when no code
+  // changes between the last edit and the user hitting stop — so the
+  // session's `endTime` is invisible on the chart. Append a synthetic
+  // "End" checkpoint at endTime so the trajectory always has a visible
+  // terminator. Stats are carried forward from the last checkpoint
+  // (there's no diff to compute by definition).
+  const lastReal = checkpoints[checkpoints.length - 1]
+  if (lastReal && endedAt > lastReal.timestamp) {
+    checkpoints.push({
+      ...lastReal,
+      index: checkpoints.length,
+      label: `c${checkpoints.length}`,
+      tLabel: formatTLabel(endedAt - startedAt),
+      timestamp: endedAt,
+      tMs: Math.max(0, endedAt - startedAt),
+      description: "End",
+      churn: 0,
+    })
+  }
+
   const intervals: IntervalVM[] = checkpoints.slice(1).map((to, i) => {
     const from = checkpoints[i]
     const build = combineStatus(from.build, to.build)
