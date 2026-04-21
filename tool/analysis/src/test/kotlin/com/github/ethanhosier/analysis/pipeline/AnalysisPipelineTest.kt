@@ -76,7 +76,7 @@ class AnalysisPipelineTest {
         val shaB = report.checkpoints[1]
         assertEquals(listOf("e3"), shaB.events.map { it.id })
 
-        assertEquals(emptyList(), report.manualRefactorings)
+        assertEquals(emptyList(), report.refactoringSteps)
     }
 
     @Test
@@ -114,8 +114,8 @@ class AnalysisPipelineTest {
     }
 
     private fun emptyMinerSummary() = RefactoringMinerRunner.Summary(
-        segmentsAnalysed = 0,
-        segments = emptyList(),
+        checkpointsAnalysed = 0,
+        steps = emptyList(),
     )
 
     private fun metadata(id: String) = SessionMetadata(

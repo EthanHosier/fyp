@@ -58,17 +58,12 @@ fun main(args: Array<String>) {
             "${result.metricsSummary.buildOk} build-ok, ${result.metricsSummary.testsOk} tests-ok " +
             "in ${result.metricsDurationMs / 1000}s (parallelism=${opts.parallelism})",
     )
-    val minerSegments = result.minerSummary.segments
-    val segmentsWithLevel = minerSegments.count { it.segmentRefactorings.isNotEmpty() }
-    val totalInnerFindings = minerSegments.sumOf { it.innerFindings.size }
-    val totalInnerRefactorings = minerSegments.sumOf { s -> s.innerFindings.sumOf { it.refactorings.size } }
-    val ideRelevantCount = minerSegments.sumOf { s ->
-        s.innerFindings.sumOf { f -> f.refactorings.count { it.ideRelevant } }
-    }
+    val steps = result.minerSummary.steps
+    val ideRelevantCount = steps.count { it.refactoring.ideRelevant }
+    val distinctWindows = steps.map { it.fromSha to it.toSha }.toSet().size
     println(
-        "miner:      ${result.minerSummary.segmentsAnalysed} segment(s) analysed, " +
-            "${minerSegments.size} with findings ($segmentsWithLevel segment-level), " +
-            "$totalInnerFindings inner finding(s) / $totalInnerRefactorings localised refactoring(s) " +
+        "miner:      ${result.minerSummary.checkpointsAnalysed} checkpoint(s) analysed, " +
+            "${steps.size} refactoring step(s) across $distinctWindows window(s) " +
             "($ideRelevantCount ide-relevant) in ${result.minerDurationMs / 1000}s",
     )
     println("report:     ${reportPath.toAbsolutePath()}")

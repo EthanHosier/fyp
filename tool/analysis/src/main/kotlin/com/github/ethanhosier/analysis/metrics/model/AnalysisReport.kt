@@ -1,7 +1,7 @@
 package com.github.ethanhosier.analysis.metrics.model
 
 import com.github.ethanhosier.analysis.metrics.gitdiff.DiffStats
-import com.github.ethanhosier.analysis.miner.model.ManualRefactoringSegment
+import com.github.ethanhosier.analysis.miner.model.RefactoringStep
 import com.github.ethanhosier.ideplugin.model.EventType
 import com.github.ethanhosier.ideplugin.model.SessionMetadata
 import com.github.ethanhosier.ideplugin.model.TouchedMember
@@ -26,7 +26,7 @@ data class AnalysisReport(
     val session: SessionMetadata,
     val run: RunInfo,
     val checkpoints: List<CheckpointReport>,
-    val manualRefactorings: List<ManualRefactoringSegment> = emptyList(),
+    val refactoringSteps: List<RefactoringStep> = emptyList(),
     val trajectory: TrajectoryStats = TrajectoryStats.ZERO,
 )
 

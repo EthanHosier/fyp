@@ -128,6 +128,16 @@ function deltasFor(vm: DashboardViewModel, selection: Selection): Delta[] {
       vm.checkpoints[selection.index],
     )
   }
+  if (selection.kind === "refactoring") {
+    const step = vm.refactoringSteps[selection.index]
+    if (!step) return []
+    const to = vm.checkpoints[step.checkpointIndex]
+    const from =
+      vm.checkpoints.find((c) => c.sha === step.fromSha) ??
+      vm.checkpoints[Math.max(0, step.checkpointIndex - 1)]
+    if (!from || !to) return []
+    return computeDeltas(vm, from, to)
+  }
   const iv = vm.intervals[selection.index]
   if (!iv) return []
   return computeDeltas(vm, vm.checkpoints[iv.from], vm.checkpoints[iv.to])

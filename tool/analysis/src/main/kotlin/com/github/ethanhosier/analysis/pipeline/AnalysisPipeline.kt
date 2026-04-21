@@ -132,7 +132,7 @@ internal fun buildAnalysisReport(
             metricsDurationMs = metricsDurationMs,
         ),
         checkpoints = checkpoints,
-        manualRefactorings = miner.segments,
+        refactoringSteps = miner.steps,
         trajectory = computeTrajectory(checkpoints),
     )
 }
