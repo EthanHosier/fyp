@@ -417,6 +417,14 @@ function IntervalTooltip({
 }) {
   const from = vm.checkpoints[interval.from]
   const to = vm.checkpoints[interval.to]
+  const changes = vm.metrics.flatMap((m) => {
+    const a = from.values[m.id]
+    const b = to.values[m.id]
+    if (typeof a !== "number" || typeof b !== "number") return []
+    const diff = b - a
+    if (diff === 0) return []
+    return [{ m, diff }]
+  })
   return (
     <TooltipCard>
       <div className="flex items-center gap-1.5">
@@ -431,30 +439,30 @@ function IntervalTooltip({
           build {interval.build} · tests {interval.tests}
         </Text>
       </div>
-      <div className="mt-1.5 grid grid-cols-[1fr_auto] gap-x-3 gap-y-0.5">
-        {vm.metrics.map((m) => {
-          const a = from.values[m.id]
-          const b = to.values[m.id]
-          if (typeof a !== "number" || typeof b !== "number") return null
-          const diff = b - a
-          if (diff === 0) return null
-          const improved =
-            m.better === "lower" ? diff < 0 : diff > 0
-          const decimals = m.unit === "%" ? 1 : 0
-          return (
-            <MetricLabelRow
-              key={m.id}
-              metric={m}
-              value={
-                <span className={improved ? "text-good" : "text-bad"}>
-                  {diff > 0 ? "+" : ""}
-                  {diff.toFixed(decimals)}
-                </span>
-              }
-            />
-          )
-        })}
-      </div>
+      {changes.length === 0 ? (
+        <Text as="div" variant="bodySm" tone="fg-4" className="mt-1.5">
+          No metric changes
+        </Text>
+      ) : (
+        <div className="mt-1.5 grid grid-cols-[1fr_auto] gap-x-3 gap-y-0.5">
+          {changes.map(({ m, diff }) => {
+            const improved = m.better === "lower" ? diff < 0 : diff > 0
+            const decimals = m.unit === "%" ? 1 : 0
+            return (
+              <MetricLabelRow
+                key={m.id}
+                metric={m}
+                value={
+                  <span className={improved ? "text-good" : "text-bad"}>
+                    {diff > 0 ? "+" : ""}
+                    {diff.toFixed(decimals)}
+                  </span>
+                }
+              />
+            )
+          })}
+        </div>
+      )}
     </TooltipCard>
   )
 }
