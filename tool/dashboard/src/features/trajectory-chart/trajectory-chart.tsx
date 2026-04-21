@@ -7,6 +7,7 @@ import { ChartIntervalRail, INTERVAL_RAIL_GAP, INTERVAL_RAIL_HEIGHT, INTERVAL_RA
 import { ChartLegend } from "@/features/trajectory-chart/chart-legend"
 import { ChartLines } from "@/features/trajectory-chart/chart-lines"
 import { ChartPoints } from "@/features/trajectory-chart/chart-points"
+import { ChartRefactoringPoints } from "@/features/trajectory-chart/chart-refactoring-points"
 import { ChartToolbar } from "@/features/trajectory-chart/chart-toolbar"
 import { useChartScales } from "@/features/trajectory-chart/use-chart-scales"
 import { useDashboardStore } from "@/stores/dashboard-store"
@@ -88,6 +89,13 @@ export function TrajectoryChart({ vm }: { vm: DashboardViewModel }) {
               scales={scales}
             />
             <ChartPoints
+              vm={vm}
+              primary={primary}
+              scales={scales}
+              selection={selection}
+              onSelect={setSelection}
+            />
+            <ChartRefactoringPoints
               vm={vm}
               primary={primary}
               scales={scales}

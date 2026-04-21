@@ -28,6 +28,8 @@ export type CheckpointVM = {
   tLabel: string
   /** absolute timestamp (ms) */
   timestamp: number
+  /** relative ms since session start — used as the chart X coordinate */
+  tMs: number
   sha: string
   shortSha: string
   /** short human description — first event type or short sha */
@@ -69,17 +71,40 @@ export type TrajectoryVM = {
   totalBrokenMs: number
 }
 
+export type RefactoringStepVM = {
+  /** 0-based, chronological, matches server stepIndex */
+  index: number
+  /** Index into checkpoints[] — the checkpoint whose state this step's
+   *  metric values come from (the window's toSha). */
+  checkpointIndex: number
+  timestamp: number
+  /** relative ms since session start — X coordinate on the chart */
+  tMs: number
+  tLabel: string
+  /** RefactoringMiner display name, e.g. "Extract Method" */
+  refactoringType: string
+  /** human-readable description from RefactoringMiner */
+  description: string
+  fromSha: string
+  toSha: string
+  shortFromSha: string
+  shortToSha: string
+  ideRelevant: boolean
+}
+
 export type DashboardViewModel = {
   session: SessionVM
   metrics: MetricVM[]
   checkpoints: CheckpointVM[]
   intervals: IntervalVM[]
+  refactoringSteps: RefactoringStepVM[]
   trajectory: TrajectoryVM | undefined
 }
 
 export type Selection =
   | { kind: "checkpoint"; index: number }
   | { kind: "interval"; index: number }
+  | { kind: "refactoring"; index: number }
   | null
 
 export type Layers = {

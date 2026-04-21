@@ -7,6 +7,7 @@ import type {
   DashboardViewModel,
   IntervalVM,
   MetricVM,
+  RefactoringStepVM,
   Selection,
   StatusTone,
 } from "@/data/types"
@@ -24,6 +25,7 @@ const CHECKPOINT_HIT_PX = 12
 type Hover =
   | { kind: "checkpoint"; index: number; mx: number; my: number }
   | { kind: "interval"; index: number; mx: number; my: number }
+  | { kind: "refactoring"; index: number; mx: number; my: number }
   | null
 
 /**
@@ -46,7 +48,7 @@ export function ChartHoverOverlay({
   onSelect: (s: Selection) => void
 }) {
   const [hover, setHover] = useState<Hover>(null)
-  const { xs, innerW, innerH } = scales
+  const { innerW, innerH } = scales
 
   function handleMove(e: React.MouseEvent<SVGRectElement>) {
     const rect = e.currentTarget.getBoundingClientRect()
@@ -95,11 +97,24 @@ export function ChartHoverOverlay({
           mouseY={hover.my}
         />
       ) : null}
+      {hover?.kind === "refactoring" ? (
+        <RefactoringCrosshair
+          vm={vm}
+          step={vm.refactoringSteps[hover.index]}
+          primary={primary}
+          scales={scales}
+          mouseX={hover.mx}
+          mouseY={hover.my}
+        />
+      ) : null}
     </g>
   )
 }
 
-type HoverKind = { kind: "checkpoint" | "interval"; index: number }
+type HoverKind =
+  | { kind: "checkpoint"; index: number }
+  | { kind: "interval"; index: number }
+  | { kind: "refactoring"; index: number }
 
 function hoverAt(
   vm: DashboardViewModel,
@@ -109,22 +124,35 @@ function hoverAt(
   my: number,
 ): HoverKind | null {
   const { xs, ys } = scales
-  const raw = xs.invert(mx)
-  const nearest = Math.max(
-    0,
-    Math.min(vm.checkpoints.length - 1, Math.round(raw)),
-  )
+  const tAtMouse = xs.invert(mx)
+  // Nearest checkpoint by time, not by index.
+  let nearest = 0
+  let bestDt = Infinity
+  for (const c of vm.checkpoints) {
+    const dt = Math.abs(c.tMs - tAtMouse)
+    if (dt < bestDt) {
+      bestDt = dt
+      nearest = c.index
+    }
+  }
   const nearestCp = vm.checkpoints[nearest]
   const v = nearestCp?.values[primary.id]
   if (typeof v === "number") {
-    const dx = mx - xs(nearest)
+    const dx = mx - xs(nearestCp.tMs)
     const dy = my - ys(v)
     if (Math.hypot(dx, dy) <= CHECKPOINT_HIT_PX) {
+      // A checkpoint hit that coincides with a refactoring step is
+      // reported as the refactoring — the step is the primary dot,
+      // the checkpoint is the sub-point hidden beneath it.
+      const step = vm.refactoringSteps.find((s) => s.checkpointIndex === nearest)
+      if (step) return { kind: "refactoring", index: step.index }
       return { kind: "checkpoint", index: nearest }
     }
   }
-  const floor = Math.max(0, Math.min(vm.intervals.length - 1, Math.floor(raw)))
-  const iv = vm.intervals[floor]
+  // Enclosing interval: largest `from` whose tMs <= mouse time.
+  const iv = vm.intervals.findLast(
+    (x) => vm.checkpoints[x.from].tMs <= tAtMouse,
+  )
   if (!iv) return { kind: "checkpoint", index: nearest }
   return { kind: "interval", index: iv.index }
 }
@@ -147,7 +175,7 @@ function CheckpointCrosshair({
   const { xs, ys, innerW, innerH } = scales
   const v = checkpoint.values[primary.id]
   if (typeof v !== "number") return null
-  const tx = xs(checkpoint.index)
+  const tx = xs(checkpoint.tMs)
   const ty = ys(v)
   const { left, top } = tooltipPos(mouseX, mouseY, innerW, innerH)
 
@@ -158,7 +186,7 @@ function CheckpointCrosshair({
         x2={tx}
         y1={0}
         y2={innerH}
-        className={cn("stroke-current", TONE_TEXT[primary.tone])}
+        className="stroke-current text-fg-3"
         strokeOpacity={0.35}
         strokeDasharray="3 3"
       />
@@ -166,7 +194,7 @@ function CheckpointCrosshair({
         cx={tx}
         cy={ty}
         r={5}
-        className={cn(TONE_TEXT[primary.tone])}
+        className="text-fg-3"
         fill="currentColor"
         fillOpacity={0.15}
         stroke="currentColor"
@@ -199,8 +227,8 @@ function IntervalCrosshair({
   mouseY: number
 }) {
   const { xs, innerW, innerH } = scales
-  const x0 = xs(interval.from)
-  const x1 = xs(interval.to)
+  const x0 = xs(vm.checkpoints[interval.from].tMs)
+  const x1 = xs(vm.checkpoints[interval.to].tMs)
   const { left, top } = tooltipPos(mouseX, mouseY, innerW, innerH)
 
   return (
@@ -236,6 +264,87 @@ function IntervalCrosshair({
   )
 }
 
+function RefactoringCrosshair({
+  vm,
+  step,
+  primary,
+  scales,
+  mouseX,
+  mouseY,
+}: {
+  vm: DashboardViewModel
+  step: RefactoringStepVM
+  primary: MetricVM
+  scales: ChartScales
+  mouseX: number
+  mouseY: number
+}) {
+  const { xs, ys, innerW, innerH } = scales
+  const cp = vm.checkpoints[step.checkpointIndex]
+  const v = cp?.values[primary.id]
+  if (typeof v !== "number") return null
+  const tx = xs(step.tMs)
+  const ty = ys(v)
+  const { left, top } = tooltipPos(mouseX, mouseY, innerW, innerH)
+
+  return (
+    <g pointerEvents="none">
+      <line
+        x1={tx}
+        x2={tx}
+        y1={0}
+        y2={innerH}
+        className={cn("stroke-current", TONE_TEXT[primary.tone])}
+        strokeOpacity={0.35}
+        strokeDasharray="3 3"
+      />
+      <circle
+        cx={tx}
+        cy={ty}
+        r={7}
+        className={cn(TONE_TEXT[primary.tone])}
+        fill="currentColor"
+        fillOpacity={0.2}
+        stroke="currentColor"
+      />
+      <foreignObject x={left} y={top} width={TOOLTIP_W} height={TOOLTIP_H} overflow="visible">
+        <RefactoringTooltip step={step} checkpoint={cp} />
+      </foreignObject>
+    </g>
+  )
+}
+
+function RefactoringTooltip({
+  step,
+  checkpoint,
+}: {
+  step: RefactoringStepVM
+  checkpoint: CheckpointVM
+}) {
+  return (
+    <TooltipCard>
+      <Text as="div" variant="mono" tone="fg">
+        {step.refactoringType}
+      </Text>
+      <div className="mt-0.5 flex items-center gap-1.5">
+        <Text variant="monoTiny" tone="fg-4">
+          {step.tLabel}
+        </Text>
+        <Text variant="monoTiny" tone="fg-4">
+          ·
+        </Text>
+        <StatusDot tone={statusDotTone(checkpoint.status)} />
+        <Text variant="monoTiny" tone="fg-3">
+          {checkpoint.status}
+        </Text>
+      </div>
+      <Text as="div" variant="bodySm" tone="fg-2" className="mt-1.5 line-clamp-3">
+        {step.description}
+      </Text>
+    </TooltipCard>
+  )
+}
+
 function tooltipPos(
   mx: number,
   my: number,
@@ -268,7 +377,7 @@ function CheckpointTooltip({
   return (
     <TooltipCard>
       <Text as="div" variant="mono" tone="fg">
-        {checkpoint.label}
+        {checkpoint.description}
       </Text>
       <div className="mt-0.5 flex items-center gap-1.5">
         <Text variant="monoTiny" tone="fg-4">
@@ -308,12 +417,17 @@ function IntervalTooltip({
 }) {
   const from = vm.checkpoints[interval.from]
   const to = vm.checkpoints[interval.to]
+  const changes = vm.metrics.flatMap((m) => {
+    const a = from.values[m.id]
+    const b = to.values[m.id]
+    if (typeof a !== "number" || typeof b !== "number") return []
+    const diff = b - a
+    if (diff === 0) return []
+    return [{ m, diff }]
+  })
   return (
     <TooltipCard>
-      <Text as="div" variant="mono" tone="fg">
-        {from.label} → {to.label}
-      </Text>
-      <div className="mt-0.5 flex items-center gap-1.5">
+      <div className="flex items-center gap-1.5">
         <Text variant="monoTiny" tone="fg-4">
           {formatDurationShort(interval.durationMs)}
         </Text>
@@ -325,30 +439,30 @@ function IntervalTooltip({
           build {interval.build} · tests {interval.tests}
         </Text>
       </div>
-      <div className="mt-1.5 grid grid-cols-[1fr_auto] gap-x-3 gap-y-0.5">
-        {vm.metrics.map((m) => {
-          const a = from.values[m.id]
-          const b = to.values[m.id]
-          if (typeof a !== "number" || typeof b !== "number") return null
-          const diff = b - a
-          if (diff === 0) return null
-          const improved =
-            m.better === "lower" ? diff < 0 : diff > 0
-          const decimals = m.unit === "%" ? 1 : 0
-          return (
-            <MetricLabelRow
-              key={m.id}
-              metric={m}
-              value={
-                <span className={improved ? "text-good" : "text-bad"}>
-                  {diff > 0 ? "+" : ""}
-                  {diff.toFixed(decimals)}
-                </span>
-              }
-            />
-          )
-        })}
-      </div>
+      {changes.length === 0 ? (
+        <Text as="div" variant="bodySm" tone="fg-4" className="mt-1.5">
+          No metric changes
+        </Text>
+      ) : (
+        <div className="mt-1.5 grid grid-cols-[1fr_auto] gap-x-3 gap-y-0.5">
+          {changes.map(({ m, diff }) => {
+            const improved = m.better === "lower" ? diff < 0 : diff > 0
+            const decimals = m.unit === "%" ? 1 : 0
+            return (
+              <MetricLabelRow
+                key={m.id}
+                metric={m}
+                value={
+                  <span className={improved ? "text-good" : "text-bad"}>
+                    {diff > 0 ? "+" : ""}
+                    {diff.toFixed(decimals)}
+                  </span>
+                }
+              />
+            )
+          })}
+        </div>
+      )}
     </TooltipCard>
   )
 }

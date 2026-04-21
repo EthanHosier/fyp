@@ -24,8 +24,11 @@ const Y_TICK_COUNT = 5
 
 /**
  * Derives the chart scales for a given width/height + primary metric.
- * Y-domain is padded so points don't touch the top/bottom edges; X-domain
- * is the checkpoint index range. Caller owns the ResizeObserver.
+ * Y-domain is padded so points don't touch the top/bottom edges;
+ * X-domain is relative time in ms from session start, bounded by the
+ * last observed checkpoint (or the session duration, whichever is
+ * larger — a session may end after its last checkpoint).
+ * Caller owns the ResizeObserver.
  */
 export function useChartScales({
   vm,
@@ -52,7 +55,9 @@ export function useChartScales({
   const yPad = (yMax - yMin) * Y_PAD_FRAC || 1
   const yDomain: [number, number] = [yMin - yPad, yMax + yPad]
 
-  const xs = linearScale([0, Math.max(1, vm.checkpoints.length - 1)], [0, innerW])
+  const lastCp = vm.checkpoints[vm.checkpoints.length - 1]
+  const tMax = Math.max(1, vm.session.durationMs, lastCp?.tMs ?? 0)
+  const xs = linearScale([0, tMax], [0, innerW])
   const ys = linearScale(yDomain, [innerH, 0])
   const yTicks = linearTicks(yDomain, Y_TICK_COUNT)
 

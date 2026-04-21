@@ -82,9 +82,9 @@ function IntervalSegment({
   if (typeof v0 !== "number" || typeof v1 !== "number") return null
   return (
     <line
-      x1={scales.xs(from.index)}
+      x1={scales.xs(from.tMs)}
       y1={scales.ys(v0)}
-      x2={scales.xs(to.index)}
+      x2={scales.xs(to.tMs)}
       y2={scales.ys(v1)}
       className={cn(STATUS_STROKE[iv.status], "cursor-pointer")}
       stroke="currentColor"
@@ -107,8 +107,8 @@ function SecondaryLine({
   innerH: number
 }) {
   const points = vm.checkpoints
-    .map((c) => ({ i: c.index, v: c.values[metric.id] }))
-    .filter((p): p is { i: number; v: number } => typeof p.v === "number")
+    .map((c) => ({ t: c.tMs, v: c.values[metric.id] }))
+    .filter((p): p is { t: number; v: number } => typeof p.v === "number")
   if (points.length < 2) return null
 
   const values = points.map((p) => p.v)
@@ -116,7 +116,7 @@ function SecondaryLine({
   const max = Math.max(...values)
   const pad = (max - min) * 0.22 || 1
   const localY = linearScale([min - pad, max + pad], [innerH, 0])
-  const xy = points.map((p) => ({ x: scales.xs(p.i), y: localY(p.v) }))
+  const xy = points.map((p) => ({ x: scales.xs(p.t), y: localY(p.v) }))
 
   return (
     <g className={cn(TONE_TEXT[metric.tone])}>
@@ -149,9 +149,9 @@ function checkpointPoints(
   ys: ChartScales["ys"],
 ) {
   return checkpoints
-    .map((c) => ({ i: c.index, v: c.values[metric.id] }))
-    .filter((p): p is { i: number; v: number } => typeof p.v === "number")
-    .map((p) => ({ x: xs(p.i), y: ys(p.v) }))
+    .map((c) => ({ t: c.tMs, v: c.values[metric.id] }))
+    .filter((p): p is { t: number; v: number } => typeof p.v === "number")
+    .map((p) => ({ x: xs(p.t), y: ys(p.v) }))
 }
 
 const STATUS_STROKE: Record<StatusTone, string> = {
