@@ -454,6 +454,13 @@ function CheckpointBody({ c, data }) {
       <Subhead>STATUS</Subhead>
       <StatusRow c={c}/>
 
+      {(c.tests || c.manualIdeAble) && (
+        <>
+          <Subhead style={{ marginTop: 16 }}>PROCESS SIGNALS</Subhead>
+          <SignalsBlock c={c}/>
+        </>
+      )}
+
       <Subhead style={{ marginTop: 16 }}>ANNOTATIONS ({annotsHere.length})</Subhead>
       {annotsHere.length === 0 && <Empty>No annotations at this checkpoint.</Empty>}
       {annotsHere.map(a => <AnnotItem key={a.id} a={a}/>)}
@@ -647,9 +654,9 @@ function StatusRow({ c }) {
     <div style={{
       display: "inline-flex", alignItems: "center", gap: 6,
       padding: "4px 8px", borderRadius: 4, fontSize: 11,
-      background: ok === "pass" ? "rgba(74,222,128,0.1)" : ok === "fail" ? "rgba(248,113,113,0.1)" : "rgba(100,116,139,0.15)",
+      background: ok === "pass" ? "rgba(95,184,101,0.1)" : ok === "fail" ? "rgba(229,87,101,0.1)" : "rgba(111,115,122,0.15)",
       color: ok === "pass" ? "var(--good)" : ok === "fail" ? "var(--bad)" : "var(--fg-3)",
-      border: `1px solid ${ok === "pass" ? "rgba(74,222,128,0.3)" : ok === "fail" ? "rgba(248,113,113,0.3)" : "rgba(100,116,139,0.25)"}`
+      border: `1px solid ${ok === "pass" ? "rgba(95,184,101,0.3)" : ok === "fail" ? "rgba(229,87,101,0.3)" : "rgba(111,115,122,0.25)"}`
     }}>
       <Icon name={ok === "pass" ? "check" : ok === "fail" ? "x" : "question"} size={10}/>
       {label}
@@ -662,6 +669,70 @@ function StatusRow({ c }) {
     </div>
   );
 }
+const TEST_META = {
+  run:     { color: "#5fb865", label: "Tests run",           bg: "rgba(95,184,101,0.08)",  border: "rgba(95,184,101,0.35)" },
+  partial: { color: "#e8a33d", label: "Partial test run",    bg: "rgba(232,163,61,0.08)",  border: "rgba(232,163,61,0.35)" },
+  skipped: { color: "#e55765", label: "Tests skipped",       bg: "rgba(229,87,101,0.08)",  border: "rgba(229,87,101,0.35)" },
+  none:    { color: "#868a91", label: "No tests in area",    bg: "rgba(111,115,122,0.08)", border: "rgba(111,115,122,0.3)" },
+};
+function SignalsBlock({ c }) {
+  const tm = TEST_META[c.tests];
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      {tm && (
+        <div style={{
+          display: "flex", alignItems: "flex-start", gap: 10,
+          padding: "8px 10px", borderRadius: 5,
+          background: tm.bg, border: `1px solid ${tm.border}`
+        }}>
+          <div style={{
+            width: 18, height: 18, borderRadius: "50%", flexShrink: 0, marginTop: 1,
+            background: `${tm.color}22`, border: `1px solid ${tm.color}`,
+            display: "grid", placeItems: "center", color: tm.color, fontSize: 11, fontWeight: 600
+          }}>
+            {c.tests === "run" ? "✓" : c.tests === "partial" ? "−" : c.tests === "skipped" ? "✕" : "?"}
+          </div>
+          <div style={{ flex: 1, fontSize: 12 }}>
+            <div style={{ color: tm.color, fontWeight: 600 }}>{tm.label}</div>
+            <div style={{ color: "var(--fg-3)", fontSize: 11.5, marginTop: 2, lineHeight: 1.5 }}>
+              {c.tests === "run"     && "All test suites covering the touched files were executed after this refactoring."}
+              {c.tests === "partial" && "Only a subset of relevant tests ran — some suites in the touched modules were not exercised."}
+              {c.tests === "skipped" && "No test run was recorded after this refactoring. Changes landed unverified."}
+              {c.tests === "none"    && "The touched files have no associated tests in this project."}
+            </div>
+          </div>
+        </div>
+      )}
+      {c.manualIdeAble && (
+        <div style={{
+          display: "flex", alignItems: "flex-start", gap: 10,
+          padding: "8px 10px", borderRadius: 5,
+          background: "rgba(232,163,61,0.08)", border: "1px solid rgba(232,163,61,0.35)"
+        }}>
+          <div style={{
+            width: 18, height: 18, borderRadius: "50%", flexShrink: 0, marginTop: 1,
+            background: "rgba(232,163,61,0.18)", border: "1px solid #e8a33d",
+            display: "grid", placeItems: "center", color: "#e8a33d"
+          }}>
+            <Icon name="zap" size={10}/>
+          </div>
+          <div style={{ flex: 1, fontSize: 12 }}>
+            <div style={{ color: "#e8a33d", fontWeight: 600 }}>
+              Manual refactor — IDE could have done this
+            </div>
+            <div style={{ color: "var(--fg-2)", fontSize: 11.5, marginTop: 2, fontFamily: "var(--mono)" }}>
+              {c.manualIdeAble.action}
+            </div>
+            <div style={{ color: "var(--fg-3)", fontSize: 11.5, marginTop: 4, lineHeight: 1.5 }}>
+              {c.manualIdeAble.why}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function AnnotItem({ a }) {
   const meta = ANNOT_META[a.kind];
   return (

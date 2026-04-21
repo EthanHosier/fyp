@@ -4,13 +4,14 @@
  * iterate on look & feel without the real dashboard state.
  */
 
-import { CheckIcon, FileIcon, HelpCircleIcon, XIcon } from "lucide-react"
+import { CheckIcon, FileIcon, HelpCircleIcon, XIcon, ZapIcon } from "lucide-react"
 import { parsePatchFiles } from "@pierre/diffs"
 import { DataList, DataListRow } from "@/components/data-list"
 import { FileDiffCard } from "@/components/file-diff-card"
 import { FilterChip } from "@/components/filter-chip"
 import { LegendSwatch } from "@/components/legend-swatch"
 import { Meter } from "@/components/meter"
+import { PitfallCallout } from "@/components/pitfall-callout"
 import { MetricTile } from "@/components/metric-tile"
 import { RailSection } from "@/components/rail-section"
 import { ScorePill } from "@/components/score-pill"
@@ -585,6 +586,26 @@ export function DesignSystemApp() {
                 <p className="text-fg-2 text-sm">Body content.</p>
               </CardContent>
             </Card>
+          </VariantCell>
+        </DesignSystemSection>
+
+        <DesignSystemSection title="PitfallCallout" layout="stack">
+          <VariantCell label="tone=bad · tests not run">
+            <PitfallCallout
+              tone="bad"
+              icon={<XIcon className="size-2.5" strokeWidth={2.5} />}
+              title="Tests skipped"
+              description="No test run was recorded after this refactoring. Changes landed unverified."
+            />
+          </VariantCell>
+          <VariantCell label="tone=warn · IDE-able manual refactor">
+            <PitfallCallout
+              tone="warn"
+              icon={<ZapIcon className="size-2.5 fill-warn" strokeWidth={0} />}
+              title="Manual refactor — IDE could have done this"
+              mono="Extract Method"
+              description="RefactoringMiner detected a refactoring that maps to a built-in IntelliJ action. Invoking it from the Refactor menu would keep references and usages in sync automatically."
+            />
           </VariantCell>
         </DesignSystemSection>
       </DesignSystemPage>

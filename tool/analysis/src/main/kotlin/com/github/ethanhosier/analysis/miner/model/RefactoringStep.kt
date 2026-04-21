@@ -20,4 +20,8 @@ data class RefactoringStep(
     val toCheckpointIndex: Int,
     val timestamp: Long,
     val refactoring: DetectedRefactoring,
+    /** True iff the `toSha` checkpoint carries a `REFACTORING_FINISHED`
+     *  event — i.e. the IDE performed this refactoring, not the user by
+     *  hand. */
+    val wasPerformedByIde: Boolean = false,
 )

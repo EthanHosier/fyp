@@ -196,21 +196,26 @@ export function toViewModel(report: AnalysisReport): DashboardViewModel {
     : undefined
 
   const refactoringSteps: RefactoringStepVM[] = (report.refactoringSteps ?? []).map(
-    (s: RefactoringStep, i) => ({
-      index: i,
-      checkpointIndex: s.toCheckpointIndex,
-      timestamp: s.timestamp,
-      tMs: Math.max(0, s.timestamp - startedAt),
-      tLabel: formatTLabel(s.timestamp - startedAt),
-      refactoringType: s.refactoring.type,
-      description: s.refactoring.description,
-      fromSha: s.fromSha,
-      toSha: s.toSha,
-      shortFromSha: shortSha(s.fromSha),
-      shortToSha: shortSha(s.toSha),
-      ideRelevant: s.refactoring.ideRelevant,
-      patch: report.refactoringPatches?.[i] ?? "",
-    }),
+    (s: RefactoringStep, i) => {
+      const toEvents = report.checkpoints[s.toCheckpointIndex]?.events ?? []
+      return {
+        index: i,
+        checkpointIndex: s.toCheckpointIndex,
+        timestamp: s.timestamp,
+        tMs: Math.max(0, s.timestamp - startedAt),
+        tLabel: formatTLabel(s.timestamp - startedAt),
+        refactoringType: s.refactoring.type,
+        description: s.refactoring.description,
+        fromSha: s.fromSha,
+        toSha: s.toSha,
+        shortFromSha: shortSha(s.fromSha),
+        shortToSha: shortSha(s.toSha),
+        ideRelevant: s.refactoring.ideRelevant,
+        wasPerformedByIde: s.wasPerformedByIde ?? false,
+        userRanTests: toEvents.some((e) => e.type === "TEST_RUN_FINISHED"),
+        patch: report.refactoringPatches?.[i] ?? "",
+      }
+    },
   )
 
   return { session, metrics: METRICS, checkpoints, intervals, refactoringSteps, trajectory }
