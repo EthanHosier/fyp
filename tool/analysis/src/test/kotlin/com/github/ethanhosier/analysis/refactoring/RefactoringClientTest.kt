@@ -2,6 +2,7 @@ package com.github.ethanhosier.analysis.refactoring
 
 import com.github.ethanhosier.analysis.refactoring.ops.ExtractInterfaceRequest
 import com.github.ethanhosier.analysis.refactoring.ops.ExtractMethodRequest
+import com.github.ethanhosier.analysis.refactoring.ops.ExtractSuperclassRequest
 import com.github.ethanhosier.analysis.refactoring.ops.ExtractVariableRequest
 import com.github.ethanhosier.analysis.refactoring.ops.InlineMethodRequest
 import com.github.ethanhosier.analysis.refactoring.ops.InlineVariableRequest
@@ -17,6 +18,7 @@ import com.github.ethanhosier.analysis.refactoring.ops.RenameMethodRequest
 import com.github.ethanhosier.analysis.refactoring.ops.RenamePackageRequest
 import com.github.ethanhosier.analysis.refactoring.ops.extractInterface
 import com.github.ethanhosier.analysis.refactoring.ops.extractMethod
+import com.github.ethanhosier.analysis.refactoring.ops.extractSuperclass
 import com.github.ethanhosier.analysis.refactoring.ops.extractVariable
 import com.github.ethanhosier.analysis.refactoring.ops.inlineMethod
 import com.github.ethanhosier.analysis.refactoring.ops.inlineVariable
@@ -1042,6 +1044,80 @@ class RefactoringClientTest {
 
                 public int queued() {
                     return 0;
+                }
+            }
+            """.trimIndent(),
+            Files.readString(source).trimEnd(),
+        )
+    }
+
+    @Test
+    fun `extract superclass creates new parent and moves members`(@TempDir worktree: Path) {
+        val src = worktree.resolve("src").also(Path::createDirectories)
+        val source = src.resolve("com/example/Employee.java")
+        source.parent.createDirectories()
+        source.writeText(
+            """
+            package com.example;
+
+            public class Employee {
+                protected String name = "";
+
+                public String describe() {
+                    return "name=" + name;
+                }
+            }
+            """.trimIndent(),
+        )
+
+        val outcome = client.extractSuperclass(
+            ExtractSuperclassRequest(
+                projectRoot = worktree,
+                sourceFolders = listOf("src"),
+                classpathJars = emptyList(),
+                sourceTypeFqn = "com.example.Employee",
+                newSupertypeName = "Person",
+                methodNames = listOf("describe"),
+                fieldNames = listOf("name"),
+            ),
+        )
+
+        assertIs<RefactoringOutcome.Success>(outcome, "outcome=$outcome")
+
+        val newSuper = src.resolve("com/example/Person.java")
+        assertTrue(Files.exists(newSuper), "Person.java should have been created")
+        // Note: ExtractSupertypeProcessor copies methods up but leaves
+        // the subclass implementation as an override — see comment in
+        // ExtractSuperclassOp. Callers wanting a clean "move up" should
+        // chain a Pull Up against the newly-created parent. Fields ARE
+        // moved fully (field deletion goes through a different path).
+        assertEquals(
+            """
+            package com.example;
+
+            public class Person {
+
+                public Person() {
+                    super();
+                }
+
+                protected String name = "";
+
+                public String describe() {
+                    return "name=" + name;
+                }
+
+            }
+            """.trimIndent(),
+            Files.readString(newSuper).trimEnd(),
+        )
+        assertEquals(
+            """
+            package com.example;
+
+            public class Employee extends Person {
+                public String describe() {
+                    return "name=" + name;
                 }
             }
             """.trimIndent(),

@@ -3,6 +3,7 @@ package com.github.ethanhosier.refactoringbundle
 import com.github.ethanhosier.refactoringbundle.internal.RefactoringHost
 import com.github.ethanhosier.refactoringbundle.internal.ops.ExtractInterfaceOp
 import com.github.ethanhosier.refactoringbundle.internal.ops.ExtractMethodOp
+import com.github.ethanhosier.refactoringbundle.internal.ops.ExtractSuperclassOp
 import com.github.ethanhosier.refactoringbundle.internal.ops.ExtractVariableOp
 import com.github.ethanhosier.refactoringbundle.internal.ops.InlineMethodOp
 import com.github.ethanhosier.refactoringbundle.internal.ops.InlineVariableOp
@@ -254,5 +255,18 @@ object JdtRefactorer {
         methodNames: Array<String>,
     ): String = RefactoringHost.run(projectRoot, sourceFolders, classpathJars) { jp ->
         ExtractInterfaceOp.run(jp, sourceTypeFqn, newInterfaceName, methodNames)
+    }
+
+    @JvmStatic
+    fun extractSuperclass(
+        projectRoot: String,
+        sourceFolders: Array<String>,
+        classpathJars: Array<String>,
+        sourceTypeFqn: String,
+        newSupertypeName: String,
+        methodNames: Array<String>,
+        fieldNames: Array<String>,
+    ): String = RefactoringHost.run(projectRoot, sourceFolders, classpathJars) { jp ->
+        ExtractSuperclassOp.run(jp, sourceTypeFqn, newSupertypeName, methodNames, fieldNames)
     }
 }
