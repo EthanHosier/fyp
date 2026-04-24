@@ -249,6 +249,61 @@ class RefactoringClientTest {
     }
 
     @Test
+    fun `rename package moves files and updates imports`(@TempDir worktree: Path) {
+        val src = worktree.resolve("src").also(Path::createDirectories)
+        val oldDir = src.resolve("com/example/old").also(Path::createDirectories)
+        val clientDir = src.resolve("com/example/app").also(Path::createDirectories)
+        val widget = oldDir.resolve("Widget.java")
+        val caller = clientDir.resolve("AppMain.java")
+
+        widget.writeText(
+            """
+            package com.example.old;
+
+            public class Widget {
+                public int value() { return 7; }
+            }
+            """.trimIndent(),
+        )
+        caller.writeText(
+            """
+            package com.example.app;
+
+            import com.example.old.Widget;
+
+            public class AppMain {
+                public int useIt() {
+                    return new Widget().value();
+                }
+            }
+            """.trimIndent(),
+        )
+
+        val outcome = client.renamePackage(
+            RenamePackageRequest(
+                projectRoot = worktree,
+                sourceFolders = listOf("src"),
+                classpathJars = emptyList(),
+                oldPackage = "com.example.old",
+                newPackage = "com.example.fresh",
+            ),
+        )
+
+        val success = assertIs<RefactoringOutcome.Success>(outcome, "outcome=$outcome")
+        assertTrue(success.changedFiles.isNotEmpty(), "rename should report changed files")
+
+        val movedWidget = src.resolve("com/example/fresh/Widget.java")
+        assertTrue(Files.exists(movedWidget), "Widget.java should have moved to com/example/fresh/")
+        assertFalse(Files.exists(widget), "old Widget.java should be gone")
+
+        val rewrittenWidget = Files.readString(movedWidget)
+        val rewrittenCaller = Files.readString(caller)
+        assertContains(rewrittenWidget, "package com.example.fresh;")
+        assertContains(rewrittenCaller, "import com.example.fresh.Widget;")
+        assertFalse("com.example.old" in rewrittenCaller, "old import gone from AppMain")
+    }
+
+    @Test
     fun `failed extract returns Failed rather than throwing`(@TempDir worktree: Path) {
         val src = worktree.resolve("src").also(Path::createDirectories)
         val file = src.resolve("org/example/Box.java")

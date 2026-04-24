@@ -5,6 +5,7 @@ import com.github.ethanhosier.refactoringbundle.internal.ops.ExtractMethodOp
 import com.github.ethanhosier.refactoringbundle.internal.ops.RenameClassOp
 import com.github.ethanhosier.refactoringbundle.internal.ops.RenameFieldOp
 import com.github.ethanhosier.refactoringbundle.internal.ops.RenameMethodOp
+import com.github.ethanhosier.refactoringbundle.internal.ops.RenamePackageOp
 import org.eclipse.core.runtime.preferences.DefaultScope
 import org.eclipse.jdt.core.manipulation.JavaManipulation
 
@@ -83,5 +84,16 @@ object JdtRefactorer {
         newName: String,
     ): String = RefactoringHost.run(projectRoot, sourceFolders, classpathJars) { jp ->
         RenameFieldOp.run(jp, declaringTypeFqn, oldName, newName)
+    }
+
+    @JvmStatic
+    fun renamePackage(
+        projectRoot: String,
+        sourceFolders: Array<String>,
+        classpathJars: Array<String>,
+        oldPackage: String,
+        newPackage: String,
+    ): String = RefactoringHost.run(projectRoot, sourceFolders, classpathJars) { jp ->
+        RenamePackageOp.run(jp, oldPackage, newPackage)
     }
 }
