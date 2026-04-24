@@ -194,6 +194,61 @@ class RefactoringClientTest {
     }
 
     @Test
+    fun `rename field updates reads and writes across files`(@TempDir worktree: Path) {
+        val src = worktree.resolve("src").also(Path::createDirectories)
+        val counter = src.resolve("com/example/Counter.java")
+        val user = src.resolve("com/example/CounterUser.java")
+        counter.parent.createDirectories()
+
+        counter.writeText(
+            """
+            package com.example;
+
+            public class Counter {
+                public int tally = 0;
+            }
+            """.trimIndent(),
+        )
+        user.writeText(
+            """
+            package com.example;
+
+            public class CounterUser {
+                public int bump(Counter c) {
+                    c.tally = c.tally + 1;
+                    return c.tally;
+                }
+            }
+            """.trimIndent(),
+        )
+
+        val outcome = client.renameField(
+            RenameFieldRequest(
+                projectRoot = worktree,
+                sourceFolders = listOf("src"),
+                classpathJars = emptyList(),
+                declaringTypeFqn = "com.example.Counter",
+                oldName = "tally",
+                newName = "count",
+            ),
+        )
+
+        val success = assertIs<RefactoringOutcome.Success>(outcome, "outcome=$outcome")
+        assertEquals(
+            2,
+            success.changedFiles.size,
+            "rename should touch both Counter.java and CounterUser.java; got ${success.changedFiles}",
+        )
+
+        val rewrittenCounter = Files.readString(counter)
+        val rewrittenUser = Files.readString(user)
+        assertContains(rewrittenCounter, "int count")
+        assertFalse("tally" in rewrittenCounter, "old name gone from Counter")
+        assertContains(rewrittenUser, "c.count")
+        assertFalse("tally" in rewrittenUser, "old name gone from CounterUser")
+    }
+
+    @Test
     fun `failed extract returns Failed rather than throwing`(@TempDir worktree: Path) {
         val src = worktree.resolve("src").also(Path::createDirectories)
         val file = src.resolve("org/example/Box.java")
