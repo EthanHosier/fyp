@@ -2,6 +2,7 @@ package com.github.ethanhosier.refactoringbundle
 
 import com.github.ethanhosier.refactoringbundle.internal.RefactoringHost
 import com.github.ethanhosier.refactoringbundle.internal.ops.ChangeMethodSignatureOp
+import com.github.ethanhosier.refactoringbundle.internal.ops.ExtractAttributeOp
 import com.github.ethanhosier.refactoringbundle.internal.ops.ExtractClassOp
 import com.github.ethanhosier.refactoringbundle.internal.ops.ExtractInterfaceOp
 import com.github.ethanhosier.refactoringbundle.internal.ops.ExtractMethodOp
@@ -331,6 +332,22 @@ object JdtRefactorer {
             paramNewTypes,
             paramDefaults,
         )
+    }
+
+    @JvmStatic
+    fun extractAttribute(
+        projectRoot: String,
+        sourceFolders: Array<String>,
+        classpathJars: Array<String>,
+        relativeFilePath: String,
+        startLine: Int,
+        startColumn: Int,
+        endLine: Int,
+        endColumn: Int,
+        newName: String,
+        visibility: String,
+    ): String = RefactoringHost.run(projectRoot, sourceFolders, classpathJars) { jp ->
+        ExtractAttributeOp.run(jp, relativeFilePath, startLine, startColumn, endLine, endColumn, newName, visibility)
     }
 
     @JvmStatic

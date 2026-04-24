@@ -203,3 +203,181 @@ the single-line-delegation pattern here.
   `PLAN-alternative-trajectories.md`.
 - Caching / project reuse across calls — intentionally skipped; keep
   each call self-contained until a profiler says otherwise.
+
+---
+
+# Remaining Gap — Second Pass (added after medium + hard tiers shipped)
+
+Everything in the sections above is now implemented and tested on
+`alternative-trajectories`. Mapping the full JDT op set against
+`IdeRelevantRefactorings` leaves **14 missing entries out of 38**
+(24 covered). This section covers those 14, ordered easiest → hardest.
+It is intentionally kept separate from the easy/medium/hard tier plans
+above, since the shape of the work is different: several of these are
+pure host-side compositions of ops we already have, a few are
+unverified-may-already-work, and the last few are genuinely new JDT
+processors.
+
+## Category A — host-side compositions (no bundle changes)
+
+All three are ~30 LoC host-side files, chaining two existing
+`RefactoringClient.*` calls. Pattern mirrors `ExtractAndMoveMethod.kt`:
+run op 1, bail on failure, run op 2, merge `changedFiles`.
+
+### 1. Move And Rename Class
+
+`moveClass(...)` → `renameClass(...)`. Caller supplies new package +
+new name. Second call's input FQN is `<newPackage>.<oldName>`.
+
+### 2. Move And Rename Method
+
+`moveInstanceMethod(...)` → `renameMethod(...)`. Caller supplies the
+target name (param/field) + new method name. Second call's
+`declaringTypeFqn` is the moved-to type (derived from the target's
+declared type — caller already knows it since they chose it).
+
+### 3. Move And Rename Attribute
+
+Depends on Move Attribute (category B, entry 5). Once that lands this
+is a trivial two-call chain.
+
+## Category B — verify or add small bundle-side ops
+
+### 4. Rename Parameter (verify only, likely no code)
+
+JDT treats parameters and local variables identically through
+`ILocalVariable`, and `renameLocalVariable` already targets any
+`ILocalVariable` at a `(line, column)` selection. Add one test:
+declare a method with one parameter, rename it via
+`renameLocalVariable`, assert the signature + body both updated. If it
+passes → done, no new op needed.
+
+### 5. Move Attribute (instance field)
+
+JDT: `MoveInstanceMethodProcessor` has no field analogue — moving an
+instance field is done via `org.eclipse.jdt.internal.corext.refactoring.structure.MoveInnerToTopRefactoring`
+for nested types, or for plain field-moves you typically `JavaMoveProcessor`
+with a `ReorgPolicyFactory.createMovePolicy(IField[])` policy.
+
+- API: `moveAttribute(projectRoot, …, sourceTypeFqn, fieldName, destinationTypeFqn)`.
+- Bundle: resolve `IField`, build `MovePolicy`, wrap in
+  `JavaMoveProcessor`, set destination to the target `IType`. Mirror
+  `MoveClassOp.kt` — same pattern, just `IField` instead of `IType`.
+- Fixture: two classes; move field `count` from `A` to `B`; assert
+  reads/writes rewritten to `B.count` at all call sites.
+
+### 6. Move Package
+
+- API: `movePackage(projectRoot, …, oldPackage, newParentPackage)`.
+- Bundle: `javaProject.packageFragments` → resolve package → JDT
+  `JavaMoveProcessor` with `createMovePolicy(IPackageFragment[])`, set
+  destination to the parent package's `IPackageFragmentRoot` subfolder.
+- Note: semantically distinct from Rename Package. Rename changes the
+  last segment; Move relocates the package under a new parent without
+  (necessarily) renaming it.
+
+### 7. Move Source Folder
+
+Not a JDT refactoring — it's a project-descriptor change (edit
+`.classpath` source entries). Either skip entirely (mark out-of-scope
+in `IdeRelevantRefactorings`) or implement as a plain file-move +
+classpath rewrite. Recommend skipping — it's the only entry that
+doesn't map to a JDT processor at all.
+
+### 8. Extract Attribute
+
+IntelliJ's "Extract Attribute" = "Extract Constant / Extract Field" —
+promote a selection to a new field on the enclosing class.
+
+- JDT: `ExtractConstantRefactoring(icu, offset, length)` for a
+  `static final` constant, or `PromoteTempToFieldRefactoring` when
+  starting from a local.
+- API: `extractAttribute(projectRoot, …, relativeFilePath, startLine,
+  startColumn, endLine, endColumn, newFieldName, isStatic, isFinal)`.
+- Fixture: class with a literal expression repeated twice in a method;
+  extract to a field; assert both uses replaced.
+
+### 9. Change Variable Type
+
+JDT: `ChangeTypeRefactoring` — change declared type of a local /
+parameter to a supertype / compatible type. API selects by
+`(file, line, column)` like `renameLocalVariable`.
+
+- API: `changeVariableType(projectRoot, …, relativeFilePath, line, column, newTypeFqn)`.
+- Fixture: `ArrayList<String> xs = new ArrayList<>();` → retype
+  declaration to `List<String>`. Assert declaration updated, imports
+  added for `java.util.List`.
+
+### 10. Change Attribute Type
+
+Same JDT refactoring as #9, just starting from an `IField`.
+
+- API: `changeAttributeType(projectRoot, …, declaringTypeFqn, fieldName, newTypeFqn)`.
+
+## Category C — heavier new JDT processors
+
+These three are "promote X to Y" refactorings that materialise a new
+declaration and rewrite usage sites. Each is its own JDT processor,
+not a composition.
+
+### 11. Extract Subclass
+
+IntelliJ's "Extract Subclass" = create a new subclass carrying the
+listed members. No single JDT processor; closest equivalent is
+`ExtractSupertypeProcessor` in reverse, which doesn't exist.
+
+Implementation path: (a) generate a stub subclass file (reuse the
+NEWTYPE code-template path we seeded for Extract Class), then
+(b) `pushDown` the selected members into it. Two-step composition on
+the bundle side, since we need the class to exist before `pushDown`
+can find it.
+
+- API: `extractSubclass(projectRoot, …, sourceTypeFqn, newSubclassName,
+  methodNames, fieldNames)`.
+- Fixture: `class Animal` with a `swim()` method; extract subclass
+  `Fish` carrying `swim`; assert `Fish extends Animal`, `swim` moved
+  down, `Animal` no longer declares it.
+
+### 12. Parameterize Variable
+
+JDT: `IntroduceParameterRefactoring(icu, offset, length)` — promote a
+local or expression into a new method parameter, insert the old value
+as default at all call sites.
+
+- API: `parameterizeVariable(projectRoot, …, relativeFilePath,
+  startLine, startColumn, endLine, endColumn, newParameterName)`.
+- Fixture: method with a literal `"hello"` used internally; promote
+  to parameter `greeting`; caller's call site now passes `"hello"`.
+
+### 13. Parameterize Attribute
+
+Same JDT mechanism (`IntroduceParameterRefactoring`) applied to a
+field-read site. Effectively: find a `FieldAccess` node at the given
+location, promote the expression.
+
+- API shape identical to #12, just typically selected at a
+  `this.field` reference rather than a local.
+- Fixture: class with a field read inside a method; parameterise the
+  read; caller passes the field as an argument.
+
+### 14. Replace Variable With Attribute
+
+JDT: `PromoteTempToFieldRefactoring(icu, astRoot, offset, length)` —
+converts a local variable declaration into a field on the enclosing
+class.
+
+- API: `replaceVariableWithAttribute(projectRoot, …, relativeFilePath,
+  line, column, fieldAccessModifier)` where the modifier is
+  `"private"` / `"protected"` / etc.
+- Fixture: method with `int cache = compute();`; promote to a private
+  field; assert declaration moved out of the method body, method
+  rewrites to `cache = compute();`.
+
+## Sequencing suggestion
+
+Land in order 4 → 1 → 2 → 5 → 3 → 6 → 7 (skip) → 8 → 9 → 10 → 14 → 12 → 13 → 11.
+That gets the 3 compositions + Rename Parameter verified in the first
+afternoon (worth ~4/14), clears the move/extract gaps next, and leaves
+the three promotion refactorings for last since they share the
+"locate AST node at offset, run promotion processor" pattern and
+benefit from being done together.

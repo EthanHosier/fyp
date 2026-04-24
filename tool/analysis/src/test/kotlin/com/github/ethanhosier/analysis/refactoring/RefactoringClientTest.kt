@@ -2,10 +2,12 @@ package com.github.ethanhosier.analysis.refactoring
 
 import com.github.ethanhosier.analysis.refactoring.ops.ChangeMethodSignatureRequest
 import com.github.ethanhosier.analysis.refactoring.ops.ExtractAndMoveMethodRequest
+import com.github.ethanhosier.analysis.refactoring.ops.ExtractAttributeRequest
 import com.github.ethanhosier.analysis.refactoring.ops.MoveAndRenameClassRequest
 import com.github.ethanhosier.analysis.refactoring.ops.MoveAndRenameMethodRequest
 import com.github.ethanhosier.analysis.refactoring.ops.MoveAndRenameAttributeRequest
 import com.github.ethanhosier.analysis.refactoring.ops.MoveInstanceFieldRequest
+import com.github.ethanhosier.analysis.refactoring.ops.MovePackageRequest
 import com.github.ethanhosier.analysis.refactoring.ops.ExtractClassRequest
 import com.github.ethanhosier.analysis.refactoring.ops.SignatureParameter
 import com.github.ethanhosier.analysis.refactoring.ops.ExtractInterfaceRequest
@@ -26,10 +28,12 @@ import com.github.ethanhosier.analysis.refactoring.ops.RenameMethodRequest
 import com.github.ethanhosier.analysis.refactoring.ops.RenamePackageRequest
 import com.github.ethanhosier.analysis.refactoring.ops.changeMethodSignature
 import com.github.ethanhosier.analysis.refactoring.ops.extractAndMoveMethod
+import com.github.ethanhosier.analysis.refactoring.ops.extractAttribute
 import com.github.ethanhosier.analysis.refactoring.ops.moveAndRenameClass
 import com.github.ethanhosier.analysis.refactoring.ops.moveAndRenameMethod
 import com.github.ethanhosier.analysis.refactoring.ops.moveAndRenameAttribute
 import com.github.ethanhosier.analysis.refactoring.ops.moveInstanceField
+import com.github.ethanhosier.analysis.refactoring.ops.movePackage
 import com.github.ethanhosier.analysis.refactoring.ops.extractClass
 import com.github.ethanhosier.analysis.refactoring.ops.extractInterface
 import com.github.ethanhosier.analysis.refactoring.ops.extractMethod
@@ -1621,6 +1625,135 @@ class RefactoringClientTest {
             }
             """.trimIndent(),
             Files.readString(dest).trimEnd(),
+        )
+    }
+
+    @Test
+    fun `move package relocates under new parent keeping last segment`(@TempDir worktree: Path) {
+        val src = worktree.resolve("src").also(Path::createDirectories)
+        val oldDir = src.resolve("com/example/utils").also(Path::createDirectories)
+        val callerDir = src.resolve("com/example/app").also(Path::createDirectories)
+        val helper = oldDir.resolve("Helper.java")
+        val caller = callerDir.resolve("AppMain.java")
+
+        helper.writeText(
+            """
+            package com.example.utils;
+
+            public class Helper {
+                public int value() { return 7; }
+            }
+            """.trimIndent(),
+        )
+        caller.writeText(
+            """
+            package com.example.app;
+
+            import com.example.utils.Helper;
+
+            public class AppMain {
+                public int useIt() {
+                    return new Helper().value();
+                }
+            }
+            """.trimIndent(),
+        )
+
+        val outcome = client.movePackage(
+            MovePackageRequest(
+                projectRoot = worktree,
+                sourceFolders = listOf("src"),
+                classpathJars = emptyList(),
+                oldPackage = "com.example.utils",
+                newParentPackage = "com.foo",
+            ),
+        )
+
+        assertIs<RefactoringOutcome.Success>(outcome, "outcome=$outcome")
+        val moved = src.resolve("com/foo/utils/Helper.java")
+        assertTrue(Files.exists(moved), "Helper.java should be at com/foo/utils/")
+        assertFalse(Files.exists(helper), "old Helper.java should be gone")
+        assertEquals(
+            """
+            package com.foo.utils;
+
+            public class Helper {
+                public int value() { return 7; }
+            }
+            """.trimIndent(),
+            Files.readString(moved).trimEnd(),
+        )
+        assertEquals(
+            """
+            package com.example.app;
+
+            import com.foo.utils.Helper;
+
+            public class AppMain {
+                public int useIt() {
+                    return new Helper().value();
+                }
+            }
+            """.trimIndent(),
+            Files.readString(caller).trimEnd(),
+        )
+    }
+
+    @Test
+    fun `extract attribute promotes duplicated literal to static final field`(@TempDir worktree: Path) {
+        val src = worktree.resolve("src").also(Path::createDirectories)
+        val file = src.resolve("com/example/Taxer.java")
+        file.parent.createDirectories()
+        file.writeText(
+            """
+            package com.example;
+
+            public class Taxer {
+                public double grossUp(double total) {
+                    double a = total * 0.2;
+                    double b = total * 0.2;
+                    return a + b;
+                }
+            }
+            """.trimIndent(),
+        )
+
+        // Select the literal `0.2` on line 5 (columns 28..30).
+        val outcome = client.extractAttribute(
+            ExtractAttributeRequest(
+                projectRoot = worktree,
+                sourceFolders = listOf("src"),
+                classpathJars = emptyList(),
+                relativeFilePath = "src/com/example/Taxer.java",
+                startLine = 5,
+                startColumn = 28,
+                endLine = 5,
+                endColumn = 30,
+                newName = "VAT_RATE",
+                visibility = "private",
+            ),
+        )
+
+        assertIs<RefactoringOutcome.Success>(outcome, "outcome=$outcome")
+        // JDT's Extract Constant rewrites the selected occurrence; the
+        // other `0.2` isn't matched as a duplicate because a bare
+        // literal-inside-expression doesn't satisfy JDT's structural
+        // match heuristic (the containing `total * 0.2` would).
+        assertEquals(
+            """
+            package com.example;
+
+            public class Taxer {
+                private static final double VAT_RATE = 0.2;
+
+                public double grossUp(double total) {
+                    double a = total * VAT_RATE;
+                    double b = total * 0.2;
+                    return a + b;
+                }
+            }
+            """.trimIndent(),
+            Files.readString(file).trimEnd(),
         )
     }
 
