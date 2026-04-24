@@ -1,12 +1,15 @@
 package com.github.ethanhosier.refactoringbundle
 
+import com.github.ethanhosier.refactoringbundle.internal.IndexingGate
+import com.github.ethanhosier.refactoringbundle.internal.OutcomeJson
+import com.github.ethanhosier.refactoringbundle.internal.ProjectRegistry
+import com.github.ethanhosier.refactoringbundle.internal.RefactoringRunner
 import org.eclipse.core.resources.IFile
-import org.eclipse.core.resources.IProjectDescription
 import org.eclipse.core.resources.IResource
-import org.eclipse.core.resources.ResourcesPlugin
 import org.eclipse.core.runtime.NullProgressMonitor
 import org.eclipse.core.runtime.preferences.DefaultScope
 import org.eclipse.jdt.core.ICompilationUnit
+import org.eclipse.jdt.core.IJavaProject
 import org.eclipse.jdt.core.IMethod
 import org.eclipse.jdt.core.IType
 import org.eclipse.jdt.core.JavaCore
@@ -19,32 +22,29 @@ import org.eclipse.ltk.core.refactoring.RefactoringCore
 import org.eclipse.ltk.core.refactoring.RefactoringStatus
 import java.nio.file.Files
 import java.nio.file.Path
-import kotlin.io.path.createDirectories
 
 /**
- * Entry point invoked from the embedding host after Equinox boots.
- * Lives inside an OSGi bundle so the classloader used to load this
- * class is the same one that loads `IWorkspace` / `ICompilationUnit` /
- * `ExtractMethodRefactoring` from their bundles — no classloader split
- * when the host reflectively calls us.
+ * The bundle-side entry point for JDT-backed refactorings. Every public
+ * method has a primitive-only signature (String / Int / Array<String>)
+ * and returns a JSON-encoded outcome string — both so the host can
+ * invoke them reflectively across the OSGi classloader boundary
+ * without needing to load any Eclipse types itself.
  *
- * Each call creates a disposable Eclipse project inside the workspace,
- * drops the source file in it, runs the refactoring, and returns the
- * rewritten source. The project is named uniquely per call so repeat
- * invocations don't collide.
+ * Adding a new refactoring: add a `@JvmStatic` method here that
+ * resolves the target element via [ProjectRegistry], constructs the
+ * appropriate JDT descriptor, and delegates to [RefactoringRunner.run].
+ * Should be ~15–25 LoC.
  */
 object JdtRefactorer {
 
     init {
         // Normally set by the jdt.ui plugin activator; refactorings
         // look up formatting / import-organisation prefs under this
-        // node. Without it `ProjectScope.getNode(null)` throws IAE
-        // from inside the refactoring condition checks.
+        // node. Without it `ProjectScope.getNode(null)` throws IAE from
+        // inside the refactoring condition checks.
         val nodeId = "org.eclipse.jdt.core"
         JavaManipulation.setPreferenceNodeId(nodeId)
 
-        // Seed the import-rewrite prefs jdt.ui would normally provide.
-        // Without these, the import organiser blows up on null strings.
         val node = DefaultScope.INSTANCE.getNode(nodeId)
         node.put("org.eclipse.jdt.ui.importorder", "java;javax;org;com")
         node.put("org.eclipse.jdt.ui.ondemandthreshold", "99")
@@ -52,21 +52,27 @@ object JdtRefactorer {
     }
 
     /**
-     * Extract lines `[startLine, endLine]` of [source] into a new
-     * method `newMethodName` and return the rewritten source. Lines
-     * are 1-indexed and inclusive.
+     * Extract lines `[startLine, endLine]` of the file at
+     * [relativeFilePath] into a new private method [newMethodName].
+     * Lines are 1-indexed and inclusive.
      */
     @JvmStatic
     fun extractMethod(
-        projectName: String,
+        projectRoot: String,
+        sourceFolders: Array<String>,
+        classpathJars: Array<String>,
         relativeFilePath: String,
-        source: String,
         startLine: Int,
         endLine: Int,
         newMethodName: String,
-    ): String {
-        val (onDisk, icu) = materialise(projectName, relativeFilePath, source)
+    ): String = invoke {
+        val javaProject = project(projectRoot, sourceFolders, classpathJars)
+        val icu = findCompilationUnit(javaProject, relativeFilePath)
+            ?: return@invoke RefactoringRunner.Outcome.Failure(
+                "no compilation unit at $relativeFilePath",
+            )
 
+        val source = String(icu.buffer.characters)
         val selStart = lineOffset(source, startLine)
         val selEnd = lineOffset(source, endLine + 1)
         val selLength = selEnd - selStart
@@ -75,97 +81,120 @@ object JdtRefactorer {
             methodName = newMethodName
             visibility = Modifier.PRIVATE
         }
-        runRefactoring(refactoring)
-
-        return Files.readString(onDisk)
+        RefactoringRunner.run(refactoring)
     }
 
     /**
      * Rename a method declared on [declaringTypeFqn] from [oldName] to
-     * [newName] and return the rewritten source. Updates every call
-     * site within the file. Picks the first method with a matching
-     * name — overloaded methods aren't disambiguated yet.
+     * [newName] across the entire project. Optional
+     * [paramTypeSignatures] disambiguates overloads (JDT-encoded:
+     * `Ljava/lang/String;`, `I`, `V`, …).
      */
     @JvmStatic
     fun renameMethod(
-        projectName: String,
-        relativeFilePath: String,
-        source: String,
+        projectRoot: String,
+        sourceFolders: Array<String>,
+        classpathJars: Array<String>,
         declaringTypeFqn: String,
         oldName: String,
         newName: String,
-    ): String {
-        val (onDisk, icu) = materialise(projectName, relativeFilePath, source)
-
-        // Look up the type inside the ICU directly — avoids needing a
-        // fully-configured classpath for JDT's type index. Handles the
-        // top-level type only (no nested classes) which is enough for
-        // single-file refactorings.
-        val simpleName = declaringTypeFqn.substringAfterLast('.')
-        val type: IType = icu.types.firstOrNull { it.elementName == simpleName }
-            ?: error("CU $relativeFilePath has no top-level type named $simpleName")
-        val method: IMethod = type.methods.firstOrNull { it.elementName == oldName }
-            ?: error("Type $declaringTypeFqn has no method named $oldName")
+        paramTypeSignatures: Array<String>?,
+    ): String = invoke {
+        val javaProject = project(projectRoot, sourceFolders, classpathJars)
+        val type: IType = javaProject.findType(declaringTypeFqn)
+            ?: return@invoke RefactoringRunner.Outcome.Failure(
+                "type $declaringTypeFqn not found on classpath",
+            )
+        val method: IMethod = pickMethod(type, oldName, paramTypeSignatures)
+            ?: return@invoke RefactoringRunner.Outcome.Failure(
+                "method $oldName not found on $declaringTypeFqn" +
+                    (paramTypeSignatures?.joinToString(",")?.let { " ($it)" } ?: ""),
+            )
 
         val contribution = RefactoringCore.getRefactoringContribution(IJavaRefactorings.RENAME_METHOD)
-            ?: error("Rename Method refactoring contribution not available")
+            ?: return@invoke RefactoringRunner.Outcome.Failure(
+                "Rename Method refactoring contribution not available",
+            )
         val descriptor = contribution.createDescriptor() as RenameJavaElementDescriptor
-        descriptor.setProject(projectName)
+        descriptor.setProject(javaProject.project.name)
         descriptor.setJavaElement(method)
         descriptor.setNewName(newName)
         descriptor.setUpdateReferences(true)
 
         val status = RefactoringStatus()
         val refactoring = descriptor.createRefactoring(status)
-            ?: error("Failed to construct rename refactoring: $status")
-        runRefactoring(refactoring)
-
-        return Files.readString(onDisk)
+            ?: return@invoke RefactoringRunner.Outcome.Failure(
+                "failed to construct rename refactoring: ${status.entries.joinToString("; ") { it.message }}",
+            )
+        RefactoringRunner.run(refactoring)
     }
 
-    // Ensures the project exists, writes `source` to the relative path
-    // inside it, and returns the on-disk path + the loaded
-    // ICompilationUnit — the shared preamble for every refactoring.
-    private fun materialise(
-        projectName: String,
-        relativeFilePath: String,
-        source: String,
-    ): Pair<Path, ICompilationUnit> {
-        val workspace = ResourcesPlugin.getWorkspace()
-        val root = workspace.root
-        val project = root.getProject(projectName)
-        if (!project.exists()) {
-            val desc: IProjectDescription = workspace.newProjectDescription(projectName)
-            desc.natureIds = arrayOf(JavaCore.NATURE_ID)
-            project.create(desc, NullProgressMonitor())
+    /**
+     * Drop cached state (the `IJavaProject`, its `.project` metadata)
+     * for [projectRoot]. Callers should invoke this when a worktree
+     * slot is recycled onto a different SHA, so the next call re-scans
+     * and re-indexes from fresh source.
+     */
+    @JvmStatic
+    fun invalidate(projectRoot: String) {
+        ProjectRegistry.invalidate(Path.of(projectRoot))
+    }
+
+    // -- helpers --------------------------------------------------------
+
+    private inline fun invoke(body: () -> RefactoringRunner.Outcome): String {
+        return try {
+            when (val outcome = body()) {
+                is RefactoringRunner.Outcome.Success -> OutcomeJson.ok(outcome.changedFiles)
+                is RefactoringRunner.Outcome.Failure -> OutcomeJson.failed(outcome.reason)
+            }
+        } catch (t: Throwable) {
+            val cause = generateSequence<Throwable>(t) { it.cause }.last()
+            OutcomeJson.failed("${t::class.simpleName}: ${t.message ?: "<no message>"} | root=${cause::class.simpleName}: ${cause.message}")
         }
-        project.open(NullProgressMonitor())
-
-        val projectDir = Path.of(project.location.toOSString())
-        val onDisk = projectDir.resolve(relativeFilePath)
-        onDisk.parent.createDirectories()
-        Files.writeString(onDisk, source)
-        project.refreshLocal(IResource.DEPTH_INFINITE, NullProgressMonitor())
-
-        val fileResource: IFile = project.getFile(relativeFilePath)
-        val icu = JavaCore.createCompilationUnitFrom(fileResource)
-            ?: error("JDT couldn't open compilation unit at $relativeFilePath")
-        return onDisk to icu
     }
 
-    private fun runRefactoring(refactoring: org.eclipse.ltk.core.refactoring.Refactoring) {
-        val pm = NullProgressMonitor()
-        val initial = refactoring.checkInitialConditions(pm)
-        check(!initial.hasFatalError()) { "Initial conditions failed: $initial" }
-        val final = refactoring.checkFinalConditions(pm)
-        check(!final.hasFatalError()) { "Final conditions failed: $final" }
-        val change = refactoring.createChange(pm)
-        change.perform(pm)
+    private fun project(
+        projectRoot: String,
+        sourceFolders: Array<String>,
+        classpathJars: Array<String>,
+    ): IJavaProject {
+        val jp = ProjectRegistry.getOrInit(
+            Path.of(projectRoot),
+            sourceFolders.toList(),
+            classpathJars.map(Path::of),
+        )
+        // Pick up any on-disk edits the caller made since the last
+        // refactoring (worktree files can mutate behind Eclipse's back).
+        jp.project.refreshLocal(IResource.DEPTH_INFINITE, NullProgressMonitor())
+        IndexingGate.waitForIndex(jp)
+        return jp
     }
 
-    // Offset of the start of the 1-indexed line in `source`. Line
-    // `lines+1` resolves to source.length so callers can express
-    // "end of line N" as lineOffset(N+1).
+    private fun findCompilationUnit(
+        javaProject: IJavaProject,
+        relativeFilePath: String,
+    ): ICompilationUnit? {
+        val file: IFile = javaProject.project.getFile(relativeFilePath).takeIf { it.exists() }
+            ?: return null
+        return JavaCore.createCompilationUnitFrom(file)
+    }
+
+    private fun pickMethod(
+        type: IType,
+        name: String,
+        paramTypeSignatures: Array<String>?,
+    ): IMethod? {
+        if (paramTypeSignatures != null) {
+            return type.getMethod(name, paramTypeSignatures).takeIf { it.exists() }
+        }
+        // Unambiguous by name? Return it. Otherwise refuse so the
+        // caller has to disambiguate explicitly rather than picking a
+        // surprising overload for them.
+        val candidates = type.methods.filter { it.elementName == name }
+        return candidates.singleOrNull()
+    }
+
     private fun lineOffset(source: String, line: Int): Int {
         if (line <= 1) return 0
         var idx = 0

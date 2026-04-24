@@ -21,6 +21,7 @@ dependencies {
     // them again would cause classloader-split pain all over again.
     compileOnly("org.eclipse.jdt:org.eclipse.jdt.core:3.38.0")
     compileOnly("org.eclipse.jdt:org.eclipse.jdt.core.manipulation:1.23.0")
+    compileOnly("org.eclipse.jdt:org.eclipse.jdt.launching:3.23.0")
     compileOnly("org.eclipse.platform:org.eclipse.core.runtime:3.31.100")
     compileOnly("org.eclipse.platform:org.eclipse.core.resources:3.21.0")
     compileOnly("org.eclipse.platform:org.eclipse.text:3.14.0")
@@ -45,6 +46,7 @@ tasks.jar {
                 "org.eclipse.core.runtime",
                 "org.eclipse.jdt.core",
                 "org.eclipse.jdt.core.manipulation",
+                "org.eclipse.jdt.launching",
                 "org.eclipse.text",
                 "org.eclipse.ltk.core.refactoring",
             ).joinToString(","),

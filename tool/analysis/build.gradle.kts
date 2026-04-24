@@ -52,6 +52,7 @@ dependencies {
     // these jars must be on the runtime classpath for EquinoxBootstrap
     // to discover, install, and start them.
     implementation("org.eclipse.jdt:org.eclipse.jdt.core:3.38.0")
+    implementation("org.eclipse.jdt:org.eclipse.jdt.launching:3.23.0")
     implementation("org.eclipse.jdt:org.eclipse.jdt.core.manipulation:1.23.0") {
         // JDT manipulation transitively drags JFace/SWT for UI bits we
         // don't touch; SWT's platform fragment uses an unresolved Gradle
