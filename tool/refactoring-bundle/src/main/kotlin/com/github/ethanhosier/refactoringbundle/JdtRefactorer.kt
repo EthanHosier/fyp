@@ -2,8 +2,12 @@ package com.github.ethanhosier.refactoringbundle
 
 import com.github.ethanhosier.refactoringbundle.internal.RefactoringHost
 import com.github.ethanhosier.refactoringbundle.internal.ops.ExtractMethodOp
+import com.github.ethanhosier.refactoringbundle.internal.ops.ExtractVariableOp
+import com.github.ethanhosier.refactoringbundle.internal.ops.InlineMethodOp
+import com.github.ethanhosier.refactoringbundle.internal.ops.InlineVariableOp
 import com.github.ethanhosier.refactoringbundle.internal.ops.RenameClassOp
 import com.github.ethanhosier.refactoringbundle.internal.ops.RenameFieldOp
+import com.github.ethanhosier.refactoringbundle.internal.ops.RenameLocalVariableOp
 import com.github.ethanhosier.refactoringbundle.internal.ops.RenameMethodOp
 import com.github.ethanhosier.refactoringbundle.internal.ops.RenamePackageOp
 import org.eclipse.core.runtime.preferences.DefaultScope
@@ -35,6 +39,12 @@ object JdtRefactorer {
         node.put("org.eclipse.jdt.ui.importorder", "java;javax;org;com")
         node.put("org.eclipse.jdt.ui.ondemandthreshold", "99")
         node.put("org.eclipse.jdt.ui.staticondemandthreshold", "99")
+
+        // Force spaces for new code inserted by refactorings so output
+        // doesn't mix spaces (existing code) with tabs (JDT default).
+        node.put("org.eclipse.jdt.core.formatter.tabulation.char", "space")
+        node.put("org.eclipse.jdt.core.formatter.tabulation.size", "4")
+        node.put("org.eclipse.jdt.core.formatter.indentation.size", "4")
     }
 
     @JvmStatic
@@ -95,5 +105,57 @@ object JdtRefactorer {
         newPackage: String,
     ): String = RefactoringHost.run(projectRoot, sourceFolders, classpathJars) { jp ->
         RenamePackageOp.run(jp, oldPackage, newPackage)
+    }
+
+    @JvmStatic
+    fun renameLocalVariable(
+        projectRoot: String,
+        sourceFolders: Array<String>,
+        classpathJars: Array<String>,
+        relativeFilePath: String,
+        line: Int,
+        column: Int,
+        newName: String,
+    ): String = RefactoringHost.run(projectRoot, sourceFolders, classpathJars) { jp ->
+        RenameLocalVariableOp.run(jp, relativeFilePath, line, column, newName)
+    }
+
+    @JvmStatic
+    fun extractVariable(
+        projectRoot: String,
+        sourceFolders: Array<String>,
+        classpathJars: Array<String>,
+        relativeFilePath: String,
+        startLine: Int,
+        startColumn: Int,
+        endLine: Int,
+        endColumn: Int,
+        newName: String,
+    ): String = RefactoringHost.run(projectRoot, sourceFolders, classpathJars) { jp ->
+        ExtractVariableOp.run(jp, relativeFilePath, startLine, startColumn, endLine, endColumn, newName)
+    }
+
+    @JvmStatic
+    fun inlineVariable(
+        projectRoot: String,
+        sourceFolders: Array<String>,
+        classpathJars: Array<String>,
+        relativeFilePath: String,
+        line: Int,
+        column: Int,
+    ): String = RefactoringHost.run(projectRoot, sourceFolders, classpathJars) { jp ->
+        InlineVariableOp.run(jp, relativeFilePath, line, column)
+    }
+
+    @JvmStatic
+    fun inlineMethod(
+        projectRoot: String,
+        sourceFolders: Array<String>,
+        classpathJars: Array<String>,
+        declaringTypeFqn: String,
+        methodName: String,
+        paramTypeSignatures: Array<String>?,
+    ): String = RefactoringHost.run(projectRoot, sourceFolders, classpathJars) { jp ->
+        InlineMethodOp.run(jp, declaringTypeFqn, methodName, paramTypeSignatures)
     }
 }

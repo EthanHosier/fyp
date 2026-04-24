@@ -9,7 +9,6 @@ import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.io.path.createDirectories
 import kotlin.io.path.writeText
-import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
@@ -20,6 +19,10 @@ import kotlin.test.assertTrue
  * framework is booted in [BeforeAll], reused across every test, and
  * torn down in [AfterAll]. Each test uses its own [TempDir]-rooted
  * fake worktree.
+ *
+ * Assertions compare full file contents against expected strings so the
+ * tests are scannable — each input block and expected output block
+ * lives right next to the other.
  */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class RefactoringClientTest {
@@ -76,9 +79,27 @@ class RefactoringClientTest {
         val success = assertIs<RefactoringOutcome.Success>(outcome, "outcome=$outcome")
         assertEquals(1, success.changedFiles.size, "exactly one file should have changed")
 
-        val rewritten = Files.readString(file)
-        assertContains(rewritten, "handleGold")
-        assertContains(rewritten, "private")
+        assertEquals(
+            """
+            package org.example;
+
+            public class OrderPricingService {
+                public double priceFor(String tier, double total) {
+                    if (tier.equals("gold")) {
+                        return handleGold(total);
+                    }
+                    return total;
+                }
+
+                private double handleGold(double total) {
+                    double discount = total * 0.2;
+                    double taxed = (total - discount) * 1.2;
+                    return taxed - 5.0;
+                }
+            }
+            """.trimIndent(),
+            Files.readString(file).trimEnd(),
+        )
     }
 
     @Test
@@ -133,12 +154,34 @@ class RefactoringClientTest {
             "rename should touch both Greeter.java and Caller.java; got ${success.changedFiles}",
         )
 
-        val rewrittenGreeter = Files.readString(greeter)
-        val rewrittenCaller = Files.readString(caller)
-        assertContains(rewrittenGreeter, "sayHi")
-        assertFalse("hello" in rewrittenGreeter, "old name gone from Greeter")
-        assertContains(rewrittenCaller, "sayHi")
-        assertFalse("hello" in rewrittenCaller, "old name gone from Caller")
+        assertEquals(
+            """
+            package com.example;
+
+            public class Greeter {
+                public String greet(String who) {
+                    return sayHi(who);
+                }
+
+                public String sayHi(String who) {
+                    return "hi " + who;
+                }
+            }
+            """.trimIndent(),
+            Files.readString(greeter).trimEnd(),
+        )
+        assertEquals(
+            """
+            package com.example;
+
+            public class Caller {
+                public String callIt() {
+                    return new Greeter().sayHi("world");
+                }
+            }
+            """.trimIndent(),
+            Files.readString(caller).trimEnd(),
+        )
     }
 
     @Test
@@ -179,18 +222,34 @@ class RefactoringClientTest {
             ),
         )
 
-        val success = assertIs<RefactoringOutcome.Success>(outcome, "outcome=$outcome")
-        assertTrue(success.changedFiles.isNotEmpty(), "rename should report changed files")
+        assertIs<RefactoringOutcome.Success>(outcome, "outcome=$outcome")
 
         val bar = src.resolve("com/example/Bar.java")
         assertTrue(Files.exists(bar), "Foo.java should have been renamed to Bar.java on disk")
         assertFalse(Files.exists(foo), "old Foo.java should be gone")
 
-        val rewrittenBar = Files.readString(bar)
-        val rewrittenUser = Files.readString(user)
-        assertContains(rewrittenBar, "class Bar")
-        assertContains(rewrittenUser, "new Bar()")
-        assertFalse("new Foo()" in rewrittenUser, "old reference gone from FooUser")
+        assertEquals(
+            """
+            package com.example;
+
+            public class Bar {
+                public int value() { return 1; }
+            }
+            """.trimIndent(),
+            Files.readString(bar).trimEnd(),
+        )
+        assertEquals(
+            """
+            package com.example;
+
+            public class FooUser {
+                public int useIt() {
+                    return new Bar().value();
+                }
+            }
+            """.trimIndent(),
+            Files.readString(user).trimEnd(),
+        )
     }
 
     @Test
@@ -234,18 +293,31 @@ class RefactoringClientTest {
         )
 
         val success = assertIs<RefactoringOutcome.Success>(outcome, "outcome=$outcome")
-        assertEquals(
-            2,
-            success.changedFiles.size,
-            "rename should touch both Counter.java and CounterUser.java; got ${success.changedFiles}",
-        )
+        assertEquals(2, success.changedFiles.size, "changed=${success.changedFiles}")
 
-        val rewrittenCounter = Files.readString(counter)
-        val rewrittenUser = Files.readString(user)
-        assertContains(rewrittenCounter, "int count")
-        assertFalse("tally" in rewrittenCounter, "old name gone from Counter")
-        assertContains(rewrittenUser, "c.count")
-        assertFalse("tally" in rewrittenUser, "old name gone from CounterUser")
+        assertEquals(
+            """
+            package com.example;
+
+            public class Counter {
+                public int count = 0;
+            }
+            """.trimIndent(),
+            Files.readString(counter).trimEnd(),
+        )
+        assertEquals(
+            """
+            package com.example;
+
+            public class CounterUser {
+                public int bump(Counter c) {
+                    c.count = c.count + 1;
+                    return c.count;
+                }
+            }
+            """.trimIndent(),
+            Files.readString(user).trimEnd(),
+        )
     }
 
     @Test
@@ -289,18 +361,226 @@ class RefactoringClientTest {
             ),
         )
 
-        val success = assertIs<RefactoringOutcome.Success>(outcome, "outcome=$outcome")
-        assertTrue(success.changedFiles.isNotEmpty(), "rename should report changed files")
+        assertIs<RefactoringOutcome.Success>(outcome, "outcome=$outcome")
 
         val movedWidget = src.resolve("com/example/fresh/Widget.java")
         assertTrue(Files.exists(movedWidget), "Widget.java should have moved to com/example/fresh/")
         assertFalse(Files.exists(widget), "old Widget.java should be gone")
 
-        val rewrittenWidget = Files.readString(movedWidget)
-        val rewrittenCaller = Files.readString(caller)
-        assertContains(rewrittenWidget, "package com.example.fresh;")
-        assertContains(rewrittenCaller, "import com.example.fresh.Widget;")
-        assertFalse("com.example.old" in rewrittenCaller, "old import gone from AppMain")
+        assertEquals(
+            """
+            package com.example.fresh;
+
+            public class Widget {
+                public int value() { return 7; }
+            }
+            """.trimIndent(),
+            Files.readString(movedWidget).trimEnd(),
+        )
+        assertEquals(
+            """
+            package com.example.app;
+
+            import com.example.fresh.Widget;
+
+            public class AppMain {
+                public int useIt() {
+                    return new Widget().value();
+                }
+            }
+            """.trimIndent(),
+            Files.readString(caller).trimEnd(),
+        )
+    }
+
+    @Test
+    fun `rename local variable updates parameter and its uses`(@TempDir worktree: Path) {
+        val src = worktree.resolve("src").also(Path::createDirectories)
+        val file = src.resolve("com/example/Summer.java")
+        file.parent.createDirectories()
+        file.writeText(
+            """
+            package com.example;
+
+            public class Summer {
+                public int addOne(int x) {
+                    int y = x + 1;
+                    return y;
+                }
+            }
+            """.trimIndent(),
+        )
+
+        // Column points inside the `x` parameter declaration on line 4.
+        val outcome = client.renameLocalVariable(
+            RenameLocalVariableRequest(
+                projectRoot = worktree,
+                sourceFolders = listOf("src"),
+                classpathJars = emptyList(),
+                relativeFilePath = "src/com/example/Summer.java",
+                line = 4,
+                column = 28,
+                newName = "value",
+            ),
+        )
+
+        assertIs<RefactoringOutcome.Success>(outcome, "outcome=$outcome")
+        assertEquals(
+            """
+            package com.example;
+
+            public class Summer {
+                public int addOne(int value) {
+                    int y = value + 1;
+                    return y;
+                }
+            }
+            """.trimIndent(),
+            Files.readString(file).trimEnd(),
+        )
+    }
+
+    @Test
+    fun `extract variable pulls duplicated expression into a local`(@TempDir worktree: Path) {
+        val src = worktree.resolve("src").also(Path::createDirectories)
+        val file = src.resolve("com/example/Pricer.java")
+        file.parent.createDirectories()
+        file.writeText(
+            """
+            package com.example;
+
+            public class Pricer {
+                public double finalPrice(double total) {
+                    double taxed = total + total * 0.2;
+                    double rounded = taxed - total * 0.2;
+                    return rounded;
+                }
+            }
+            """.trimIndent(),
+        )
+
+        // Select the expression `total * 0.2` on line 5 (columns 24..34 inclusive).
+        val outcome = client.extractVariable(
+            ExtractVariableRequest(
+                projectRoot = worktree,
+                sourceFolders = listOf("src"),
+                classpathJars = emptyList(),
+                relativeFilePath = "src/com/example/Pricer.java",
+                startLine = 5,
+                startColumn = 32,
+                endLine = 5,
+                endColumn = 42,
+                newName = "discount",
+            ),
+        )
+
+        assertIs<RefactoringOutcome.Success>(outcome, "outcome=$outcome")
+        assertEquals(
+            """
+            package com.example;
+
+            public class Pricer {
+                public double finalPrice(double total) {
+                    double discount = total * 0.2;
+                    double taxed = total + discount;
+                    double rounded = taxed - discount;
+                    return rounded;
+                }
+            }
+            """.trimIndent(),
+            Files.readString(file).trimEnd(),
+        )
+    }
+
+    @Test
+    fun `inline variable replaces the use with the initializer`(@TempDir worktree: Path) {
+        val src = worktree.resolve("src").also(Path::createDirectories)
+        val file = src.resolve("com/example/Inliner.java")
+        file.parent.createDirectories()
+        file.writeText(
+            """
+            package com.example;
+
+            public class Inliner {
+                public int compute(int a, int b) {
+                    int total = a + b;
+                    return total + 1;
+                }
+            }
+            """.trimIndent(),
+        )
+
+        // Column 13 sits inside `total` on line 5.
+        val outcome = client.inlineVariable(
+            InlineVariableRequest(
+                projectRoot = worktree,
+                sourceFolders = listOf("src"),
+                classpathJars = emptyList(),
+                relativeFilePath = "src/com/example/Inliner.java",
+                line = 5,
+                column = 13,
+            ),
+        )
+
+        assertIs<RefactoringOutcome.Success>(outcome, "outcome=$outcome")
+        assertEquals(
+            """
+            package com.example;
+
+            public class Inliner {
+                public int compute(int a, int b) {
+                    return a + b + 1;
+                }
+            }
+            """.trimIndent(),
+            Files.readString(file).trimEnd(),
+        )
+    }
+
+    @Test
+    fun `inline method replaces call sites and removes the declaration`(@TempDir worktree: Path) {
+        val src = worktree.resolve("src").also(Path::createDirectories)
+        val file = src.resolve("com/example/Adder.java")
+        file.parent.createDirectories()
+        file.writeText(
+            """
+            package com.example;
+
+            public class Adder {
+                public int run() {
+                    return sum(1, 2);
+                }
+
+                private int sum(int a, int b) {
+                    return a + b;
+                }
+            }
+            """.trimIndent(),
+        )
+
+        val outcome = client.inlineMethod(
+            InlineMethodRequest(
+                projectRoot = worktree,
+                sourceFolders = listOf("src"),
+                classpathJars = emptyList(),
+                declaringTypeFqn = "com.example.Adder",
+                methodName = "sum",
+            ),
+        )
+
+        assertIs<RefactoringOutcome.Success>(outcome, "outcome=$outcome")
+        assertEquals(
+            """
+            package com.example;
+
+            public class Adder {
+                public int run() {
+                    return 1 + 2;
+                }
+            }
+            """.trimIndent(),
+            Files.readString(file).trimEnd(),
+        )
     }
 
     @Test
