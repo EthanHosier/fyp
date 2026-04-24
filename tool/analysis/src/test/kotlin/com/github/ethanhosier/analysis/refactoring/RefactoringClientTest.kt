@@ -1,6 +1,8 @@
 package com.github.ethanhosier.analysis.refactoring
 
+import com.github.ethanhosier.analysis.refactoring.ops.ChangeMethodSignatureRequest
 import com.github.ethanhosier.analysis.refactoring.ops.ExtractClassRequest
+import com.github.ethanhosier.analysis.refactoring.ops.SignatureParameter
 import com.github.ethanhosier.analysis.refactoring.ops.ExtractInterfaceRequest
 import com.github.ethanhosier.analysis.refactoring.ops.ExtractMethodRequest
 import com.github.ethanhosier.analysis.refactoring.ops.ExtractSuperclassRequest
@@ -17,6 +19,7 @@ import com.github.ethanhosier.analysis.refactoring.ops.RenameFieldRequest
 import com.github.ethanhosier.analysis.refactoring.ops.RenameLocalVariableRequest
 import com.github.ethanhosier.analysis.refactoring.ops.RenameMethodRequest
 import com.github.ethanhosier.analysis.refactoring.ops.RenamePackageRequest
+import com.github.ethanhosier.analysis.refactoring.ops.changeMethodSignature
 import com.github.ethanhosier.analysis.refactoring.ops.extractClass
 import com.github.ethanhosier.analysis.refactoring.ops.extractInterface
 import com.github.ethanhosier.analysis.refactoring.ops.extractMethod
@@ -1189,6 +1192,80 @@ class RefactoringClientTest {
             }
             """.trimIndent(),
             Files.readString(source).trimEnd(),
+        )
+    }
+
+    @Test
+    fun `change method signature reorders renames and adds parameters across call sites`(@TempDir worktree: Path) {
+        val src = worktree.resolve("src").also(Path::createDirectories)
+        val greeter = src.resolve("com/example/Greeter.java")
+        greeter.parent.createDirectories()
+        greeter.writeText(
+            """
+            package com.example;
+
+            public class Greeter {
+                public String greet(String name, int times) {
+                    return name + times;
+                }
+            }
+            """.trimIndent(),
+        )
+        val caller = src.resolve("com/example/Caller.java")
+        caller.writeText(
+            """
+            package com.example;
+
+            public class Caller {
+                public String run() {
+                    return new Greeter().greet("Ada", 3);
+                }
+            }
+            """.trimIndent(),
+        )
+
+        val outcome = client.changeMethodSignature(
+            ChangeMethodSignatureRequest(
+                projectRoot = worktree,
+                sourceFolders = listOf("src"),
+                classpathJars = emptyList(),
+                declaringTypeFqn = "com.example.Greeter",
+                oldMethodName = "greet",
+                newMethodName = "sayHi",
+                parameters = listOf(
+                    // Reorder: times comes before name; rename times→repeats.
+                    SignatureParameter.Existing(oldName = "times", newName = "repeats"),
+                    SignatureParameter.Existing(oldName = "name"),
+                    // Brand-new parameter inserted at the end with a default for callers.
+                    SignatureParameter.Added(name = "loud", type = "boolean", defaultValue = "false"),
+                ),
+            ),
+        )
+
+        assertIs<RefactoringOutcome.Success>(outcome, "outcome=$outcome")
+        assertEquals(
+            """
+            package com.example;
+
+            public class Greeter {
+                public String sayHi(int repeats, String name, boolean loud) {
+                    return name + repeats;
+                }
+            }
+            """.trimIndent(),
+            Files.readString(greeter).trimEnd(),
+        )
+        assertEquals(
+            """
+            package com.example;
+
+            public class Caller {
+                public String run() {
+                    return new Greeter().sayHi(3, "Ada", false);
+                }
+            }
+            """.trimIndent(),
+            Files.readString(caller).trimEnd(),
         )
     }
 

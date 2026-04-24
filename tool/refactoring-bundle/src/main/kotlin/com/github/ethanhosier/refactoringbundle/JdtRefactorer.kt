@@ -1,6 +1,7 @@
 package com.github.ethanhosier.refactoringbundle
 
 import com.github.ethanhosier.refactoringbundle.internal.RefactoringHost
+import com.github.ethanhosier.refactoringbundle.internal.ops.ChangeMethodSignatureOp
 import com.github.ethanhosier.refactoringbundle.internal.ops.ExtractClassOp
 import com.github.ethanhosier.refactoringbundle.internal.ops.ExtractInterfaceOp
 import com.github.ethanhosier.refactoringbundle.internal.ops.ExtractMethodOp
@@ -286,6 +287,37 @@ object JdtRefactorer {
         methodNames: Array<String>,
     ): String = RefactoringHost.run(projectRoot, sourceFolders, classpathJars) { jp ->
         ExtractInterfaceOp.run(jp, sourceTypeFqn, newInterfaceName, methodNames)
+    }
+
+    @JvmStatic
+    fun changeMethodSignature(
+        projectRoot: String,
+        sourceFolders: Array<String>,
+        classpathJars: Array<String>,
+        declaringTypeFqn: String,
+        oldMethodName: String,
+        paramTypeSignatures: Array<String>?,
+        newMethodName: String,
+        newReturnType: String,
+        paramKinds: Array<String>,
+        paramOldNames: Array<String>,
+        paramNewNames: Array<String>,
+        paramNewTypes: Array<String>,
+        paramDefaults: Array<String>,
+    ): String = RefactoringHost.run(projectRoot, sourceFolders, classpathJars) { jp ->
+        ChangeMethodSignatureOp.run(
+            jp,
+            declaringTypeFqn,
+            oldMethodName,
+            paramTypeSignatures,
+            newMethodName,
+            newReturnType,
+            paramKinds,
+            paramOldNames,
+            paramNewNames,
+            paramNewTypes,
+            paramDefaults,
+        )
     }
 
     @JvmStatic
