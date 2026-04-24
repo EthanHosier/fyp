@@ -5,14 +5,15 @@ import kotlinx.serialization.json.Json
 import org.osgi.framework.launch.Framework
 import java.lang.reflect.Method
 import java.nio.file.Path
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 
 /**
- * Host-side facade for JDT-backed refactorings. Each method translates
- * a typed request into a reflective invocation of the corresponding
- * `JdtRefactorer` method inside the OSGi bundle, then parses the
- * returned JSON outcome back into a typed [RefactoringOutcome].
+ * Host-side facade for JDT-backed refactorings. Each refactoring is
+ * implemented as a per-op file in this package (e.g. [ExtractMethod],
+ * [RenameMethod]) that hangs an extension function off this class and
+ * calls [invokeOnBundle].
  *
  * Thread-safety: a coarse [ReentrantLock] serialises every call.
  * Eclipse's workspace has its own locks, but the bundle's project
@@ -23,66 +24,33 @@ import kotlin.concurrent.withLock
  * are expected to live for the duration of the server process. [close]
  * stops the embedded Equinox framework.
  */
-
-// TODO: at some point add a batch mode where can batch together multiple refactorings against same project
-//  (= don't have to re index every time)
 class RefactoringClient internal constructor(
     private val framework: Framework,
     private val refactorer: Any,
-    refactorerClass: Class<*>,
+    private val refactorerClass: Class<*>,
 ) : AutoCloseable {
 
     private val lock = ReentrantLock()
+    private val methodCache = ConcurrentHashMap<String, Method>()
 
-    // Reflective method handles cached at construction time. Each
-    // signature below must match the JvmStatic method on the bundle's
-    // JdtRefactorer exactly.
-    private val extractMethodHandle: Method = refactorerClass.getMethod(
-        "extractMethod",
-        String::class.java,
-        Array<String>::class.java,
-        Array<String>::class.java,
-        String::class.java,
-        Int::class.javaPrimitiveType,
-        Int::class.javaPrimitiveType,
-        String::class.java,
-    )
-
-    private val renameMethodHandle: Method = refactorerClass.getMethod(
-        "renameMethod",
-        String::class.java,
-        Array<String>::class.java,
-        Array<String>::class.java,
-        String::class.java,
-        String::class.java,
-        String::class.java,
-        Array<String>::class.java,
-    )
-
-    fun extractMethod(req: ExtractMethodRequest): RefactoringOutcome = call {
-        extractMethodHandle.invoke(
-            refactorer,
-            req.projectRoot.toAbsolutePath().toString(),
-            req.sourceFolders.toTypedArray(),
-            req.classpathJars.map { it.toAbsolutePath().toString() }.toTypedArray(),
-            req.relativeFilePath,
-            req.startLine,
-            req.endLine,
-            req.newMethodName,
-        ) as String
-    }
-
-    fun renameMethod(req: RenameMethodRequest): RefactoringOutcome = call {
-        renameMethodHandle.invoke(
-            refactorer,
-            req.projectRoot.toAbsolutePath().toString(),
-            req.sourceFolders.toTypedArray(),
-            req.classpathJars.map { it.toAbsolutePath().toString() }.toTypedArray(),
-            req.declaringTypeFqn,
-            req.oldName,
-            req.newName,
-            req.paramTypeSignatures?.toTypedArray(),
-        ) as String
+    /**
+     * Resolve and cache the `@JvmStatic` method named [name] on the
+     * bundle's `JdtRefactorer`, then invoke it under the client's
+     * lock and parse the JSON outcome. Per-op files call this.
+     *
+     * [paramTypes] must match the bundle-side signature exactly
+     * (primitives / String / Array<String>). Using the cache key alone
+     * would be ambiguous for overloads, so we recompute only on miss.
+     */
+    internal fun invokeOnBundle(
+        name: String,
+        paramTypes: Array<Class<*>>,
+        args: Array<Any?>,
+    ): RefactoringOutcome = lock.withLock {
+        val handle = methodCache.getOrPut(name) {
+            refactorerClass.getMethod(name, *paramTypes)
+        }
+        parse(handle.invoke(refactorer, *args) as String)
     }
 
     override fun close() {
@@ -92,10 +60,6 @@ class RefactoringClient internal constructor(
             // next boot (or a tmpdir cleanup) isn't racing it.
             framework.waitForStop(5_000)
         }
-    }
-
-    private inline fun call(block: () -> String): RefactoringOutcome = lock.withLock {
-        parse(block())
     }
 
     private fun parse(payload: String): RefactoringOutcome {
