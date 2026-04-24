@@ -48,13 +48,19 @@ object EquinoxBootstrap {
         "kotlin",
     )
 
-    // Unrelated OSGi bundles that happen to share an `org.eclipse.*`
-    // namespace but aren't part of the JDT refactoring stack. Installing
-    // them pulls in servlet / jgit transitive requirements we can't
-    // satisfy (and don't need).
+    // Bundles pulled transitively onto the classpath but not used by
+    // the refactoring engine. Skipping them avoids noisy resolver
+    // failures at boot — they each require UI-layer peers (SWT native
+    // fragments, JFace, full ICU) that we deliberately don't install.
     private val EXCLUDE_PREFIXES = listOf(
         "org.eclipse.jetty.",
         "org.eclipse.jgit",
+        // UI / text-viewer stack — ltk.core.refactoring and
+        // jdt.core.manipulation drag these in for code paths we don't
+        // exercise (editor integration, quick-fix UI).
+        "org.eclipse.jface",          // covers org.eclipse.jface and org.eclipse.jface.text
+        "org.eclipse.swt",
+        "com.ibm.icu",
     )
 
     // Felix SCR first (DS container), then Eclipse platform bundles in

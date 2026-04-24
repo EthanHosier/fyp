@@ -2,10 +2,9 @@ package com.github.ethanhosier.refactoringbundle
 
 import com.github.ethanhosier.refactoringbundle.internal.IndexingGate
 import com.github.ethanhosier.refactoringbundle.internal.OutcomeJson
-import com.github.ethanhosier.refactoringbundle.internal.ProjectRegistry
+import com.github.ethanhosier.refactoringbundle.internal.ProjectInitializer
 import com.github.ethanhosier.refactoringbundle.internal.RefactoringRunner
 import org.eclipse.core.resources.IFile
-import org.eclipse.core.resources.IResource
 import org.eclipse.core.runtime.NullProgressMonitor
 import org.eclipse.core.runtime.preferences.DefaultScope
 import org.eclipse.jdt.core.ICompilationUnit
@@ -20,8 +19,8 @@ import org.eclipse.jdt.core.refactoring.descriptors.RenameJavaElementDescriptor
 import org.eclipse.jdt.internal.corext.refactoring.code.ExtractMethodRefactoring
 import org.eclipse.ltk.core.refactoring.RefactoringCore
 import org.eclipse.ltk.core.refactoring.RefactoringStatus
-import java.nio.file.Files
 import java.nio.file.Path
+import java.util.UUID
 
 /**
  * The bundle-side entry point for JDT-backed refactorings. Every public
@@ -30,8 +29,12 @@ import java.nio.file.Path
  * invoke them reflectively across the OSGi classloader boundary
  * without needing to load any Eclipse types itself.
  *
+ * Each call creates a fresh Eclipse project pointing at the caller's
+ * worktree, runs the refactoring, then deletes the project metadata
+ * (the worktree files stay). No cross-call state.
+ *
  * Adding a new refactoring: add a `@JvmStatic` method here that
- * resolves the target element via [ProjectRegistry], constructs the
+ * resolves the target element via [withProject], constructs the
  * appropriate JDT descriptor, and delegates to [RefactoringRunner.run].
  * Should be ~15–25 LoC.
  */
@@ -65,10 +68,9 @@ object JdtRefactorer {
         startLine: Int,
         endLine: Int,
         newMethodName: String,
-    ): String = invoke {
-        val javaProject = project(projectRoot, sourceFolders, classpathJars)
+    ): String = withProject(projectRoot, sourceFolders, classpathJars) { javaProject ->
         val icu = findCompilationUnit(javaProject, relativeFilePath)
-            ?: return@invoke RefactoringRunner.Outcome.Failure(
+            ?: return@withProject RefactoringRunner.Outcome.Failure(
                 "no compilation unit at $relativeFilePath",
             )
 
@@ -99,20 +101,19 @@ object JdtRefactorer {
         oldName: String,
         newName: String,
         paramTypeSignatures: Array<String>?,
-    ): String = invoke {
-        val javaProject = project(projectRoot, sourceFolders, classpathJars)
+    ): String = withProject(projectRoot, sourceFolders, classpathJars) { javaProject ->
         val type: IType = javaProject.findType(declaringTypeFqn)
-            ?: return@invoke RefactoringRunner.Outcome.Failure(
+            ?: return@withProject RefactoringRunner.Outcome.Failure(
                 "type $declaringTypeFqn not found on classpath",
             )
         val method: IMethod = pickMethod(type, oldName, paramTypeSignatures)
-            ?: return@invoke RefactoringRunner.Outcome.Failure(
+            ?: return@withProject RefactoringRunner.Outcome.Failure(
                 "method $oldName not found on $declaringTypeFqn" +
                     (paramTypeSignatures?.joinToString(",")?.let { " ($it)" } ?: ""),
             )
 
         val contribution = RefactoringCore.getRefactoringContribution(IJavaRefactorings.RENAME_METHOD)
-            ?: return@invoke RefactoringRunner.Outcome.Failure(
+            ?: return@withProject RefactoringRunner.Outcome.Failure(
                 "Rename Method refactoring contribution not available",
             )
         val descriptor = contribution.createDescriptor() as RenameJavaElementDescriptor
@@ -123,52 +124,53 @@ object JdtRefactorer {
 
         val status = RefactoringStatus()
         val refactoring = descriptor.createRefactoring(status)
-            ?: return@invoke RefactoringRunner.Outcome.Failure(
+            ?: return@withProject RefactoringRunner.Outcome.Failure(
                 "failed to construct rename refactoring: ${status.entries.joinToString("; ") { it.message }}",
             )
         RefactoringRunner.run(refactoring)
     }
 
-    /**
-     * Drop cached state (the `IJavaProject`, its `.project` metadata)
-     * for [projectRoot]. Callers should invoke this when a worktree
-     * slot is recycled onto a different SHA, so the next call re-scans
-     * and re-indexes from fresh source.
-     */
-    @JvmStatic
-    fun invalidate(projectRoot: String) {
-        ProjectRegistry.invalidate(Path.of(projectRoot))
-    }
-
     // -- helpers --------------------------------------------------------
 
-    private inline fun invoke(body: () -> RefactoringRunner.Outcome): String {
+    // Wraps one refactoring: init a fresh Eclipse project against the
+    // caller's worktree, wait for indexing, hand it to [body], then
+    // delete the project metadata regardless of outcome. Exceptions
+    // and typed failures are both serialised to JSON for the host.
+    private inline fun withProject(
+        projectRoot: String,
+        sourceFolders: Array<String>,
+        classpathJars: Array<String>,
+        body: (IJavaProject) -> RefactoringRunner.Outcome,
+    ): String {
+        val name = "rc-" + UUID.randomUUID().toString().replace("-", "")
+        val javaProject: IJavaProject = try {
+            val jp = ProjectInitializer.initProject(
+                name = name,
+                root = Path.of(projectRoot),
+                sourceFolders = sourceFolders.toList(),
+                classpathJars = classpathJars.map(Path::of),
+            )
+            IndexingGate.waitForIndex(jp)
+            jp
+        } catch (t: Throwable) {
+            return OutcomeJson.failed("project init failed: ${t::class.simpleName}: ${t.message}")
+        }
+
         return try {
-            when (val outcome = body()) {
+            when (val outcome = body(javaProject)) {
                 is RefactoringRunner.Outcome.Success -> OutcomeJson.ok(outcome.changedFiles)
                 is RefactoringRunner.Outcome.Failure -> OutcomeJson.failed(outcome.reason)
             }
         } catch (t: Throwable) {
             val cause = generateSequence<Throwable>(t) { it.cause }.last()
             OutcomeJson.failed("${t::class.simpleName}: ${t.message ?: "<no message>"} | root=${cause::class.simpleName}: ${cause.message}")
+        } finally {
+            // deleteContent=false — preserves the caller's worktree
+            // files; only removes Eclipse's `.project` metadata.
+            runCatching {
+                javaProject.project.delete(false, true, NullProgressMonitor())
+            }
         }
-    }
-
-    private fun project(
-        projectRoot: String,
-        sourceFolders: Array<String>,
-        classpathJars: Array<String>,
-    ): IJavaProject {
-        val jp = ProjectRegistry.getOrInit(
-            Path.of(projectRoot),
-            sourceFolders.toList(),
-            classpathJars.map(Path::of),
-        )
-        // Pick up any on-disk edits the caller made since the last
-        // refactoring (worktree files can mutate behind Eclipse's back).
-        jp.project.refreshLocal(IResource.DEPTH_INFINITE, NullProgressMonitor())
-        IndexingGate.waitForIndex(jp)
-        return jp
     }
 
     private fun findCompilationUnit(
