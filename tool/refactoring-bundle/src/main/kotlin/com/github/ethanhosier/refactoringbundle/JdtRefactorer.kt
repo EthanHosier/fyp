@@ -1,6 +1,7 @@
 package com.github.ethanhosier.refactoringbundle
 
 import com.github.ethanhosier.refactoringbundle.internal.RefactoringHost
+import com.github.ethanhosier.refactoringbundle.internal.ops.ExtractInterfaceOp
 import com.github.ethanhosier.refactoringbundle.internal.ops.ExtractMethodOp
 import com.github.ethanhosier.refactoringbundle.internal.ops.ExtractVariableOp
 import com.github.ethanhosier.refactoringbundle.internal.ops.InlineMethodOp
@@ -16,8 +17,10 @@ import com.github.ethanhosier.refactoringbundle.internal.ops.RenameLocalVariable
 import com.github.ethanhosier.refactoringbundle.internal.ops.RenameMethodOp
 import com.github.ethanhosier.refactoringbundle.internal.ops.RenamePackageOp
 import org.eclipse.core.runtime.preferences.DefaultScope
+import org.eclipse.core.runtime.preferences.InstanceScope
 import org.eclipse.jdt.core.manipulation.JavaManipulation
 import org.eclipse.jdt.internal.core.manipulation.JavaManipulationPlugin
+import org.eclipse.text.templates.TemplateStoreCore
 
 /**
  * The bundle-side entry point for JDT-backed refactorings. Every public
@@ -57,6 +60,16 @@ object JdtRefactorer {
         // Static Members) NPE the moment they try to read the members
         // ordering prefs cache.
         JavaManipulationPlugin.getDefault().membersOrderPreferenceCacheCommon.install()
+
+        // Extract Interface / Superclass / Class look up code templates
+        // for generated method stubs + comments. Without a store, they
+        // NPE in TemplateStoreCore. An empty store is fine — JDT falls
+        // back to built-in defaults per template id.
+        if (JavaManipulation.getCodeTemplateStore() == null) {
+            JavaManipulation.setCodeTemplateStore(
+                TemplateStoreCore(InstanceScope.INSTANCE.getNode(nodeId), "$nodeId.codetemplates"),
+            )
+        }
     }
 
     @JvmStatic
@@ -229,5 +242,17 @@ object JdtRefactorer {
         destinationPackage: String,
     ): String = RefactoringHost.run(projectRoot, sourceFolders, classpathJars) { jp ->
         MoveClassOp.run(jp, typeFqn, destinationPackage)
+    }
+
+    @JvmStatic
+    fun extractInterface(
+        projectRoot: String,
+        sourceFolders: Array<String>,
+        classpathJars: Array<String>,
+        sourceTypeFqn: String,
+        newInterfaceName: String,
+        methodNames: Array<String>,
+    ): String = RefactoringHost.run(projectRoot, sourceFolders, classpathJars) { jp ->
+        ExtractInterfaceOp.run(jp, sourceTypeFqn, newInterfaceName, methodNames)
     }
 }
