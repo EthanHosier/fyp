@@ -4,6 +4,7 @@ import com.github.ethanhosier.analysis.refactoring.ops.ExtractMethodRequest
 import com.github.ethanhosier.analysis.refactoring.ops.ExtractVariableRequest
 import com.github.ethanhosier.analysis.refactoring.ops.InlineMethodRequest
 import com.github.ethanhosier.analysis.refactoring.ops.InlineVariableRequest
+import com.github.ethanhosier.analysis.refactoring.ops.PullUpRequest
 import com.github.ethanhosier.analysis.refactoring.ops.RenameClassRequest
 import com.github.ethanhosier.analysis.refactoring.ops.RenameFieldRequest
 import com.github.ethanhosier.analysis.refactoring.ops.RenameLocalVariableRequest
@@ -13,6 +14,7 @@ import com.github.ethanhosier.analysis.refactoring.ops.extractMethod
 import com.github.ethanhosier.analysis.refactoring.ops.extractVariable
 import com.github.ethanhosier.analysis.refactoring.ops.inlineMethod
 import com.github.ethanhosier.analysis.refactoring.ops.inlineVariable
+import com.github.ethanhosier.analysis.refactoring.ops.pullUp
 import com.github.ethanhosier.analysis.refactoring.ops.renameClass
 import com.github.ethanhosier.analysis.refactoring.ops.renameField
 import com.github.ethanhosier.analysis.refactoring.ops.renameLocalVariable
@@ -598,6 +600,73 @@ class RefactoringClientTest {
             }
             """.trimIndent(),
             Files.readString(file).trimEnd(),
+        )
+    }
+
+    @Test
+    fun `pull up moves method and field from subclass to superclass`(@TempDir worktree: Path) {
+        val src = worktree.resolve("src").also(Path::createDirectories)
+        val parent = src.resolve("com/example/Animal.java")
+        val child = src.resolve("com/example/Dog.java")
+        parent.parent.createDirectories()
+
+        parent.writeText(
+            """
+            package com.example;
+
+            public class Animal {
+            }
+            """.trimIndent(),
+        )
+        child.writeText(
+            """
+            package com.example;
+
+            public class Dog extends Animal {
+                protected int legs = 4;
+
+                protected String describe() {
+                    return "legs=" + legs;
+                }
+            }
+            """.trimIndent(),
+        )
+
+        val outcome = client.pullUp(
+            PullUpRequest(
+                projectRoot = worktree,
+                sourceFolders = listOf("src"),
+                classpathJars = emptyList(),
+                declaringTypeFqn = "com.example.Dog",
+                methodNames = listOf("describe"),
+                fieldNames = listOf("legs"),
+            ),
+        )
+
+        assertIs<RefactoringOutcome.Success>(outcome, "outcome=$outcome")
+        assertEquals(
+            """
+            package com.example;
+
+            public class Animal {
+
+                protected int legs = 4;
+
+                protected String describe() {
+                    return "legs=" + legs;
+                }
+            }
+            """.trimIndent(),
+            Files.readString(parent).trimEnd(),
+        )
+        assertEquals(
+            """
+            package com.example;
+
+            public class Dog extends Animal {
+            }
+            """.trimIndent(),
+            Files.readString(child).trimEnd(),
         )
     }
 

@@ -5,6 +5,7 @@ import com.github.ethanhosier.refactoringbundle.internal.ops.ExtractMethodOp
 import com.github.ethanhosier.refactoringbundle.internal.ops.ExtractVariableOp
 import com.github.ethanhosier.refactoringbundle.internal.ops.InlineMethodOp
 import com.github.ethanhosier.refactoringbundle.internal.ops.InlineVariableOp
+import com.github.ethanhosier.refactoringbundle.internal.ops.PullUpOp
 import com.github.ethanhosier.refactoringbundle.internal.ops.RenameClassOp
 import com.github.ethanhosier.refactoringbundle.internal.ops.RenameFieldOp
 import com.github.ethanhosier.refactoringbundle.internal.ops.RenameLocalVariableOp
@@ -12,6 +13,7 @@ import com.github.ethanhosier.refactoringbundle.internal.ops.RenameMethodOp
 import com.github.ethanhosier.refactoringbundle.internal.ops.RenamePackageOp
 import org.eclipse.core.runtime.preferences.DefaultScope
 import org.eclipse.jdt.core.manipulation.JavaManipulation
+import org.eclipse.jdt.internal.core.manipulation.JavaManipulationPlugin
 
 /**
  * The bundle-side entry point for JDT-backed refactorings. Every public
@@ -45,6 +47,12 @@ object JdtRefactorer {
         node.put("org.eclipse.jdt.core.formatter.tabulation.char", "space")
         node.put("org.eclipse.jdt.core.formatter.tabulation.size", "4")
         node.put("org.eclipse.jdt.core.formatter.indentation.size", "4")
+
+        // Normally invoked by the jdt.ui plugin activator. Without it
+        // member-structure refactorings (Pull Up / Push Down / Move
+        // Static Members) NPE the moment they try to read the members
+        // ordering prefs cache.
+        JavaManipulationPlugin.getDefault().membersOrderPreferenceCacheCommon.install()
     }
 
     @JvmStatic
@@ -157,5 +165,17 @@ object JdtRefactorer {
         paramTypeSignatures: Array<String>?,
     ): String = RefactoringHost.run(projectRoot, sourceFolders, classpathJars) { jp ->
         InlineMethodOp.run(jp, declaringTypeFqn, methodName, paramTypeSignatures)
+    }
+
+    @JvmStatic
+    fun pullUp(
+        projectRoot: String,
+        sourceFolders: Array<String>,
+        classpathJars: Array<String>,
+        declaringTypeFqn: String,
+        methodNames: Array<String>,
+        fieldNames: Array<String>,
+    ): String = RefactoringHost.run(projectRoot, sourceFolders, classpathJars) { jp ->
+        PullUpOp.run(jp, declaringTypeFqn, methodNames, fieldNames)
     }
 }
