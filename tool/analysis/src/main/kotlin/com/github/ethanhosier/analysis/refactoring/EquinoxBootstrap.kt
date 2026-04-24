@@ -1,4 +1,4 @@
-package com.github.ethanhosier.analysis.jdt
+package com.github.ethanhosier.analysis.refactoring
 
 import org.osgi.framework.Bundle
 import org.osgi.framework.launch.Framework
@@ -13,19 +13,24 @@ import java.util.jar.Manifest
 import java.util.zip.ZipEntry
 
 /**
- * Embed an Equinox OSGi framework inside the JVM just far enough for
- * JDT's refactoring framework to work. Very much a spike — the goal is
- * "does it boot + register ResourcesPlugin.getWorkspace?" not "clean
- * reusable infra."
+ * Boots an Equinox OSGi framework in-process, just far enough for JDT's
+ * refactoring framework to run: `ResourcesPlugin.getWorkspace()` resolves
+ * to a live workspace, `ExtractMethodRefactoring` and friends can be
+ * driven via LTK, and our own refactoring bundle can look up every
+ * service the Eclipse platform registers.
  *
- * Approach: scan the JVM's `java.class.path` for every jar that carries
- * a `Bundle-SymbolicName` manifest header, install them all into the
- * framework, then start anything marked singleton/eager. Equinox wires
- * up its own services (workspace, job manager, etc.) during bundle
- * activation.
+ * The work is: scan `java.class.path` for jars, install each one that
+ * carries a `Bundle-SymbolicName` (or wrap non-OSGi jars in a
+ * fabricated manifest so OSGi accepts them), then start bundles in a
+ * known-good dependency order. Felix SCR comes first so Declarative
+ * Services is live before any Eclipse bundle tries to register a DS
+ * component.
  */
 object EquinoxBootstrap {
 
+    // Maven artifact basename → OSGi Bundle-SymbolicName, for libraries
+    // Eclipse bundles `Require-Bundle` under a specific name but that
+    // don't ship OSGi manifests themselves.
     private val KNOWN_BUNDLE_NAMES = mapOf(
         "commonmark" to "org.commonmark",
         "commonmark-ext-gfm-tables" to "org.commonmark-gfm-tables",
@@ -52,11 +57,42 @@ object EquinoxBootstrap {
         "org.eclipse.jgit",
     )
 
+    // Felix SCR first (DS container), then Eclipse platform bundles in
+    // dependency order up to JDT core. Bundles not in this list start
+    // afterwards in unspecified order.
+    private val START_ORDER = listOf(
+        "org.apache.felix.scr",
+        "org.eclipse.equinox.common",
+        "org.eclipse.equinox.registry",
+        "org.eclipse.equinox.preferences",
+        "org.eclipse.equinox.app",
+        "org.eclipse.core.contenttype",
+        "org.eclipse.core.runtime",
+        "org.eclipse.core.jobs",
+        "org.eclipse.core.filesystem",
+        "org.eclipse.core.expressions",
+        "org.eclipse.text",
+        "org.eclipse.core.filebuffers",
+        "org.eclipse.core.resources",
+        "org.eclipse.ltk.core.refactoring",
+        "org.eclipse.jdt.core",
+    )
+
     private fun shouldInstall(symbolicName: String): Boolean {
         if (EXCLUDE_PREFIXES.any { symbolicName.startsWith(it) }) return false
         return INSTALL_PREFIXES.any { symbolicName == it.trimEnd('.') || symbolicName.startsWith(it) }
     }
 
+    /**
+     * Boot an Equinox framework under [dataArea]. The returned [Framework]
+     * is already started and all discoverable Eclipse bundles are active;
+     * callers typically install their own bundle on top and invoke into
+     * it reflectively.
+     *
+     * [dataArea] is used for Equinox's config + workspace storage. It
+     * must be writable and should be distinct from any user worktree —
+     * Eclipse will drop a `.metadata/` directory inside `workspace/`.
+     */
     fun start(dataArea: Path): Framework {
         val configArea = dataArea.resolve("config")
         val instanceArea = dataArea.resolve("workspace")
@@ -94,39 +130,16 @@ object EquinoxBootstrap {
             try {
                 val installable = if (existing != null) path else wrapAsBundle(path, wrapArea)
                 if (installable == null) continue
-                val b = ctx.installBundle("reference:" + installable.toUri())
-                bundles += b
+                bundles += ctx.installBundle("reference:" + installable.toUri())
             } catch (e: Throwable) {
-                System.err.println("skip ${path.fileName}: ${e.message}")
+                System.err.println("EquinoxBootstrap: skip ${path.fileName}: ${e.message}")
             }
         }
 
-        // Start order matters: Felix SCR must be active before any Eclipse
-        // bundle whose services are registered declaratively (content-type
-        // manager, preferences, etc.). Within Eclipse itself, common →
-        // registry → contenttype → app → runtime before anything that
-        // touches IContentTypeManager.
-        val startOrder = listOf(
-            "org.apache.felix.scr",
-            "org.eclipse.equinox.common",
-            "org.eclipse.equinox.registry",
-            "org.eclipse.equinox.preferences",
-            "org.eclipse.equinox.app",
-            "org.eclipse.core.contenttype",
-            "org.eclipse.core.runtime",
-            "org.eclipse.core.jobs",
-            "org.eclipse.core.filesystem",
-            "org.eclipse.core.expressions",
-            "org.eclipse.text",
-            "org.eclipse.core.filebuffers",
-            "org.eclipse.core.resources",
-            "org.eclipse.ltk.core.refactoring",
-            "org.eclipse.jdt.core",
-        )
         val ordered = bundles
             .filter { it.headers.get("Fragment-Host") == null }
             .sortedBy { b ->
-                val idx = startOrder.indexOf(b.symbolicName)
+                val idx = START_ORDER.indexOf(b.symbolicName)
                 if (idx >= 0) idx else Int.MAX_VALUE
             }
         for (b in ordered) {
@@ -134,53 +147,11 @@ object EquinoxBootstrap {
                 b.start(0)
             } catch (e: Throwable) {
                 val cause = generateSequence<Throwable>(e) { it.cause }.last()
-                System.err.println("start ${b.symbolicName} failed: ${e.message} | root=${cause::class.simpleName}: ${cause.message}")
-            }
-        }
-
-        // DS activation is asynchronous; give it a moment to settle so
-        // subsequent service lookups see registered components.
-        Thread.sleep(500)
-
-        // Probe the workspace service directly.
-        val ref = ctx.getServiceReference("org.eclipse.core.resources.IWorkspace")
-        System.err.println("IWorkspace service ref: $ref")
-
-        // Location services — workspace init depends on these.
-        for (refLoc in ctx.getAllServiceReferences(
-            "org.eclipse.osgi.service.datalocation.Location", null,
-        ) ?: emptyArray()) {
-            val type = refLoc.getProperty("type")
-            System.err.println("  Location type=$type bundle=${refLoc.bundle?.symbolicName}")
-        }
-
-        // List every service registered by core.resources.
-        val resourcesBundle = bundles.find { it.symbolicName == "org.eclipse.core.resources" }
-        System.err.println("=== services from core.resources ===")
-        resourcesBundle?.registeredServices?.forEach { r ->
-            System.err.println("  ${r.getProperty("objectClass")?.let { (it as Array<*>).joinToString() }}")
-        }
-
-        System.err.println("=== bundle states ===")
-        for (b in ordered) {
-            if (b.symbolicName?.startsWith("org.eclipse.core") == true ||
-                b.symbolicName == "org.eclipse.equinox.common" ||
-                b.symbolicName == "org.apache.felix.scr") {
-                System.err.println("  ${stateName(b.state)}  ${b.symbolicName} ${b.version}")
+                System.err.println("EquinoxBootstrap: start ${b.symbolicName} failed: ${e.message} | root=${cause::class.simpleName}: ${cause.message}")
             }
         }
 
         return framework
-    }
-
-    private fun stateName(state: Int): String = when (state) {
-        Bundle.UNINSTALLED -> "UNINSTALLED"
-        Bundle.INSTALLED -> "INSTALLED"
-        Bundle.RESOLVED -> "RESOLVED"
-        Bundle.STARTING -> "STARTING"
-        Bundle.STOPPING -> "STOPPING"
-        Bundle.ACTIVE -> "ACTIVE"
-        else -> "?$state"
     }
 
     private fun classpathJars(): List<Path> {
@@ -217,9 +188,6 @@ object EquinoxBootstrap {
         val version = Regex("-(\\d+(?:\\.\\d+)+)\\.jar$").find(fileName)?.groupValues?.get(1)
             ?: "0.0.0"
 
-        // Explicit Maven-jar → Bundle-SymbolicName mapping for non-bundle
-        // libs that Eclipse bundles `Require-Bundle` under specific names.
-        // Falls back to the dominant two-segment package prefix.
         val basename = fileName.removeSuffix(".jar").removeSuffix("-$version")
         val symbolicName = KNOWN_BUNDLE_NAMES[basename] ?: run {
             val topCandidates = packages.map { pkg ->

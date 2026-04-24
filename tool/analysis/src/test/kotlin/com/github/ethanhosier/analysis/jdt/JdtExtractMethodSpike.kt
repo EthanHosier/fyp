@@ -1,8 +1,11 @@
 package com.github.ethanhosier.analysis.jdt
 
+import com.github.ethanhosier.analysis.refactoring.EquinoxBootstrap
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
+import org.osgi.framework.launch.Framework
 import java.nio.file.Path
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 /**
@@ -21,18 +24,7 @@ class JdtExtractMethodSpike {
     fun `extract method through refactoring bundle`(@TempDir tmp: Path) {
         val framework = EquinoxBootstrap.start(tmp.resolve("osgi"))
         try {
-            val bundleJar = Path.of(
-                System.getProperty("refactoring.bundle.jar")
-                    ?: error("refactoring.bundle.jar sys prop not set"),
-            )
-            val ctx = framework.bundleContext
-            val bundle = ctx.installBundle("reference:" + bundleJar.toUri())
-            bundle.start(0)
-
-            val refactorerClass = bundle.loadClass(
-                "com.github.ethanhosier.refactoringbundle.JdtRefactorer",
-            )
-            val instance = refactorerClass.getField("INSTANCE").get(null)
+            val (refactorerClass, instance) = loadRefactorer(framework)
             val method = refactorerClass.getMethod(
                 "extractMethod",
                 String::class.java, String::class.java, String::class.java,
@@ -77,5 +69,60 @@ class JdtExtractMethodSpike {
             // fails to delete the workspace dir.
             framework.waitForStop(5_000)
         }
+    }
+
+    @Test
+    fun `rename method through refactoring bundle`(@TempDir tmp: Path) {
+        val framework = EquinoxBootstrap.start(tmp.resolve("osgi"))
+        try {
+            val (refactorerClass, instance) = loadRefactorer(framework)
+            val renameMethod = refactorerClass.getMethod(
+                "renameMethod",
+                String::class.java, String::class.java, String::class.java,
+                String::class.java, String::class.java, String::class.java,
+            )
+
+            val source = """
+                package org.example;
+
+                public class Greeter {
+                    public String greet(String who) {
+                        return hello(who);
+                    }
+
+                    private String hello(String who) {
+                        return "hi " + who;
+                    }
+                }
+            """.trimIndent()
+
+            val rewritten = renameMethod.invoke(
+                instance,
+                "rename-spike",
+                "src/org/example/Greeter.java",
+                source,
+                "org.example.Greeter",
+                "hello",
+                "sayHi",
+            ) as String
+
+            println("=== rewritten ===\n$rewritten\n=== end ===")
+            assertTrue("sayHi" in rewritten, "new name must appear")
+            assertFalse("hello" in rewritten, "old name must be gone")
+        } finally {
+            framework.stop()
+            framework.waitForStop(5_000)
+        }
+    }
+
+    private fun loadRefactorer(framework: Framework): Pair<Class<*>, Any> {
+        val bundleJar = Path.of(
+            System.getProperty("refactoring.bundle.jar")
+                ?: error("refactoring.bundle.jar sys prop not set"),
+        )
+        val bundle = framework.bundleContext.installBundle("reference:" + bundleJar.toUri())
+        bundle.start(0)
+        val cls = bundle.loadClass("com.github.ethanhosier.refactoringbundle.JdtRefactorer")
+        return cls to cls.getField("INSTANCE").get(null)
     }
 }
