@@ -4,6 +4,8 @@ import com.github.ethanhosier.analysis.refactoring.ops.ChangeMethodSignatureRequ
 import com.github.ethanhosier.analysis.refactoring.ops.ExtractAndMoveMethodRequest
 import com.github.ethanhosier.analysis.refactoring.ops.MoveAndRenameClassRequest
 import com.github.ethanhosier.analysis.refactoring.ops.MoveAndRenameMethodRequest
+import com.github.ethanhosier.analysis.refactoring.ops.MoveAndRenameAttributeRequest
+import com.github.ethanhosier.analysis.refactoring.ops.MoveInstanceFieldRequest
 import com.github.ethanhosier.analysis.refactoring.ops.ExtractClassRequest
 import com.github.ethanhosier.analysis.refactoring.ops.SignatureParameter
 import com.github.ethanhosier.analysis.refactoring.ops.ExtractInterfaceRequest
@@ -26,6 +28,8 @@ import com.github.ethanhosier.analysis.refactoring.ops.changeMethodSignature
 import com.github.ethanhosier.analysis.refactoring.ops.extractAndMoveMethod
 import com.github.ethanhosier.analysis.refactoring.ops.moveAndRenameClass
 import com.github.ethanhosier.analysis.refactoring.ops.moveAndRenameMethod
+import com.github.ethanhosier.analysis.refactoring.ops.moveAndRenameAttribute
+import com.github.ethanhosier.analysis.refactoring.ops.moveInstanceField
 import com.github.ethanhosier.analysis.refactoring.ops.extractClass
 import com.github.ethanhosier.analysis.refactoring.ops.extractInterface
 import com.github.ethanhosier.analysis.refactoring.ops.extractMethod
@@ -1498,6 +1502,125 @@ class RefactoringClientTest {
             }
             """.trimIndent(),
             Files.readString(target).trimEnd(),
+        )
+    }
+
+    @Test
+    fun `move instance field relocates field to destination class and rewrites access`(@TempDir worktree: Path) {
+        val src = worktree.resolve("src").also(Path::createDirectories)
+        val source = src.resolve("com/example/Source.java")
+        val dest = src.resolve("com/example/Dest.java")
+        source.parent.createDirectories()
+
+        source.writeText(
+            """
+            package com.example;
+
+            public class Source {
+                public int count = 3;
+            }
+            """.trimIndent(),
+        )
+        dest.writeText(
+            """
+            package com.example;
+
+            public class Dest {
+            }
+            """.trimIndent(),
+        )
+
+        val outcome = client.moveInstanceField(
+            MoveInstanceFieldRequest(
+                projectRoot = worktree,
+                sourceFolders = listOf("src"),
+                classpathJars = emptyList(),
+                sourceTypeFqn = "com.example.Source",
+                fieldName = "count",
+                destinationTypeFqn = "com.example.Dest",
+            ),
+        )
+
+        assertIs<RefactoringOutcome.Success>(outcome, "outcome=$outcome")
+        assertEquals(
+            """
+            package com.example;
+
+            public class Source {
+            }
+            """.trimIndent(),
+            Files.readString(source).trimEnd(),
+        )
+        assertEquals(
+            """
+            package com.example;
+
+            public class Dest {
+
+                public int count = 3;
+            }
+            """.trimIndent(),
+            Files.readString(dest).trimEnd(),
+        )
+    }
+
+    @Test
+    fun `move and rename attribute moves field to destination then renames it`(@TempDir worktree: Path) {
+        val src = worktree.resolve("src").also(Path::createDirectories)
+        val source = src.resolve("com/example/Source.java")
+        val dest = src.resolve("com/example/Dest.java")
+        source.parent.createDirectories()
+
+        source.writeText(
+            """
+            package com.example;
+
+            public class Source {
+                public int count = 3;
+            }
+            """.trimIndent(),
+        )
+        dest.writeText(
+            """
+            package com.example;
+
+            public class Dest {
+            }
+            """.trimIndent(),
+        )
+
+        val outcome = client.moveAndRenameAttribute(
+            MoveAndRenameAttributeRequest(
+                projectRoot = worktree,
+                sourceFolders = listOf("src"),
+                classpathJars = emptyList(),
+                sourceTypeFqn = "com.example.Source",
+                fieldName = "count",
+                destinationTypeFqn = "com.example.Dest",
+                newFieldName = "total",
+            ),
+        )
+
+        assertIs<RefactoringOutcome.Success>(outcome, "outcome=$outcome")
+        assertEquals(
+            """
+            package com.example;
+
+            public class Source {
+            }
+            """.trimIndent(),
+            Files.readString(source).trimEnd(),
+        )
+        assertEquals(
+            """
+            package com.example;
+
+            public class Dest {
+
+                public int total = 3;
+            }
+            """.trimIndent(),
+            Files.readString(dest).trimEnd(),
         )
     }
 

@@ -10,6 +10,7 @@ import com.github.ethanhosier.refactoringbundle.internal.ops.ExtractVariableOp
 import com.github.ethanhosier.refactoringbundle.internal.ops.InlineMethodOp
 import com.github.ethanhosier.refactoringbundle.internal.ops.InlineVariableOp
 import com.github.ethanhosier.refactoringbundle.internal.ops.MoveClassOp
+import com.github.ethanhosier.refactoringbundle.internal.ops.MoveInstanceFieldOp
 import com.github.ethanhosier.refactoringbundle.internal.ops.MoveInstanceMethodOp
 import com.github.ethanhosier.refactoringbundle.internal.ops.MoveStaticMembersOp
 import com.github.ethanhosier.refactoringbundle.internal.ops.PullUpOp
@@ -264,6 +265,18 @@ object JdtRefactorer {
         targetName: String,
     ): String = RefactoringHost.run(projectRoot, sourceFolders, classpathJars) { jp ->
         MoveInstanceMethodOp.run(jp, sourceTypeFqn, methodName, targetName)
+    }
+
+    @JvmStatic
+    fun moveInstanceField(
+        projectRoot: String,
+        sourceFolders: Array<String>,
+        classpathJars: Array<String>,
+        sourceTypeFqn: String,
+        fieldName: String,
+        destinationTypeFqn: String,
+    ): String = RefactoringHost.run(projectRoot, sourceFolders, classpathJars) { jp ->
+        MoveInstanceFieldOp.run(jp, sourceTypeFqn, fieldName, destinationTypeFqn)
     }
 
     @JvmStatic
