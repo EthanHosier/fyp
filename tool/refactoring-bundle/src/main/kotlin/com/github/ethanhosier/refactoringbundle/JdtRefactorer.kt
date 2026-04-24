@@ -5,7 +5,11 @@ import com.github.ethanhosier.refactoringbundle.internal.ops.ExtractMethodOp
 import com.github.ethanhosier.refactoringbundle.internal.ops.ExtractVariableOp
 import com.github.ethanhosier.refactoringbundle.internal.ops.InlineMethodOp
 import com.github.ethanhosier.refactoringbundle.internal.ops.InlineVariableOp
+import com.github.ethanhosier.refactoringbundle.internal.ops.MoveClassOp
+import com.github.ethanhosier.refactoringbundle.internal.ops.MoveInstanceMethodOp
+import com.github.ethanhosier.refactoringbundle.internal.ops.MoveStaticMembersOp
 import com.github.ethanhosier.refactoringbundle.internal.ops.PullUpOp
+import com.github.ethanhosier.refactoringbundle.internal.ops.PushDownOp
 import com.github.ethanhosier.refactoringbundle.internal.ops.RenameClassOp
 import com.github.ethanhosier.refactoringbundle.internal.ops.RenameFieldOp
 import com.github.ethanhosier.refactoringbundle.internal.ops.RenameLocalVariableOp
@@ -177,5 +181,53 @@ object JdtRefactorer {
         fieldNames: Array<String>,
     ): String = RefactoringHost.run(projectRoot, sourceFolders, classpathJars) { jp ->
         PullUpOp.run(jp, declaringTypeFqn, methodNames, fieldNames)
+    }
+
+    @JvmStatic
+    fun pushDown(
+        projectRoot: String,
+        sourceFolders: Array<String>,
+        classpathJars: Array<String>,
+        declaringTypeFqn: String,
+        methodNames: Array<String>,
+        fieldNames: Array<String>,
+    ): String = RefactoringHost.run(projectRoot, sourceFolders, classpathJars) { jp ->
+        PushDownOp.run(jp, declaringTypeFqn, methodNames, fieldNames)
+    }
+
+    @JvmStatic
+    fun moveStaticMembers(
+        projectRoot: String,
+        sourceFolders: Array<String>,
+        classpathJars: Array<String>,
+        sourceTypeFqn: String,
+        destinationTypeFqn: String,
+        methodNames: Array<String>,
+        fieldNames: Array<String>,
+    ): String = RefactoringHost.run(projectRoot, sourceFolders, classpathJars) { jp ->
+        MoveStaticMembersOp.run(jp, sourceTypeFqn, destinationTypeFqn, methodNames, fieldNames)
+    }
+
+    @JvmStatic
+    fun moveInstanceMethod(
+        projectRoot: String,
+        sourceFolders: Array<String>,
+        classpathJars: Array<String>,
+        sourceTypeFqn: String,
+        methodName: String,
+        targetName: String,
+    ): String = RefactoringHost.run(projectRoot, sourceFolders, classpathJars) { jp ->
+        MoveInstanceMethodOp.run(jp, sourceTypeFqn, methodName, targetName)
+    }
+
+    @JvmStatic
+    fun moveClass(
+        projectRoot: String,
+        sourceFolders: Array<String>,
+        classpathJars: Array<String>,
+        typeFqn: String,
+        destinationPackage: String,
+    ): String = RefactoringHost.run(projectRoot, sourceFolders, classpathJars) { jp ->
+        MoveClassOp.run(jp, typeFqn, destinationPackage)
     }
 }

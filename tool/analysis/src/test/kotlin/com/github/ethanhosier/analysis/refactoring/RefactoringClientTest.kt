@@ -4,7 +4,11 @@ import com.github.ethanhosier.analysis.refactoring.ops.ExtractMethodRequest
 import com.github.ethanhosier.analysis.refactoring.ops.ExtractVariableRequest
 import com.github.ethanhosier.analysis.refactoring.ops.InlineMethodRequest
 import com.github.ethanhosier.analysis.refactoring.ops.InlineVariableRequest
+import com.github.ethanhosier.analysis.refactoring.ops.MoveClassRequest
+import com.github.ethanhosier.analysis.refactoring.ops.MoveInstanceMethodRequest
+import com.github.ethanhosier.analysis.refactoring.ops.MoveStaticMembersRequest
 import com.github.ethanhosier.analysis.refactoring.ops.PullUpRequest
+import com.github.ethanhosier.analysis.refactoring.ops.PushDownRequest
 import com.github.ethanhosier.analysis.refactoring.ops.RenameClassRequest
 import com.github.ethanhosier.analysis.refactoring.ops.RenameFieldRequest
 import com.github.ethanhosier.analysis.refactoring.ops.RenameLocalVariableRequest
@@ -14,7 +18,11 @@ import com.github.ethanhosier.analysis.refactoring.ops.extractMethod
 import com.github.ethanhosier.analysis.refactoring.ops.extractVariable
 import com.github.ethanhosier.analysis.refactoring.ops.inlineMethod
 import com.github.ethanhosier.analysis.refactoring.ops.inlineVariable
+import com.github.ethanhosier.analysis.refactoring.ops.moveClass
+import com.github.ethanhosier.analysis.refactoring.ops.moveInstanceMethod
+import com.github.ethanhosier.analysis.refactoring.ops.moveStaticMembers
 import com.github.ethanhosier.analysis.refactoring.ops.pullUp
+import com.github.ethanhosier.analysis.refactoring.ops.pushDown
 import com.github.ethanhosier.analysis.refactoring.ops.renameClass
 import com.github.ethanhosier.analysis.refactoring.ops.renameField
 import com.github.ethanhosier.analysis.refactoring.ops.renameLocalVariable
@@ -667,6 +675,311 @@ class RefactoringClientTest {
             }
             """.trimIndent(),
             Files.readString(child).trimEnd(),
+        )
+    }
+
+    @Test
+    fun `push down moves method and field from superclass to subclass`(@TempDir worktree: Path) {
+        val src = worktree.resolve("src").also(Path::createDirectories)
+        val parent = src.resolve("com/example/Shape.java")
+        val child = src.resolve("com/example/Circle.java")
+        parent.parent.createDirectories()
+
+        parent.writeText(
+            """
+            package com.example;
+
+            public class Shape {
+                protected double radius = 1.0;
+
+                protected double area() {
+                    return 3.14 * radius * radius;
+                }
+            }
+            """.trimIndent(),
+        )
+        child.writeText(
+            """
+            package com.example;
+
+            public class Circle extends Shape {
+            }
+            """.trimIndent(),
+        )
+
+        val outcome = client.pushDown(
+            PushDownRequest(
+                projectRoot = worktree,
+                sourceFolders = listOf("src"),
+                classpathJars = emptyList(),
+                declaringTypeFqn = "com.example.Shape",
+                methodNames = listOf("area"),
+                fieldNames = listOf("radius"),
+            ),
+        )
+
+        assertIs<RefactoringOutcome.Success>(outcome, "outcome=$outcome")
+        assertEquals(
+            """
+            package com.example;
+
+            public class Shape {
+            }
+            """.trimIndent(),
+            Files.readString(parent).trimEnd(),
+        )
+        assertEquals(
+            """
+            package com.example;
+
+            public class Circle extends Shape {
+
+                protected double radius = 1.0;
+
+                protected double area() {
+                    return 3.14 * radius * radius;
+                }
+            }
+            """.trimIndent(),
+            Files.readString(child).trimEnd(),
+        )
+    }
+
+    @Test
+    fun `move static members relocates static method and field across classes`(@TempDir worktree: Path) {
+        val src = worktree.resolve("src").also(Path::createDirectories)
+        val source = src.resolve("com/example/Utils.java")
+        val destination = src.resolve("com/example/MathOps.java")
+        val caller = src.resolve("com/example/UtilsUser.java")
+        source.parent.createDirectories()
+
+        source.writeText(
+            """
+            package com.example;
+
+            public class Utils {
+                public static int ZERO = 0;
+
+                public static int doubled(int n) {
+                    return n * 2;
+                }
+            }
+            """.trimIndent(),
+        )
+        destination.writeText(
+            """
+            package com.example;
+
+            public class MathOps {
+            }
+            """.trimIndent(),
+        )
+        caller.writeText(
+            """
+            package com.example;
+
+            public class UtilsUser {
+                public int runIt() {
+                    return Utils.doubled(Utils.ZERO + 3);
+                }
+            }
+            """.trimIndent(),
+        )
+
+        val outcome = client.moveStaticMembers(
+            MoveStaticMembersRequest(
+                projectRoot = worktree,
+                sourceFolders = listOf("src"),
+                classpathJars = emptyList(),
+                sourceTypeFqn = "com.example.Utils",
+                destinationTypeFqn = "com.example.MathOps",
+                methodNames = listOf("doubled"),
+                fieldNames = listOf("ZERO"),
+            ),
+        )
+
+        assertIs<RefactoringOutcome.Success>(outcome, "outcome=$outcome")
+        assertEquals(
+            """
+            package com.example;
+
+            public class Utils {
+            }
+            """.trimIndent(),
+            Files.readString(source).trimEnd(),
+        )
+        assertEquals(
+            """
+            package com.example;
+
+            public class MathOps {
+
+                public static int ZERO = 0;
+
+                public static int doubled(int n) {
+                    return n * 2;
+                }
+            }
+            """.trimIndent(),
+            Files.readString(destination).trimEnd(),
+        )
+        assertEquals(
+            """
+            package com.example;
+
+            public class UtilsUser {
+                public int runIt() {
+                    return MathOps.doubled(MathOps.ZERO + 3);
+                }
+            }
+            """.trimIndent(),
+            Files.readString(caller).trimEnd(),
+        )
+    }
+
+    @Test
+    fun `move instance method relocates method to parameter's type`(@TempDir worktree: Path) {
+        val src = worktree.resolve("src").also(Path::createDirectories)
+        val source = src.resolve("com/example/Printer.java")
+        val target = src.resolve("com/example/Document.java")
+        source.parent.createDirectories()
+
+        source.writeText(
+            """
+            package com.example;
+
+            public class Printer {
+                public String render(Document doc) {
+                    return "[" + doc.getTitle() + "]";
+                }
+            }
+            """.trimIndent(),
+        )
+        target.writeText(
+            """
+            package com.example;
+
+            public class Document {
+                private String title = "hello";
+
+                public String getTitle() {
+                    return title;
+                }
+            }
+            """.trimIndent(),
+        )
+
+        val outcome = client.moveInstanceMethod(
+            MoveInstanceMethodRequest(
+                projectRoot = worktree,
+                sourceFolders = listOf("src"),
+                classpathJars = emptyList(),
+                sourceTypeFqn = "com.example.Printer",
+                methodName = "render",
+                targetName = "doc",
+            ),
+        )
+
+        assertIs<RefactoringOutcome.Success>(outcome, "outcome=$outcome")
+        assertEquals(
+            """
+            package com.example;
+
+            public class Printer {
+            }
+            """.trimIndent(),
+            Files.readString(source).trimEnd(),
+        )
+        assertEquals(
+            """
+            package com.example;
+
+            public class Document {
+                private String title = "hello";
+
+                public String getTitle() {
+                    return title;
+                }
+
+                public String render() {
+                    return "[" + getTitle() + "]";
+                }
+            }
+            """.trimIndent(),
+            Files.readString(target).trimEnd(),
+        )
+    }
+
+    @Test
+    fun `move class relocates file and updates imports`(@TempDir worktree: Path) {
+        val src = worktree.resolve("src").also(Path::createDirectories)
+        val original = src.resolve("com/example/old/Widget.java")
+        val caller = src.resolve("com/example/app/AppMain.java")
+        original.parent.createDirectories()
+        caller.parent.createDirectories()
+
+        original.writeText(
+            """
+            package com.example.old;
+
+            public class Widget {
+                public int value() { return 7; }
+            }
+            """.trimIndent(),
+        )
+        caller.writeText(
+            """
+            package com.example.app;
+
+            import com.example.old.Widget;
+
+            public class AppMain {
+                public int useIt() {
+                    return new Widget().value();
+                }
+            }
+            """.trimIndent(),
+        )
+
+        val outcome = client.moveClass(
+            MoveClassRequest(
+                projectRoot = worktree,
+                sourceFolders = listOf("src"),
+                classpathJars = emptyList(),
+                typeFqn = "com.example.old.Widget",
+                destinationPackage = "com.example.util",
+            ),
+        )
+
+        assertIs<RefactoringOutcome.Success>(outcome, "outcome=$outcome")
+
+        val moved = src.resolve("com/example/util/Widget.java")
+        assertTrue(Files.exists(moved), "Widget.java should have moved to com/example/util/")
+        assertFalse(Files.exists(original), "old Widget.java should be gone")
+
+        assertEquals(
+            """
+            package com.example.util;
+
+            public class Widget {
+                public int value() { return 7; }
+            }
+            """.trimIndent(),
+            Files.readString(moved).trimEnd(),
+        )
+        assertEquals(
+            """
+            package com.example.app;
+
+            import com.example.util.Widget;
+
+            public class AppMain {
+                public int useIt() {
+                    return new Widget().value();
+                }
+            }
+            """.trimIndent(),
+            Files.readString(caller).trimEnd(),
         )
     }
 
