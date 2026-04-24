@@ -1,5 +1,6 @@
 package com.github.ethanhosier.analysis.refactoring
 
+import com.github.ethanhosier.analysis.refactoring.ops.ExtractClassRequest
 import com.github.ethanhosier.analysis.refactoring.ops.ExtractInterfaceRequest
 import com.github.ethanhosier.analysis.refactoring.ops.ExtractMethodRequest
 import com.github.ethanhosier.analysis.refactoring.ops.ExtractSuperclassRequest
@@ -16,6 +17,7 @@ import com.github.ethanhosier.analysis.refactoring.ops.RenameFieldRequest
 import com.github.ethanhosier.analysis.refactoring.ops.RenameLocalVariableRequest
 import com.github.ethanhosier.analysis.refactoring.ops.RenameMethodRequest
 import com.github.ethanhosier.analysis.refactoring.ops.RenamePackageRequest
+import com.github.ethanhosier.analysis.refactoring.ops.extractClass
 import com.github.ethanhosier.analysis.refactoring.ops.extractInterface
 import com.github.ethanhosier.analysis.refactoring.ops.extractMethod
 import com.github.ethanhosier.analysis.refactoring.ops.extractSuperclass
@@ -1118,6 +1120,71 @@ class RefactoringClientTest {
             public class Employee extends Person {
                 public String describe() {
                     return "name=" + name;
+                }
+            }
+            """.trimIndent(),
+            Files.readString(source).trimEnd(),
+        )
+    }
+
+    @Test
+    fun `extract class bundles fields into a new class and delegates through a field`(@TempDir worktree: Path) {
+        val src = worktree.resolve("src").also(Path::createDirectories)
+        val source = src.resolve("com/example/Rectangle.java")
+        source.parent.createDirectories()
+        source.writeText(
+            """
+            package com.example;
+
+            public class Rectangle {
+                public int width;
+                public int height;
+
+                public int area() {
+                    return width * height;
+                }
+            }
+            """.trimIndent(),
+        )
+
+        val outcome = client.extractClass(
+            ExtractClassRequest(
+                projectRoot = worktree,
+                sourceFolders = listOf("src"),
+                classpathJars = emptyList(),
+                sourceTypeFqn = "com.example.Rectangle",
+                newClassName = "Dimensions",
+                delegateFieldName = "dimensions",
+                fieldNames = listOf("width", "height"),
+            ),
+        )
+
+        assertIs<RefactoringOutcome.Success>(outcome, "outcome=$outcome")
+        val newClass = src.resolve("com/example/Dimensions.java")
+        assertTrue(Files.exists(newClass), "Dimensions.java should have been created")
+        assertEquals(
+            """
+            package com.example;
+
+            public class Dimensions {
+                public int width;
+                public int height;
+
+                public Dimensions() {
+                }
+            }
+            """.trimIndent(),
+            Files.readString(newClass).trimEnd(),
+        )
+        assertEquals(
+            """
+            package com.example;
+
+            public class Rectangle {
+                public Dimensions dimensions = new Dimensions();
+
+                public int area() {
+                    return dimensions.width * dimensions.height;
                 }
             }
             """.trimIndent(),

@@ -1,6 +1,7 @@
 package com.github.ethanhosier.refactoringbundle
 
 import com.github.ethanhosier.refactoringbundle.internal.RefactoringHost
+import com.github.ethanhosier.refactoringbundle.internal.ops.ExtractClassOp
 import com.github.ethanhosier.refactoringbundle.internal.ops.ExtractInterfaceOp
 import com.github.ethanhosier.refactoringbundle.internal.ops.ExtractMethodOp
 import com.github.ethanhosier.refactoringbundle.internal.ops.ExtractSuperclassOp
@@ -21,6 +22,10 @@ import org.eclipse.core.runtime.preferences.DefaultScope
 import org.eclipse.core.runtime.preferences.InstanceScope
 import org.eclipse.jdt.core.manipulation.JavaManipulation
 import org.eclipse.jdt.internal.core.manipulation.JavaManipulationPlugin
+import org.eclipse.jdt.internal.core.manipulation.CodeTemplateContextType
+import org.eclipse.jface.text.templates.Template
+import org.eclipse.text.templates.ContextTypeRegistry
+import org.eclipse.text.templates.TemplatePersistenceData
 import org.eclipse.text.templates.TemplateStoreCore
 
 /**
@@ -66,10 +71,36 @@ object JdtRefactorer {
         // for generated method stubs + comments. Without a store, they
         // NPE in TemplateStoreCore. An empty store is fine — JDT falls
         // back to built-in defaults per template id.
+        if (JavaManipulation.getCodeTemplateContextRegistry() == null) {
+            val registry = ContextTypeRegistry()
+            registry.addContextType(CodeTemplateContextType(CodeTemplateContextType.NEWTYPE_CONTEXTTYPE))
+            registry.addContextType(CodeTemplateContextType(CodeTemplateContextType.FILECOMMENT_CONTEXTTYPE))
+            registry.addContextType(CodeTemplateContextType(CodeTemplateContextType.TYPECOMMENT_CONTEXTTYPE))
+            JavaManipulation.setCodeTemplateContextRegistry(registry)
+        }
+
         if (JavaManipulation.getCodeTemplateStore() == null) {
-            JavaManipulation.setCodeTemplateStore(
-                TemplateStoreCore(InstanceScope.INSTANCE.getNode(nodeId), "$nodeId.codetemplates"),
+            val store = TemplateStoreCore(InstanceScope.INSTANCE.getNode(nodeId), "$nodeId.codetemplates")
+            // Extract Class (via ParameterObjectFactory) generates the
+            // new CU by calling CodeGeneration.getCompilationUnitContent,
+            // which returns null if the NEWTYPE template is missing —
+            // the null then NPEs inside setContents. jdt.ui normally
+            // seeds this from its plugin.xml CodeTemplates resource;
+            // we seed the minimal default here.
+            store.add(
+                TemplatePersistenceData(
+                    Template(
+                        "newtype",
+                        "Newly created files",
+                        CodeTemplateContextType.NEWTYPE_CONTEXTTYPE,
+                        "\${filecomment}\n\${package_declaration}\n\n\${typecomment}\n\${type_declaration}",
+                        true,
+                    ),
+                    true,
+                    CodeTemplateContextType.NEWTYPE_ID,
+                ),
             )
+            JavaManipulation.setCodeTemplateStore(store)
         }
     }
 
@@ -255,6 +286,20 @@ object JdtRefactorer {
         methodNames: Array<String>,
     ): String = RefactoringHost.run(projectRoot, sourceFolders, classpathJars) { jp ->
         ExtractInterfaceOp.run(jp, sourceTypeFqn, newInterfaceName, methodNames)
+    }
+
+    @JvmStatic
+    fun extractClass(
+        projectRoot: String,
+        sourceFolders: Array<String>,
+        classpathJars: Array<String>,
+        sourceTypeFqn: String,
+        newClassName: String,
+        delegateFieldName: String,
+        fieldNames: Array<String>,
+        createGetterSetter: Boolean,
+    ): String = RefactoringHost.run(projectRoot, sourceFolders, classpathJars) { jp ->
+        ExtractClassOp.run(jp, sourceTypeFqn, newClassName, delegateFieldName, fieldNames, createGetterSetter)
     }
 
     @JvmStatic
