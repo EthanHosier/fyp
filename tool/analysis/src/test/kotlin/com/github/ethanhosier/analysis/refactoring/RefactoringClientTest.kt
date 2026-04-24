@@ -2,6 +2,8 @@ package com.github.ethanhosier.analysis.refactoring
 
 import com.github.ethanhosier.analysis.refactoring.ops.ChangeMethodSignatureRequest
 import com.github.ethanhosier.analysis.refactoring.ops.ExtractAndMoveMethodRequest
+import com.github.ethanhosier.analysis.refactoring.ops.MoveAndRenameClassRequest
+import com.github.ethanhosier.analysis.refactoring.ops.MoveAndRenameMethodRequest
 import com.github.ethanhosier.analysis.refactoring.ops.ExtractClassRequest
 import com.github.ethanhosier.analysis.refactoring.ops.SignatureParameter
 import com.github.ethanhosier.analysis.refactoring.ops.ExtractInterfaceRequest
@@ -22,6 +24,8 @@ import com.github.ethanhosier.analysis.refactoring.ops.RenameMethodRequest
 import com.github.ethanhosier.analysis.refactoring.ops.RenamePackageRequest
 import com.github.ethanhosier.analysis.refactoring.ops.changeMethodSignature
 import com.github.ethanhosier.analysis.refactoring.ops.extractAndMoveMethod
+import com.github.ethanhosier.analysis.refactoring.ops.moveAndRenameClass
+import com.github.ethanhosier.analysis.refactoring.ops.moveAndRenameMethod
 import com.github.ethanhosier.analysis.refactoring.ops.extractClass
 import com.github.ethanhosier.analysis.refactoring.ops.extractInterface
 import com.github.ethanhosier.analysis.refactoring.ops.extractMethod
@@ -1342,6 +1346,153 @@ class RefactoringClientTest {
                 }
 
                 String format() {
+                    return "[" + getTitle() + "]";
+                }
+            }
+            """.trimIndent(),
+            Files.readString(target).trimEnd(),
+        )
+    }
+
+    @Test
+    fun `move and rename class relocates file renames type and updates callers`(@TempDir worktree: Path) {
+        val src = worktree.resolve("src").also(Path::createDirectories)
+        val original = src.resolve("com/example/old/Widget.java")
+        val caller = src.resolve("com/example/app/AppMain.java")
+        original.parent.createDirectories()
+        caller.parent.createDirectories()
+
+        original.writeText(
+            """
+            package com.example.old;
+
+            public class Widget {
+                public int value() { return 7; }
+            }
+            """.trimIndent(),
+        )
+        caller.writeText(
+            """
+            package com.example.app;
+
+            import com.example.old.Widget;
+
+            public class AppMain {
+                public int useIt() {
+                    return new Widget().value();
+                }
+            }
+            """.trimIndent(),
+        )
+
+        val outcome = client.moveAndRenameClass(
+            MoveAndRenameClassRequest(
+                projectRoot = worktree,
+                sourceFolders = listOf("src"),
+                classpathJars = emptyList(),
+                typeFqn = "com.example.old.Widget",
+                destinationPackage = "com.example.fresh",
+                newName = "Gadget",
+            ),
+        )
+
+        assertIs<RefactoringOutcome.Success>(outcome, "outcome=$outcome")
+        val moved = src.resolve("com/example/fresh/Gadget.java")
+        assertTrue(Files.exists(moved), "Gadget.java should have been created at new location")
+        assertFalse(Files.exists(original), "old Widget.java should be gone")
+        assertEquals(
+            """
+            package com.example.fresh;
+
+            public class Gadget {
+                public int value() { return 7; }
+            }
+            """.trimIndent(),
+            Files.readString(moved).trimEnd(),
+        )
+        assertEquals(
+            """
+            package com.example.app;
+
+            import com.example.fresh.Gadget;
+
+            public class AppMain {
+                public int useIt() {
+                    return new Gadget().value();
+                }
+            }
+            """.trimIndent(),
+            Files.readString(caller).trimEnd(),
+        )
+    }
+
+    @Test
+    fun `move and rename method relocates method then renames it across call sites`(@TempDir worktree: Path) {
+        val src = worktree.resolve("src").also(Path::createDirectories)
+        val source = src.resolve("com/example/Printer.java")
+        val target = src.resolve("com/example/Document.java")
+        source.parent.createDirectories()
+
+        source.writeText(
+            """
+            package com.example;
+
+            public class Printer {
+                public String render(Document doc) {
+                    return "[" + doc.getTitle() + "]";
+                }
+            }
+            """.trimIndent(),
+        )
+        target.writeText(
+            """
+            package com.example;
+
+            public class Document {
+                private String title = "hello";
+
+                public String getTitle() {
+                    return title;
+                }
+            }
+            """.trimIndent(),
+        )
+
+        val outcome = client.moveAndRenameMethod(
+            MoveAndRenameMethodRequest(
+                projectRoot = worktree,
+                sourceFolders = listOf("src"),
+                classpathJars = emptyList(),
+                sourceTypeFqn = "com.example.Printer",
+                methodName = "render",
+                targetName = "doc",
+                targetTypeFqn = "com.example.Document",
+                newMethodName = "format",
+            ),
+        )
+
+        assertIs<RefactoringOutcome.Success>(outcome, "outcome=$outcome")
+        assertEquals(
+            """
+            package com.example;
+
+            public class Printer {
+            }
+            """.trimIndent(),
+            Files.readString(source).trimEnd(),
+        )
+        assertEquals(
+            """
+            package com.example;
+
+            public class Document {
+                private String title = "hello";
+
+                public String getTitle() {
+                    return title;
+                }
+
+                public String format() {
                     return "[" + getTitle() + "]";
                 }
             }
