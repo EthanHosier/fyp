@@ -1,6 +1,7 @@
 package com.github.ethanhosier.analysis.refactoring
 
 import com.github.ethanhosier.analysis.refactoring.ops.ChangeMethodSignatureRequest
+import com.github.ethanhosier.analysis.refactoring.ops.ExtractAndMoveMethodRequest
 import com.github.ethanhosier.analysis.refactoring.ops.ExtractClassRequest
 import com.github.ethanhosier.analysis.refactoring.ops.SignatureParameter
 import com.github.ethanhosier.analysis.refactoring.ops.ExtractInterfaceRequest
@@ -20,6 +21,7 @@ import com.github.ethanhosier.analysis.refactoring.ops.RenameLocalVariableReques
 import com.github.ethanhosier.analysis.refactoring.ops.RenameMethodRequest
 import com.github.ethanhosier.analysis.refactoring.ops.RenamePackageRequest
 import com.github.ethanhosier.analysis.refactoring.ops.changeMethodSignature
+import com.github.ethanhosier.analysis.refactoring.ops.extractAndMoveMethod
 import com.github.ethanhosier.analysis.refactoring.ops.extractClass
 import com.github.ethanhosier.analysis.refactoring.ops.extractInterface
 import com.github.ethanhosier.analysis.refactoring.ops.extractMethod
@@ -1266,6 +1268,85 @@ class RefactoringClientTest {
             }
             """.trimIndent(),
             Files.readString(caller).trimEnd(),
+        )
+    }
+
+    @Test
+    fun `extract and move method chains extract method then move instance method`(@TempDir worktree: Path) {
+        val src = worktree.resolve("src").also(Path::createDirectories)
+        val source = src.resolve("com/example/Printer.java")
+        val target = src.resolve("com/example/Document.java")
+        source.parent.createDirectories()
+
+        source.writeText(
+            """
+            package com.example;
+
+            public class Printer {
+                public String render(Document doc) {
+                    return "[" + doc.getTitle() + "]";
+                }
+            }
+            """.trimIndent(),
+        )
+        target.writeText(
+            """
+            package com.example;
+
+            public class Document {
+                private String title = "hello";
+
+                public String getTitle() {
+                    return title;
+                }
+            }
+            """.trimIndent(),
+        )
+
+        val outcome = client.extractAndMoveMethod(
+            ExtractAndMoveMethodRequest(
+                projectRoot = worktree,
+                sourceFolders = listOf("src"),
+                classpathJars = emptyList(),
+                relativeFilePath = "src/com/example/Printer.java",
+                startLine = 5,
+                endLine = 5,
+                newMethodName = "format",
+                declaringTypeFqn = "com.example.Printer",
+                moveTargetName = "doc",
+            ),
+        )
+
+        assertIs<RefactoringOutcome.Success>(outcome, "outcome=$outcome")
+        assertEquals(
+            """
+            package com.example;
+
+            public class Printer {
+                public String render(Document doc) {
+                    return doc.format();
+                }
+            }
+            """.trimIndent(),
+            Files.readString(source).trimEnd(),
+        )
+        assertEquals(
+            """
+            package com.example;
+
+            public class Document {
+                private String title = "hello";
+
+                public String getTitle() {
+                    return title;
+                }
+
+                String format() {
+                    return "[" + getTitle() + "]";
+                }
+            }
+            """.trimIndent(),
+            Files.readString(target).trimEnd(),
         )
     }
 
