@@ -1,17 +1,17 @@
-package com.github.ethanhosier.analysis.refactoring
+package com.github.ethanhosier.analysis.refactoring.ops
+
+import com.github.ethanhosier.analysis.refactoring.RefactoringClient
+import com.github.ethanhosier.analysis.refactoring.RefactoringOutcome
 
 import java.nio.file.Path
 
-data class ExtractVariableRequest(
+data class InlineVariableRequest(
     val projectRoot: Path,
     val sourceFolders: List<String>,
     val classpathJars: List<Path>,
     val relativeFilePath: String,
-    val startLine: Int,            // 1-indexed
-    val startColumn: Int,          // 1-indexed, inclusive
-    val endLine: Int,              // 1-indexed
-    val endColumn: Int,            // 1-indexed, inclusive
-    val newName: String,
+    val line: Int,                 // 1-indexed
+    val column: Int,               // 1-indexed; any position within the variable's name
 )
 
 private val paramTypes: Array<Class<*>> = arrayOf(
@@ -21,24 +21,18 @@ private val paramTypes: Array<Class<*>> = arrayOf(
     String::class.java,
     Int::class.javaPrimitiveType!!,
     Int::class.javaPrimitiveType!!,
-    Int::class.javaPrimitiveType!!,
-    Int::class.javaPrimitiveType!!,
-    String::class.java,
 )
 
-fun RefactoringClient.extractVariable(req: ExtractVariableRequest): RefactoringOutcome =
+fun RefactoringClient.inlineVariable(req: InlineVariableRequest): RefactoringOutcome =
     invokeOnBundle(
-        "extractVariable",
+        "inlineVariable",
         paramTypes,
         arrayOf(
             req.projectRoot.toAbsolutePath().toString(),
             req.sourceFolders.toTypedArray(),
             req.classpathJars.map { it.toAbsolutePath().toString() }.toTypedArray(),
             req.relativeFilePath,
-            req.startLine,
-            req.startColumn,
-            req.endLine,
-            req.endColumn,
-            req.newName,
+            req.line,
+            req.column,
         ),
     )

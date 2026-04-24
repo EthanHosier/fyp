@@ -1,4 +1,7 @@
-package com.github.ethanhosier.analysis.refactoring
+package com.github.ethanhosier.analysis.refactoring.ops
+
+import com.github.ethanhosier.analysis.refactoring.RefactoringClient
+import com.github.ethanhosier.analysis.refactoring.RefactoringOutcome
 
 import java.nio.file.Path
 

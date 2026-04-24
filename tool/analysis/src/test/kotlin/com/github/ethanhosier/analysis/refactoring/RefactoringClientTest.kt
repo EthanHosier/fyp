@@ -1,5 +1,23 @@
 package com.github.ethanhosier.analysis.refactoring
 
+import com.github.ethanhosier.analysis.refactoring.ops.ExtractMethodRequest
+import com.github.ethanhosier.analysis.refactoring.ops.ExtractVariableRequest
+import com.github.ethanhosier.analysis.refactoring.ops.InlineMethodRequest
+import com.github.ethanhosier.analysis.refactoring.ops.InlineVariableRequest
+import com.github.ethanhosier.analysis.refactoring.ops.RenameClassRequest
+import com.github.ethanhosier.analysis.refactoring.ops.RenameFieldRequest
+import com.github.ethanhosier.analysis.refactoring.ops.RenameLocalVariableRequest
+import com.github.ethanhosier.analysis.refactoring.ops.RenameMethodRequest
+import com.github.ethanhosier.analysis.refactoring.ops.RenamePackageRequest
+import com.github.ethanhosier.analysis.refactoring.ops.extractMethod
+import com.github.ethanhosier.analysis.refactoring.ops.extractVariable
+import com.github.ethanhosier.analysis.refactoring.ops.inlineMethod
+import com.github.ethanhosier.analysis.refactoring.ops.inlineVariable
+import com.github.ethanhosier.analysis.refactoring.ops.renameClass
+import com.github.ethanhosier.analysis.refactoring.ops.renameField
+import com.github.ethanhosier.analysis.refactoring.ops.renameLocalVariable
+import com.github.ethanhosier.analysis.refactoring.ops.renameMethod
+import com.github.ethanhosier.analysis.refactoring.ops.renamePackage
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test

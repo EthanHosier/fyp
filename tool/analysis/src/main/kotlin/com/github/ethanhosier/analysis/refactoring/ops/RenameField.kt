@@ -1,13 +1,17 @@
-package com.github.ethanhosier.analysis.refactoring
+package com.github.ethanhosier.analysis.refactoring.ops
+
+import com.github.ethanhosier.analysis.refactoring.RefactoringClient
+import com.github.ethanhosier.analysis.refactoring.RefactoringOutcome
 
 import java.nio.file.Path
 
-data class RenamePackageRequest(
+data class RenameFieldRequest(
     val projectRoot: Path,
     val sourceFolders: List<String>,
     val classpathJars: List<Path>,
-    val oldPackage: String,
-    val newPackage: String,
+    val declaringTypeFqn: String,
+    val oldName: String,
+    val newName: String,
 )
 
 private val paramTypes: Array<Class<*>> = arrayOf(
@@ -16,17 +20,19 @@ private val paramTypes: Array<Class<*>> = arrayOf(
     Array<String>::class.java,
     String::class.java,
     String::class.java,
+    String::class.java,
 )
 
-fun RefactoringClient.renamePackage(req: RenamePackageRequest): RefactoringOutcome =
+fun RefactoringClient.renameField(req: RenameFieldRequest): RefactoringOutcome =
     invokeOnBundle(
-        "renamePackage",
+        "renameField",
         paramTypes,
         arrayOf(
             req.projectRoot.toAbsolutePath().toString(),
             req.sourceFolders.toTypedArray(),
             req.classpathJars.map { it.toAbsolutePath().toString() }.toTypedArray(),
-            req.oldPackage,
-            req.newPackage,
+            req.declaringTypeFqn,
+            req.oldName,
+            req.newName,
         ),
     )
