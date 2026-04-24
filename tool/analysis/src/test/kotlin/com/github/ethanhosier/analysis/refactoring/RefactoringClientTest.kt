@@ -142,6 +142,58 @@ class RefactoringClientTest {
     }
 
     @Test
+    fun `rename class updates references and renames source file`(@TempDir worktree: Path) {
+        val src = worktree.resolve("src").also(Path::createDirectories)
+        val foo = src.resolve("com/example/Foo.java")
+        val user = src.resolve("com/example/FooUser.java")
+        foo.parent.createDirectories()
+
+        foo.writeText(
+            """
+            package com.example;
+
+            public class Foo {
+                public int value() { return 1; }
+            }
+            """.trimIndent(),
+        )
+        user.writeText(
+            """
+            package com.example;
+
+            public class FooUser {
+                public int useIt() {
+                    return new Foo().value();
+                }
+            }
+            """.trimIndent(),
+        )
+
+        val outcome = client.renameClass(
+            RenameClassRequest(
+                projectRoot = worktree,
+                sourceFolders = listOf("src"),
+                classpathJars = emptyList(),
+                typeFqn = "com.example.Foo",
+                newName = "Bar",
+            ),
+        )
+
+        val success = assertIs<RefactoringOutcome.Success>(outcome, "outcome=$outcome")
+        assertTrue(success.changedFiles.isNotEmpty(), "rename should report changed files")
+
+        val bar = src.resolve("com/example/Bar.java")
+        assertTrue(Files.exists(bar), "Foo.java should have been renamed to Bar.java on disk")
+        assertFalse(Files.exists(foo), "old Foo.java should be gone")
+
+        val rewrittenBar = Files.readString(bar)
+        val rewrittenUser = Files.readString(user)
+        assertContains(rewrittenBar, "class Bar")
+        assertContains(rewrittenUser, "new Bar()")
+        assertFalse("new Foo()" in rewrittenUser, "old reference gone from FooUser")
+    }
+
+    @Test
     fun `failed extract returns Failed rather than throwing`(@TempDir worktree: Path) {
         val src = worktree.resolve("src").also(Path::createDirectories)
         val file = src.resolve("org/example/Box.java")
