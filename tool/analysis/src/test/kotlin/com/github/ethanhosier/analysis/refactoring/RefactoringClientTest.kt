@@ -1,8 +1,14 @@
 package com.github.ethanhosier.analysis.refactoring
 
+import com.github.ethanhosier.analysis.refactoring.ops.ChangeAttributeTypeRequest
 import com.github.ethanhosier.analysis.refactoring.ops.ChangeMethodSignatureRequest
+import com.github.ethanhosier.analysis.refactoring.ops.ChangeVariableTypeRequest
 import com.github.ethanhosier.analysis.refactoring.ops.ExtractAndMoveMethodRequest
 import com.github.ethanhosier.analysis.refactoring.ops.ExtractAttributeRequest
+import com.github.ethanhosier.analysis.refactoring.ops.ExtractSubclassRequest
+import com.github.ethanhosier.analysis.refactoring.ops.ParameterizeAttributeRequest
+import com.github.ethanhosier.analysis.refactoring.ops.ParameterizeVariableRequest
+import com.github.ethanhosier.analysis.refactoring.ops.ReplaceVariableWithAttributeRequest
 import com.github.ethanhosier.analysis.refactoring.ops.MoveAndRenameClassRequest
 import com.github.ethanhosier.analysis.refactoring.ops.MoveAndRenameMethodRequest
 import com.github.ethanhosier.analysis.refactoring.ops.MoveAndRenameAttributeRequest
@@ -26,9 +32,15 @@ import com.github.ethanhosier.analysis.refactoring.ops.RenameFieldRequest
 import com.github.ethanhosier.analysis.refactoring.ops.RenameLocalVariableRequest
 import com.github.ethanhosier.analysis.refactoring.ops.RenameMethodRequest
 import com.github.ethanhosier.analysis.refactoring.ops.RenamePackageRequest
+import com.github.ethanhosier.analysis.refactoring.ops.changeAttributeType
 import com.github.ethanhosier.analysis.refactoring.ops.changeMethodSignature
+import com.github.ethanhosier.analysis.refactoring.ops.changeVariableType
 import com.github.ethanhosier.analysis.refactoring.ops.extractAndMoveMethod
 import com.github.ethanhosier.analysis.refactoring.ops.extractAttribute
+import com.github.ethanhosier.analysis.refactoring.ops.extractSubclass
+import com.github.ethanhosier.analysis.refactoring.ops.parameterizeAttribute
+import com.github.ethanhosier.analysis.refactoring.ops.parameterizeVariable
+import com.github.ethanhosier.analysis.refactoring.ops.replaceVariableWithAttribute
 import com.github.ethanhosier.analysis.refactoring.ops.moveAndRenameClass
 import com.github.ethanhosier.analysis.refactoring.ops.moveAndRenameMethod
 import com.github.ethanhosier.analysis.refactoring.ops.moveAndRenameAttribute
@@ -1754,6 +1766,318 @@ class RefactoringClientTest {
             }
             """.trimIndent(),
             Files.readString(file).trimEnd(),
+        )
+    }
+
+    @Test
+    fun `change variable type generalises an ArrayList declaration to List`(@TempDir worktree: Path) {
+        val src = worktree.resolve("src").also(Path::createDirectories)
+        val file = src.resolve("com/example/Lists.java")
+        file.parent.createDirectories()
+        file.writeText(
+            """
+            package com.example;
+
+            import java.util.ArrayList;
+
+            public class Lists {
+                public int size() {
+                    ArrayList<String> xs = new ArrayList<>();
+                    xs.add("a");
+                    return xs.size();
+                }
+            }
+            """.trimIndent(),
+        )
+
+        // Point at the variable name `xs` on line 7.
+        val outcome = client.changeVariableType(
+            ChangeVariableTypeRequest(
+                projectRoot = worktree,
+                sourceFolders = listOf("src"),
+                classpathJars = emptyList(),
+                relativeFilePath = "src/com/example/Lists.java",
+                line = 7,
+                column = 27,
+                newTypeFqn = "java.util.List<java.lang.String>",
+            ),
+        )
+
+        assertIs<RefactoringOutcome.Success>(outcome, "outcome=$outcome")
+        assertEquals(
+            """
+            package com.example;
+
+            import java.util.ArrayList;
+            import java.util.List;
+
+            public class Lists {
+                public int size() {
+                    List<String> xs = new ArrayList<>();
+                    xs.add("a");
+                    return xs.size();
+                }
+            }
+            """.trimIndent(),
+            Files.readString(file).trimEnd(),
+        )
+    }
+
+    @Test
+    fun `change attribute type generalises a field declaration to a supertype`(@TempDir worktree: Path) {
+        val src = worktree.resolve("src").also(Path::createDirectories)
+        val file = src.resolve("com/example/Holder.java")
+        file.parent.createDirectories()
+        file.writeText(
+            """
+            package com.example;
+
+            import java.util.ArrayList;
+
+            public class Holder {
+                private ArrayList<String> items = new ArrayList<>();
+
+                public int size() {
+                    return items.size();
+                }
+            }
+            """.trimIndent(),
+        )
+
+        val outcome = client.changeAttributeType(
+            ChangeAttributeTypeRequest(
+                projectRoot = worktree,
+                sourceFolders = listOf("src"),
+                classpathJars = emptyList(),
+                declaringTypeFqn = "com.example.Holder",
+                fieldName = "items",
+                newTypeFqn = "java.util.List<java.lang.String>",
+            ),
+        )
+
+        assertIs<RefactoringOutcome.Success>(outcome, "outcome=$outcome")
+        assertEquals(
+            """
+            package com.example;
+
+            import java.util.ArrayList;
+            import java.util.List;
+
+            public class Holder {
+                private List<String> items = new ArrayList<>();
+
+                public int size() {
+                    return items.size();
+                }
+            }
+            """.trimIndent(),
+            Files.readString(file).trimEnd(),
+        )
+    }
+
+    @Test
+    fun `replace variable with attribute promotes local to field`(@TempDir worktree: Path) {
+        val src = worktree.resolve("src").also(Path::createDirectories)
+        val file = src.resolve("com/example/Box.java")
+        file.parent.createDirectories()
+        file.writeText(
+            """
+            package com.example;
+
+            public class Box {
+                public int get() {
+                    int cache = 42;
+                    return cache;
+                }
+            }
+            """.trimIndent(),
+        )
+
+        // Point at the `cache` declaration on line 5.
+        val outcome = client.replaceVariableWithAttribute(
+            ReplaceVariableWithAttributeRequest(
+                projectRoot = worktree,
+                sourceFolders = listOf("src"),
+                classpathJars = emptyList(),
+                relativeFilePath = "src/com/example/Box.java",
+                line = 5,
+                column = 13,
+                newFieldName = "cache",
+                visibility = "private",
+            ),
+        )
+
+        assertIs<RefactoringOutcome.Success>(outcome, "outcome=$outcome")
+        assertEquals(
+            """
+            package com.example;
+
+            public class Box {
+                private int cache;
+
+                public int get() {
+                    cache = 42;
+                    return cache;
+                }
+            }
+            """.trimIndent(),
+            Files.readString(file).trimEnd(),
+        )
+    }
+
+    @Test
+    fun `parameterize variable promotes literal to new method parameter`(@TempDir worktree: Path) {
+        val src = worktree.resolve("src").also(Path::createDirectories)
+        val file = src.resolve("com/example/Greeter.java")
+        file.parent.createDirectories()
+        file.writeText(
+            """
+            package com.example;
+
+            public class Greeter {
+                public String hello() {
+                    return "Ada";
+                }
+            }
+            """.trimIndent(),
+        )
+
+        // Select the literal "Ada" on line 5 (columns 16..20 inclusive, quotes included).
+        val outcome = client.parameterizeVariable(
+            ParameterizeVariableRequest(
+                projectRoot = worktree,
+                sourceFolders = listOf("src"),
+                classpathJars = emptyList(),
+                relativeFilePath = "src/com/example/Greeter.java",
+                startLine = 5,
+                startColumn = 16,
+                endLine = 5,
+                endColumn = 20,
+                newParameterName = "name",
+            ),
+        )
+
+        assertIs<RefactoringOutcome.Success>(outcome, "outcome=$outcome")
+        assertEquals(
+            """
+            package com.example;
+
+            public class Greeter {
+                public String hello(String name) {
+                    return name;
+                }
+            }
+            """.trimIndent(),
+            Files.readString(file).trimEnd(),
+        )
+    }
+
+    @Test
+    fun `parameterize attribute promotes field read to new method parameter`(@TempDir worktree: Path) {
+        val src = worktree.resolve("src").also(Path::createDirectories)
+        val file = src.resolve("com/example/Counter.java")
+        file.parent.createDirectories()
+        file.writeText(
+            """
+            package com.example;
+
+            public class Counter {
+                private int base = 10;
+
+                public int incBy(int delta) {
+                    return base + delta;
+                }
+            }
+            """.trimIndent(),
+        )
+
+        // Select `base` on line 7.
+        val outcome = client.parameterizeAttribute(
+            ParameterizeAttributeRequest(
+                projectRoot = worktree,
+                sourceFolders = listOf("src"),
+                classpathJars = emptyList(),
+                relativeFilePath = "src/com/example/Counter.java",
+                startLine = 7,
+                startColumn = 16,
+                endLine = 7,
+                endColumn = 19,
+                newParameterName = "start",
+            ),
+        )
+
+        assertIs<RefactoringOutcome.Success>(outcome, "outcome=$outcome")
+        assertEquals(
+            """
+            package com.example;
+
+            public class Counter {
+                private int base = 10;
+
+                public int incBy(int delta, int start) {
+                    return start + delta;
+                }
+            }
+            """.trimIndent(),
+            Files.readString(file).trimEnd(),
+        )
+    }
+
+    @Test
+    fun `extract subclass creates new subclass and pushes members down`(@TempDir worktree: Path) {
+        val src = worktree.resolve("src").also(Path::createDirectories)
+        val source = src.resolve("com/example/Animal.java")
+        source.parent.createDirectories()
+        source.writeText(
+            """
+            package com.example;
+
+            public class Animal {
+                public int legs = 4;
+
+                public String swim() {
+                    return "swimming";
+                }
+            }
+            """.trimIndent(),
+        )
+
+        val outcome = client.extractSubclass(
+            ExtractSubclassRequest(
+                projectRoot = worktree,
+                sourceFolders = listOf("src"),
+                classpathJars = emptyList(),
+                sourceTypeFqn = "com.example.Animal",
+                newSubclassName = "Fish",
+                methodNames = listOf("swim"),
+            ),
+        )
+
+        assertIs<RefactoringOutcome.Success>(outcome, "outcome=$outcome")
+        val newClass = src.resolve("com/example/Fish.java")
+        assertTrue(Files.exists(newClass), "Fish.java should have been created")
+        assertEquals(
+            """
+            package com.example;
+
+            public class Fish extends Animal {
+
+                public String swim() {
+                    return "swimming";
+                }
+            }
+            """.trimIndent(),
+            Files.readString(newClass).trimEnd(),
+        )
+        assertEquals(
+            """
+            package com.example;
+
+            public class Animal {
+                public int legs = 4;
+            }
+            """.trimIndent(),
+            Files.readString(source).trimEnd(),
         )
     }
 

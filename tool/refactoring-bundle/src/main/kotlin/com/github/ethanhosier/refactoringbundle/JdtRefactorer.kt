@@ -1,10 +1,15 @@
 package com.github.ethanhosier.refactoringbundle
 
 import com.github.ethanhosier.refactoringbundle.internal.RefactoringHost
+import com.github.ethanhosier.refactoringbundle.internal.ops.ChangeAttributeTypeOp
 import com.github.ethanhosier.refactoringbundle.internal.ops.ChangeMethodSignatureOp
+import com.github.ethanhosier.refactoringbundle.internal.ops.ChangeVariableTypeOp
 import com.github.ethanhosier.refactoringbundle.internal.ops.ExtractAttributeOp
 import com.github.ethanhosier.refactoringbundle.internal.ops.ExtractClassOp
 import com.github.ethanhosier.refactoringbundle.internal.ops.ExtractInterfaceOp
+import com.github.ethanhosier.refactoringbundle.internal.ops.ExtractSubclassOp
+import com.github.ethanhosier.refactoringbundle.internal.ops.ParameterizeVariableOp
+import com.github.ethanhosier.refactoringbundle.internal.ops.ReplaceVariableWithAttributeOp
 import com.github.ethanhosier.refactoringbundle.internal.ops.ExtractMethodOp
 import com.github.ethanhosier.refactoringbundle.internal.ops.ExtractSuperclassOp
 import com.github.ethanhosier.refactoringbundle.internal.ops.ExtractVariableOp
@@ -304,6 +309,31 @@ object JdtRefactorer {
     }
 
     @JvmStatic
+    fun changeVariableType(
+        projectRoot: String,
+        sourceFolders: Array<String>,
+        classpathJars: Array<String>,
+        relativeFilePath: String,
+        line: Int,
+        column: Int,
+        newTypeFqn: String,
+    ): String = RefactoringHost.run(projectRoot, sourceFolders, classpathJars) { jp ->
+        ChangeVariableTypeOp.run(jp, relativeFilePath, line, column, newTypeFqn)
+    }
+
+    @JvmStatic
+    fun changeAttributeType(
+        projectRoot: String,
+        sourceFolders: Array<String>,
+        classpathJars: Array<String>,
+        declaringTypeFqn: String,
+        fieldName: String,
+        newTypeFqn: String,
+    ): String = RefactoringHost.run(projectRoot, sourceFolders, classpathJars) { jp ->
+        ChangeAttributeTypeOp.run(jp, declaringTypeFqn, fieldName, newTypeFqn)
+    }
+
+    @JvmStatic
     fun changeMethodSignature(
         projectRoot: String,
         sourceFolders: Array<String>,
@@ -362,6 +392,48 @@ object JdtRefactorer {
         createGetterSetter: Boolean,
     ): String = RefactoringHost.run(projectRoot, sourceFolders, classpathJars) { jp ->
         ExtractClassOp.run(jp, sourceTypeFqn, newClassName, delegateFieldName, fieldNames, createGetterSetter)
+    }
+
+    @JvmStatic
+    fun extractSubclass(
+        projectRoot: String,
+        sourceFolders: Array<String>,
+        classpathJars: Array<String>,
+        sourceTypeFqn: String,
+        newSubclassName: String,
+        methodNames: Array<String>,
+        fieldNames: Array<String>,
+    ): String = RefactoringHost.run(projectRoot, sourceFolders, classpathJars) { jp ->
+        ExtractSubclassOp.run(jp, sourceTypeFqn, newSubclassName, methodNames, fieldNames)
+    }
+
+    @JvmStatic
+    fun parameterizeVariable(
+        projectRoot: String,
+        sourceFolders: Array<String>,
+        classpathJars: Array<String>,
+        relativeFilePath: String,
+        startLine: Int,
+        startColumn: Int,
+        endLine: Int,
+        endColumn: Int,
+        newParameterName: String,
+    ): String = RefactoringHost.run(projectRoot, sourceFolders, classpathJars) { jp ->
+        ParameterizeVariableOp.run(jp, relativeFilePath, startLine, startColumn, endLine, endColumn, newParameterName)
+    }
+
+    @JvmStatic
+    fun replaceVariableWithAttribute(
+        projectRoot: String,
+        sourceFolders: Array<String>,
+        classpathJars: Array<String>,
+        relativeFilePath: String,
+        line: Int,
+        column: Int,
+        newFieldName: String,
+        visibility: String,
+    ): String = RefactoringHost.run(projectRoot, sourceFolders, classpathJars) { jp ->
+        ReplaceVariableWithAttributeOp.run(jp, relativeFilePath, line, column, newFieldName, visibility)
     }
 
     @JvmStatic
