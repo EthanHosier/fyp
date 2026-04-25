@@ -128,6 +128,15 @@ class GitRunner(private val workDir: Path) {
         return exec(args, allowNonZero = false).stdout
     }
 
+    /**
+     * Create or move a branch named [name] to point at [sha]. Equivalent
+     * to `git branch -f <name> <sha>`. Used to attach reachable refs to
+     * synthesised commits so they survive across processes / GC.
+     */
+    fun branchForce(name: String, sha: String) {
+        run("branch", "-f", name, sha)
+    }
+
     /** First-parent SHA of [sha], or null if it's the root commit. */
     fun parentOf(sha: String): String? {
         val result = exec(listOf("rev-parse", "--verify", "$sha^"), allowNonZero = true)
