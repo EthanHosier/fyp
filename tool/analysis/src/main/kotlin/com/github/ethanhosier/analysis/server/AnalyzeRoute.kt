@@ -24,7 +24,7 @@ private val pipelineJson = Json { ignoreUnknownKeys = true; encodeDefaults = tru
 @kotlinx.serialization.Serializable
 private data class ErrorResponse(val error: String, val message: String)
 
-fun Route.analyze(pipeline: AnalysisPipeline = AnalysisPipeline()) {
+fun Route.analyze(pipeline: AnalysisPipeline) {
     post("/analyze") {
         val tempDir = Files.createTempDirectory("analysis-")
         try {

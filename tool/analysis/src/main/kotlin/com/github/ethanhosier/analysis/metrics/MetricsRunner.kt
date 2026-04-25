@@ -61,9 +61,38 @@ class MetricsRunner(
         // for the first). Never cached on disk — recomputed each run because it
         // depends on the ordering of the current event stream, not just the SHA.
         val diffBySha: Map<String, DiffStats> = emptyMap(),
+        // Metrics for any synthesised alternative-trajectory SHAs the caller
+        // passed via [run]'s `alternativeShas` parameter. Sibling of
+        // [checkpoints]; same `<sha>.json` cache used.
+        val alternativeCheckpoints: List<CheckpointMetrics> = emptyList(),
     )
 
-    fun run(reconstruction: ReconstructionResult, sessionFolder: Path): Summary {
+    /**
+     * @param reconstruction the user's actual trace; each unique SHA in
+     *   `eventCommits` becomes a checkpoint.
+     * @param alternativeShas synthesised SHAs (e.g. from
+     *   `AlternativeTrajectoryRunner`) that should be measured alongside
+     *   the trace SHAs. Each must already be reachable in
+     *   `reconstruction.repoDir` (typically via a ref attached by the
+     *   caller). Diff is computed pairwise against
+     *   `alternativeFromShas[i]` rather than against the previous SHA in
+     *   the list, so non-adjacent ancestor chains work too.
+     * @param alternativeFromShas the parent SHA each entry in
+     *   [alternativeShas] should be diffed against. Must have the same
+     *   length as [alternativeShas]. Empty list when [alternativeShas]
+     *   is empty.
+     */
+    fun run(
+        reconstruction: ReconstructionResult,
+        sessionFolder: Path,
+        alternativeShas: List<String> = emptyList(),
+        alternativeFromShas: List<String> = emptyList(),
+    ): Summary {
+        require(alternativeShas.size == alternativeFromShas.size) {
+            "alternativeShas and alternativeFromShas must be parallel; got " +
+                "${alternativeShas.size} vs ${alternativeFromShas.size}"
+        }
+
         val outputDir = sessionFolder.resolve("checkpoint-metrics")
         Files.createDirectories(outputDir)
         val worktreeBase = sessionFolder.resolve("shadow-worktrees")
@@ -71,13 +100,19 @@ class MetricsRunner(
         // LinkedHashSet: keep chronological iteration order from the event
         // log so progress output lands in the order a human would expect.
         val uniqueShas = reconstruction.eventCommits.mapping.values.toCollection(LinkedHashSet())
+        val altShasSet = alternativeShas.toCollection(LinkedHashSet())
+        // Union for the executor; preserve trace-order, then alt-order.
+        val allShas = LinkedHashSet<String>().apply {
+            addAll(uniqueShas)
+            addAll(altShasSet)
+        }
         val reused = ConcurrentHashMap.newKeySet<String>()
 
         val pool = WorktreePool(reconstruction.repoDir, worktreeBase, parallelism)
         val executor = Executors.newFixedThreadPool(parallelism)
 
         val results = try {
-            val futures = uniqueShas.map { sha ->
+            val futures = allShas.map { sha ->
                 executor.submit<CheckpointMetrics> {
                     computeOne(sha, pool, outputDir, reused)
                 }
@@ -98,17 +133,29 @@ class MetricsRunner(
             pool.close()
         }
 
-        val diffBySha = DiffRunner(GitRunner(reconstruction.repoDir))
-            .runAll(uniqueShas.toList())
+        val byShaResult = results.associateBy { it.sha }
+        val traceCheckpoints = uniqueShas.mapNotNull { byShaResult[it] }
+        val altCheckpoints = altShasSet.mapNotNull { byShaResult[it] }
+
+        val diffRunner = DiffRunner(GitRunner(reconstruction.repoDir))
+        val traceDiffs = diffRunner.runAll(uniqueShas.toList())
+        val altDiffs = diffRunner.runPairs(alternativeFromShas.zip(alternativeShas))
+        // Trace diffs first so an alt SHA never silently shadows a real one
+        // (no overlap is expected since alt SHAs are distinct synthetic commits).
+        val diffBySha = LinkedHashMap<String, DiffStats>().apply {
+            putAll(traceDiffs)
+            putAll(altDiffs)
+        }
 
         return Summary(
             totalShas = uniqueShas.size,
-            computed = uniqueShas.size - reused.size,
+            computed = allShas.size - reused.size,
             reused = reused.size,
-            buildOk = results.count { it.build.success },
-            testsOk = results.count { it.tests.success },
-            checkpoints = results,
+            buildOk = traceCheckpoints.count { it.build.success },
+            testsOk = traceCheckpoints.count { it.tests.success },
+            checkpoints = traceCheckpoints,
             diffBySha = diffBySha,
+            alternativeCheckpoints = altCheckpoints,
         )
     }
 

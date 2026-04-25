@@ -2,6 +2,7 @@ package com.github.ethanhosier.analysis.cli
 
 import com.github.ethanhosier.analysis.metrics.model.AnalysisReport
 import com.github.ethanhosier.analysis.pipeline.AnalysisPipeline
+import com.github.ethanhosier.analysis.refactoring.RefactoringClientFactory
 import com.github.ethanhosier.ideplugin.model.TraceEvent
 import kotlinx.serialization.json.Json
 import java.nio.file.Files
@@ -28,7 +29,14 @@ fun main(args: Array<String>) {
         exitProcess(2)
     }
 
-    val result = AnalysisPipeline(parallelism = opts.parallelism).run(opts.sessionFolder)
+    val dataArea = Files.createTempDirectory("analysis-equinox-").resolve("osgi")
+    val refactoringClient = RefactoringClientFactory.create(dataArea)
+    val result = try {
+        AnalysisPipeline(refactoringClient = refactoringClient, parallelism = opts.parallelism)
+            .run(opts.sessionFolder)
+    } finally {
+        refactoringClient.close()
+    }
 
     val reportPath = opts.sessionFolder.resolve("analysis-report.json")
     Files.writeString(reportPath, reportJson.encodeToString(AnalysisReport.serializer(), result.report))
@@ -57,6 +65,11 @@ fun main(args: Array<String>) {
             "(${result.metricsSummary.computed} computed, ${result.metricsSummary.reused} reused), " +
             "${result.metricsSummary.buildOk} build-ok, ${result.metricsSummary.testsOk} tests-ok " +
             "in ${result.metricsDurationMs / 1000}s (parallelism=${opts.parallelism})",
+    )
+    val altSummary = result.alternativeSummary
+    println(
+        "alt-traj:   ${altSummary.synthesised.size}/${altSummary.candidates} synthesised " +
+            "(${altSummary.skipped.size} skipped) in ${result.alternativeDurationMs / 1000}s",
     )
     val steps = result.minerSummary.steps
     val ideRelevantCount = steps.count { it.refactoring.ideRelevant }

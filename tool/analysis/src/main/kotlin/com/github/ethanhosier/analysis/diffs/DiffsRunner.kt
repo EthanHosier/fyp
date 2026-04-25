@@ -1,5 +1,6 @@
 package com.github.ethanhosier.analysis.diffs
 
+import com.github.ethanhosier.analysis.alternative.AlternativeTrajectoryRunner
 import com.github.ethanhosier.analysis.miner.model.RefactoringLocation
 import com.github.ethanhosier.analysis.miner.model.RefactoringStep
 import com.github.ethanhosier.analysis.model.ReconstructionResult
@@ -35,11 +36,18 @@ class DiffsRunner(private val git: GitRunner) {
         // left no hunks (e.g. RM-only metadata detections with no textual
         // delta inside the declared ranges).
         val refactoringPatches: Map<Int, String>,
+        // Keyed by [RefactoringStep.stepIndex] of each synthesised
+        // alternative trajectory. Full unified diff `fromSha → altSha`
+        // — no hunk filtering, since the IDE-driven refactoring's
+        // textual change is the entire point of the comparison.
+        val alternativePatches: Map<Int, String> = emptyMap(),
     )
 
     fun run(
         reconstruction: ReconstructionResult,
         steps: List<RefactoringStep>,
+        alternative: AlternativeTrajectoryRunner.Summary =
+            AlternativeTrajectoryRunner.Summary(0, emptyList(), emptyMap()),
     ): Summary {
         val orderedShas = reconstruction.eventCommits.mapping.values
             .toCollection(LinkedHashSet()).toList()
@@ -55,7 +63,12 @@ class DiffsRunner(private val git: GitRunner) {
             refactoringPatches[step.stepIndex] = refactoringPatch(step)
         }
 
-        return Summary(checkpointPatches, refactoringPatches)
+        val alternativePatches = LinkedHashMap<Int, String>()
+        for (alt in alternative.synthesised) {
+            alternativePatches[alt.stepIndex] = git.diffPatch(alt.fromSha, alt.altSha)
+        }
+
+        return Summary(checkpointPatches, refactoringPatches, alternativePatches)
     }
 
     private fun refactoringPatch(step: RefactoringStep): String {
