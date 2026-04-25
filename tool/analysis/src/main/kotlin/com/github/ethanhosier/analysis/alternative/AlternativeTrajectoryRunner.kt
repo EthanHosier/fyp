@@ -125,7 +125,20 @@ class AlternativeTrajectoryRunner(
             .toCollection(LinkedHashSet()).toList()
         val shaIndex = orderedShas.withIndex().associate { (i, sha) -> sha to i }
 
-        val candidates = steps.filter { s -> isCandidate(s, shaIndex) }
+        // Per-step trigger logging. Each step gets one line so it's easy
+        // to see at a glance why every candidate was kept or rejected —
+        // the rejection reasons are otherwise invisible in the JSON
+        // report.
+        val candidates = mutableListOf<RefactoringStep>()
+        for (s in steps) {
+            val rejectReason = rejectReason(s, shaIndex)
+            if (rejectReason == null) {
+                candidates += s
+                log("step ${s.stepIndex} ${s.refactoring.type}: candidate (spec=${s.spec!!::class.simpleName})")
+            } else {
+                log("step ${s.stepIndex} ${s.refactoring.type}: skipped — $rejectReason")
+            }
+        }
         if (candidates.isEmpty()) {
             return Summary(candidates = 0, synthesised = emptyList(), skipped = emptyMap())
         }
@@ -145,8 +158,14 @@ class AlternativeTrajectoryRunner(
                     val outcome = synthesiseOne(step, pool, shadowGit)
                     synchronized(resultsLock) {
                         when (outcome) {
-                            is OneResult.Ok -> synthesised += outcome.synth
-                            is OneResult.Skipped -> skipped[step.stepIndex] = outcome.reason
+                            is OneResult.Ok -> {
+                                synthesised += outcome.synth
+                                log("step ${step.stepIndex}: synthesised → ${outcome.synth.altSha.take(10)} on ${outcome.synth.branchRef}")
+                            }
+                            is OneResult.Skipped -> {
+                                skipped[step.stepIndex] = outcome.reason
+                                log("step ${step.stepIndex}: synthesis failed — ${outcome.reason}")
+                            }
                         }
                     }
                 }
@@ -171,13 +190,16 @@ class AlternativeTrajectoryRunner(
         )
     }
 
-    private fun isCandidate(s: RefactoringStep, shaIndex: Map<String, Int>): Boolean {
-        if (s.wasPerformedByIde) return false
-        val spec = s.spec ?: return false
-        if (spec is RefactoringSpec.Other) return false
-        val fromIdx = shaIndex[s.fromSha] ?: return false
-        val toIdx = shaIndex[s.toSha] ?: return false
-        return toIdx - fromIdx > 1
+    /** Null when the step is a candidate; otherwise a human-readable
+     *  reason it didn't qualify. */
+    private fun rejectReason(s: RefactoringStep, shaIndex: Map<String, Int>): String? {
+        if (s.wasPerformedByIde) return "performed by IDE (already an automated refactoring)"
+        val spec = s.spec ?: return "no typed RefactoringSpec produced by the miner"
+        if (spec is RefactoringSpec.Other) return "RefactoringSpec.Other (no RM-typed mapper for this kind)"
+        val fromIdx = shaIndex[s.fromSha] ?: return "fromSha not in event-commits"
+        val toIdx = shaIndex[s.toSha] ?: return "toSha not in event-commits"
+        if (toIdx - fromIdx <= 1) return "fromSha and toSha are adjacent — single-step refactoring"
+        return null
     }
 
     private fun synthesiseOne(
@@ -339,7 +361,9 @@ class AlternativeTrajectoryRunner(
                     classpathJars = classpathJars,
                     relativeFilePath = spec.relativeFilePath,
                     startLine = spec.startLine,
+                    startColumn = spec.startColumn,
                     endLine = spec.endLine,
+                    endColumn = spec.endColumn,
                     newMethodName = spec.newMethodName,
                 ),
             )
@@ -571,5 +595,9 @@ class AlternativeTrajectoryRunner(
     private sealed interface OneResult {
         data class Ok(val synth: Synthesised) : OneResult
         data class Skipped(val reason: String) : OneResult
+    }
+
+    private fun log(msg: String) {
+        System.err.println("[alt-traj] $msg")
     }
 }

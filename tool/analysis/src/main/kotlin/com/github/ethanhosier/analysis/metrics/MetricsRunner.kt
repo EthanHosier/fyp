@@ -12,19 +12,15 @@ import com.github.ethanhosier.analysis.metrics.tests.GradleTestRunner
 import com.github.ethanhosier.analysis.metrics.tests.TestResult
 import com.github.ethanhosier.analysis.model.ReconstructionResult
 import com.github.ethanhosier.analysis.reconstruct.GitRunner
-import kotlinx.serialization.json.Json
-import java.nio.file.Files
 import java.nio.file.Path
 import java.time.Duration
-import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
 /**
  * Computes [CheckpointMetrics] for every unique commit SHA produced by the
- * reconstruct stage and writes one `<sha>.json` under
- * `<sessionFolder>/checkpoint-metrics/`.
+ * reconstruct stage.
  *
  * Unique-SHA dedup matters because a long session produces hundreds of events
  * but far fewer unique commits — every no-op event collapses onto its
@@ -33,37 +29,33 @@ import java.util.concurrent.TimeUnit
  * Parallelism is the pool size: each concurrent task borrows a dedicated
  * `git worktree` from [WorktreePool] (fresh-per-SHA, no cross-checkpoint
  * pollution) and runs CK + PMD + Gradle build + Gradle test sequentially
- * inside it. Any failure in any section aborts the whole run — a written
- * JSON file is always complete.
+ * inside it. Any failure in any section aborts the whole run.
  *
- * Re-running is idempotent: existing `<sha>.json` files are kept as-is so
- * incremental runs (after adding a new session or tweaking config) skip the
- * expensive Gradle subprocesses for SHAs already computed.
+ * No on-disk caching: each pipeline run recomputes every SHA from scratch.
+ * Sessions are processed once and the surrounding orchestration assumes
+ * that, so caching just adds invalidation surface for no real win.
  */
 class MetricsRunner(
     private val parallelism: Int = (Runtime.getRuntime().availableProcessors() / 2).coerceAtLeast(1),
     private val gradleUserHome: Path? = null,
     private val buildTimeout: Duration = Duration.ofMinutes(5),
     private val testTimeout: Duration = Duration.ofMinutes(10),
-    private val json: Json = Json { prettyPrint = true; encodeDefaults = true },
 ) {
 
     data class Summary(
         val totalShas: Int,
         val computed: Int,
-        val reused: Int,
         val buildOk: Int,
         val testsOk: Int,
         // Ordered by first-appearance of the SHA in the normalized event stream,
         // so callers can build a chronological report without re-deriving order.
         val checkpoints: List<CheckpointMetrics>,
         // Keyed by SHA. Diff is vs. the previous checkpoint (or the seed commit
-        // for the first). Never cached on disk — recomputed each run because it
-        // depends on the ordering of the current event stream, not just the SHA.
+        // for the first).
         val diffBySha: Map<String, DiffStats> = emptyMap(),
         // Metrics for any synthesised alternative-trajectory SHAs the caller
         // passed via [run]'s `alternativeShas` parameter. Sibling of
-        // [checkpoints]; same `<sha>.json` cache used.
+        // [checkpoints].
         val alternativeCheckpoints: List<CheckpointMetrics> = emptyList(),
     )
 
@@ -93,8 +85,6 @@ class MetricsRunner(
                 "${alternativeShas.size} vs ${alternativeFromShas.size}"
         }
 
-        val outputDir = sessionFolder.resolve("checkpoint-metrics")
-        Files.createDirectories(outputDir)
         val worktreeBase = sessionFolder.resolve("shadow-worktrees")
 
         // LinkedHashSet: keep chronological iteration order from the event
@@ -106,16 +96,13 @@ class MetricsRunner(
             addAll(uniqueShas)
             addAll(altShasSet)
         }
-        val reused = ConcurrentHashMap.newKeySet<String>()
 
         val pool = WorktreePool(reconstruction.repoDir, worktreeBase, parallelism)
         val executor = Executors.newFixedThreadPool(parallelism)
 
         val results = try {
             val futures = allShas.map { sha ->
-                executor.submit<CheckpointMetrics> {
-                    computeOne(sha, pool, outputDir, reused)
-                }
+                executor.submit<CheckpointMetrics> { computeOne(sha, pool) }
             }
             // Propagate the first failure out — .get() wraps thrown exceptions
             // in ExecutionException; unwrap so the stack trace points at the
@@ -149,8 +136,7 @@ class MetricsRunner(
 
         return Summary(
             totalShas = uniqueShas.size,
-            computed = allShas.size - reused.size,
-            reused = reused.size,
+            computed = allShas.size,
             buildOk = traceCheckpoints.count { it.build.success },
             testsOk = traceCheckpoints.count { it.tests.success },
             checkpoints = traceCheckpoints,
@@ -159,20 +145,9 @@ class MetricsRunner(
         )
     }
 
-    private fun computeOne(
-        sha: String,
-        pool: WorktreePool,
-        outputDir: Path,
-        reused: MutableSet<String>,
-    ): CheckpointMetrics {
-        val outputFile = outputDir.resolve("$sha.json")
-        if (Files.isRegularFile(outputFile)) {
-            reused += sha
-            return json.decodeFromString(CheckpointMetrics.serializer(), Files.readString(outputFile))
-        }
-
+    private fun computeOne(sha: String, pool: WorktreePool): CheckpointMetrics {
         val worktree = pool.borrow(sha)
-        val metrics = try {
+        return try {
             val ck = CkRunner().run(worktree)
             val pmd = PmdRunner().run(worktree)
             val cpd = CpdRunner().run(worktree)
@@ -196,8 +171,5 @@ class MetricsRunner(
         } finally {
             pool.release(worktree)
         }
-
-        Files.writeString(outputFile, json.encodeToString(CheckpointMetrics.serializer(), metrics))
-        return metrics
     }
 }

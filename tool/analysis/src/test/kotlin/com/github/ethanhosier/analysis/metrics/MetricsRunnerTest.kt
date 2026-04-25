@@ -1,10 +1,8 @@
 package com.github.ethanhosier.analysis.metrics
 
-import com.github.ethanhosier.analysis.metrics.model.CheckpointMetrics
 import com.github.ethanhosier.analysis.model.ReconstructionResult
 import com.github.ethanhosier.analysis.reconstruct.EventCommitMap
 import com.github.ethanhosier.analysis.reconstruct.GitRunner
-import kotlinx.serialization.json.Json
 import org.junit.jupiter.api.io.TempDir
 import java.nio.file.Files
 import java.nio.file.Path
@@ -15,13 +13,13 @@ import kotlin.test.assertTrue
 
 /**
  * End-to-end smoke test for the full metrics pipeline. Builds a shadow repo
- * from the gradle-fixture, runs every section (CK + PMD + Gradle build +
- * Gradle test) against the resulting SHA, and inspects the written JSON.
+ * from the gradle-fixture and runs every section (CK + PMD + Gradle build +
+ * Gradle test) against the resulting SHA.
  */
 class MetricsRunnerTest {
 
     @Test
-    fun `produces one checkpoint file per unique sha and is idempotent on rerun`(@TempDir temp: Path) {
+    fun `computes a metrics record per unique sha`(@TempDir temp: Path) {
         val sessionFolder = Files.createDirectories(temp.resolve("session"))
         val fixture = Path.of("src/test/resources/gradle-fixture").toAbsolutePath()
         val shadowRepo = sessionFolder.resolve("shadow-repo")
@@ -39,18 +37,14 @@ class MetricsRunnerTest {
             eventCommits = EventCommitMap(mapping = mapOf("e1" to sha, "e2" to sha)),
         )
 
-        val runner = MetricsRunner(parallelism = 1)
-        val summary = runner.run(reconstruction, sessionFolder)
+        val summary = MetricsRunner(parallelism = 1).run(reconstruction, sessionFolder)
 
         println("summary: $summary")
         assertEquals(1, summary.totalShas, "two events should collapse onto one unique SHA")
         assertEquals(1, summary.computed)
-        assertEquals(0, summary.reused)
+        assertEquals(1, summary.checkpoints.size)
 
-        val outputFile = sessionFolder.resolve("checkpoint-metrics/$sha.json")
-        assertTrue(Files.isRegularFile(outputFile), "expected $outputFile to exist")
-
-        val metrics = Json.decodeFromString(CheckpointMetrics.serializer(), Files.readString(outputFile))
+        val metrics = summary.checkpoints.single()
         assertEquals(sha, metrics.sha)
         // CK / PMD did their thing on the fixture's Java sources.
         assertTrue(metrics.ck.perClass.isNotEmpty(), "CK should find classes in the fixture")
@@ -70,12 +64,6 @@ class MetricsRunnerTest {
             Files.list(wtBase).use { it.toList() }.isEmpty(),
             "shadow-worktrees should be empty after close()",
         )
-
-        // Idempotency: rerun with the same inputs → everything reused, no
-        // Gradle subprocess cost.
-        val rerun = runner.run(reconstruction, sessionFolder)
-        assertEquals(1, rerun.reused)
-        assertEquals(0, rerun.computed)
     }
 
     private fun copyTree(src: Path, dest: Path) {

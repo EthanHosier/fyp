@@ -61,8 +61,7 @@ fun main(args: Array<String>) {
     println("repo:       ${result.reconstruction.repoDir}")
     println("commits:    $uniqueShas unique (${eventCount - uniqueShas} events collapsed to prior SHA)")
     println(
-        "metrics:    $uniqueShas SHAs processed " +
-            "(${result.metricsSummary.computed} computed, ${result.metricsSummary.reused} reused), " +
+        "metrics:    $uniqueShas SHAs processed (${result.metricsSummary.computed} computed), " +
             "${result.metricsSummary.buildOk} build-ok, ${result.metricsSummary.testsOk} tests-ok " +
             "in ${result.metricsDurationMs / 1000}s (parallelism=${opts.parallelism})",
     )
