@@ -7,6 +7,14 @@ import com.github.ethanhosier.analysis.model.ReconstructionResult
 import com.github.ethanhosier.analysis.reconstruct.GitRunner
 import com.github.ethanhosier.analysis.refactoring.RefactoringClient
 import com.github.ethanhosier.analysis.refactoring.RefactoringOutcome
+import com.github.ethanhosier.analysis.refactoring.ops.RenameClassRequest
+import com.github.ethanhosier.analysis.refactoring.ops.RenameFieldRequest
+import com.github.ethanhosier.analysis.refactoring.ops.RenameMethodRequest
+import com.github.ethanhosier.analysis.refactoring.ops.RenamePackageRequest
+import com.github.ethanhosier.analysis.refactoring.ops.renameClass
+import com.github.ethanhosier.analysis.refactoring.ops.renameField
+import com.github.ethanhosier.analysis.refactoring.ops.renameMethod
+import com.github.ethanhosier.analysis.refactoring.ops.renamePackage
 import java.nio.file.Path
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.Executors
@@ -171,12 +179,63 @@ class AlternativeTrajectoryRunner(
     }
 
     private fun dispatch(spec: RefactoringSpec, worktree: Path): DispatchResult {
-        // Each refactoring kind gets its own arm in subsequent commits.
-        // `Other` is filtered out earlier; everything else falls through
-        // to "not implemented" until its arm lands.
-        return DispatchResult.Failed(
-            "dispatch arm not implemented for ${spec::class.simpleName}",
-        )
+        val outcome: RefactoringOutcome = when (spec) {
+            is RefactoringSpec.RenameMethod -> refactoringClient.renameMethod(
+                RenameMethodRequest(
+                    projectRoot = worktree,
+                    sourceFolders = sourceFolders,
+                    classpathJars = classpathJars,
+                    declaringTypeFqn = spec.declaringTypeFqn,
+                    oldName = spec.oldName,
+                    newName = spec.newName,
+                    paramTypeSignatures = spec.paramTypeSignatures,
+                ),
+            )
+
+            is RefactoringSpec.RenameClass -> refactoringClient.renameClass(
+                RenameClassRequest(
+                    projectRoot = worktree,
+                    sourceFolders = sourceFolders,
+                    classpathJars = classpathJars,
+                    typeFqn = spec.typeFqn,
+                    newName = spec.newName,
+                ),
+            )
+
+            is RefactoringSpec.RenameField -> refactoringClient.renameField(
+                RenameFieldRequest(
+                    projectRoot = worktree,
+                    sourceFolders = sourceFolders,
+                    classpathJars = classpathJars,
+                    declaringTypeFqn = spec.declaringTypeFqn,
+                    oldName = spec.oldName,
+                    newName = spec.newName,
+                ),
+            )
+
+            is RefactoringSpec.RenamePackage -> refactoringClient.renamePackage(
+                RenamePackageRequest(
+                    projectRoot = worktree,
+                    sourceFolders = sourceFolders,
+                    classpathJars = classpathJars,
+                    oldPackage = spec.oldPackage,
+                    newPackage = spec.newPackage,
+                ),
+            )
+
+            // Each remaining kind gets its own arm as the matching
+            // RM-typed mapper lands. Until then, candidates fall through
+            // to "not implemented" and are skipped at synthesis time.
+            else -> return DispatchResult.Failed(
+                "dispatch arm not implemented for ${spec::class.simpleName}",
+            )
+        }
+        return when (outcome) {
+            is RefactoringOutcome.Success -> DispatchResult.Ok
+            is RefactoringOutcome.Failed -> DispatchResult.Failed(
+                "RefactoringClient: ${outcome.reason}",
+            )
+        }
     }
 
     private sealed interface DispatchResult {
