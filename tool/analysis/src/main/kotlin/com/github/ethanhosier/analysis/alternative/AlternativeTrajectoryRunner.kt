@@ -7,10 +7,22 @@ import com.github.ethanhosier.analysis.model.ReconstructionResult
 import com.github.ethanhosier.analysis.reconstruct.GitRunner
 import com.github.ethanhosier.analysis.refactoring.RefactoringClient
 import com.github.ethanhosier.analysis.refactoring.RefactoringOutcome
+import com.github.ethanhosier.analysis.refactoring.ops.MoveAndRenameAttributeRequest
+import com.github.ethanhosier.analysis.refactoring.ops.MoveAndRenameClassRequest
+import com.github.ethanhosier.analysis.refactoring.ops.MoveClassRequest
+import com.github.ethanhosier.analysis.refactoring.ops.MoveInstanceFieldRequest
+import com.github.ethanhosier.analysis.refactoring.ops.PullUpRequest
+import com.github.ethanhosier.analysis.refactoring.ops.PushDownRequest
 import com.github.ethanhosier.analysis.refactoring.ops.RenameClassRequest
 import com.github.ethanhosier.analysis.refactoring.ops.RenameFieldRequest
 import com.github.ethanhosier.analysis.refactoring.ops.RenameMethodRequest
 import com.github.ethanhosier.analysis.refactoring.ops.RenamePackageRequest
+import com.github.ethanhosier.analysis.refactoring.ops.moveAndRenameAttribute
+import com.github.ethanhosier.analysis.refactoring.ops.moveAndRenameClass
+import com.github.ethanhosier.analysis.refactoring.ops.moveClass
+import com.github.ethanhosier.analysis.refactoring.ops.moveInstanceField
+import com.github.ethanhosier.analysis.refactoring.ops.pullUp
+import com.github.ethanhosier.analysis.refactoring.ops.pushDown
 import com.github.ethanhosier.analysis.refactoring.ops.renameClass
 import com.github.ethanhosier.analysis.refactoring.ops.renameField
 import com.github.ethanhosier.analysis.refactoring.ops.renameMethod
@@ -220,6 +232,72 @@ class AlternativeTrajectoryRunner(
                     classpathJars = classpathJars,
                     oldPackage = spec.oldPackage,
                     newPackage = spec.newPackage,
+                ),
+            )
+
+            is RefactoringSpec.MoveClass -> refactoringClient.moveClass(
+                MoveClassRequest(
+                    projectRoot = worktree,
+                    sourceFolders = sourceFolders,
+                    classpathJars = classpathJars,
+                    typeFqn = spec.typeFqn,
+                    destinationPackage = spec.destinationPackage,
+                ),
+            )
+
+            is RefactoringSpec.MoveAndRenameClass -> refactoringClient.moveAndRenameClass(
+                MoveAndRenameClassRequest(
+                    projectRoot = worktree,
+                    sourceFolders = sourceFolders,
+                    classpathJars = classpathJars,
+                    typeFqn = spec.typeFqn,
+                    destinationPackage = spec.destinationPackage,
+                    newName = spec.newName,
+                ),
+            )
+
+            is RefactoringSpec.MoveInstanceField -> refactoringClient.moveInstanceField(
+                MoveInstanceFieldRequest(
+                    projectRoot = worktree,
+                    sourceFolders = sourceFolders,
+                    classpathJars = classpathJars,
+                    sourceTypeFqn = spec.sourceTypeFqn,
+                    fieldName = spec.fieldName,
+                    destinationTypeFqn = spec.destinationTypeFqn,
+                ),
+            )
+
+            is RefactoringSpec.MoveAndRenameAttribute -> refactoringClient.moveAndRenameAttribute(
+                MoveAndRenameAttributeRequest(
+                    projectRoot = worktree,
+                    sourceFolders = sourceFolders,
+                    classpathJars = classpathJars,
+                    sourceTypeFqn = spec.sourceTypeFqn,
+                    fieldName = spec.fieldName,
+                    destinationTypeFqn = spec.destinationTypeFqn,
+                    newFieldName = spec.newFieldName,
+                ),
+            )
+
+            is RefactoringSpec.PullUp -> refactoringClient.pullUp(
+                PullUpRequest(
+                    projectRoot = worktree,
+                    sourceFolders = sourceFolders,
+                    classpathJars = classpathJars,
+                    declaringTypeFqn = spec.declaringTypeFqn,
+                    methodNames = spec.methodNames,
+                    fieldNames = spec.fieldNames,
+                ),
+            )
+
+            is RefactoringSpec.PushDown -> refactoringClient.pushDown(
+                PushDownRequest(
+                    projectRoot = worktree,
+                    sourceFolders = sourceFolders,
+                    classpathJars = classpathJars,
+                    declaringTypeFqn = spec.declaringTypeFqn,
+                    methodNames = spec.methodNames,
+                    fieldNames = spec.fieldNames,
                 ),
             )
 

@@ -9,6 +9,14 @@ import com.github.ethanhosier.analysis.model.ReconstructionResult
 import com.github.ethanhosier.analysis.model.Trace
 import com.github.ethanhosier.ideplugin.model.EventType
 import gr.uom.java.xmi.diff.CodeRange
+import gr.uom.java.xmi.diff.MoveAndRenameAttributeRefactoring
+import gr.uom.java.xmi.diff.MoveAndRenameClassRefactoring
+import gr.uom.java.xmi.diff.MoveAttributeRefactoring
+import gr.uom.java.xmi.diff.MoveClassRefactoring
+import gr.uom.java.xmi.diff.PullUpAttributeRefactoring
+import gr.uom.java.xmi.diff.PullUpOperationRefactoring
+import gr.uom.java.xmi.diff.PushDownAttributeRefactoring
+import gr.uom.java.xmi.diff.PushDownOperationRefactoring
 import gr.uom.java.xmi.diff.RenameAttributeRefactoring
 import gr.uom.java.xmi.diff.RenameClassRefactoring
 import gr.uom.java.xmi.diff.RenameOperationRefactoring
@@ -203,6 +211,60 @@ class RefactoringMinerRunner(
             // it so the JDT op gets a clean package FQN.
             oldPackage = r.pattern.before.trimEnd('.'),
             newPackage = r.pattern.after.trimEnd('.'),
+        )
+
+        // Pull Up / Push Down extend MoveOperation/MoveAttribute, so
+        // they MUST be matched before their parents — otherwise a
+        // pull-up gets routed through the move-op arm and synthesised
+        // with the wrong JDT op.
+        is PullUpOperationRefactoring -> RefactoringSpec.PullUp(
+            // JDT's PullUp takes the *source* (subclass) FQN; methods
+            // listed are pulled up to its supertype.
+            declaringTypeFqn = r.originalOperation.className,
+            methodNames = listOf(r.originalOperation.name),
+        )
+
+        is PullUpAttributeRefactoring -> RefactoringSpec.PullUp(
+            declaringTypeFqn = r.originalAttribute.className,
+            fieldNames = listOf(r.originalAttribute.name),
+        )
+
+        is PushDownOperationRefactoring -> RefactoringSpec.PushDown(
+            // JDT's PushDown takes the *superclass* FQN where the
+            // member currently lives; the op pushes it to subclasses.
+            declaringTypeFqn = r.originalOperation.className,
+            methodNames = listOf(r.originalOperation.name),
+        )
+
+        is PushDownAttributeRefactoring -> RefactoringSpec.PushDown(
+            declaringTypeFqn = r.originalAttribute.className,
+            fieldNames = listOf(r.originalAttribute.name),
+        )
+
+        // Move + Move-and-Rename — must come *after* the Pull/Push
+        // arms above because PullUp/PushDown extend Move{Op,Attr}.
+        is MoveAndRenameClassRefactoring -> RefactoringSpec.MoveAndRenameClass(
+            typeFqn = r.originalClassName,
+            destinationPackage = r.renamedClassName.substringBeforeLast('.', missingDelimiterValue = ""),
+            newName = r.renamedClassName.substringAfterLast('.'),
+        )
+
+        is MoveClassRefactoring -> RefactoringSpec.MoveClass(
+            typeFqn = r.originalClassName,
+            destinationPackage = r.movedClassName.substringBeforeLast('.', missingDelimiterValue = ""),
+        )
+
+        is MoveAndRenameAttributeRefactoring -> RefactoringSpec.MoveAndRenameAttribute(
+            sourceTypeFqn = r.originalAttribute.className,
+            fieldName = r.originalAttribute.name,
+            destinationTypeFqn = r.movedAttribute.className,
+            newFieldName = r.movedAttribute.name,
+        )
+
+        is MoveAttributeRefactoring -> RefactoringSpec.MoveInstanceField(
+            sourceTypeFqn = r.sourceClassName,
+            fieldName = r.originalAttribute.name,
+            destinationTypeFqn = r.targetClassName,
         )
 
         else -> RefactoringSpec.Other
