@@ -1,6 +1,7 @@
 package com.github.ethanhosier.analysis.miner.model
 
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 
 /**
  * One refactoring detected by the end-to-end sliding window, localised to
@@ -24,4 +25,9 @@ data class RefactoringStep(
      *  event — i.e. the IDE performed this refactoring, not the user by
      *  hand. */
     val wasPerformedByIde: Boolean = false,
+    /** Typed structured payload used by `AlternativeTrajectoryRunner` to
+     *  drive `RefactoringClient`. `@Transient` — excluded from JSON and
+     *  the generated TS types; defaults to `null` so deserialised
+     *  reports and hand-built test fixtures still compile. */
+    @Transient val spec: RefactoringSpec? = null,
 )
