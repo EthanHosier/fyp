@@ -50,7 +50,6 @@ class AnalysisPipelineTest {
         val metrics = MetricsRunner.Summary(
             totalShas = 2,
             computed = 2,
-            reused = 0,
             buildOk = 2,
             testsOk = 1,
             checkpoints = listOf(checkpoint("sha-a"), checkpoint("sha-b")),
@@ -97,7 +96,6 @@ class AnalysisPipelineTest {
         val metrics = MetricsRunner.Summary(
             totalShas = 1,
             computed = 1,
-            reused = 0,
             buildOk = 1,
             testsOk = 1,
             checkpoints = listOf(checkpoint("sha-orphan")),

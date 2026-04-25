@@ -1,3 +1,4 @@
+
 package com.github.ethanhosier.analysis.pipeline
 
 import com.github.ethanhosier.analysis.alternative.AlternativeTrajectoryRunner
@@ -63,37 +64,59 @@ class AnalysisPipeline(
     )
 
     fun run(sessionDir: Path): Result {
+        // Stages can each take seconds-to-minutes; without progress
+        // output the CLI looks hung. Logs go to stderr so they don't
+        // pollute the report JSON the CLI writes alongside.
+        log("starting analysis on $sessionDir (parallelism=$parallelism)")
+
+        val loadStart = System.currentTimeMillis()
+        log("load+normalize: starting")
         val raw = TraceLoader().load(sessionDir)
         val trace = TraceNormalizer.normalize(raw, sessionDir.resolve("initial-src"))
+        log("load+normalize: ${trace.events.size} event(s) in ${System.currentTimeMillis() - loadStart}ms")
 
+        val reconstructStart = System.currentTimeMillis()
+        log("reconstruct: starting")
         val reconstruction = ShadowRepoBuilder().build(sessionDir, trace)
+        val uniqueShaCount = reconstruction.eventCommits.mapping.values.toSet().size
+        log("reconstruct: $uniqueShaCount unique SHA(s) at ${reconstruction.repoDir} in ${System.currentTimeMillis() - reconstructStart}ms")
 
         // Miner runs before metrics so the alternative-trajectory stage
         // can synthesise alt SHAs and feed them into the metrics pass —
         // one parallel-worktree sweep covers both groups.
         val minerStart = System.currentTimeMillis()
+        log("miner: starting RefactoringMiner sliding-window pass")
         val miner = RefactoringMinerRunner(parallelism = parallelism).run(trace, reconstruction, sessionDir)
         val minerDurationMs = System.currentTimeMillis() - minerStart
+        log("miner: ${miner.steps.size} step(s) detected across ${miner.checkpointsAnalysed} checkpoint(s) in ${minerDurationMs}ms")
 
         val alternativeStart = System.currentTimeMillis()
+        log("alt-traj: starting (refactoringClient=ready)")
         val alternative = AlternativeTrajectoryRunner(
             refactoringClient = refactoringClient,
             parallelism = parallelism,
         ).run(reconstruction, miner.steps, sessionDir)
         val alternativeDurationMs = System.currentTimeMillis() - alternativeStart
+        log("alt-traj: ${alternative.synthesised.size}/${alternative.candidates} synthesised, ${alternative.skipped.size} skipped in ${alternativeDurationMs}ms")
 
         val metricsStart = System.currentTimeMillis()
+        val altShas = alternative.synthesised.map { it.altSha }
+        val totalShas = reconstruction.eventCommits.mapping.values.toSet().size + altShas.size
+        log("metrics: starting on $totalShas SHA(s) (${altShas.size} alt) at parallelism=$parallelism")
         val metrics = MetricsRunner(parallelism = parallelism).run(
             reconstruction = reconstruction,
             sessionFolder = sessionDir,
-            alternativeShas = alternative.synthesised.map { it.altSha },
+            alternativeShas = altShas,
             alternativeFromShas = alternative.synthesised.map { it.fromSha },
         )
         val metricsDurationMs = System.currentTimeMillis() - metricsStart
+        log("metrics: ${metrics.computed} computed, ${metrics.buildOk} build-ok, ${metrics.testsOk} tests-ok in ${metricsDurationMs}ms")
 
         val diffsStart = System.currentTimeMillis()
+        log("diffs: starting")
         val diffs = DiffsRunner(GitRunner(reconstruction.repoDir)).run(reconstruction, miner.steps, alternative)
         val diffsDurationMs = System.currentTimeMillis() - diffsStart
+        log("diffs: ${diffs.checkpointPatches.size} checkpoint, ${diffs.refactoringPatches.size} refactoring, ${diffs.alternativePatches.size} alternative patch(es) in ${diffsDurationMs}ms")
 
         val report = buildAnalysisReport(
             trace = trace,
@@ -125,6 +148,10 @@ class AnalysisPipeline(
         fun defaultParallelism(): Int =
             (Runtime.getRuntime().availableProcessors() / 2).coerceAtLeast(1)
     }
+}
+
+private fun log(msg: String) {
+    System.out.println("[pipeline] $msg")
 }
 
 /**
