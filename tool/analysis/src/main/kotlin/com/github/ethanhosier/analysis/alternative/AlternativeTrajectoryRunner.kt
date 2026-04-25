@@ -7,26 +7,48 @@ import com.github.ethanhosier.analysis.model.ReconstructionResult
 import com.github.ethanhosier.analysis.reconstruct.GitRunner
 import com.github.ethanhosier.analysis.refactoring.RefactoringClient
 import com.github.ethanhosier.analysis.refactoring.RefactoringOutcome
+import com.github.ethanhosier.analysis.refactoring.ops.ChangeAttributeTypeRequest
+import com.github.ethanhosier.analysis.refactoring.ops.ChangeVariableTypeRequest
+import com.github.ethanhosier.analysis.refactoring.ops.ExtractAttributeRequest
+import com.github.ethanhosier.analysis.refactoring.ops.ExtractMethodRequest
+import com.github.ethanhosier.analysis.refactoring.ops.ExtractVariableRequest
+import com.github.ethanhosier.analysis.refactoring.ops.InlineMethodRequest
+import com.github.ethanhosier.analysis.refactoring.ops.InlineVariableRequest
 import com.github.ethanhosier.analysis.refactoring.ops.MoveAndRenameAttributeRequest
 import com.github.ethanhosier.analysis.refactoring.ops.MoveAndRenameClassRequest
 import com.github.ethanhosier.analysis.refactoring.ops.MoveClassRequest
 import com.github.ethanhosier.analysis.refactoring.ops.MoveInstanceFieldRequest
+import com.github.ethanhosier.analysis.refactoring.ops.ParameterizeAttributeRequest
+import com.github.ethanhosier.analysis.refactoring.ops.ParameterizeVariableRequest
 import com.github.ethanhosier.analysis.refactoring.ops.PullUpRequest
 import com.github.ethanhosier.analysis.refactoring.ops.PushDownRequest
 import com.github.ethanhosier.analysis.refactoring.ops.RenameClassRequest
 import com.github.ethanhosier.analysis.refactoring.ops.RenameFieldRequest
+import com.github.ethanhosier.analysis.refactoring.ops.RenameLocalVariableRequest
 import com.github.ethanhosier.analysis.refactoring.ops.RenameMethodRequest
 import com.github.ethanhosier.analysis.refactoring.ops.RenamePackageRequest
+import com.github.ethanhosier.analysis.refactoring.ops.ReplaceVariableWithAttributeRequest
+import com.github.ethanhosier.analysis.refactoring.ops.changeAttributeType
+import com.github.ethanhosier.analysis.refactoring.ops.changeVariableType
+import com.github.ethanhosier.analysis.refactoring.ops.extractAttribute
+import com.github.ethanhosier.analysis.refactoring.ops.extractMethod
+import com.github.ethanhosier.analysis.refactoring.ops.extractVariable
+import com.github.ethanhosier.analysis.refactoring.ops.inlineMethod
+import com.github.ethanhosier.analysis.refactoring.ops.inlineVariable
 import com.github.ethanhosier.analysis.refactoring.ops.moveAndRenameAttribute
 import com.github.ethanhosier.analysis.refactoring.ops.moveAndRenameClass
 import com.github.ethanhosier.analysis.refactoring.ops.moveClass
 import com.github.ethanhosier.analysis.refactoring.ops.moveInstanceField
+import com.github.ethanhosier.analysis.refactoring.ops.parameterizeAttribute
+import com.github.ethanhosier.analysis.refactoring.ops.parameterizeVariable
 import com.github.ethanhosier.analysis.refactoring.ops.pullUp
 import com.github.ethanhosier.analysis.refactoring.ops.pushDown
 import com.github.ethanhosier.analysis.refactoring.ops.renameClass
 import com.github.ethanhosier.analysis.refactoring.ops.renameField
+import com.github.ethanhosier.analysis.refactoring.ops.renameLocalVariable
 import com.github.ethanhosier.analysis.refactoring.ops.renameMethod
 import com.github.ethanhosier.analysis.refactoring.ops.renamePackage
+import com.github.ethanhosier.analysis.refactoring.ops.replaceVariableWithAttribute
 import java.nio.file.Path
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.Executors
@@ -298,6 +320,159 @@ class AlternativeTrajectoryRunner(
                     declaringTypeFqn = spec.declaringTypeFqn,
                     methodNames = spec.methodNames,
                     fieldNames = spec.fieldNames,
+                ),
+            )
+
+            is RefactoringSpec.ExtractMethod -> refactoringClient.extractMethod(
+                ExtractMethodRequest(
+                    projectRoot = worktree,
+                    sourceFolders = sourceFolders,
+                    classpathJars = classpathJars,
+                    relativeFilePath = spec.relativeFilePath,
+                    startLine = spec.startLine,
+                    endLine = spec.endLine,
+                    newMethodName = spec.newMethodName,
+                ),
+            )
+
+            is RefactoringSpec.InlineMethod -> refactoringClient.inlineMethod(
+                InlineMethodRequest(
+                    projectRoot = worktree,
+                    sourceFolders = sourceFolders,
+                    classpathJars = classpathJars,
+                    declaringTypeFqn = spec.declaringTypeFqn,
+                    methodName = spec.methodName,
+                    paramTypeSignatures = spec.paramTypeSignatures,
+                ),
+            )
+
+            is RefactoringSpec.ExtractVariable -> refactoringClient.extractVariable(
+                ExtractVariableRequest(
+                    projectRoot = worktree,
+                    sourceFolders = sourceFolders,
+                    classpathJars = classpathJars,
+                    relativeFilePath = spec.relativeFilePath,
+                    startLine = spec.startLine,
+                    startColumn = spec.startColumn,
+                    endLine = spec.endLine,
+                    endColumn = spec.endColumn,
+                    newName = spec.newName,
+                ),
+            )
+
+            is RefactoringSpec.InlineVariable -> refactoringClient.inlineVariable(
+                InlineVariableRequest(
+                    projectRoot = worktree,
+                    sourceFolders = sourceFolders,
+                    classpathJars = classpathJars,
+                    relativeFilePath = spec.relativeFilePath,
+                    line = spec.line,
+                    column = spec.column,
+                ),
+            )
+
+            is RefactoringSpec.ExtractAttribute -> refactoringClient.extractAttribute(
+                ExtractAttributeRequest(
+                    projectRoot = worktree,
+                    sourceFolders = sourceFolders,
+                    classpathJars = classpathJars,
+                    relativeFilePath = spec.relativeFilePath,
+                    startLine = spec.startLine,
+                    startColumn = spec.startColumn,
+                    endLine = spec.endLine,
+                    endColumn = spec.endColumn,
+                    newName = spec.newName,
+                    visibility = spec.visibility,
+                ),
+            )
+
+            is RefactoringSpec.ChangeVariableType -> refactoringClient.changeVariableType(
+                ChangeVariableTypeRequest(
+                    projectRoot = worktree,
+                    sourceFolders = sourceFolders,
+                    classpathJars = classpathJars,
+                    relativeFilePath = spec.relativeFilePath,
+                    line = spec.line,
+                    column = spec.column,
+                    newTypeFqn = spec.newTypeFqn,
+                ),
+            )
+
+            is RefactoringSpec.ChangeAttributeType -> refactoringClient.changeAttributeType(
+                ChangeAttributeTypeRequest(
+                    projectRoot = worktree,
+                    sourceFolders = sourceFolders,
+                    classpathJars = classpathJars,
+                    declaringTypeFqn = spec.declaringTypeFqn,
+                    fieldName = spec.fieldName,
+                    newTypeFqn = spec.newTypeFqn,
+                ),
+            )
+
+            is RefactoringSpec.RenameLocalVariable -> refactoringClient.renameLocalVariable(
+                RenameLocalVariableRequest(
+                    projectRoot = worktree,
+                    sourceFolders = sourceFolders,
+                    classpathJars = classpathJars,
+                    relativeFilePath = spec.relativeFilePath,
+                    line = spec.line,
+                    column = spec.column,
+                    newName = spec.newName,
+                ),
+            )
+
+            // JDT's "Rename Local Variable" op handles parameters too —
+            // the position picked the symbol regardless of declaration kind.
+            is RefactoringSpec.RenameParameter -> refactoringClient.renameLocalVariable(
+                RenameLocalVariableRequest(
+                    projectRoot = worktree,
+                    sourceFolders = sourceFolders,
+                    classpathJars = classpathJars,
+                    relativeFilePath = spec.relativeFilePath,
+                    line = spec.line,
+                    column = spec.column,
+                    newName = spec.newName,
+                ),
+            )
+
+            is RefactoringSpec.ParameterizeVariable -> refactoringClient.parameterizeVariable(
+                ParameterizeVariableRequest(
+                    projectRoot = worktree,
+                    sourceFolders = sourceFolders,
+                    classpathJars = classpathJars,
+                    relativeFilePath = spec.relativeFilePath,
+                    startLine = spec.startLine,
+                    startColumn = spec.startColumn,
+                    endLine = spec.endLine,
+                    endColumn = spec.endColumn,
+                    newParameterName = spec.newParameterName,
+                ),
+            )
+
+            is RefactoringSpec.ParameterizeAttribute -> refactoringClient.parameterizeAttribute(
+                ParameterizeAttributeRequest(
+                    projectRoot = worktree,
+                    sourceFolders = sourceFolders,
+                    classpathJars = classpathJars,
+                    relativeFilePath = spec.relativeFilePath,
+                    startLine = spec.startLine,
+                    startColumn = spec.startColumn,
+                    endLine = spec.endLine,
+                    endColumn = spec.endColumn,
+                    newParameterName = spec.newParameterName,
+                ),
+            )
+
+            is RefactoringSpec.ReplaceVariableWithAttribute -> refactoringClient.replaceVariableWithAttribute(
+                ReplaceVariableWithAttributeRequest(
+                    projectRoot = worktree,
+                    sourceFolders = sourceFolders,
+                    classpathJars = classpathJars,
+                    relativeFilePath = spec.relativeFilePath,
+                    line = spec.line,
+                    column = spec.column,
+                    newFieldName = spec.newFieldName,
+                    visibility = spec.visibility,
                 ),
             )
 
