@@ -3,6 +3,7 @@ package com.github.ethanhosier.analysis.miner
 import com.github.ethanhosier.analysis.metrics.WorktreePool
 import com.github.ethanhosier.analysis.miner.model.DetectedRefactoring
 import com.github.ethanhosier.analysis.miner.model.RefactoringLocation
+import com.github.ethanhosier.analysis.miner.model.RefactoringSpec
 import com.github.ethanhosier.analysis.miner.model.RefactoringStep
 import com.github.ethanhosier.analysis.model.ReconstructionResult
 import com.github.ethanhosier.analysis.model.Trace
@@ -99,6 +100,7 @@ class RefactoringMinerRunner(
                             timestamp = timestamp,
                             refactoring = toDetected(d),
                             wasPerformedByIde = rSha in idePerformedShas,
+                            spec = toSpec(d),
                         ),
                     )
                 }
@@ -155,6 +157,22 @@ class RefactoringMinerRunner(
             rightSideLocations = r.rightSide().map(::toLocation),
             ideRelevant = IdeRelevantRefactorings.isIdeRelevant(type),
         )
+    }
+
+    /**
+     * Maps an RM detection to a typed [RefactoringSpec] suitable for
+     * driving `RefactoringClient`. Each IDE-relevant RM type gets its
+     * own arm; everything else falls through to [RefactoringSpec.Other],
+     * which `AlternativeTrajectoryRunner` skips with a clear reason.
+     *
+     * Typed arms are added incrementally — each commit covers one
+     * refactoring kind (RM subclass → spec field extraction). Until
+     * a kind has its arm, manual detections of that kind don't
+     * synthesise an alternative.
+     */
+    private fun toSpec(r: Refactoring): RefactoringSpec {
+        // Typed arms land in subsequent commits.
+        return RefactoringSpec.Other
     }
 
     private fun toLocation(c: CodeRange): RefactoringLocation = RefactoringLocation(
