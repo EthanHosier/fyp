@@ -18,57 +18,58 @@ For a `RefactoringStep s`, synthesise an alternative iff **all** of:
 
 Steps not meeting all three are passed through unchanged (`alternativeTrajectories` simply omits them).
 
-## Miner output enrichment — sealed `DetectedRefactoring`
+## Miner output enrichment — sealed `RefactoringSpec`, transient on `RefactoringStep`
 
-Today `DetectedRefactoring` is a flat data class carrying `type: String` plus pre/post `RefactoringLocation` lists and a stringly `description`. Synthesis can't reliably build a typed `RefactoringClient` request from that — every adapter would re-parse the description string.
+The existing flat `DetectedRefactoring` data class stays exactly as it is today — every field, every JSON name. The frontend, the generated TS types, the dashboard view-model, and every existing consumer of the analysis report keep working unchanged.
 
-Replace with a **sealed hierarchy**, one `data class` per IDE-relevant type, each carrying exactly the fields the matching `RefactoringClient` op needs. Non-IDE-relevant detections stay representable via a single `Other` leaf so the miner output remains lossless.
+The typed structured info needed to drive synthesis is added in a **parallel** sealed interface `RefactoringSpec`, attached to `RefactoringStep` as a `@Transient` field so it's part of the in-memory model but excluded from JSON serialization and from kxs-ts-gen output.
 
 ```kotlin
+// Unchanged — kept exactly as today.
 @Serializable
-sealed interface DetectedRefactoring {
-    val type: String                  // RM display name, kept for back-compat / dashboards
-    val description: String
-    val leftSideLocations: List<RefactoringLocation>
-    val rightSideLocations: List<RefactoringLocation>
+data class DetectedRefactoring(
+    val type: String,
+    val description: String,
+    val leftSideLocations: List<RefactoringLocation>,
+    val rightSideLocations: List<RefactoringLocation>,
+    val ideRelevant: Boolean,
+)
 
-    @Serializable @SerialName("ExtractMethod")
+// New — internal-only, never serialized.
+sealed interface RefactoringSpec {
     data class ExtractMethod(
-        override val type: String, override val description: String,
-        override val leftSideLocations: List<RefactoringLocation>,
-        override val rightSideLocations: List<RefactoringLocation>,
         val sourceFilePath: String,
         val extractedSelectionStartLine: Int,
         val extractedSelectionEndLine: Int,
         val newMethodName: String,
-    ) : DetectedRefactoring
+    ) : RefactoringSpec
 
-    @Serializable @SerialName("RenameMethod")
     data class RenameMethod(
-        // …
         val declaringTypeFqn: String,
         val oldName: String,
         val newName: String,
         val paramTypeSignatures: List<String>,
-    ) : DetectedRefactoring
+    ) : RefactoringSpec
 
-    // … one variant per ideRelevant kind in IdeRelevantRefactorings, each
+    // … one variant per IDE-relevant kind in IdeRelevantRefactorings, each
     //    mirroring the typed request shape its RefactoringClient op consumes …
 
-    @Serializable @SerialName("Other")
-    data class Other(
-        override val type: String, override val description: String,
-        override val leftSideLocations: List<RefactoringLocation>,
-        override val rightSideLocations: List<RefactoringLocation>,
-    ) : DetectedRefactoring
+    object Other : RefactoringSpec   // non-IDE-relevant or RM-typed-mapper-not-yet-implemented
 }
+
+// Modified — adds a transient spec field; existing JSON layout untouched.
+@Serializable
+data class RefactoringStep(
+    // … existing fields …
+    val refactoring: DetectedRefactoring,
+    val wasPerformedByIde: Boolean,
+    @Transient val spec: RefactoringSpec? = null,
+)
 ```
 
-`ideRelevant` becomes derived (`this !is Other`) — drop the boolean field on `DetectedRefactoring`.
+`RefactoringMinerRunner.toDetected` is split into two: `toDetected(r) → DetectedRefactoring` (unchanged) and `toSpec(r) → RefactoringSpec` (new — pattern-matches RM's typed `Refactoring` subclasses and pulls the typed fields the matching `RefactoringClient` op needs). Both are populated when constructing each `RefactoringStep`. RM types not yet covered by a typed mapper fall back to `RefactoringSpec.Other`, and `AlternativeTrajectoryRunner` skips them with a clear "spec not implemented" reason.
 
-`RefactoringMinerRunner` is updated to read RM's typed model objects (RM's own `Refactoring` subclasses already expose method/field/type info via getters) and populate the matching variant rather than only the location lists. Each RM type gets a small mapper function — these live alongside `IdeRelevantRefactorings`. RM types that aren't on the allowlist map to `Other`.
-
-This is the single largest piece of new code in the PR but it's mechanical and well-bounded: RM's type set is closed and matches our `IdeRelevantRefactorings` 1:1 today.
+Because `@Transient` excludes the field from kotlinx-serialization (and consequently from `KxsTsGenerator`'s descriptor walk), no TS regen and no dashboard changes are needed for this migration. The full sealed coverage + alternative-trajectory pipeline can ship in a single PR without any frontend churn.
 
 ## New stage — `AlternativeTrajectoryRunner`
 
@@ -105,7 +106,7 @@ class AlternativeTrajectoryRunner(
 Per candidate step:
 
 1. Borrow a worktree at `s.fromSha` from a `WorktreePool` instance scoped to this stage.
-2. Resolve the right `RefactoringClient` op via a `when (s.refactoring) { is ExtractMethod -> …; is RenameMethod -> … }` dispatch — one short branch per type, each ~6 LoC: build the typed request from the sealed-variant fields, call the op, return the `RefactoringOutcome`.
+2. Resolve the right `RefactoringClient` op via a `when (val spec = s.spec) { is RefactoringSpec.ExtractMethod -> …; is RefactoringSpec.RenameMethod -> …; else -> skip }` dispatch — one short branch per type, each ~6 LoC: build the typed request from the spec fields, call the op, return the `RefactoringOutcome`.
 3. On `Success`: `git add -A && git commit -m "alt: step <i> <type>"` *inside the worktree*, capture the resulting SHA, and push it onto a branch `alt/<stepIndex>` in the shared shadow repo via `git branch alt/<i> <sha>`. The branch ref keeps the commit reachable for downstream metrics + diffs.
 4. On `Failed`: record `skipped[stepIndex] = reason`; do not commit. Worktree is released cleanly.
 
@@ -204,10 +205,12 @@ Every `CheckpointMetrics` still lives in `report.checkpoints`; alt SHAs go in al
 - `analysis/src/main/kotlin/com/github/ethanhosier/analysis/alternative/RefactoringClientDispatch.kt` — the `when (DetectedRefactoring)` → `RefactoringOutcome` dispatch table; one short arm per IDE-relevant type
 - `analysis/src/main/kotlin/com/github/ethanhosier/analysis/metrics/model/AlternativeTrajectory.kt`
 
+**New:**
+- `analysis/src/main/kotlin/com/github/ethanhosier/analysis/miner/model/RefactoringSpec.kt` — sealed interface, in-memory only
+
 **Modified:**
-- `analysis/src/main/kotlin/com/github/ethanhosier/analysis/miner/model/DetectedRefactoring.kt` — flat → sealed hierarchy
-- `analysis/src/main/kotlin/com/github/ethanhosier/analysis/miner/RefactoringMinerRunner.kt` — populate sealed variants from RM's typed model
-- `analysis/src/main/kotlin/com/github/ethanhosier/analysis/miner/IdeRelevantRefactorings.kt` — drop `ideRelevant: Boolean` from miner output (allowlist still used by mapper to choose typed-vs-Other variant)
+- `analysis/src/main/kotlin/com/github/ethanhosier/analysis/miner/model/RefactoringStep.kt` — add `@Transient val spec: RefactoringSpec? = null`
+- `analysis/src/main/kotlin/com/github/ethanhosier/analysis/miner/RefactoringMinerRunner.kt` — add `toSpec(r)` mapper alongside the existing `toDetected(r)`; populate both on each `RefactoringStep`
 - `analysis/src/main/kotlin/com/github/ethanhosier/analysis/metrics/MetricsRunner.kt` — add `alternativeShas` param; partition `Summary.checkpoints` and add `alternativeCheckpoints`
 - `analysis/src/main/kotlin/com/github/ethanhosier/analysis/metrics/gitdiff/DiffRunner.kt` — add `runPairs(...)` helper for from→alt `DiffStats`
 - `analysis/src/main/kotlin/com/github/ethanhosier/analysis/diffs/DiffsRunner.kt` — accept `AlternativeTrajectoryRunner.Summary`; populate new `alternativePatches: Map<Int, String>` via `git.diffPatch(fromSha, altSha)`
