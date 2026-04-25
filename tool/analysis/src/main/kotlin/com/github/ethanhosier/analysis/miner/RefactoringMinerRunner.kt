@@ -8,11 +8,15 @@ import com.github.ethanhosier.analysis.miner.model.RefactoringStep
 import com.github.ethanhosier.analysis.model.ReconstructionResult
 import com.github.ethanhosier.analysis.model.Trace
 import com.github.ethanhosier.ideplugin.model.EventType
+import gr.uom.java.xmi.VariableDeclarationContainer
+import gr.uom.java.xmi.diff.AddParameterRefactoring
 import gr.uom.java.xmi.diff.ChangeAttributeTypeRefactoring
+import gr.uom.java.xmi.diff.ChangeReturnTypeRefactoring
 import gr.uom.java.xmi.diff.ChangeVariableTypeRefactoring
 import gr.uom.java.xmi.diff.CodeRange
 import gr.uom.java.xmi.diff.ExtractAttributeRefactoring
 import gr.uom.java.xmi.diff.ExtractOperationRefactoring
+import gr.uom.java.xmi.diff.ExtractSuperclassRefactoring
 import gr.uom.java.xmi.diff.ExtractVariableRefactoring
 import gr.uom.java.xmi.diff.InlineOperationRefactoring
 import gr.uom.java.xmi.diff.InlineVariableRefactoring
@@ -24,11 +28,13 @@ import gr.uom.java.xmi.diff.PullUpAttributeRefactoring
 import gr.uom.java.xmi.diff.PullUpOperationRefactoring
 import gr.uom.java.xmi.diff.PushDownAttributeRefactoring
 import gr.uom.java.xmi.diff.PushDownOperationRefactoring
+import gr.uom.java.xmi.diff.RemoveParameterRefactoring
 import gr.uom.java.xmi.diff.RenameAttributeRefactoring
 import gr.uom.java.xmi.diff.RenameClassRefactoring
 import gr.uom.java.xmi.diff.RenameOperationRefactoring
 import gr.uom.java.xmi.diff.RenamePackageRefactoring
 import gr.uom.java.xmi.diff.RenameVariableRefactoring
+import gr.uom.java.xmi.diff.ReorderParameterRefactoring
 import org.refactoringminer.api.Refactoring
 import org.refactoringminer.api.RefactoringType
 import org.refactoringminer.api.RefactoringHandler
@@ -404,7 +410,91 @@ class RefactoringMinerRunner(
             }
         }
 
+        // ── Change-signature family ─────────────────────────────────
+        // RM emits one event per delta (one parameter added, one type
+        // changed, …) but JDT's Change Method Signature op takes the
+        // FULL desired parameter list — so we always rebuild it from
+        // operationAfter. Existing-vs-Added is decided by name presence
+        // in operationBefore.
+        //
+        // newReturnType uses JDT's "" sentinel = "leave unchanged" for
+        // every refactoring that doesn't touch the return type;
+        // ChangeReturnType passes the new type explicitly. Doing it
+        // this way avoids needing to read the current return type
+        // (VariableDeclarationContainer doesn't expose it directly —
+        // only the UMLOperation subtype does).
+        is AddParameterRefactoring -> changeMethodSignatureSpec(
+            r.operationBefore, r.operationAfter, newReturnType = "",
+        )
+
+        is RemoveParameterRefactoring -> changeMethodSignatureSpec(
+            r.operationBefore, r.operationAfter, newReturnType = "",
+        )
+
+        is ReorderParameterRefactoring -> changeMethodSignatureSpec(
+            r.operationBefore, r.operationAfter, newReturnType = "",
+        )
+
+        is ChangeReturnTypeRefactoring -> changeMethodSignatureSpec(
+            r.operationBefore, r.operationAfter, newReturnType = r.changedType.toString(),
+        )
+
+        // ── Extract Superclass / Extract Interface ──────────────────
+        // RM uses one class for both, discriminated by the extracted
+        // class's `isInterface` flag.
+        is ExtractSuperclassRefactoring -> r.subclassSetBefore.firstOrNull()?.let { sourceFqn ->
+            val extracted = r.extractedClass
+            val newSimpleName = extracted.name.substringAfterLast('.')
+            val methodNames = extracted.operations.map { it.name }
+            val fieldNames = extracted.attributes.map { it.name }
+            if (extracted.isInterface) {
+                RefactoringSpec.ExtractInterface(
+                    sourceTypeFqn = sourceFqn,
+                    newInterfaceName = newSimpleName,
+                    methodNames = methodNames,
+                )
+            } else {
+                RefactoringSpec.ExtractSuperclass(
+                    sourceTypeFqn = sourceFqn,
+                    newSupertypeName = newSimpleName,
+                    methodNames = methodNames,
+                    fieldNames = fieldNames,
+                )
+            }
+        } ?: RefactoringSpec.Other
+
         else -> RefactoringSpec.Other
+    }
+
+    private fun changeMethodSignatureSpec(
+        operationBefore: VariableDeclarationContainer,
+        operationAfter: VariableDeclarationContainer,
+        newReturnType: String,
+    ): RefactoringSpec.ChangeMethodSignature {
+        val beforeNames = operationBefore.parametersWithoutReturnType.map { it.name }.toSet()
+        val parameters = operationAfter.parametersWithoutReturnType.map { p ->
+            if (p.name in beforeNames) {
+                RefactoringSpec.ChangeSignatureParameter.Existing(
+                    oldName = p.name,
+                    newName = p.name,
+                    newType = p.type.toString(),
+                )
+            } else {
+                RefactoringSpec.ChangeSignatureParameter.Added(
+                    name = p.name,
+                    type = p.type.toString(),
+                    defaultValue = "",
+                )
+            }
+        }
+        return RefactoringSpec.ChangeMethodSignature(
+            declaringTypeFqn = operationBefore.className,
+            oldMethodName = operationBefore.name,
+            paramTypeSignatures = null,
+            newMethodName = "",
+            newReturnType = newReturnType,
+            parameters = parameters,
+        )
     }
 
     private fun toLocation(c: CodeRange): RefactoringLocation = RefactoringLocation(
