@@ -8,12 +8,16 @@ import com.github.ethanhosier.analysis.reconstruct.GitRunner
 import com.github.ethanhosier.analysis.refactoring.RefactoringClient
 import com.github.ethanhosier.analysis.refactoring.RefactoringOutcome
 import com.github.ethanhosier.analysis.refactoring.ops.ChangeAttributeTypeRequest
+import com.github.ethanhosier.analysis.refactoring.ops.ChangeMethodSignatureRequest
 import com.github.ethanhosier.analysis.refactoring.ops.ChangeVariableTypeRequest
 import com.github.ethanhosier.analysis.refactoring.ops.ExtractAttributeRequest
+import com.github.ethanhosier.analysis.refactoring.ops.ExtractInterfaceRequest
 import com.github.ethanhosier.analysis.refactoring.ops.ExtractMethodRequest
+import com.github.ethanhosier.analysis.refactoring.ops.ExtractSuperclassRequest
 import com.github.ethanhosier.analysis.refactoring.ops.ExtractVariableRequest
 import com.github.ethanhosier.analysis.refactoring.ops.InlineMethodRequest
 import com.github.ethanhosier.analysis.refactoring.ops.InlineVariableRequest
+import com.github.ethanhosier.analysis.refactoring.ops.SignatureParameter
 import com.github.ethanhosier.analysis.refactoring.ops.MoveAndRenameAttributeRequest
 import com.github.ethanhosier.analysis.refactoring.ops.MoveAndRenameClassRequest
 import com.github.ethanhosier.analysis.refactoring.ops.MoveClassRequest
@@ -29,9 +33,12 @@ import com.github.ethanhosier.analysis.refactoring.ops.RenameMethodRequest
 import com.github.ethanhosier.analysis.refactoring.ops.RenamePackageRequest
 import com.github.ethanhosier.analysis.refactoring.ops.ReplaceVariableWithAttributeRequest
 import com.github.ethanhosier.analysis.refactoring.ops.changeAttributeType
+import com.github.ethanhosier.analysis.refactoring.ops.changeMethodSignature
 import com.github.ethanhosier.analysis.refactoring.ops.changeVariableType
 import com.github.ethanhosier.analysis.refactoring.ops.extractAttribute
+import com.github.ethanhosier.analysis.refactoring.ops.extractInterface
 import com.github.ethanhosier.analysis.refactoring.ops.extractMethod
+import com.github.ethanhosier.analysis.refactoring.ops.extractSuperclass
 import com.github.ethanhosier.analysis.refactoring.ops.extractVariable
 import com.github.ethanhosier.analysis.refactoring.ops.inlineMethod
 import com.github.ethanhosier.analysis.refactoring.ops.inlineVariable
@@ -476,6 +483,43 @@ class AlternativeTrajectoryRunner(
                 ),
             )
 
+            is RefactoringSpec.ChangeMethodSignature -> refactoringClient.changeMethodSignature(
+                ChangeMethodSignatureRequest(
+                    projectRoot = worktree,
+                    sourceFolders = sourceFolders,
+                    classpathJars = classpathJars,
+                    declaringTypeFqn = spec.declaringTypeFqn,
+                    oldMethodName = spec.oldMethodName,
+                    paramTypeSignatures = spec.paramTypeSignatures,
+                    newMethodName = spec.newMethodName,
+                    newReturnType = spec.newReturnType,
+                    parameters = spec.parameters.map { it.toOpsParameter() },
+                ),
+            )
+
+            is RefactoringSpec.ExtractSuperclass -> refactoringClient.extractSuperclass(
+                ExtractSuperclassRequest(
+                    projectRoot = worktree,
+                    sourceFolders = sourceFolders,
+                    classpathJars = classpathJars,
+                    sourceTypeFqn = spec.sourceTypeFqn,
+                    newSupertypeName = spec.newSupertypeName,
+                    methodNames = spec.methodNames,
+                    fieldNames = spec.fieldNames,
+                ),
+            )
+
+            is RefactoringSpec.ExtractInterface -> refactoringClient.extractInterface(
+                ExtractInterfaceRequest(
+                    projectRoot = worktree,
+                    sourceFolders = sourceFolders,
+                    classpathJars = classpathJars,
+                    sourceTypeFqn = spec.sourceTypeFqn,
+                    newInterfaceName = spec.newInterfaceName,
+                    methodNames = spec.methodNames,
+                ),
+            )
+
             // Each remaining kind gets its own arm as the matching
             // RM-typed mapper lands. Until then, candidates fall through
             // to "not implemented" and are skipped at synthesis time.
@@ -489,6 +533,19 @@ class AlternativeTrajectoryRunner(
                 "RefactoringClient: ${outcome.reason}",
             )
         }
+    }
+
+    private fun RefactoringSpec.ChangeSignatureParameter.toOpsParameter(): SignatureParameter = when (this) {
+        is RefactoringSpec.ChangeSignatureParameter.Existing -> SignatureParameter.Existing(
+            oldName = oldName,
+            newName = newName,
+            newType = newType,
+        )
+        is RefactoringSpec.ChangeSignatureParameter.Added -> SignatureParameter.Added(
+            name = name,
+            type = type,
+            defaultValue = defaultValue,
+        )
     }
 
     private sealed interface DispatchResult {
