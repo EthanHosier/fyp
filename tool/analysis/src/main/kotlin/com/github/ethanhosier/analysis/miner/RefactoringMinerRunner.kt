@@ -9,6 +9,10 @@ import com.github.ethanhosier.analysis.model.ReconstructionResult
 import com.github.ethanhosier.analysis.model.Trace
 import com.github.ethanhosier.ideplugin.model.EventType
 import gr.uom.java.xmi.diff.CodeRange
+import gr.uom.java.xmi.diff.RenameAttributeRefactoring
+import gr.uom.java.xmi.diff.RenameClassRefactoring
+import gr.uom.java.xmi.diff.RenameOperationRefactoring
+import gr.uom.java.xmi.diff.RenamePackageRefactoring
 import org.refactoringminer.api.Refactoring
 import org.refactoringminer.api.RefactoringHandler
 import org.refactoringminer.rm1.GitHistoryRefactoringMinerImpl
@@ -170,9 +174,38 @@ class RefactoringMinerRunner(
      * a kind has its arm, manual detections of that kind don't
      * synthesise an alternative.
      */
-    private fun toSpec(r: Refactoring): RefactoringSpec {
-        // Typed arms land in subsequent commits.
-        return RefactoringSpec.Other
+    private fun toSpec(r: Refactoring): RefactoringSpec = when (r) {
+        is RenameOperationRefactoring -> RefactoringSpec.RenameMethod(
+            declaringTypeFqn = r.originalOperation.className,
+            oldName = r.originalOperation.name,
+            newName = r.renamedOperation.name,
+            // JDT can auto-disambiguate when the name is unique on the
+            // declaring type. RM doesn't surface the JDT-encoded
+            // signature; the rename op falls back to the unique-name
+            // path, which covers the common case.
+            paramTypeSignatures = null,
+        )
+
+        is RenameClassRefactoring -> RefactoringSpec.RenameClass(
+            typeFqn = r.originalClassName,
+            newName = r.renamedClassName.substringAfterLast('.'),
+        )
+
+        is RenameAttributeRefactoring -> RefactoringSpec.RenameField(
+            declaringTypeFqn = r.classNameBefore,
+            oldName = r.originalAttribute.name,
+            newName = r.renamedAttribute.name,
+        )
+
+        is RenamePackageRefactoring -> RefactoringSpec.RenamePackage(
+            // RM's RenamePattern strings are the matched prefix of the
+            // package path with a trailing dot (e.g. `com.foo.`); strip
+            // it so the JDT op gets a clean package FQN.
+            oldPackage = r.pattern.before.trimEnd('.'),
+            newPackage = r.pattern.after.trimEnd('.'),
+        )
+
+        else -> RefactoringSpec.Other
     }
 
     private fun toLocation(c: CodeRange): RefactoringLocation = RefactoringLocation(
