@@ -1,192 +1,240 @@
-# Alternative Trajectories — Plan
+# Alternative trajectories — synthesise IDE-driven equivalents of manual multi-step refactorings
 
-## Goal
+## Context
 
-For each refactoring the user performed manually (detected by RefactoringMiner), simulate the IDE-automated path and surface a "what if" comparison — time saved, churn reduction, build/tests pass, metric deltas — in the dashboard.
+`:analysis` already detects refactorings the user performed manually (via `RefactoringMinerRunner`) and now ships a production `RefactoringClient` that can apply any IDE-equivalent refactoring headlessly (PR #24, merged). The two have not been wired together.
 
-## Status
+This plan adds a new pipeline stage that, for every detected manual refactoring whose `[fromSha, toSha]` window contains at least one intermediate checkpoint (i.e. the user took a manual detour the IDE could have collapsed into one click), synthesises the IDE-driven version: it borrows a worktree at `fromSha`, runs the matching `RefactoringClient` op, and commits the result as a synthetic alt-SHA. Metrics are then computed for that alt-SHA in the same pass as the main trace, and the result is surfaced top-level on the report so the frontend can join it back to the corresponding `RefactoringStep` via `(fromSha, toSha)`.
 
-Spike landed on branch `alternative-trajectories` (commit `3ebff11`).
+A second goal is housekeeping: the miner is independent of metrics today (only `Reconstruction` feeds both), so we move the miner ahead of metrics in `AnalysisPipeline`. This lets us synthesise alt-SHAs *before* metrics runs and pass them as an extra param to a single `MetricsRunner.run(...)` call — no double-pass over the worktree pool.
 
-Proves: we can drive JDT's real refactoring framework (LTK + `ExtractMethodRefactoring`) from a plain Gradle JUnit test with no Eclipse IDE present. The test rewrites a fixture source file correctly and passes cleanly.
+## Triggering condition
 
-What the spike covers today (single-file):
-- `:refactoring-bundle` Kotlin subproject packaged as an OSGi bundle with `JdtRefactorer.extractMethod(...)`.
-- `analysis/src/test/.../jdt/EquinoxBootstrap.kt` boots an in-process Equinox framework, scans the test classpath, wraps non-bundle jars (commonmark, kotlin-stdlib) with fabricated OSGi manifests, installs + starts Eclipse platform bundles + Felix SCR in dependency order.
-- Spike test installs the refactoring bundle, invokes the entry point reflectively through the bundle's classloader, asserts output. Workspace lifecycle is clean (no `@TempDir` lock races).
+For a `RefactoringStep s`, synthesise an alternative iff **all** of:
 
-What the spike does **not** cover yet:
-- Project-wide (multi-file) rename/refactor.
-- Classpath extraction from a real Gradle/Maven project.
-- Integration into the analysis pipeline.
-- `alternativeTrajectories` data model, runner, TS types, dashboard UI.
+- `s.refactoring` is an IDE-relevant variant (i.e. not the `Other` leaf of the new sealed hierarchy below) — `RefactoringClient` supports the type at all.
+- `s.wasPerformedByIde == false` — the user did it manually; an IDE-driven version is genuinely an alternative.
+- At least one intermediate unique SHA lies strictly between `s.fromSha` and `s.toSha` in `reconstruction.eventCommits` ordered values — i.e. the user took >1 commit step to land it.
 
-## One-time infrastructure (next step)
+Steps not meeting all three are passed through unchanged (`alternativeTrajectories` simply omits them).
 
-Turn the single-file spike into a real project-wide harness. After this, new refactoring types are ~10–30 LoC each.
+## Miner output enrichment — sealed `DetectedRefactoring`
 
-### 1. Point the Eclipse project at the user's worktree
+Today `DetectedRefactoring` is a flat data class carrying `type: String` plus pre/post `RefactoringLocation` lists and a stringly `description`. Synthesis can't reliably build a typed `RefactoringClient` request from that — every adapter would re-parse the description string.
 
-Change `JdtRefactorer.materialise` to:
-- `desc.setLocation(IPath(projectRoot))` — project's physical location *is* the worktree, no copy. Edits land directly on disk.
-- Keep `osgi.instance.area` on a temp dir distinct from the worktree so Eclipse's `.metadata/` never lands inside the project.
-
-### 2. Configure the build path
-
-Today we set only the Java nature. For reference resolution we need:
-
-- One `IClasspathEntry` per source folder (`src/main/java`, `src/test/java`, …). `JavaCore.newSourceEntry(path)`.
-- `JavaRuntime.getDefaultJREContainerEntry()` — pulls in the JRE via the `org.eclipse.jdt.launching` bundle (already installed by the spike).
-- One `JavaCore.newLibraryEntry(jarPath, …)` per compile-time dependency jar.
-- Output folder `bin/` so JDT has somewhere to park compiled state.
-
-Combine into `javaProject.setRawClasspath(entries, monitor)`.
-
-### 3. Wait for indexing
-
-After classpath setup, JDT indexes asynchronously. Before running any refactoring:
-
-```
-new SearchEngine().searchAllTypeNames(
-  null, SearchPattern.R_EXACT_MATCH,
-  "__force_index__".toCharArray(), SearchPattern.R_EXACT_MATCH,
-  IJavaSearchConstants.TYPE, scope, requestor,
-  IJavaSearchConstants.WAIT_UNTIL_READY_TO_SEARCH, monitor);
-```
-
-or equivalent blocking search. Avoid `internal.*` IndexManager APIs.
-
-### 4. Classpath extraction from Gradle
-
-Separate concern — callers pass in the list of jars. Two options:
-
-- **Snapshot at record time.** The IDE plugin already knows the module's classpath (it's the IntelliJ project model). Record it into the session payload alongside events; analysis pipeline reads it back.
-- **Invoke Gradle on demand.** Add a `printRuntimeClasspath` task, run it from the pipeline against the worktree SHA. Slower; repeated per refactoring.
-
-Start with (1) — cheaper, uses info we already have in-process on the IDE side.
-
-### 5. Multi-file API shape
+Replace with a **sealed hierarchy**, one `data class` per IDE-relevant type, each carrying exactly the fields the matching `RefactoringClient` op needs. Non-IDE-relevant detections stay representable via a single `Other` leaf so the miner output remains lossless.
 
 ```kotlin
-fun renameMethod(
-    projectName: String,
-    projectRoot: Path,
-    sourceFolders: List<String>,     // relative to projectRoot
-    classpathJars: List<Path>,
-    declaringTypeFqn: String,
-    oldName: String,
-    newName: String,
-    paramTypeSignatures: List<String>? = null,  // disambiguate overloads
+@Serializable
+sealed interface DetectedRefactoring {
+    val type: String                  // RM display name, kept for back-compat / dashboards
+    val description: String
+    val leftSideLocations: List<RefactoringLocation>
+    val rightSideLocations: List<RefactoringLocation>
+
+    @Serializable @SerialName("ExtractMethod")
+    data class ExtractMethod(
+        override val type: String, override val description: String,
+        override val leftSideLocations: List<RefactoringLocation>,
+        override val rightSideLocations: List<RefactoringLocation>,
+        val sourceFilePath: String,
+        val extractedSelectionStartLine: Int,
+        val extractedSelectionEndLine: Int,
+        val newMethodName: String,
+    ) : DetectedRefactoring
+
+    @Serializable @SerialName("RenameMethod")
+    data class RenameMethod(
+        // …
+        val declaringTypeFqn: String,
+        val oldName: String,
+        val newName: String,
+        val paramTypeSignatures: List<String>,
+    ) : DetectedRefactoring
+
+    // … one variant per ideRelevant kind in IdeRelevantRefactorings, each
+    //    mirroring the typed request shape its RefactoringClient op consumes …
+
+    @Serializable @SerialName("Other")
+    data class Other(
+        override val type: String, override val description: String,
+        override val leftSideLocations: List<RefactoringLocation>,
+        override val rightSideLocations: List<RefactoringLocation>,
+    ) : DetectedRefactoring
+}
+```
+
+`ideRelevant` becomes derived (`this !is Other`) — drop the boolean field on `DetectedRefactoring`.
+
+`RefactoringMinerRunner` is updated to read RM's typed model objects (RM's own `Refactoring` subclasses already expose method/field/type info via getters) and populate the matching variant rather than only the location lists. Each RM type gets a small mapper function — these live alongside `IdeRelevantRefactorings`. RM types that aren't on the allowlist map to `Other`.
+
+This is the single largest piece of new code in the PR but it's mechanical and well-bounded: RM's type set is closed and matches our `IdeRelevantRefactorings` 1:1 today.
+
+## New stage — `AlternativeTrajectoryRunner`
+
+New file: `analysis/src/main/kotlin/com/github/ethanhosier/analysis/alternative/AlternativeTrajectoryRunner.kt`.
+
+```kotlin
+class AlternativeTrajectoryRunner(
+    private val refactoringClient: RefactoringClient,
+    private val git: GitRunner,
+    private val parallelism: Int = …,
+) {
+    data class Synthesised(
+        val stepIndex: Int,
+        val fromSha: String,
+        val userToSha: String,        // s.toSha — handy for frontend joins
+        val altSha: String,            // synthetic commit produced from fromSha + IDE refactoring
+        val branchRef: String,         // "alt/<stepIndex>"
+    )
+
+    data class Summary(
+        val candidates: Int,            // steps that met the trigger condition
+        val synthesised: List<Synthesised>,
+        val skipped: Map<Int, String>,  // stepIndex → reason (e.g. "RefactoringClient returned Failed: …")
+    )
+
+    fun run(
+        reconstruction: ReconstructionResult,
+        steps: List<RefactoringStep>,
+        sessionFolder: Path,
+    ): Summary
+}
+```
+
+Per candidate step:
+
+1. Borrow a worktree at `s.fromSha` from a `WorktreePool` instance scoped to this stage.
+2. Resolve the right `RefactoringClient` op via a `when (s.refactoring) { is ExtractMethod -> …; is RenameMethod -> … }` dispatch — one short branch per type, each ~6 LoC: build the typed request from the sealed-variant fields, call the op, return the `RefactoringOutcome`.
+3. On `Success`: `git add -A && git commit -m "alt: step <i> <type>"` *inside the worktree*, capture the resulting SHA, and push it onto a branch `alt/<stepIndex>` in the shared shadow repo via `git branch alt/<i> <sha>`. The branch ref keeps the commit reachable for downstream metrics + diffs.
+4. On `Failed`: record `skipped[stepIndex] = reason`; do not commit. Worktree is released cleanly.
+
+Parallelism mirrors `MetricsRunner`'s pattern (executor + per-task `borrow/release`). `RefactoringClient` itself is serialised internally by its own `ReentrantLock`, so the parallelism here is bounded by that lock — but the worktree setup, git commit, and branch ref work all parallelise. Acceptable for a first cut; revisit if it becomes a bottleneck.
+
+## MetricsRunner — single run, two SHA groups
+
+Per the user's preference: keep one entry point and add an extra param.
+
+```kotlin
+fun run(
+    reconstruction: ReconstructionResult,
+    sessionFolder: Path,
+    alternativeShas: List<String> = emptyList(),
+): Summary
+```
+
+Internal change is small: union `uniqueShas + alternativeShas` (preserving order, dedup'd) when seeding the executor; the existing `<sha>.json` cache + `computeOne` path is unchanged. `Summary` gains one field:
+
+```kotlin
+data class Summary(
+    // … existing …
+    val alternativeCheckpoints: List<CheckpointMetrics> = emptyList(),
 )
 ```
 
-No return value — edits land on the worktree directly. Caller diffs against the pre-refactor SHA to collect the patch.
+Populated by partitioning the parallel results back into the two groups by SHA membership. `diffBySha` is still computed for the trace SHAs as today; for alt SHAs we additionally compute `fromSha → altSha` diffs via a small helper `DiffRunner.runPairs(pairs: List<Pair<String, String>>): Map<String, DiffStats>` keyed by the `altSha` and folded into `diffBySha`.
 
-### 6. Finding the IMethod in a real project
+## Pipeline reordering
 
-With a proper classpath, `icu.javaProject.findType(fqn)` works. For overloads use `type.getMethod(name, paramTypeSignatures)` where signatures are JDT-encoded (`Ljava/lang/String;`, `I`, `V`, …).
+`AnalysisPipeline.run`:
 
-### 7. Failure isolation
+```
+Load → Normalize → Reconstruct
+                   ├─ Miner            (was: after Metrics)
+                   ├─ AlternativeTrajectoryRunner   (new, depends on Miner only)
+                   ├─ Metrics(reconstruction, sessionDir, altShas = synthesised.map { it.altSha })
+                   └─ Diffs(reconstruction, miner.steps, alternativeSummary)
+                       │   produces existing checkpointPatches + refactoringPatches
+                       │   plus new alternativePatches: Map<stepIndex, String>
+                       │   each = git.diffPatch(step.fromSha, alt.altSha)
+                  ▼
+              buildAnalysisReport
+```
 
-The worktree is mutated in place; if a refactoring fails we need to undo. Two options:
+The miner already has no metrics dependency, so promoting it ahead is a pure reorder. `alt/<stepIndex>` branches are persisted before metrics begins so the worktree pool can check them out like any other ref.
 
-- **Copy-on-write worktree per simulation.** Reuse `WorktreePool` (already exists for RM). Each alt-trajectory runs in its own worktree; discarded after.
-- **Git reset after each run.** Simpler, but the pipeline already provisions worktrees so (1) is free.
+`AnalysisPipeline.Result` gains `alternativeSummary: AlternativeTrajectoryRunner.Summary` and `alternativeDurationMs: Long`.
 
-Go with (1).
+`RefactoringClient` is constructed **once** at the pipeline level and passed into `AnalysisPipeline` via constructor. The pipeline itself doesn't own the lifecycle — the server's app-scoped singleton (already planned in the previous PR's server lifecycle wiring) owns it; CLI callers boot a client themselves and pass it in.
 
-## Verification (multi-file spike)
+## Diffs for alternative paths
 
-Before wiring into the pipeline:
-
-- Fixture: two hand-written `.java` files — a class defining `foo()` and another calling it.
-- Test: call `renameMethod(...)` with `foo` → `bar`.
-- Assert: both files on disk contain `bar`, neither contains `foo`.
-- Classpath: empty (or just JRE) — no external deps needed for this fixture.
-
-## Per-new-refactoring cost
-
-Once the multi-file harness is in place, each new refactoring is:
-
-- One new method on `JdtRefactorer`.
-- Pick the right JDT descriptor constant or refactoring class:
-  - Extract Method — `ExtractMethodRefactoring` (already done).
-  - Rename Method — `IJavaRefactorings.RENAME_METHOD` descriptor.
-  - Inline Method — `IJavaRefactorings.INLINE_METHOD` descriptor.
-  - Move Method / Move Static — `IJavaRefactorings.MOVE_METHOD` / `MOVE`.
-  - Change Method Signature — `IJavaRefactorings.CHANGE_METHOD_SIGNATURE`.
-  - Pull Up / Push Down — `IJavaRefactorings.PULL_UP` / `PUSH_DOWN`.
-- Set the refactoring-specific options via the descriptor's setters.
-- Reuse `materialise` + `runRefactoring` unchanged.
-
-Occasional one-liners added to the `init` block when a new refactoring trips on a preference that `jdt.ui` normally seeds.
-
-## Residual maintenance cost
-
-- Eclipse version bumps can reshuffle bundle manifests. Rare, non-zero.
-- New preferences from `jdt.ui` surface per refactoring. Add as they hit.
-
-## Pipeline integration (after harness works)
-
-### Server
-
-- New stage `alternatives/AlternativeTrajectoryRunner` after `DiffsRunner` + `RefactoringMinerRunner`.
-- Eligibility: `wasPerformedByIde == false && refactoring.ideRelevant && type == "Extract Method"` initially; spans >1 manual-edit checkpoint since the last anchor.
-- For each eligible step: snapshot a worktree at `fromSha`, invoke `JdtRefactorer.extractMethod(...)`, commit → `toSha'`, run build + tests + metrics in that worktree.
-- Output: `List<AlternativeTrajectory>` on `AnalysisReport`.
-- Time constant: `AUTOMATED_REFACTOR_DURATION_MS = 5_000L`. `timeSavedMs = realDurationMs - 5_000`.
-
-### Data model
+Reuse the existing `DiffsRunner` machinery — alt SHAs are real refs in the shadow repo (`alt/<stepIndex>` branch), so `git.diffPatch(fromSha, altSha)` already works. Extend `DiffsRunner.run(...)` to take `AlternativeTrajectoryRunner.Summary` as a third argument and emit a new map alongside the existing two:
 
 ```kotlin
+data class Summary(
+    val checkpointPatches: Map<String, String>,    // existing — keyed by toSha
+    val refactoringPatches: Map<Int, String>,      // existing — keyed by stepIndex; fromSha → userToSha hunk-filtered
+    val alternativePatches: Map<Int, String>,      // new — keyed by stepIndex; fromSha → altSha (no hunk-filter, the whole IDE-driven change is the point)
+)
+```
+
+No new git plumbing required — `GitRunner.diffPatch(from, to)` is the same call as for refactoring patches. Symmetrical to `refactoringPatches`, so the frontend renders the IDE-driven alternative side-by-side with the user's manual version using identical patch-rendering plumbing.
+
+Skipped: the `altSha → userToSha` "how the user diverged from the IDE alternative" diff. Not needed for v1; trivial to add later as a fourth map keyed by stepIndex.
+
+## Report shape — top-level
+
+`AnalysisReport` gains two top-level fields. Top-level (not nested under `RefactoringStep`) because the join can be reconstructed on the frontend from `(stepIndex, fromSha, userToSha)`.
+
+```kotlin
+@Serializable
+data class AnalysisReport(
+    // … existing fields …
+    val alternativeTrajectories: List<AlternativeTrajectory> = emptyList(),
+    val alternativePatches: Map<Int, String> = emptyMap(),   // mirrors refactoringPatches
+)
+
 @Serializable
 data class AlternativeTrajectory(
-    val refactoringStepIndex: Int,
-    val realStartSha: String,
-    val realEndSha: String,
-    val realDurationMs: Long,
-    val steps: List<AlternativeStep>,
-    val comparison: AlternativeComparison,
-)
-
-@Serializable
-data class AlternativeStep(
+    val stepIndex: Int,             // join key into refactoringSteps + alternativePatches
     val fromSha: String,
-    val toSha: String,
-    val label: String,
-    val patch: String,
-    val metrics: CheckpointMetrics,
-)
-
-@Serializable
-data class AlternativeComparison(
-    val timeSavedMs: Long,
-    val churnDelta: Int,
-    val buildPassedAlt: Boolean,
-    val testsPassedAlt: Boolean,
-    val complexityDelta: Double,
-    val couplingDelta: Double,
-    val duplicationDelta: Double,
+    val userToSha: String,          // join key into checkpoints (the user's actual end-state)
+    val altSha: String,             // join key into checkpoints (alt CheckpointMetrics live alongside the user's)
+    val branchRef: String,
 )
 ```
 
-`AnalysisReport.alternativeTrajectories: List<AlternativeTrajectory>`. Regenerate TS types.
+Every `CheckpointMetrics` still lives in `report.checkpoints`; alt SHAs go in alongside trace SHAs (with the existing schema, no flag needed). The frontend joins each `AlternativeTrajectory` back to its `RefactoringStep` via `stepIndex`, to its metrics via the three SHA fields, and to its patch via `alternativePatches[stepIndex]`. No nested objects, no UI plumbing changes for existing checkpoint/refactoring views.
 
-### Dashboard
+## Critical files
 
-Out of scope for v0. Backend emits the data; UI lands in a follow-up.
+**New:**
+- `analysis/src/main/kotlin/com/github/ethanhosier/analysis/alternative/AlternativeTrajectoryRunner.kt`
+- `analysis/src/main/kotlin/com/github/ethanhosier/analysis/alternative/RefactoringClientDispatch.kt` — the `when (DetectedRefactoring)` → `RefactoringOutcome` dispatch table; one short arm per IDE-relevant type
+- `analysis/src/main/kotlin/com/github/ethanhosier/analysis/metrics/model/AlternativeTrajectory.kt`
 
-## Sequencing
+**Modified:**
+- `analysis/src/main/kotlin/com/github/ethanhosier/analysis/miner/model/DetectedRefactoring.kt` — flat → sealed hierarchy
+- `analysis/src/main/kotlin/com/github/ethanhosier/analysis/miner/RefactoringMinerRunner.kt` — populate sealed variants from RM's typed model
+- `analysis/src/main/kotlin/com/github/ethanhosier/analysis/miner/IdeRelevantRefactorings.kt` — drop `ideRelevant: Boolean` from miner output (allowlist still used by mapper to choose typed-vs-Other variant)
+- `analysis/src/main/kotlin/com/github/ethanhosier/analysis/metrics/MetricsRunner.kt` — add `alternativeShas` param; partition `Summary.checkpoints` and add `alternativeCheckpoints`
+- `analysis/src/main/kotlin/com/github/ethanhosier/analysis/metrics/gitdiff/DiffRunner.kt` — add `runPairs(...)` helper for from→alt `DiffStats`
+- `analysis/src/main/kotlin/com/github/ethanhosier/analysis/diffs/DiffsRunner.kt` — accept `AlternativeTrajectoryRunner.Summary`; populate new `alternativePatches: Map<Int, String>` via `git.diffPatch(fromSha, altSha)`
+- `analysis/src/main/kotlin/com/github/ethanhosier/analysis/metrics/model/AnalysisReport.kt` — add `alternativeTrajectories: List<AlternativeTrajectory>` and `alternativePatches: Map<Int, String>`
+- `analysis/src/main/kotlin/com/github/ethanhosier/analysis/pipeline/AnalysisPipeline.kt` — reorder stages, accept `RefactoringClient`, plumb alt SHAs through metrics, populate report
+- `analysis/src/main/kotlin/com/github/ethanhosier/analysis/server/*.kt` — pass the app-singleton `RefactoringClient` into `AnalysisPipeline`
 
-1. Multi-file fixture spike (validates classpath + indexing).
-2. Classpath extraction via IDE plugin → session payload.
-3. `AlternativeTrajectory*` data types + TS regen.
-4. `AlternativeTrajectoryRunner` pipeline stage wiring.
-5. Real session end-to-end test.
-6. Dashboard UI (later PR).
+**Reused (no change):**
+- `analysis/src/main/kotlin/com/github/ethanhosier/analysis/refactoring/RefactoringClient.kt` and the 30+ ops under `analysis/src/main/kotlin/com/github/ethanhosier/analysis/refactoring/ops/` — drive synthesis
+- `analysis/src/main/kotlin/com/github/ethanhosier/analysis/metrics/WorktreePool.kt` — borrow at `fromSha` for synthesis
+- `analysis/src/main/kotlin/com/github/ethanhosier/analysis/reconstruct/GitRunner.kt` — `git add -A && git commit && git branch alt/<i>`
 
-## Open questions
+## Verification
 
-- Is step (2) — classpath via IDE plugin — feasible per-checkpoint, or should it be snapshotted once per session? Session-once is cheaper but risks drift if Gradle deps change mid-session. Per-checkpoint is expensive. Default: session-once, re-snapshot if `build.gradle*` mutates.
-- Worktree pool sizing: the RM runner already sizes by parallelism × 2. Alt-trajectory runner may want more; revisit after measuring.
-- What to do when the JDT refactoring rejects the simulation (e.g. selection doesn't cover a clean statement set). Proposed: record as `simulationFailed: true` + reason string; dashboard surfaces a muted "couldn't simulate" card rather than a comparison.
+1. **Unit test — DetectedRefactoring sealed migration**: existing `RefactoringMinerRunnerTest` (or its closest equivalent) keeps green after switching to sealed variants. Add at least one assertion per IDE-relevant variant that the typed fields are populated from RM's typed model.
+2. **Unit test — `AlternativeTrajectoryRunner` happy path**: hand-built two-checkpoint fixture where the user does Extract Method across two commits. Assert `synthesised.size == 1`, the produced `altSha` exists in the shadow repo, and the alt commit's tree contains the new private method.
+3. **Unit test — trigger filter**: a manual one-step refactoring (no intermediate SHA) → `synthesised` empty. An IDE-performed one (regardless of span) → empty. A non-`ideRelevant` (Other) variant → empty.
+4. **Integration test — full pipeline**: extend `AnalysisPipelineTest` with a session that contains a multi-step manual rename method. Assert `report.alternativeTrajectories` has one entry whose `altSha` appears in `report.checkpoints` with green build/tests, and whose `patch` is non-empty.
+5. **Pipeline ordering**: assert miner runs before metrics in `AnalysisPipeline.run` (test reads `Result` durations or relies on a thin spy).
+6. **`./gradlew :analysis:check` green**.
+7. **Server smoke test**: `./gradlew :analysis:runServer`, POST a session that exercises the new path, confirm the response JSON contains `alternativeTrajectories` with a populated `altSha`.
+
+## Sequencing within the PR
+
+1. Migrate `DetectedRefactoring` to a sealed hierarchy. Update `RefactoringMinerRunner` to populate typed variants. Get existing miner tests green.
+2. Add `AlternativeTrajectoryRunner` + `RefactoringClientDispatch.kt`. Cover Extract Method end-to-end first (smallest dispatch arm to validate the loop).
+3. Wire `MetricsRunner` to accept `alternativeShas`. Add `DiffRunner.runPairs`.
+4. Reorder `AnalysisPipeline`; add `AlternativeTrajectory` to `AnalysisReport`.
+5. Fill in remaining dispatch arms one by one; each lands with at least one synthesis fixture.
+6. Server wiring; integration test; runServer smoke check.
