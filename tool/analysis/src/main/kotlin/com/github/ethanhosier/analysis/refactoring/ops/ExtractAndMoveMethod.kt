@@ -21,7 +21,9 @@ data class ExtractAndMoveMethodRequest(
     val classpathJars: List<Path>,
     val relativeFilePath: String,
     val startLine: Int,
+    val startColumn: Int,
     val endLine: Int,
+    val endColumn: Int,
     val newMethodName: String,
     // FQN of the class containing the extracted selection — needed so
     // the Move Instance Method step can locate the new method.
@@ -37,7 +39,9 @@ fun RefactoringClient.extractAndMoveMethod(req: ExtractAndMoveMethodRequest): Re
             classpathJars = req.classpathJars,
             relativeFilePath = req.relativeFilePath,
             startLine = req.startLine,
+            startColumn = req.startColumn,
             endLine = req.endLine,
+            endColumn = req.endColumn,
             newMethodName = req.newMethodName,
         ),
     )

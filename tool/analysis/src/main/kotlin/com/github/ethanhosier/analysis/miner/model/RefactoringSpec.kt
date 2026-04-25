@@ -38,7 +38,9 @@ sealed interface RefactoringSpec {
     data class ExtractMethod(
         val relativeFilePath: String,
         val startLine: Int,
+        val startColumn: Int,
         val endLine: Int,
+        val endColumn: Int,
         val newMethodName: String,
     ) : RefactoringSpec
 
@@ -234,7 +236,9 @@ sealed interface RefactoringSpec {
     data class ExtractAndMoveMethod(
         val relativeFilePath: String,
         val startLine: Int,
+        val startColumn: Int,
         val endLine: Int,
+        val endColumn: Int,
         val newMethodName: String,
         val declaringTypeFqn: String,
         val moveTargetName: String,
