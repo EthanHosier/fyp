@@ -119,10 +119,12 @@ object JdtRefactorer {
         classpathJars: Array<String>,
         relativeFilePath: String,
         startLine: Int,
+        startColumn: Int,
         endLine: Int,
+        endColumn: Int,
         newMethodName: String,
     ): String = RefactoringHost.run(projectRoot, sourceFolders, classpathJars) { jp ->
-        ExtractMethodOp.run(jp, relativeFilePath, startLine, endLine, newMethodName)
+        ExtractMethodOp.run(jp, relativeFilePath, startLine, startColumn, endLine, endColumn, newMethodName)
     }
 
     @JvmStatic

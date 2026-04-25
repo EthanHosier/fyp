@@ -284,19 +284,31 @@ class RefactoringMinerRunner(
         )
 
         is ExtractOperationRefactoring -> {
-            // RM's leftSide() for an Extract Method returns the source
-            // statements that were extracted; collapse to one (file,
-            // start..end) range. Picks the file from the first location
-            // — RM ranges within a single detection are always on the
-            // same file (extraction can't cross files).
-            val left = r.leftSide()
-            if (left.isEmpty()) RefactoringSpec.Other
-            else RefactoringSpec.ExtractMethod(
-                relativeFilePath = left.first().filePath,
-                startLine = left.minOf { it.startLine },
-                endLine = left.maxOf { it.endLine },
-                newMethodName = r.extractedOperation.name,
-            )
+            // RM's leftSide() returns BOTH the extracted code-fragments
+            // AND the containing METHOD_DECLARATION. The latter is
+            // context, not a selection — including its line range here
+            // would balloon the bounding box to the whole source method
+            // and JDT would reject the selection. Filter it out and
+            // keep only the actual extracted fragments.
+            val fragments = r.leftSide().filter { it.codeElementType.toString() != "METHOD_DECLARATION" }
+            if (fragments.isEmpty()) RefactoringSpec.Other
+            else {
+                // Earliest start, latest end — JDT then needs every
+                // statement strictly inside that range to be extractable
+                // together (which is exactly what RM has already
+                // verified by detecting the refactoring at all).
+                val sorted = fragments.sortedWith(compareBy({ it.startLine }, { it.startColumn }))
+                val first = sorted.first()
+                val last = sorted.maxByOrNull { it.endLine * 10_000 + it.endColumn }!!
+                RefactoringSpec.ExtractMethod(
+                    relativeFilePath = first.filePath,
+                    startLine = first.startLine,
+                    startColumn = first.startColumn,
+                    endLine = last.endLine,
+                    endColumn = last.endColumn,
+                    newMethodName = r.extractedOperation.name,
+                )
+            }
         }
 
         is InlineOperationRefactoring -> RefactoringSpec.InlineMethod(
