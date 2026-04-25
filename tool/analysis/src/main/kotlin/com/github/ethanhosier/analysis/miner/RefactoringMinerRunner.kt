@@ -8,7 +8,14 @@ import com.github.ethanhosier.analysis.miner.model.RefactoringStep
 import com.github.ethanhosier.analysis.model.ReconstructionResult
 import com.github.ethanhosier.analysis.model.Trace
 import com.github.ethanhosier.ideplugin.model.EventType
+import gr.uom.java.xmi.diff.ChangeAttributeTypeRefactoring
+import gr.uom.java.xmi.diff.ChangeVariableTypeRefactoring
 import gr.uom.java.xmi.diff.CodeRange
+import gr.uom.java.xmi.diff.ExtractAttributeRefactoring
+import gr.uom.java.xmi.diff.ExtractOperationRefactoring
+import gr.uom.java.xmi.diff.ExtractVariableRefactoring
+import gr.uom.java.xmi.diff.InlineOperationRefactoring
+import gr.uom.java.xmi.diff.InlineVariableRefactoring
 import gr.uom.java.xmi.diff.MoveAndRenameAttributeRefactoring
 import gr.uom.java.xmi.diff.MoveAndRenameClassRefactoring
 import gr.uom.java.xmi.diff.MoveAttributeRefactoring
@@ -21,7 +28,9 @@ import gr.uom.java.xmi.diff.RenameAttributeRefactoring
 import gr.uom.java.xmi.diff.RenameClassRefactoring
 import gr.uom.java.xmi.diff.RenameOperationRefactoring
 import gr.uom.java.xmi.diff.RenamePackageRefactoring
+import gr.uom.java.xmi.diff.RenameVariableRefactoring
 import org.refactoringminer.api.Refactoring
+import org.refactoringminer.api.RefactoringType
 import org.refactoringminer.api.RefactoringHandler
 import org.refactoringminer.rm1.GitHistoryRefactoringMinerImpl
 import java.nio.file.Path
@@ -266,6 +275,134 @@ class RefactoringMinerRunner(
             fieldName = r.originalAttribute.name,
             destinationTypeFqn = r.targetClassName,
         )
+
+        is ExtractOperationRefactoring -> {
+            // RM's leftSide() for an Extract Method returns the source
+            // statements that were extracted; collapse to one (file,
+            // start..end) range. Picks the file from the first location
+            // — RM ranges within a single detection are always on the
+            // same file (extraction can't cross files).
+            val left = r.leftSide()
+            if (left.isEmpty()) RefactoringSpec.Other
+            else RefactoringSpec.ExtractMethod(
+                relativeFilePath = left.first().filePath,
+                startLine = left.minOf { it.startLine },
+                endLine = left.maxOf { it.endLine },
+                newMethodName = r.extractedOperation.name,
+            )
+        }
+
+        is InlineOperationRefactoring -> RefactoringSpec.InlineMethod(
+            declaringTypeFqn = r.inlinedOperation.className,
+            methodName = r.inlinedOperation.name,
+        )
+
+        is ExtractVariableRefactoring -> {
+            // leftSide() points at the original expression's location;
+            // its (line, col) range is what JDT's Extract Local
+            // Variable selects.
+            val left = r.leftSide().firstOrNull()
+            if (left == null) RefactoringSpec.Other
+            else RefactoringSpec.ExtractVariable(
+                relativeFilePath = left.filePath,
+                startLine = left.startLine,
+                startColumn = left.startColumn,
+                endLine = left.endLine,
+                endColumn = left.endColumn,
+                newName = r.variableDeclaration.variableName,
+            )
+        }
+
+        is InlineVariableRefactoring -> {
+            // The variable's declaration location is what JDT's Inline
+            // Variable needs to find the symbol — leftSide first entry
+            // covers the declaration site for inline detections.
+            val loc = r.variableDeclaration.locationInfo
+            RefactoringSpec.InlineVariable(
+                relativeFilePath = loc.filePath,
+                line = loc.startLine,
+                column = loc.startColumn,
+            )
+        }
+
+        is ExtractAttributeRefactoring -> {
+            val left = r.leftSide().firstOrNull()
+            if (left == null) RefactoringSpec.Other
+            else RefactoringSpec.ExtractAttribute(
+                relativeFilePath = left.filePath,
+                startLine = left.startLine,
+                startColumn = left.startColumn,
+                endLine = left.endLine,
+                endColumn = left.endColumn,
+                newName = r.variableDeclaration.name,
+            )
+        }
+
+        is ChangeVariableTypeRefactoring -> {
+            val loc = r.originalVariable.locationInfo
+            RefactoringSpec.ChangeVariableType(
+                relativeFilePath = loc.filePath,
+                line = loc.startLine,
+                column = loc.startColumn,
+                newTypeFqn = r.changedTypeVariable.type.toString(),
+            )
+        }
+
+        is ChangeAttributeTypeRefactoring -> RefactoringSpec.ChangeAttributeType(
+            declaringTypeFqn = r.classNameBefore,
+            fieldName = r.originalAttribute.name,
+            newTypeFqn = r.changedTypeAttribute.type.toString(),
+        )
+
+        is RenameVariableRefactoring -> {
+            // RM bundles several IDE-relevant kinds into a single class;
+            // the discriminator is its dynamically-computed
+            // refactoringType. Each branch builds the matching spec.
+            val loc = r.originalVariable.locationInfo
+            val newName = r.renamedVariable.variableName
+            when (r.refactoringType) {
+                RefactoringType.RENAME_VARIABLE -> RefactoringSpec.RenameLocalVariable(
+                    relativeFilePath = loc.filePath,
+                    line = loc.startLine,
+                    column = loc.startColumn,
+                    newName = newName,
+                )
+
+                RefactoringType.RENAME_PARAMETER -> RefactoringSpec.RenameParameter(
+                    relativeFilePath = loc.filePath,
+                    line = loc.startLine,
+                    column = loc.startColumn,
+                    newName = newName,
+                )
+
+                RefactoringType.PARAMETERIZE_VARIABLE -> RefactoringSpec.ParameterizeVariable(
+                    relativeFilePath = loc.filePath,
+                    startLine = loc.startLine,
+                    startColumn = loc.startColumn,
+                    endLine = loc.endLine,
+                    endColumn = loc.endColumn,
+                    newParameterName = newName,
+                )
+
+                RefactoringType.PARAMETERIZE_ATTRIBUTE -> RefactoringSpec.ParameterizeAttribute(
+                    relativeFilePath = loc.filePath,
+                    startLine = loc.startLine,
+                    startColumn = loc.startColumn,
+                    endLine = loc.endLine,
+                    endColumn = loc.endColumn,
+                    newParameterName = newName,
+                )
+
+                RefactoringType.REPLACE_VARIABLE_WITH_ATTRIBUTE -> RefactoringSpec.ReplaceVariableWithAttribute(
+                    relativeFilePath = loc.filePath,
+                    line = loc.startLine,
+                    column = loc.startColumn,
+                    newFieldName = newName,
+                )
+
+                else -> RefactoringSpec.Other
+            }
+        }
 
         else -> RefactoringSpec.Other
     }
