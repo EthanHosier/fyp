@@ -22,6 +22,21 @@ class DiffRunner(private val git: GitRunner) {
         return out
     }
 
+    /**
+     * Computes one [DiffStats] per `(from, to)` pair, keyed by `to`.
+     * Used for non-adjacent diffs like `fromSha → altSha` synthesised by
+     * `AlternativeTrajectoryRunner`, where the natural diff isn't against
+     * the previous entry in a list but against an explicit ancestor.
+     */
+    fun runPairs(pairs: List<Pair<String, String>>): Map<String, DiffStats> {
+        if (pairs.isEmpty()) return emptyMap()
+        val out = LinkedHashMap<String, DiffStats>()
+        for ((from, to) in pairs) {
+            out[to] = run(from, to)
+        }
+        return out
+    }
+
     private fun run(from: String, to: String): DiffStats {
         val numstat = git.diffNumstat(from, to).map(::parseNumstat)
         val nameStatus = git.diffNameStatus(from, to).map(::parseNameStatus)

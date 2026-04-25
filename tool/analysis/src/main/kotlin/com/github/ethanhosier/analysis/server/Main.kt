@@ -1,5 +1,6 @@
 package com.github.ethanhosier.analysis.server
 
+import com.github.ethanhosier.analysis.pipeline.AnalysisPipeline
 import com.github.ethanhosier.analysis.refactoring.RefactoringClient
 import com.github.ethanhosier.analysis.refactoring.RefactoringClientFactory
 import io.ktor.serialization.kotlinx.json.json
@@ -35,18 +36,18 @@ fun main() {
 
 fun Application.module() {
     // Pay the Equinox + JDT boot cost once at server start. The
-    // resulting client is shared across every request that needs to
-    // run a refactoring (currently none; the future AlternativeTrajectory
-    // pipeline stage will consume it).
+    // resulting client is shared across every analysis request via
+    // the app-singleton AnalysisPipeline.
     val refactoringClient = bootRefactoringClient()
     monitor.subscribe(ApplicationStopped) { refactoringClient.close() }
+    val pipeline = AnalysisPipeline(refactoringClient = refactoringClient)
 
     install(ContentNegotiation) {
         json(Json { encodeDefaults = true })
     }
     routing {
         health()
-        analyze()
+        analyze(pipeline)
     }
 }
 

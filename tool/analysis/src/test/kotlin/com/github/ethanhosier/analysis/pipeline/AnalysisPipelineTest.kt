@@ -1,5 +1,6 @@
 package com.github.ethanhosier.analysis.pipeline
 
+import com.github.ethanhosier.analysis.alternative.AlternativeTrajectoryRunner
 import com.github.ethanhosier.analysis.metrics.MetricsRunner
 import com.github.ethanhosier.analysis.metrics.ck.CkResult
 import com.github.ethanhosier.analysis.metrics.gradlebuild.BuildResult
@@ -60,6 +61,7 @@ class AnalysisPipelineTest {
             reconstruction = reconstruction,
             metrics = metrics,
             miner = emptyMinerSummary(),
+            alternative = emptyAlternativeSummary(),
             diffs = emptyDiffsSummary(),
             parallelism = 4,
             metricsDurationMs = 12_345,
@@ -106,6 +108,7 @@ class AnalysisPipelineTest {
             reconstruction = reconstruction,
             metrics = metrics,
             miner = emptyMinerSummary(),
+            alternative = emptyAlternativeSummary(),
             diffs = emptyDiffsSummary(),
             parallelism = 1,
             metricsDurationMs = 0,
@@ -119,6 +122,12 @@ class AnalysisPipelineTest {
     private fun emptyMinerSummary() = RefactoringMinerRunner.Summary(
         checkpointsAnalysed = 0,
         steps = emptyList(),
+    )
+
+    private fun emptyAlternativeSummary() = AlternativeTrajectoryRunner.Summary(
+        candidates = 0,
+        synthesised = emptyList(),
+        skipped = emptyMap(),
     )
 
     private fun emptyDiffsSummary() = DiffsRunner.Summary(
