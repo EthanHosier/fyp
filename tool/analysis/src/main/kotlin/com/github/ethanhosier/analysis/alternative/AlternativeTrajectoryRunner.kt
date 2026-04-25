@@ -11,6 +11,7 @@ import com.github.ethanhosier.analysis.refactoring.ops.ChangeAttributeTypeReques
 import com.github.ethanhosier.analysis.refactoring.ops.ChangeMethodSignatureRequest
 import com.github.ethanhosier.analysis.refactoring.ops.ChangeVariableTypeRequest
 import com.github.ethanhosier.analysis.refactoring.ops.ExtractAttributeRequest
+import com.github.ethanhosier.analysis.refactoring.ops.ExtractClassRequest
 import com.github.ethanhosier.analysis.refactoring.ops.ExtractInterfaceRequest
 import com.github.ethanhosier.analysis.refactoring.ops.ExtractMethodRequest
 import com.github.ethanhosier.analysis.refactoring.ops.ExtractSuperclassRequest
@@ -36,6 +37,7 @@ import com.github.ethanhosier.analysis.refactoring.ops.changeAttributeType
 import com.github.ethanhosier.analysis.refactoring.ops.changeMethodSignature
 import com.github.ethanhosier.analysis.refactoring.ops.changeVariableType
 import com.github.ethanhosier.analysis.refactoring.ops.extractAttribute
+import com.github.ethanhosier.analysis.refactoring.ops.extractClass
 import com.github.ethanhosier.analysis.refactoring.ops.extractInterface
 import com.github.ethanhosier.analysis.refactoring.ops.extractMethod
 import com.github.ethanhosier.analysis.refactoring.ops.extractSuperclass
@@ -506,6 +508,19 @@ class AlternativeTrajectoryRunner(
                     newSupertypeName = spec.newSupertypeName,
                     methodNames = spec.methodNames,
                     fieldNames = spec.fieldNames,
+                ),
+            )
+
+            is RefactoringSpec.ExtractClass -> refactoringClient.extractClass(
+                ExtractClassRequest(
+                    projectRoot = worktree,
+                    sourceFolders = sourceFolders,
+                    classpathJars = classpathJars,
+                    sourceTypeFqn = spec.sourceTypeFqn,
+                    newClassName = spec.newClassName,
+                    delegateFieldName = spec.delegateFieldName,
+                    fieldNames = spec.fieldNames,
+                    createGetterSetter = spec.createGetterSetter,
                 ),
             )
 
