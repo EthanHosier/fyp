@@ -15,6 +15,7 @@ import gr.uom.java.xmi.diff.ChangeReturnTypeRefactoring
 import gr.uom.java.xmi.diff.ChangeVariableTypeRefactoring
 import gr.uom.java.xmi.diff.CodeRange
 import gr.uom.java.xmi.diff.ExtractAttributeRefactoring
+import gr.uom.java.xmi.diff.ExtractClassRefactoring
 import gr.uom.java.xmi.diff.ExtractOperationRefactoring
 import gr.uom.java.xmi.diff.ExtractSuperclassRefactoring
 import gr.uom.java.xmi.diff.ExtractVariableRefactoring
@@ -438,6 +439,22 @@ class RefactoringMinerRunner(
         is ChangeReturnTypeRefactoring -> changeMethodSignatureSpec(
             r.operationBefore, r.operationAfter, newReturnType = r.changedType.toString(),
         )
+
+        // ── Extract Class ───────────────────────────────────────────
+        // The "delegate field" is the new field on the original class
+        // whose type is the extracted class — RM exposes it via
+        // getAttributeOfExtractedClassTypeInOriginalClass(). When that
+        // returns null (e.g. the extracted class is referenced only via
+        // getters), JDT can't drive an extract-class without it, so we
+        // fall through to Other.
+        is ExtractClassRefactoring -> r.attributeOfExtractedClassTypeInOriginalClass?.let { delegate ->
+            RefactoringSpec.ExtractClass(
+                sourceTypeFqn = r.originalClass.name,
+                newClassName = r.extractedClass.name.substringAfterLast('.'),
+                delegateFieldName = delegate.name,
+                fieldNames = r.extractedAttributes.keys.map { it.name },
+            )
+        } ?: RefactoringSpec.Other
 
         // ── Extract Superclass / Extract Interface ──────────────────
         // RM uses one class for both, discriminated by the extracted
