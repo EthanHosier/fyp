@@ -38,6 +38,17 @@ data class AnalysisReport(
     // hunk-filtered against the detection's left/right line ranges, so
     // unrelated edits in the same window are excluded.
     val refactoringPatches: Map<Int, String> = emptyMap(),
+    // Synthesised IDE-driven equivalents for refactorings the user
+    // performed manually across multiple checkpoints. Empty when no
+    // candidate steps were found, when no `RefactoringClient` was
+    // injected (e.g. tests), or when synthesis was skipped for every
+    // candidate.
+    val alternativeTrajectories: List<AlternativeTrajectory> = emptyList(),
+    // Unified-diff patch text from `fromSha` → `altSha` for each
+    // synthesised trajectory, keyed by the same `stepIndex` used by
+    // [refactoringPatches]. Mirrors that map's shape so the frontend
+    // can render IDE-driven and manual diffs side-by-side.
+    val alternativePatches: Map<Int, String> = emptyMap(),
 )
 
 /**

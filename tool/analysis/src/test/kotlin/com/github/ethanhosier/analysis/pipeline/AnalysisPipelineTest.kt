@@ -1,5 +1,6 @@
 package com.github.ethanhosier.analysis.pipeline
 
+import com.github.ethanhosier.analysis.alternative.AlternativeTrajectoryRunner
 import com.github.ethanhosier.analysis.metrics.MetricsRunner
 import com.github.ethanhosier.analysis.metrics.ck.CkResult
 import com.github.ethanhosier.analysis.metrics.gradlebuild.BuildResult
@@ -49,7 +50,6 @@ class AnalysisPipelineTest {
         val metrics = MetricsRunner.Summary(
             totalShas = 2,
             computed = 2,
-            reused = 0,
             buildOk = 2,
             testsOk = 1,
             checkpoints = listOf(checkpoint("sha-a"), checkpoint("sha-b")),
@@ -60,6 +60,7 @@ class AnalysisPipelineTest {
             reconstruction = reconstruction,
             metrics = metrics,
             miner = emptyMinerSummary(),
+            alternative = emptyAlternativeSummary(),
             diffs = emptyDiffsSummary(),
             parallelism = 4,
             metricsDurationMs = 12_345,
@@ -95,7 +96,6 @@ class AnalysisPipelineTest {
         val metrics = MetricsRunner.Summary(
             totalShas = 1,
             computed = 1,
-            reused = 0,
             buildOk = 1,
             testsOk = 1,
             checkpoints = listOf(checkpoint("sha-orphan")),
@@ -106,6 +106,7 @@ class AnalysisPipelineTest {
             reconstruction = reconstruction,
             metrics = metrics,
             miner = emptyMinerSummary(),
+            alternative = emptyAlternativeSummary(),
             diffs = emptyDiffsSummary(),
             parallelism = 1,
             metricsDurationMs = 0,
@@ -119,6 +120,12 @@ class AnalysisPipelineTest {
     private fun emptyMinerSummary() = RefactoringMinerRunner.Summary(
         checkpointsAnalysed = 0,
         steps = emptyList(),
+    )
+
+    private fun emptyAlternativeSummary() = AlternativeTrajectoryRunner.Summary(
+        candidates = 0,
+        synthesised = emptyList(),
+        skipped = emptyMap(),
     )
 
     private fun emptyDiffsSummary() = DiffsRunner.Summary(

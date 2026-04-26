@@ -130,6 +130,20 @@ tasks.register<JavaExec>("runServer") {
     )
 }
 
+// `:analysis:run` (auto-created by the `application` plugin) drives the
+// CLI; like the test and runServer tasks above, it needs the bundle jar
+// resolved from the dedicated configuration so RefactoringClientFactory
+// can install it into Equinox.
+tasks.named<JavaExec>("run") {
+    val bundleFiles: FileCollection = refactoringBundle
+    inputs.files(bundleFiles)
+    jvmArgumentProviders.add(
+        CommandLineArgumentProvider {
+            listOf("-Drefactoring.bundle.jar=" + bundleFiles.singleFile.absolutePath)
+        },
+    )
+}
+
 // Emits TS types for the dashboard by walking AnalysisReport's kotlinx
 // serial descriptor. Output lives in the dashboard module's src/generated/
 // (gitignored) and `:ide-plugin:buildDashboard` depends on this task so

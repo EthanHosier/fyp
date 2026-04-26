@@ -1,9 +1,12 @@
+
 package com.github.ethanhosier.analysis.pipeline
 
+import com.github.ethanhosier.analysis.alternative.AlternativeTrajectoryRunner
 import com.github.ethanhosier.analysis.diffs.DiffsRunner
 import com.github.ethanhosier.analysis.ingest.TraceLoader
 import com.github.ethanhosier.analysis.metrics.MetricsRunner
 import com.github.ethanhosier.analysis.metrics.gitdiff.DiffStats
+import com.github.ethanhosier.analysis.metrics.model.AlternativeTrajectory
 import com.github.ethanhosier.analysis.metrics.model.AnalysisReport
 import com.github.ethanhosier.analysis.metrics.model.CheckpointReport
 import com.github.ethanhosier.analysis.metrics.model.EventSummary
@@ -14,25 +17,35 @@ import com.github.ethanhosier.analysis.model.Trace
 import com.github.ethanhosier.analysis.normalize.TraceNormalizer
 import com.github.ethanhosier.analysis.reconstruct.GitRunner
 import com.github.ethanhosier.analysis.reconstruct.ShadowRepoBuilder
+import com.github.ethanhosier.analysis.refactoring.RefactoringClient
 import com.github.ethanhosier.ideplugin.model.TouchedMember
 import java.nio.file.Path
 
 /**
  * One-shot orchestration of the full analysis pipeline: load a session
- * folder, normalize its events, reconstruct a shadow git repo, compute
- * per-checkpoint metrics, and produce an in-memory [AnalysisReport].
+ * folder, normalize its events, reconstruct a shadow git repo, mine
+ * refactorings, synthesise IDE-driven alternative trajectories for any
+ * manual multi-checkpoint refactorings, compute per-checkpoint metrics
+ * (covering both the user's trace SHAs and the synthesised alt SHAs),
+ * and produce an in-memory [AnalysisReport].
  *
  * The pipeline does **not** write the report to disk — callers decide.
  * The CLI writes it next to the inputs; the server returns it in the
  * HTTP response and discards the scratch directory.
  *
- * Side effect: as part of running, the reconstruct and metrics stages
- * write `shadow-repo/`, `event-commits.json`, `shadow-worktrees/`, and
+ * Side effect: as part of running, the reconstruct, alternative, and
+ * metrics stages write `shadow-repo/`, `event-commits.json`,
+ * `shadow-worktrees/`, `alternative-worktrees/`, and
  * `checkpoint-metrics/<sha>.json` into [sessionDir]. For CLI callers
  * these are intended artefacts; for server callers [sessionDir] should
  * be a temp directory that is cleaned up after [run] returns.
+ *
+ * [refactoringClient] drives the alternative-trajectory stage. It is
+ * expected to live for the duration of the host process — boot it
+ * once via `RefactoringClientFactory.create(...)` and inject it here.
  */
 class AnalysisPipeline(
+    private val refactoringClient: RefactoringClient,
     private val parallelism: Int = defaultParallelism(),
 ) {
 
@@ -43,30 +56,78 @@ class AnalysisPipeline(
         val metricsDurationMs: Long,
         val minerSummary: RefactoringMinerRunner.Summary,
         val minerDurationMs: Long,
+        val alternativeSummary: AlternativeTrajectoryRunner.Summary,
+        val alternativeDurationMs: Long,
         val diffsSummary: DiffsRunner.Summary,
         val diffsDurationMs: Long,
         val report: AnalysisReport,
     )
 
     fun run(sessionDir: Path): Result {
+        // Stages can each take seconds-to-minutes; without progress
+        // output the CLI looks hung. Logs go to stderr so they don't
+        // pollute the report JSON the CLI writes alongside.
+        log("starting analysis on $sessionDir (parallelism=$parallelism)")
+
+        val loadStart = System.currentTimeMillis()
+        log("load+normalize: starting")
         val raw = TraceLoader().load(sessionDir)
         val trace = TraceNormalizer.normalize(raw, sessionDir.resolve("initial-src"))
+        log("load+normalize: ${trace.events.size} event(s) in ${System.currentTimeMillis() - loadStart}ms")
 
+        val reconstructStart = System.currentTimeMillis()
+        log("reconstruct: starting")
         val reconstruction = ShadowRepoBuilder().build(sessionDir, trace)
+        val uniqueShaCount = reconstruction.eventCommits.mapping.values.toSet().size
+        log("reconstruct: $uniqueShaCount unique SHA(s) at ${reconstruction.repoDir} in ${System.currentTimeMillis() - reconstructStart}ms")
 
-        val metricsStart = System.currentTimeMillis()
-        val metrics = MetricsRunner(parallelism = parallelism).run(reconstruction, sessionDir)
-        val metricsDurationMs = System.currentTimeMillis() - metricsStart
-
+        // Miner runs before metrics so the alternative-trajectory stage
+        // can synthesise alt SHAs and feed them into the metrics pass —
+        // one parallel-worktree sweep covers both groups.
         val minerStart = System.currentTimeMillis()
+        log("miner: starting RefactoringMiner sliding-window pass")
         val miner = RefactoringMinerRunner(parallelism = parallelism).run(trace, reconstruction, sessionDir)
         val minerDurationMs = System.currentTimeMillis() - minerStart
+        log("miner: ${miner.steps.size} step(s) detected across ${miner.checkpointsAnalysed} checkpoint(s) in ${minerDurationMs}ms")
+
+        val alternativeStart = System.currentTimeMillis()
+        log("alt-traj: starting (refactoringClient=ready)")
+        val alternative = AlternativeTrajectoryRunner(
+            refactoringClient = refactoringClient,
+            parallelism = parallelism,
+        ).run(reconstruction, miner.steps, sessionDir)
+        val alternativeDurationMs = System.currentTimeMillis() - alternativeStart
+        log("alt-traj: ${alternative.synthesised.size}/${alternative.candidates} synthesised, ${alternative.skipped.size} skipped in ${alternativeDurationMs}ms")
+
+        val metricsStart = System.currentTimeMillis()
+        val altShas = alternative.synthesised.map { it.altSha }
+        val totalShas = reconstruction.eventCommits.mapping.values.toSet().size + altShas.size
+        log("metrics: starting on $totalShas SHA(s) (${altShas.size} alt) at parallelism=$parallelism")
+        val metrics = MetricsRunner(parallelism = parallelism).run(
+            reconstruction = reconstruction,
+            sessionFolder = sessionDir,
+            alternativeShas = altShas,
+            alternativeFromShas = alternative.synthesised.map { it.fromSha },
+        )
+        val metricsDurationMs = System.currentTimeMillis() - metricsStart
+        log("metrics: ${metrics.computed} computed, ${metrics.buildOk} build-ok, ${metrics.testsOk} tests-ok in ${metricsDurationMs}ms")
 
         val diffsStart = System.currentTimeMillis()
-        val diffs = DiffsRunner(GitRunner(reconstruction.repoDir)).run(reconstruction, miner.steps)
+        log("diffs: starting")
+        val diffs = DiffsRunner(GitRunner(reconstruction.repoDir)).run(reconstruction, miner.steps, alternative)
         val diffsDurationMs = System.currentTimeMillis() - diffsStart
+        log("diffs: ${diffs.checkpointPatches.size} checkpoint, ${diffs.refactoringPatches.size} refactoring, ${diffs.alternativePatches.size} alternative patch(es) in ${diffsDurationMs}ms")
 
-        val report = buildAnalysisReport(trace, reconstruction, metrics, miner, diffs, parallelism, metricsDurationMs)
+        val report = buildAnalysisReport(
+            trace = trace,
+            reconstruction = reconstruction,
+            metrics = metrics,
+            miner = miner,
+            alternative = alternative,
+            diffs = diffs,
+            parallelism = parallelism,
+            metricsDurationMs = metricsDurationMs,
+        )
 
         return Result(
             trace = trace,
@@ -75,6 +136,8 @@ class AnalysisPipeline(
             metricsDurationMs = metricsDurationMs,
             minerSummary = miner,
             minerDurationMs = minerDurationMs,
+            alternativeSummary = alternative,
+            alternativeDurationMs = alternativeDurationMs,
             diffsSummary = diffs,
             diffsDurationMs = diffsDurationMs,
             report = report,
@@ -87,6 +150,10 @@ class AnalysisPipeline(
     }
 }
 
+private fun log(msg: String) {
+    System.out.println("[pipeline] $msg")
+}
+
 /**
  * Pure in-memory assembly of an [AnalysisReport] from the pieces the
  * pipeline already has. Visible for testing — no I/O, no concurrency,
@@ -97,6 +164,7 @@ internal fun buildAnalysisReport(
     reconstruction: ReconstructionResult,
     metrics: MetricsRunner.Summary,
     miner: RefactoringMinerRunner.Summary,
+    alternative: AlternativeTrajectoryRunner.Summary,
     diffs: DiffsRunner.Summary,
     parallelism: Int,
     metricsDurationMs: Long,
@@ -135,6 +203,29 @@ internal fun buildAnalysisReport(
         )
     }
 
+    val stepsByIndex = miner.steps.associateBy { it.stepIndex }
+    val altMetricsBySha = metrics.alternativeCheckpoints.associateBy { it.sha }
+    val alternativeTrajectories = alternative.synthesised.mapNotNull { synth ->
+        val step = stepsByIndex[synth.stepIndex] ?: return@mapNotNull null
+        val spec = step.spec ?: return@mapNotNull null
+        val altMetrics = altMetricsBySha[synth.altSha] ?: return@mapNotNull null
+        AlternativeTrajectory(
+            stepIndex = synth.stepIndex,
+            fromSha = synth.fromSha,
+            userToSha = synth.userToSha,
+            branchRef = synth.branchRef,
+            spec = spec,
+            altCheckpoint = CheckpointReport(
+                sha = synth.altSha,
+                // Alt SHAs aren't landed on by user events.
+                events = emptyList(),
+                metrics = altMetrics,
+                diff = metrics.diffBySha[synth.altSha] ?: DiffStats.ZERO,
+                touchedMembers = emptyList(),
+            ),
+        )
+    }
+
     return AnalysisReport(
         session = trace.metadata,
         run = RunInfo(
@@ -147,5 +238,7 @@ internal fun buildAnalysisReport(
         trajectory = computeTrajectory(checkpoints),
         checkpointPatches = diffs.checkpointPatches,
         refactoringPatches = diffs.refactoringPatches,
+        alternativeTrajectories = alternativeTrajectories,
+        alternativePatches = diffs.alternativePatches,
     )
 }

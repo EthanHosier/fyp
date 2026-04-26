@@ -133,6 +133,7 @@ function MetricRail({ data, primary, setPrimary, secondaries, setSecondaries, fi
         <Check label="Build/test intervals" on={filters.intervals} onChange={v => setFilters(f => ({...f, intervals: v}))}/>
         <Check label="Annotation lane"       on={filters.annotations} onChange={v => setFilters(f => ({...f, annotations: v}))}/>
         <Check label="Suggested path"        on={filters.suggested} onChange={v => setFilters(f => ({...f, suggested: v}))} accent/>
+        <Check label="Alternative trajectories" on={filters.alts} onChange={v => setFilters(f => ({...f, alts: v}))} accent/>
       </RailSection>
 
       <RailSection title="ANNOTATION TYPES">
@@ -408,6 +409,11 @@ function DetailContent({ data, selection, onClose }) {
     title = a.title;
     subtitle = ANNOT_META[a.kind].label;
     body = <AnnotationBody a={a}/>;
+  } else if (selection.kind === "alt") {
+    const alt = data.ALT_TRAJECTORIES.find(x => x.id === selection.id);
+    title = alt.label;
+    subtitle = `c${alt.from} → c${alt.to} · ${alt.outcome}`;
+    body = <AltBody alt={alt} data={data}/>;
   }
 
   return (
@@ -583,6 +589,43 @@ function IntervalBody({ selection, data }) {
     </>
   );
 }
+function AltBody({ alt, data }) {
+  const oc = alt.outcome;
+  const color = oc === "better" ? "#7ee8d4" : oc === "worse" ? "#e8a33d" : oc === "failed" ? "#e55765" : "#868a91";
+  const fromV = data.CHECKPOINTS.find(c => c.i === alt.from)?.complexity;
+  const toV   = data.CHECKPOINTS.find(c => c.i === alt.to)?.complexity;
+  const altSteps = alt.points.length;
+  return (
+    <>
+      <Subhead>OUTCOME</Subhead>
+      <div style={{
+        display: "inline-flex", alignItems: "center", gap: 8,
+        padding: "5px 10px", borderRadius: 20,
+        background: "var(--bg-2)", border: `1px solid ${color}`, color, fontSize: 12,
+        marginBottom: 14, textTransform: "uppercase", letterSpacing: 0.6
+      }}>
+        <span style={{ width: 7, height: 7, borderRadius: "50%", background: color }}/>
+        {oc} alternative
+      </div>
+
+      <Subhead>RATIONALE</Subhead>
+      <div style={{ fontSize: 12.5, color: "var(--fg-2)", lineHeight: 1.6, marginBottom: 14 }}>
+        {alt.rationale}
+      </div>
+
+      <Subhead>BRANCH</Subhead>
+      <KV k="Diverges at" v={`c${alt.from}`}/>
+      <KV k="Rejoins at"  v={`c${alt.to}`}/>
+      <KV k="Steps"       v={`${altSteps} alternative checkpoints`}/>
+      <KV k="Span"        v={`${alt.to - alt.from} main checkpoints bypassed`}/>
+
+      <Subhead style={{ marginTop: 16 }}>METRIC AT JOIN</Subhead>
+      <KV k="On main path" v={<span style={{ fontFamily: "var(--mono)" }}>{toV}</span>}/>
+      <KV k="On alt path"  v={<span style={{ fontFamily: "var(--mono)", color }}>{alt.points[alt.points.length-1].v}</span>}/>
+    </>
+  );
+}
+
 function AnnotationBody({ a }) {
   const meta = ANNOT_META[a.kind];
   return (
@@ -625,26 +668,38 @@ function AnnotationBody({ a }) {
 
 function MetricTile({ metric, value, data }) {
   const vals = data.CHECKPOINTS.map(c => c[metric.id]);
-  const mn = Math.min(...vals), mx = Math.max(...vals);
-  const frac = (value - mn) / (mx - mn || 1);
+  const start = vals[0];
+  const delta = value - start;
+  const flat = delta === 0;
+  const improved = metric.better === "lower" ? delta < 0 : delta > 0;
+  const deltaColor = flat ? "var(--fg-4)" : improved ? "var(--good)" : "var(--bad)";
+  const decimals = metric.unit === "%" ? 1 : 0;
+  const fmt = (n) => Number(n).toFixed(decimals);
+  const deltaSign = flat ? "" : (delta > 0 ? "+" : "−");
+
   return (
     <div style={{
-      padding: "8px 10px", background: "var(--bg-2)",
-      border: "1px solid var(--border)", borderRadius: 5
+      position: "relative",
+      padding: "9px 11px 10px",
+      background: "var(--bg-3)",
+      border: "1px solid var(--border)",
+      borderRadius: 5,
     }}>
-      <div style={{ fontSize: 10, color: "var(--fg-4)", fontFamily: "var(--mono)", letterSpacing: 0.6 }}>
-        {metric.label.toUpperCase()}
+      <div style={{
+        fontSize: 10, color: "var(--fg-4)", fontFamily: "var(--mono)",
+        letterSpacing: 0.6, textTransform: "uppercase",
+      }}>
+        {metric.label}
       </div>
-      <div style={{ fontFamily: "var(--mono)", fontSize: 17, color: "var(--fg)", marginTop: 2 }}>
-        {value}<span style={{ fontSize: 11, color: "var(--fg-4)", marginLeft: 4 }}>{metric.unit}</span>
-      </div>
-      <div style={{ marginTop: 6, height: 3, background: "var(--bg-3)", borderRadius: 2, overflow: "hidden" }}>
-        <div style={{
-          width: `${frac * 100}%`, height: "100%",
-          background: metric.better === "lower"
-            ? `linear-gradient(90deg,var(--good),var(--bad))`
-            : `linear-gradient(90deg,var(--bad),var(--good))`
-        }}/>
+      <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginTop: 2 }}>
+        <span style={{ fontFamily: "var(--mono)", fontSize: 18, color: "var(--fg)" }}>
+          {fmt(value)}<span style={{ fontSize: 11, color: "var(--fg-4)", marginLeft: 3 }}>{metric.unit}</span>
+        </span>
+        {!flat && (
+          <span style={{ fontFamily: "var(--mono)", fontSize: 11, color: deltaColor }}>
+            {deltaSign}{Math.abs(delta).toFixed(decimals)}
+          </span>
+        )}
       </div>
     </div>
   );
