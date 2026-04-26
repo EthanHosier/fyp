@@ -202,29 +202,27 @@ internal fun buildAnalysisReport(
             touchedMembers = membersBySha[m.sha]?.toList().orEmpty(),
         )
     }
-    val alternativeCheckpoints = metrics.alternativeCheckpoints.map { m ->
-        // Alt SHAs have no user events attributed to them — they're
-        // synthesised from `fromSha`, not landed on by an event.
-        CheckpointReport(
-            sha = m.sha,
-            events = emptyList(),
-            metrics = m,
-            diff = metrics.diffBySha[m.sha] ?: DiffStats.ZERO,
-            touchedMembers = emptyList(),
-        )
-    }
 
     val stepsByIndex = miner.steps.associateBy { it.stepIndex }
+    val altMetricsBySha = metrics.alternativeCheckpoints.associateBy { it.sha }
     val alternativeTrajectories = alternative.synthesised.mapNotNull { synth ->
         val step = stepsByIndex[synth.stepIndex] ?: return@mapNotNull null
         val spec = step.spec ?: return@mapNotNull null
+        val altMetrics = altMetricsBySha[synth.altSha] ?: return@mapNotNull null
         AlternativeTrajectory(
             stepIndex = synth.stepIndex,
             fromSha = synth.fromSha,
             userToSha = synth.userToSha,
-            altSha = synth.altSha,
             branchRef = synth.branchRef,
             spec = spec,
+            altCheckpoint = CheckpointReport(
+                sha = synth.altSha,
+                // Alt SHAs aren't landed on by user events.
+                events = emptyList(),
+                metrics = altMetrics,
+                diff = metrics.diffBySha[synth.altSha] ?: DiffStats.ZERO,
+                touchedMembers = emptyList(),
+            ),
         )
     }
 
@@ -235,7 +233,7 @@ internal fun buildAnalysisReport(
             generatedAt = System.currentTimeMillis(),
             metricsDurationMs = metricsDurationMs,
         ),
-        checkpoints = checkpoints + alternativeCheckpoints,
+        checkpoints = checkpoints,
         refactoringSteps = miner.steps,
         trajectory = computeTrajectory(checkpoints),
         checkpointPatches = diffs.checkpointPatches,

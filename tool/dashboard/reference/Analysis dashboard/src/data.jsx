@@ -74,7 +74,56 @@ const ANNOTATIONS = [
   { id: "a9", atCheckpoint: 11, kind: "ide-refactor",     title: "IDE: Pull Up Method",           detail: "→ BaseOrderService" },
 ];
 
-// Suggested "better path" trajectory — complexity values from divergence c6 onward.
+// Alternative trajectories — branches that leave the main path at `from`,
+// follow `points` (each with i fractional, v = primary-metric value), then
+// rejoin the main path at `to`. Each branch carries a short rationale and
+// outcome ("better"|"worse"|"neutral"|"failed") so we can color it.
+const ALT_TRAJECTORIES = [
+  {
+    id: "alt-a",
+    label: "Direct interface extraction",
+    from: 2, to: 9,
+    outcome: "better",
+    rationale: "Extract Interface before splitting the module — avoids the c3→c5 failing arc and ~150 LOC of churn.",
+    points: [
+      { i: 2.0, v: 46 },
+      { i: 3.2, v: 43 },
+      { i: 4.5, v: 40 },
+      { i: 6.0, v: 38 },
+      { i: 7.4, v: 39 },
+      { i: 9.0, v: 40 },
+    ],
+  },
+  {
+    id: "alt-b",
+    label: "Big-bang rewrite",
+    from: 4, to: 11,
+    outcome: "worse",
+    rationale: "Replace pipeline wholesale instead of refactoring — three failing intervals, ~620 LOC churn, no early validation.",
+    points: [
+      { i: 4.0, v: 50 },
+      { i: 5.4, v: 58 },
+      { i: 6.8, v: 62 },
+      { i: 8.2, v: 55 },
+      { i: 9.6, v: 46 },
+      { i: 11.0, v: 37 },
+    ],
+  },
+  {
+    id: "alt-c",
+    label: "Move-method-first",
+    from: 6, to: 10,
+    outcome: "failed",
+    rationale: "Reorders move-method ahead of dedupe; type-check stays red, dropped at c8.5 — never rejoins cleanly.",
+    points: [
+      { i: 6.0,  v: 44 },
+      { i: 7.0,  v: 46 },
+      { i: 8.2,  v: 49 },
+      { i: 9.0,  v: 47 },
+      { i: 10.0, v: 38 },
+    ],
+  },
+];
 // Skips the c6→c7 break entirely and goes straight to the c9-like plateau.
 const SUGGESTED_PATH = {
   fromCheckpoint: 6,
@@ -359,4 +408,4 @@ const DIFFS = {
   ],
 };
 
-window.REFACTOR_DATA = { SESSION, METRICS, CHECKPOINTS, INTERVALS, ANNOTATIONS, SUGGESTED_PATH, EXPLANATIONS, DIFFS };
+window.REFACTOR_DATA = { SESSION, METRICS, CHECKPOINTS, INTERVALS, ANNOTATIONS, SUGGESTED_PATH, EXPLANATIONS, DIFFS, ALT_TRAJECTORIES };
