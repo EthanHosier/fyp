@@ -46,6 +46,7 @@ function TrajectoryGraph({
   showIntervals,
   showAnnotations,
   showSuggested,
+  showAlts,
   selection,
   onSelect,
   density,
@@ -199,6 +200,62 @@ function TrajectoryGraph({
                 {CHECKPOINTS.map(row => (
                   <circle key={row.i} cx={xs(row.i)} cy={s.scale(row[s.id])} r={1.6} fill={c} fillOpacity={0.7}/>
                 ))}
+              </g>
+            );
+          })}
+
+          {/* Alternative trajectories — branches that leave & rejoin the main path */}
+          {showAlts && (data.ALT_TRAJECTORIES || []).map(alt => {
+            const main = CHECKPOINTS;
+            const fromPt = main.find(c => c.i === alt.from);
+            const toPt   = main.find(c => c.i === alt.to);
+            if (!fromPt || !toPt) return null;
+            const yFrom = ys(fromPt[primary]);
+            const yTo   = ys(toPt[primary]);
+            const xFrom = xs(alt.from);
+            const xTo   = xs(alt.to);
+            // Straight-line polyline through alt.points.
+            const pts = [{ i: alt.from, v: fromPt[primary] }, ...alt.points, { i: alt.to, v: toPt[primary] }];
+            const d = pts.map((p, k) => `${k === 0 ? "M" : "L"}${xs(p.i).toFixed(1)},${ys(p.v).toFixed(1)}`).join(" ");
+            const color =
+              alt.outcome === "better"  ? "#7ee8d4" :
+              alt.outcome === "worse"   ? "#e8a33d" :
+              alt.outcome === "failed"  ? "#e55765" : "#868a91";
+            const isSel = selection?.kind === "alt" && selection.id === alt.id;
+            const opacity = isSel ? 1 : 0.85;
+            // Mid-point label position
+            const midPt = alt.points[Math.floor(alt.points.length / 2)];
+            const lx = xs(midPt.i);
+            const ly = ys(midPt.v) - 10;
+            return (
+              <g key={alt.id} style={{ cursor: "pointer" }}
+                 onClick={() => onSelect({ kind: "alt", id: alt.id })}>
+                {/* divergence/rejoin markers — tiny diamonds tilted off-axis */}
+                <g transform={`translate(${xFrom},${yFrom}) rotate(45)`}>
+                  <rect x={-3} y={-3} width={6} height={6} fill="var(--bg-1)" stroke={color} strokeWidth={1.1} strokeOpacity={opacity}/>
+                </g>
+                <g transform={`translate(${xTo},${yTo}) rotate(45)`}>
+                  <rect x={-3} y={-3} width={6} height={6} fill="var(--bg-1)" stroke={color} strokeWidth={1.1} strokeOpacity={opacity}/>
+                </g>
+                {/* alt path: dashed, slightly thicker, in outcome color */}
+                <path d={d} fill="none" stroke={color} strokeOpacity={opacity}
+                      strokeWidth={isSel ? 2 : 1.5} strokeDasharray="5 3" strokeLinecap="round"/>
+                {/* alt branch points — diamonds, off-axis to differentiate from main circles */}
+                {alt.points.map((p, i) => (
+                  <g key={i} transform={`translate(${xs(p.i)},${ys(p.v)}) rotate(45)`}>
+                    <rect x={-2.4} y={-2.4} width={4.8} height={4.8}
+                          fill="var(--bg-1)" stroke={color} strokeOpacity={opacity} strokeWidth={1.1}/>
+                  </g>
+                ))}
+                {/* small label chip */}
+                <g transform={`translate(${lx},${ly})`}>
+                  <rect x={-2} y={-9} width={alt.label.length * 5.4 + 8} height={13}
+                        fill="var(--bg-1)" stroke={color} strokeOpacity={opacity * 0.7}
+                        rx={3} ry={3}/>
+                  <text x={2} y={1} fontSize={9.5} fontFamily="var(--mono)" fill={color} fillOpacity={opacity}>
+                    {alt.label}
+                  </text>
+                </g>
               </g>
             );
           })}

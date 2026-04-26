@@ -20,14 +20,17 @@
  * can be folded in here without touching feature code.
  */
 import type {
+  AlternativeTrajectory,
   AnalysisReport,
   CheckpointReport,
   CkClassMetrics,
+  RefactoringSpec,
   RefactoringStep,
 } from "@/generated/report-types"
 import { formatTLabel, shortSha } from "@/lib/format"
 
 import type {
+  AlternativeTrajectoryVM,
   CheckpointVM,
   DashboardViewModel,
   IntervalVM,
@@ -218,5 +221,127 @@ export function toViewModel(report: AnalysisReport): DashboardViewModel {
     },
   )
 
-  return { session, metrics: METRICS, checkpoints, intervals, refactoringSteps, trajectory }
+  const checkpointBySha = new Map<string, number>()
+  report.checkpoints.forEach((c, i) => checkpointBySha.set(c.sha, i))
+
+  const alternativeTrajectories: AlternativeTrajectoryVM[] = (
+    report.alternativeTrajectories ?? []
+  ).flatMap((alt: AlternativeTrajectory) => {
+    const fromIdx = checkpointBySha.get(alt.fromSha)
+    const toIdx = checkpointBySha.get(alt.userToSha)
+    // Drop alts that don't anchor onto user-trace checkpoints — without
+    // both endpoints there's nowhere to draw the branch.
+    if (fromIdx === undefined || toIdx === undefined) return []
+
+    const altC = alt.altCheckpoint
+    const altBuild = buildTone(altC.metrics.build.success)
+    const altTests = testsTone(altC.metrics.tests.success, altC.metrics.tests.wasSkipped)
+
+    return [
+      {
+        index: alt.stepIndex,
+        fromCheckpointIndex: fromIdx,
+        toCheckpointIndex: toIdx,
+        label: specLabel(alt.spec),
+        altSha: altC.sha,
+        shortAltSha: shortSha(altC.sha),
+        branchRef: alt.branchRef,
+        altValues: checkpointValues(altC),
+        build: altBuild,
+        tests: altTests,
+        status: combineStatus(altBuild, altTests),
+        altChurn: altC.diff?.totalChurn ?? 0,
+        patch: report.alternativePatches?.[alt.stepIndex] ?? "",
+      },
+    ]
+  })
+
+  return {
+    session,
+    metrics: METRICS,
+    checkpoints,
+    intervals,
+    refactoringSteps,
+    alternativeTrajectories,
+    trajectory,
+  }
+}
+
+/** Human-readable label for the chart's branch chip. The polymorphic
+ *  RefactoringSpec discriminator is "type" (kotlinx default) — fall back
+ *  to a generic label for unknown variants so a schema bump doesn't blow
+ *  up the chart. */
+function specLabel(spec: RefactoringSpec): string {
+  // The codegen doesn't expose a typed discriminator field; the runtime
+  // shape is `{ type: "ExtractMethod", ... }`. Cast through unknown to
+  // read it without dragging the whole sealed-shape mirror in here.
+  const kind = (spec as unknown as { type?: string }).type
+  switch (kind) {
+    case "ExtractMethod":
+      return "Extract Method"
+    case "InlineMethod":
+      return "Inline Method"
+    case "ExtractVariable":
+      return "Extract Variable"
+    case "InlineVariable":
+      return "Inline Variable"
+    case "ExtractAttribute":
+      return "Extract Attribute"
+    case "ExtractClass":
+      return "Extract Class"
+    case "ExtractSubclass":
+      return "Extract Subclass"
+    case "ExtractSuperclass":
+      return "Extract Superclass"
+    case "ExtractInterface":
+      return "Extract Interface"
+    case "ExtractAndMoveMethod":
+      return "Extract & Move Method"
+    case "RenameClass":
+      return "Rename Class"
+    case "RenameMethod":
+      return "Rename Method"
+    case "RenameField":
+      return "Rename Field"
+    case "RenameLocalVariable":
+      return "Rename Variable"
+    case "RenameParameter":
+      return "Rename Parameter"
+    case "RenamePackage":
+      return "Rename Package"
+    case "MoveClass":
+      return "Move Class"
+    case "MoveAndRenameClass":
+      return "Move & Rename Class"
+    case "MoveInstanceField":
+      return "Move Field"
+    case "MoveAndRenameAttribute":
+      return "Move & Rename Field"
+    case "MoveInstanceMethod":
+      return "Move Method"
+    case "MoveAndRenameMethod":
+      return "Move & Rename Method"
+    case "MoveStaticMembers":
+      return "Move Static Members"
+    case "MovePackage":
+      return "Move Package"
+    case "PullUp":
+      return "Pull Up"
+    case "PushDown":
+      return "Push Down"
+    case "ChangeMethodSignature":
+      return "Change Signature"
+    case "ChangeVariableType":
+      return "Change Variable Type"
+    case "ChangeAttributeType":
+      return "Change Field Type"
+    case "ParameterizeVariable":
+      return "Parameterize Variable"
+    case "ParameterizeAttribute":
+      return "Parameterize Field"
+    case "ReplaceVariableWithAttribute":
+      return "Variable → Field"
+    default:
+      return "Refactoring"
+  }
 }

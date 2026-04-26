@@ -104,12 +104,49 @@ export type RefactoringStepVM = {
   patch: string
 }
 
+/**
+ * One IDE-driven alternative path the analysis pipeline synthesised in
+ * place of a manual multi-checkpoint refactoring. Renders as a dashed
+ * branch leaving the user's actual trajectory at [fromCheckpointIndex],
+ * passing through the synthesised alt checkpoint's metric value, and
+ * rejoining at [toCheckpointIndex].
+ */
+export type AlternativeTrajectoryVM = {
+  /** Server stepIndex — the underlying RefactoringStep this alternative
+   *  was synthesised for. Doubles as the join key into the patches map. */
+  index: number
+  /** Index into checkpoints[] — the user's pre-state. */
+  fromCheckpointIndex: number
+  /** Index into checkpoints[] — the user's post-state we're comparing
+   *  against. */
+  toCheckpointIndex: number
+  /** Short label rendered next to the branch's mid-point. Derived from
+   *  the typed RefactoringSpec (e.g. "Extract Method"). */
+  label: string
+  /** Synthesised alt SHA — short form for display in detail panels. */
+  altSha: string
+  shortAltSha: string
+  /** Branch ref under which the alt commit lives (e.g. "alt/2"). */
+  branchRef: string
+  /** Per-metric value at the alt checkpoint, computed identically to
+   *  CheckpointVM.values so the chart can plot it directly. */
+  altValues: Partial<Record<MetricId, number>>
+  build: StatusTone
+  tests: StatusTone
+  status: StatusTone
+  /** Total churn introduced by the alt commit (`fromSha → altSha`). */
+  altChurn: number
+  /** Unified-diff patch for `fromSha → altSha`. */
+  patch: string
+}
+
 export type DashboardViewModel = {
   session: SessionVM
   metrics: MetricVM[]
   checkpoints: CheckpointVM[]
   intervals: IntervalVM[]
   refactoringSteps: RefactoringStepVM[]
+  alternativeTrajectories: AlternativeTrajectoryVM[]
   trajectory: TrajectoryVM | undefined
 }
 
@@ -117,6 +154,7 @@ export type Selection =
   | { kind: "checkpoint"; index: number }
   | { kind: "interval"; index: number }
   | { kind: "refactoring"; index: number }
+  | { kind: "alternative"; index: number }
   // Click on the build / tests rail below the chart. `intervalIndex`
   // points at the first interval in a merged same-status run; the
   // detail panel walks forward to compute the run's total duration.
@@ -126,4 +164,5 @@ export type Selection =
 export type Layers = {
   buildIntervals: boolean
   testIntervals: boolean
+  alternativeTrajectories: boolean
 }
