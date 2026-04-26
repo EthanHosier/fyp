@@ -23,6 +23,15 @@ import { cn } from "@/lib/utils"
 const ALT_MID_OFFSET_PX = 32
 
 /**
+ * Distance (px) the hit-target fat stroke is pulled inward from each
+ * stub circle. Clicks within this end-zone fall through to the
+ * underlying ChartPoints checkpoint dot, so picking the endpoint
+ * opens the checkpoint detail panel rather than the alt-path one —
+ * only clicks on the edge itself open the alternative.
+ */
+const ENDPOINT_HIT_INSET_PX = 10
+
+/**
  * Renders synthesised IDE-driven alternative paths as dashed branches
  * that leave the user's actual trajectory at the alt's `fromCheckpoint`,
  * pass through the alt checkpoint's primary-metric value at a midpoint
@@ -93,6 +102,19 @@ export function ChartAlternativePaths({
           .map((p, i) => `${i === 0 ? "M" : "L"}${p.x.toFixed(1)},${p.y.toFixed(1)}`)
           .join(" ")
 
+        // Hit-target path: same shape, but each endpoint pulled 10px
+        // toward the mid-point so the fat clickable stroke doesn't
+        // overlap the user's checkpoint dot. Without this, the alt
+        // group's onClick swallows endpoint clicks that should select
+        // the checkpoint underneath.
+        const fromInset = insetToward(xFrom, ys(yFrom), xMid, yMidPx, ENDPOINT_HIT_INSET_PX)
+        const toInset = insetToward(xTo, ys(yTo), xMid, yMidPx, ENDPOINT_HIT_INSET_PX)
+        const hitPath = [
+          `M${fromInset.x.toFixed(1)},${fromInset.y.toFixed(1)}`,
+          `L${xMid.toFixed(1)},${yMidPx.toFixed(1)}`,
+          `L${toInset.x.toFixed(1)},${toInset.y.toFixed(1)}`,
+        ].join(" ")
+
         return (
           <g
             key={alt.index}
@@ -107,11 +129,11 @@ export function ChartAlternativePaths({
                 next to impossible to land on. The transparent 14px
                 stroke below catches clicks anywhere near the branch. */}
             <path
-              d={path}
+              d={hitPath}
               fill="none"
               stroke="transparent"
               strokeWidth={14}
-              strokeLinecap="round"
+              strokeLinecap="butt"
               pointerEvents="stroke"
             />
 
@@ -229,7 +251,29 @@ function StubCircle({
       stroke="currentColor"
       strokeOpacity={selected ? 0.9 : 0.5}
       strokeDasharray="1.5 1.5"
+      // Visual-only — clicks fall through to the checkpoint dot
+      // underneath so endpoint selection routes to checkpoint detail.
+      pointerEvents="none"
     />
   )
+}
+
+/**
+ * Returns a point at distance [d] along the (ax,ay)→(bx,by) ray.
+ * Used to inset the hit-target path away from the alt's endpoints
+ * so endpoint clicks reach the checkpoint dot underneath.
+ */
+function insetToward(
+  ax: number,
+  ay: number,
+  bx: number,
+  by: number,
+  d: number,
+): { x: number; y: number } {
+  const dx = bx - ax
+  const dy = by - ay
+  const len = Math.hypot(dx, dy)
+  if (len === 0) return { x: ax, y: ay }
+  return { x: ax + (dx / len) * d, y: ay + (dy / len) * d }
 }
 

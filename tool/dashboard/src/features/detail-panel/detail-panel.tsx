@@ -49,7 +49,6 @@ export function DetailPanel({ vm }: { vm: DashboardViewModel }) {
       <CheckpointBody
         vm={vm}
         checkpoint={to}
-        description={step.description}
         pitfalls={<RefactoringPitfalls vm={vm} step={step} />}
         patch={step.patch}
         patchCacheKey={`refactoring-${step.index}`}
