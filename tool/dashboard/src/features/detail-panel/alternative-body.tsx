@@ -112,10 +112,10 @@ export function AlternativeBody({
 }
 
 const OUTCOME_LABEL: Record<Outcome, string> = {
-  better: "Better alternative",
-  worse: "Worse alternative",
-  neutral: "Neutral alternative",
-  failed: "Failed alternative",
+  better: "Better Alternative",
+  worse: "Worse Alternative",
+  neutral: "Neutral Alternative",
+  failed: "Failed Alternative",
 }
 
 const OUTCOME_CLASS: Record<Outcome, string> = {
@@ -136,14 +136,16 @@ function OutcomePill({ outcome }: { outcome: Outcome }) {
   return (
     <div
       className={cn(
-        "bg-bg-2 inline-flex items-center gap-2 self-start rounded-full border px-2.5 py-1 text-[11px] tracking-[0.06em] uppercase",
+        "bg-bg-2 inline-flex items-center gap-2 self-start rounded-full border px-2.5 py-1 tracking-[0.02em]",
         OUTCOME_CLASS[outcome],
       )}
     >
       <span
         className={cn("inline-block size-1.5 rounded-full bg-current")}
       />
-      {OUTCOME_LABEL[outcome]}
+      <Text as="span" variant="bodySm" tone="inherit">
+        {OUTCOME_LABEL[outcome]}
+      </Text>
     </div>
   )
 }
