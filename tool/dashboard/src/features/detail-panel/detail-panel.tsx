@@ -5,6 +5,7 @@ import { Text } from "@/components/text"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import type { CheckpointVM, DashboardViewModel, StatusTone } from "@/data/types"
+import { AlternativeBody } from "@/features/detail-panel/alternative-body"
 import { CheckpointBody } from "@/features/detail-panel/checkpoint-body"
 import { IntervalBody } from "@/features/detail-panel/interval-body"
 import { RefactoringPitfalls } from "@/features/detail-panel/refactoring-pitfalls"
@@ -48,13 +49,33 @@ export function DetailPanel({ vm }: { vm: DashboardViewModel }) {
       <CheckpointBody
         vm={vm}
         checkpoint={to}
-        description={step.description}
         pitfalls={<RefactoringPitfalls vm={vm} step={step} />}
         patch={step.patch}
         patchCacheKey={`refactoring-${step.index}`}
         patchEmptyMessage="No filtered diff for this refactoring."
       />
     )
+  } else if (selection.kind === "alternative") {
+    const alt = vm.alternativeTrajectories.find((a) => a.index === selection.index)
+    if (!alt) return null
+    const fromCp = vm.checkpoints[alt.fromCheckpointIndex]
+    const toCp = vm.checkpoints[alt.toCheckpointIndex]
+    const span = fromCp && toCp ? `${fromCp.label} → ${toCp.label}` : alt.branchRef
+    title = alt.label
+    subtitle = (
+      <span className="inline-flex items-center gap-1.5">
+        <Text variant="mono" tone="fg-3">
+          {span}
+        </Text>
+        <Text variant="mono" tone="fg-4">
+          ·
+        </Text>
+        <Text variant="mono" tone="fg-3">
+          {alt.shortAltSha}
+        </Text>
+      </span>
+    )
+    body = <AlternativeBody vm={vm} alt={alt} />
   } else if (selection.kind === "status") {
     const iv = vm.intervals[selection.intervalIndex]
     if (!iv) return null

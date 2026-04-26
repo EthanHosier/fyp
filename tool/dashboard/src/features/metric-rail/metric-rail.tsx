@@ -69,6 +69,12 @@ export function MetricRail({ vm }: { vm: DashboardViewModel }) {
             checked={layers.testIntervals}
             onChange={(v) => setLayer("testIntervals", v)}
           />
+          <LayerToggle
+            id="layer-alt-trajectories"
+            label="Alternative paths"
+            checked={layers.alternativeTrajectories}
+            onChange={(v) => setLayer("alternativeTrajectories", v)}
+          />
         </RailSection>
       </ScrollArea>
     </aside>

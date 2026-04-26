@@ -1,8 +1,13 @@
 import { useEffect, useRef, useState } from "react"
 
 import type { DashboardViewModel, MetricVM } from "@/data/types"
+import { ChartAlternativePaths } from "@/features/trajectory-chart/chart-alternative-paths"
 import { ChartAxes } from "@/features/trajectory-chart/chart-axes"
-import { ChartHoverOverlay } from "@/features/trajectory-chart/chart-hover-overlay"
+import {
+  ChartHoverOverlay,
+  ChartHoverVisuals,
+  useChartHover,
+} from "@/features/trajectory-chart/chart-hover-overlay"
 import { ChartIntervalRail, INTERVAL_RAIL_GAP, INTERVAL_RAIL_HEIGHT, INTERVAL_RAIL_OFFSET } from "@/features/trajectory-chart/chart-interval-rail"
 import { ChartLegend } from "@/features/trajectory-chart/chart-legend"
 import { ChartLines } from "@/features/trajectory-chart/chart-lines"
@@ -71,6 +76,7 @@ export function TrajectoryChart({ vm }: { vm: DashboardViewModel }) {
     },
   })
   const { margin } = scales
+  const hoverState = useChartHover()
 
   return (
     <div>
@@ -122,12 +128,33 @@ export function TrajectoryChart({ vm }: { vm: DashboardViewModel }) {
                 onSelect={setSelection}
               />
             ) : null}
+            {/* Hover capture rect first; alt paths above so their
+                fat-stroke hit areas claim clicks instead of the
+                rect's hover→select dispatch swallowing them. The
+                visible tooltip layer (`ChartHoverVisuals`) is rendered
+                last so it paints over the alt lines + label chips. */}
             <ChartHoverOverlay
+              vm={vm}
+              primary={primary}
+              scales={scales}
+              hoverState={hoverState}
+              onSelect={setSelection}
+            />
+            {layers.alternativeTrajectories ? (
+              <ChartAlternativePaths
+                vm={vm}
+                primary={primary}
+                scales={scales}
+                selection={selection}
+                onSelect={setSelection}
+              />
+            ) : null}
+            <ChartHoverVisuals
               vm={vm}
               primary={primary}
               secondaries={secondaries}
               scales={scales}
-              onSelect={setSelection}
+              hoverState={hoverState}
             />
           </g>
         </svg>

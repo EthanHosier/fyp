@@ -29,25 +29,39 @@ type Hover =
   | null
 
 /**
- * Transparent hit-rect over the plot area. Mouse position picks either
- * the nearest checkpoint (when close) or the enclosing interval, then
- * renders a crosshair + HTML tooltip (inside a foreignObject). Click
- * dispatches the matching selection.
+ * Hover state shared between the capture rect (rendered early in the
+ * SVG tree, beneath the alt-path layer) and the visuals (rendered
+ * last, on top of everything). Split exists so alt-path click hit
+ * areas can sit above the capture rect — otherwise alt clicks get
+ * swallowed by the rect's onClick — while the tooltip / crosshair
+ * still paints above the alt lines.
+ */
+export function useChartHover() {
+  return useState<Hover>(null)
+}
+
+export type ChartHoverState = ReturnType<typeof useChartHover>
+
+/**
+ * Transparent hit-rect over the plot area. Mouse position picks the
+ * nearest checkpoint (when close) or the enclosing interval; click
+ * dispatches selection. Renders no visuals — those live in
+ * [ChartHoverVisuals].
  */
 export function ChartHoverOverlay({
   vm,
   primary,
-  secondaries,
   scales,
+  hoverState,
   onSelect,
 }: {
   vm: DashboardViewModel
   primary: MetricVM
-  secondaries: MetricVM[]
   scales: ChartScales
+  hoverState: ChartHoverState
   onSelect: (s: Selection) => void
 }) {
-  const [hover, setHover] = useState<Hover>(null)
+  const [hover, setHover] = hoverState
   const { innerW, innerH } = scales
 
   function handleMove(e: React.MouseEvent<SVGRectElement>) {
@@ -63,21 +77,44 @@ export function ChartHoverOverlay({
   }
 
   return (
-    <g>
-      <rect
-        x={0}
-        y={0}
-        width={innerW}
-        height={innerH}
-        fill="transparent"
-        className="cursor-pointer"
-        onMouseMove={handleMove}
-        onMouseLeave={() => setHover(null)}
-        onClick={() => {
-          if (hover) onSelect(hover)
-        }}
-      />
-      {hover?.kind === "checkpoint" ? (
+    <rect
+      x={0}
+      y={0}
+      width={innerW}
+      height={innerH}
+      fill="transparent"
+      className="cursor-pointer"
+      onMouseMove={handleMove}
+      onMouseLeave={() => setHover(null)}
+      onClick={() => {
+        if (hover) onSelect(hover)
+      }}
+    />
+  )
+}
+
+/**
+ * Crosshair + HTML tooltip for whatever the capture rect resolved.
+ * Render this AFTER any layer that needs to sit beneath the tooltip.
+ */
+export function ChartHoverVisuals({
+  vm,
+  primary,
+  secondaries,
+  scales,
+  hoverState,
+}: {
+  vm: DashboardViewModel
+  primary: MetricVM
+  secondaries: MetricVM[]
+  scales: ChartScales
+  hoverState: ChartHoverState
+}) {
+  const [hover] = hoverState
+  if (!hover) return null
+  return (
+    <g pointerEvents="none">
+      {hover.kind === "checkpoint" ? (
         <CheckpointCrosshair
           checkpoint={vm.checkpoints[hover.index]}
           primary={primary}
@@ -87,7 +124,7 @@ export function ChartHoverOverlay({
           mouseY={hover.my}
         />
       ) : null}
-      {hover?.kind === "interval" ? (
+      {hover.kind === "interval" ? (
         <IntervalCrosshair
           vm={vm}
           interval={vm.intervals[hover.index]}
@@ -97,7 +134,7 @@ export function ChartHoverOverlay({
           mouseY={hover.my}
         />
       ) : null}
-      {hover?.kind === "refactoring" ? (
+      {hover.kind === "refactoring" ? (
         <RefactoringCrosshair
           vm={vm}
           step={vm.refactoringSteps[hover.index]}

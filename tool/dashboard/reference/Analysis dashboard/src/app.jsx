@@ -11,7 +11,7 @@ function App() {
   const [primary, setPrimary] = React.useState("complexity");
   const [secondaries, setSecondaries] = React.useState(["duplication", "churn"]);
   const [filters, setFilters] = React.useState({
-    intervals: true, annotations: true, suggested: true,
+    intervals: true, annotations: true, suggested: true, alts: true,
   });
   const [selection, setSelection] = React.useState({ kind: "checkpoint", i: 6 });
   const [tweaks, setTweaks] = React.useState(TWEAK_DEFAULTS);
@@ -57,6 +57,7 @@ function App() {
                 showIntervals={filters.intervals && tweaks.lineStyle === "segmented"}
                 showAnnotations={filters.annotations}
                 showSuggested={filters.suggested}
+                showAlts={filters.alts}
                 selection={selection}
                 onSelect={setSelection}
                 density={tweaks.density}
@@ -135,6 +136,9 @@ function GraphLegend({ secondaries, data }) {
       <LegendSwatch label="unknown"      swatch={<span style={{ width: 10, height: 10, background: "repeating-linear-gradient(45deg,rgba(100,116,139,0.7) 0 2px,transparent 2px 4px), var(--unknown)", opacity: 0.6, borderRadius: 2, display: "inline-block" }}/>}/>
       <span style={{ width: 1, height: 14, background: "var(--border-strong)" }}/>
       <LegendSwatch label="suggested path" swatch={<span style={{ width: 18, height: 0, borderBottom: "1.5px dashed var(--accent)", display: "inline-block" }}/>}/>
+      <LegendSwatch label="alt: better"  swatch={<span style={{ width: 18, height: 0, borderBottom: "1.5px dashed #7ee8d4", display: "inline-block" }}/>}/>
+      <LegendSwatch label="alt: worse"   swatch={<span style={{ width: 18, height: 0, borderBottom: "1.5px dashed #e8a33d", display: "inline-block" }}/>}/>
+      <LegendSwatch label="alt: failed"  swatch={<span style={{ width: 18, height: 0, borderBottom: "1.5px dashed #e55765", display: "inline-block" }}/>}/>
     </div>
   );
 }

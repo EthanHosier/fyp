@@ -3,12 +3,41 @@ package com.github.ethanhosier.analysis.miner
 import com.github.ethanhosier.analysis.metrics.WorktreePool
 import com.github.ethanhosier.analysis.miner.model.DetectedRefactoring
 import com.github.ethanhosier.analysis.miner.model.RefactoringLocation
+import com.github.ethanhosier.analysis.miner.model.RefactoringSpec
 import com.github.ethanhosier.analysis.miner.model.RefactoringStep
 import com.github.ethanhosier.analysis.model.ReconstructionResult
 import com.github.ethanhosier.analysis.model.Trace
 import com.github.ethanhosier.ideplugin.model.EventType
+import gr.uom.java.xmi.VariableDeclarationContainer
+import gr.uom.java.xmi.diff.AddParameterRefactoring
+import gr.uom.java.xmi.diff.ChangeAttributeTypeRefactoring
+import gr.uom.java.xmi.diff.ChangeReturnTypeRefactoring
+import gr.uom.java.xmi.diff.ChangeVariableTypeRefactoring
 import gr.uom.java.xmi.diff.CodeRange
+import gr.uom.java.xmi.diff.ExtractAttributeRefactoring
+import gr.uom.java.xmi.diff.ExtractClassRefactoring
+import gr.uom.java.xmi.diff.ExtractOperationRefactoring
+import gr.uom.java.xmi.diff.ExtractSuperclassRefactoring
+import gr.uom.java.xmi.diff.ExtractVariableRefactoring
+import gr.uom.java.xmi.diff.InlineOperationRefactoring
+import gr.uom.java.xmi.diff.InlineVariableRefactoring
+import gr.uom.java.xmi.diff.MoveAndRenameAttributeRefactoring
+import gr.uom.java.xmi.diff.MoveAndRenameClassRefactoring
+import gr.uom.java.xmi.diff.MoveAttributeRefactoring
+import gr.uom.java.xmi.diff.MoveClassRefactoring
+import gr.uom.java.xmi.diff.PullUpAttributeRefactoring
+import gr.uom.java.xmi.diff.PullUpOperationRefactoring
+import gr.uom.java.xmi.diff.PushDownAttributeRefactoring
+import gr.uom.java.xmi.diff.PushDownOperationRefactoring
+import gr.uom.java.xmi.diff.RemoveParameterRefactoring
+import gr.uom.java.xmi.diff.RenameAttributeRefactoring
+import gr.uom.java.xmi.diff.RenameClassRefactoring
+import gr.uom.java.xmi.diff.RenameOperationRefactoring
+import gr.uom.java.xmi.diff.RenamePackageRefactoring
+import gr.uom.java.xmi.diff.RenameVariableRefactoring
+import gr.uom.java.xmi.diff.ReorderParameterRefactoring
 import org.refactoringminer.api.Refactoring
+import org.refactoringminer.api.RefactoringType
 import org.refactoringminer.api.RefactoringHandler
 import org.refactoringminer.rm1.GitHistoryRefactoringMinerImpl
 import java.nio.file.Path
@@ -99,6 +128,7 @@ class RefactoringMinerRunner(
                             timestamp = timestamp,
                             refactoring = toDetected(d),
                             wasPerformedByIde = rSha in idePerformedShas,
+                            spec = toSpec(d),
                         ),
                     )
                 }
@@ -154,6 +184,345 @@ class RefactoringMinerRunner(
             leftSideLocations = r.leftSide().map(::toLocation),
             rightSideLocations = r.rightSide().map(::toLocation),
             ideRelevant = IdeRelevantRefactorings.isIdeRelevant(type),
+        )
+    }
+
+    /**
+     * Maps an RM detection to a typed [RefactoringSpec] suitable for
+     * driving `RefactoringClient`. Each IDE-relevant RM type gets its
+     * own arm; everything else falls through to [RefactoringSpec.Other],
+     * which `AlternativeTrajectoryRunner` skips with a clear reason.
+     *
+     * Typed arms are added incrementally — each commit covers one
+     * refactoring kind (RM subclass → spec field extraction). Until
+     * a kind has its arm, manual detections of that kind don't
+     * synthesise an alternative.
+     */
+    private fun toSpec(r: Refactoring): RefactoringSpec = when (r) {
+        is RenameOperationRefactoring -> RefactoringSpec.RenameMethod(
+            declaringTypeFqn = r.originalOperation.className,
+            oldName = r.originalOperation.name,
+            newName = r.renamedOperation.name,
+            // JDT can auto-disambiguate when the name is unique on the
+            // declaring type. RM doesn't surface the JDT-encoded
+            // signature; the rename op falls back to the unique-name
+            // path, which covers the common case.
+            paramTypeSignatures = null,
+        )
+
+        is RenameClassRefactoring -> RefactoringSpec.RenameClass(
+            typeFqn = r.originalClassName,
+            newName = r.renamedClassName.substringAfterLast('.'),
+        )
+
+        is RenameAttributeRefactoring -> RefactoringSpec.RenameField(
+            declaringTypeFqn = r.classNameBefore,
+            oldName = r.originalAttribute.name,
+            newName = r.renamedAttribute.name,
+        )
+
+        is RenamePackageRefactoring -> RefactoringSpec.RenamePackage(
+            // RM's RenamePattern strings are the matched prefix of the
+            // package path with a trailing dot (e.g. `com.foo.`); strip
+            // it so the JDT op gets a clean package FQN.
+            oldPackage = r.pattern.before.trimEnd('.'),
+            newPackage = r.pattern.after.trimEnd('.'),
+        )
+
+        // Pull Up / Push Down extend MoveOperation/MoveAttribute, so
+        // they MUST be matched before their parents — otherwise a
+        // pull-up gets routed through the move-op arm and synthesised
+        // with the wrong JDT op.
+        is PullUpOperationRefactoring -> RefactoringSpec.PullUp(
+            // JDT's PullUp takes the *source* (subclass) FQN; methods
+            // listed are pulled up to its supertype.
+            declaringTypeFqn = r.originalOperation.className,
+            methodNames = listOf(r.originalOperation.name),
+        )
+
+        is PullUpAttributeRefactoring -> RefactoringSpec.PullUp(
+            declaringTypeFqn = r.originalAttribute.className,
+            fieldNames = listOf(r.originalAttribute.name),
+        )
+
+        is PushDownOperationRefactoring -> RefactoringSpec.PushDown(
+            // JDT's PushDown takes the *superclass* FQN where the
+            // member currently lives; the op pushes it to subclasses.
+            declaringTypeFqn = r.originalOperation.className,
+            methodNames = listOf(r.originalOperation.name),
+        )
+
+        is PushDownAttributeRefactoring -> RefactoringSpec.PushDown(
+            declaringTypeFqn = r.originalAttribute.className,
+            fieldNames = listOf(r.originalAttribute.name),
+        )
+
+        // Move + Move-and-Rename — must come *after* the Pull/Push
+        // arms above because PullUp/PushDown extend Move{Op,Attr}.
+        is MoveAndRenameClassRefactoring -> RefactoringSpec.MoveAndRenameClass(
+            typeFqn = r.originalClassName,
+            destinationPackage = r.renamedClassName.substringBeforeLast('.', missingDelimiterValue = ""),
+            newName = r.renamedClassName.substringAfterLast('.'),
+        )
+
+        is MoveClassRefactoring -> RefactoringSpec.MoveClass(
+            typeFqn = r.originalClassName,
+            destinationPackage = r.movedClassName.substringBeforeLast('.', missingDelimiterValue = ""),
+        )
+
+        is MoveAndRenameAttributeRefactoring -> RefactoringSpec.MoveAndRenameAttribute(
+            sourceTypeFqn = r.originalAttribute.className,
+            fieldName = r.originalAttribute.name,
+            destinationTypeFqn = r.movedAttribute.className,
+            newFieldName = r.movedAttribute.name,
+        )
+
+        is MoveAttributeRefactoring -> RefactoringSpec.MoveInstanceField(
+            sourceTypeFqn = r.sourceClassName,
+            fieldName = r.originalAttribute.name,
+            destinationTypeFqn = r.targetClassName,
+        )
+
+        is ExtractOperationRefactoring -> {
+            // RM's leftSide() returns BOTH the extracted code-fragments
+            // AND the containing METHOD_DECLARATION. The latter is
+            // context, not a selection — including its line range here
+            // would balloon the bounding box to the whole source method
+            // and JDT would reject the selection. Filter it out and
+            // keep only the actual extracted fragments.
+            val fragments = r.leftSide().filter { it.codeElementType.toString() != "METHOD_DECLARATION" }
+            if (fragments.isEmpty()) RefactoringSpec.Other
+            else {
+                // Earliest start, latest end — JDT then needs every
+                // statement strictly inside that range to be extractable
+                // together (which is exactly what RM has already
+                // verified by detecting the refactoring at all).
+                val sorted = fragments.sortedWith(compareBy({ it.startLine }, { it.startColumn }))
+                val first = sorted.first()
+                val last = sorted.maxByOrNull { it.endLine * 10_000 + it.endColumn }!!
+                RefactoringSpec.ExtractMethod(
+                    relativeFilePath = first.filePath,
+                    startLine = first.startLine,
+                    startColumn = first.startColumn,
+                    endLine = last.endLine,
+                    endColumn = last.endColumn,
+                    newMethodName = r.extractedOperation.name,
+                )
+            }
+        }
+
+        is InlineOperationRefactoring -> RefactoringSpec.InlineMethod(
+            declaringTypeFqn = r.inlinedOperation.className,
+            methodName = r.inlinedOperation.name,
+        )
+
+        is ExtractVariableRefactoring -> {
+            // leftSide() points at the original expression's location;
+            // its (line, col) range is what JDT's Extract Local
+            // Variable selects.
+            val left = r.leftSide().firstOrNull()
+            if (left == null) RefactoringSpec.Other
+            else RefactoringSpec.ExtractVariable(
+                relativeFilePath = left.filePath,
+                startLine = left.startLine,
+                startColumn = left.startColumn,
+                endLine = left.endLine,
+                endColumn = left.endColumn,
+                newName = r.variableDeclaration.variableName,
+            )
+        }
+
+        is InlineVariableRefactoring -> {
+            // The variable's declaration location is what JDT's Inline
+            // Variable needs to find the symbol — leftSide first entry
+            // covers the declaration site for inline detections.
+            val loc = r.variableDeclaration.locationInfo
+            RefactoringSpec.InlineVariable(
+                relativeFilePath = loc.filePath,
+                line = loc.startLine,
+                column = loc.startColumn,
+            )
+        }
+
+        is ExtractAttributeRefactoring -> {
+            val left = r.leftSide().firstOrNull()
+            if (left == null) RefactoringSpec.Other
+            else RefactoringSpec.ExtractAttribute(
+                relativeFilePath = left.filePath,
+                startLine = left.startLine,
+                startColumn = left.startColumn,
+                endLine = left.endLine,
+                endColumn = left.endColumn,
+                newName = r.variableDeclaration.name,
+            )
+        }
+
+        is ChangeVariableTypeRefactoring -> {
+            val loc = r.originalVariable.locationInfo
+            RefactoringSpec.ChangeVariableType(
+                relativeFilePath = loc.filePath,
+                line = loc.startLine,
+                column = loc.startColumn,
+                newTypeFqn = r.changedTypeVariable.type.toString(),
+            )
+        }
+
+        is ChangeAttributeTypeRefactoring -> RefactoringSpec.ChangeAttributeType(
+            declaringTypeFqn = r.classNameBefore,
+            fieldName = r.originalAttribute.name,
+            newTypeFqn = r.changedTypeAttribute.type.toString(),
+        )
+
+        is RenameVariableRefactoring -> {
+            // RM bundles several IDE-relevant kinds into a single class;
+            // the discriminator is its dynamically-computed
+            // refactoringType. Each branch builds the matching spec.
+            val loc = r.originalVariable.locationInfo
+            val newName = r.renamedVariable.variableName
+            when (r.refactoringType) {
+                RefactoringType.RENAME_VARIABLE -> RefactoringSpec.RenameLocalVariable(
+                    relativeFilePath = loc.filePath,
+                    line = loc.startLine,
+                    column = loc.startColumn,
+                    newName = newName,
+                )
+
+                RefactoringType.RENAME_PARAMETER -> RefactoringSpec.RenameParameter(
+                    relativeFilePath = loc.filePath,
+                    line = loc.startLine,
+                    column = loc.startColumn,
+                    newName = newName,
+                )
+
+                RefactoringType.PARAMETERIZE_VARIABLE -> RefactoringSpec.ParameterizeVariable(
+                    relativeFilePath = loc.filePath,
+                    startLine = loc.startLine,
+                    startColumn = loc.startColumn,
+                    endLine = loc.endLine,
+                    endColumn = loc.endColumn,
+                    newParameterName = newName,
+                )
+
+                RefactoringType.PARAMETERIZE_ATTRIBUTE -> RefactoringSpec.ParameterizeAttribute(
+                    relativeFilePath = loc.filePath,
+                    startLine = loc.startLine,
+                    startColumn = loc.startColumn,
+                    endLine = loc.endLine,
+                    endColumn = loc.endColumn,
+                    newParameterName = newName,
+                )
+
+                RefactoringType.REPLACE_VARIABLE_WITH_ATTRIBUTE -> RefactoringSpec.ReplaceVariableWithAttribute(
+                    relativeFilePath = loc.filePath,
+                    line = loc.startLine,
+                    column = loc.startColumn,
+                    newFieldName = newName,
+                )
+
+                else -> RefactoringSpec.Other
+            }
+        }
+
+        // ── Change-signature family ─────────────────────────────────
+        // RM emits one event per delta (one parameter added, one type
+        // changed, …) but JDT's Change Method Signature op takes the
+        // FULL desired parameter list — so we always rebuild it from
+        // operationAfter. Existing-vs-Added is decided by name presence
+        // in operationBefore.
+        //
+        // newReturnType uses JDT's "" sentinel = "leave unchanged" for
+        // every refactoring that doesn't touch the return type;
+        // ChangeReturnType passes the new type explicitly. Doing it
+        // this way avoids needing to read the current return type
+        // (VariableDeclarationContainer doesn't expose it directly —
+        // only the UMLOperation subtype does).
+        is AddParameterRefactoring -> changeMethodSignatureSpec(
+            r.operationBefore, r.operationAfter, newReturnType = "",
+        )
+
+        is RemoveParameterRefactoring -> changeMethodSignatureSpec(
+            r.operationBefore, r.operationAfter, newReturnType = "",
+        )
+
+        is ReorderParameterRefactoring -> changeMethodSignatureSpec(
+            r.operationBefore, r.operationAfter, newReturnType = "",
+        )
+
+        is ChangeReturnTypeRefactoring -> changeMethodSignatureSpec(
+            r.operationBefore, r.operationAfter, newReturnType = r.changedType.toString(),
+        )
+
+        // ── Extract Class ───────────────────────────────────────────
+        // The "delegate field" is the new field on the original class
+        // whose type is the extracted class — RM exposes it via
+        // getAttributeOfExtractedClassTypeInOriginalClass(). When that
+        // returns null (e.g. the extracted class is referenced only via
+        // getters), JDT can't drive an extract-class without it, so we
+        // fall through to Other.
+        is ExtractClassRefactoring -> r.attributeOfExtractedClassTypeInOriginalClass?.let { delegate ->
+            RefactoringSpec.ExtractClass(
+                sourceTypeFqn = r.originalClass.name,
+                newClassName = r.extractedClass.name.substringAfterLast('.'),
+                delegateFieldName = delegate.name,
+                fieldNames = r.extractedAttributes.keys.map { it.name },
+            )
+        } ?: RefactoringSpec.Other
+
+        // ── Extract Superclass / Extract Interface ──────────────────
+        // RM uses one class for both, discriminated by the extracted
+        // class's `isInterface` flag.
+        is ExtractSuperclassRefactoring -> r.subclassSetBefore.firstOrNull()?.let { sourceFqn ->
+            val extracted = r.extractedClass
+            val newSimpleName = extracted.name.substringAfterLast('.')
+            val methodNames = extracted.operations.map { it.name }
+            val fieldNames = extracted.attributes.map { it.name }
+            if (extracted.isInterface) {
+                RefactoringSpec.ExtractInterface(
+                    sourceTypeFqn = sourceFqn,
+                    newInterfaceName = newSimpleName,
+                    methodNames = methodNames,
+                )
+            } else {
+                RefactoringSpec.ExtractSuperclass(
+                    sourceTypeFqn = sourceFqn,
+                    newSupertypeName = newSimpleName,
+                    methodNames = methodNames,
+                    fieldNames = fieldNames,
+                )
+            }
+        } ?: RefactoringSpec.Other
+
+        else -> RefactoringSpec.Other
+    }
+
+    private fun changeMethodSignatureSpec(
+        operationBefore: VariableDeclarationContainer,
+        operationAfter: VariableDeclarationContainer,
+        newReturnType: String,
+    ): RefactoringSpec.ChangeMethodSignature {
+        val beforeNames = operationBefore.parametersWithoutReturnType.map { it.name }.toSet()
+        val parameters = operationAfter.parametersWithoutReturnType.map { p ->
+            if (p.name in beforeNames) {
+                RefactoringSpec.ChangeSignatureParameter.Existing(
+                    oldName = p.name,
+                    newName = p.name,
+                    newType = p.type.toString(),
+                )
+            } else {
+                RefactoringSpec.ChangeSignatureParameter.Added(
+                    name = p.name,
+                    type = p.type.toString(),
+                    defaultValue = "",
+                )
+            }
+        }
+        return RefactoringSpec.ChangeMethodSignature(
+            declaringTypeFqn = operationBefore.className,
+            oldMethodName = operationBefore.name,
+            paramTypeSignatures = null,
+            newMethodName = "",
+            newReturnType = newReturnType,
+            parameters = parameters,
         )
     }
 

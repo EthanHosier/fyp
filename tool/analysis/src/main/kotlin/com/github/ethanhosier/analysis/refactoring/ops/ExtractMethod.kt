@@ -11,7 +11,9 @@ data class ExtractMethodRequest(
     val classpathJars: List<Path>,
     val relativeFilePath: String,
     val startLine: Int,            // 1-indexed, inclusive
+    val startColumn: Int,          // 1-indexed, inclusive
     val endLine: Int,              // 1-indexed, inclusive
+    val endColumn: Int,            // 1-indexed, inclusive — pass a column past the line's content to extract whole lines.
     val newMethodName: String,
 )
 
@@ -20,6 +22,8 @@ private val paramTypes: Array<Class<*>> = arrayOf(
     Array<String>::class.java,
     Array<String>::class.java,
     String::class.java,
+    Int::class.javaPrimitiveType!!,
+    Int::class.javaPrimitiveType!!,
     Int::class.javaPrimitiveType!!,
     Int::class.javaPrimitiveType!!,
     String::class.java,
@@ -35,7 +39,9 @@ fun RefactoringClient.extractMethod(req: ExtractMethodRequest): RefactoringOutco
             req.classpathJars.map { it.toAbsolutePath().toString() }.toTypedArray(),
             req.relativeFilePath,
             req.startLine,
+            req.startColumn,
             req.endLine,
+            req.endColumn,
             req.newMethodName,
         ),
     )

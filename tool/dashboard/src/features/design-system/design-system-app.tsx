@@ -12,6 +12,8 @@ import { FilterChip } from "@/components/filter-chip"
 import { LegendSwatch } from "@/components/legend-swatch"
 import { Meter } from "@/components/meter"
 import { PitfallCallout } from "@/components/pitfall-callout"
+import { AnnotationItem } from "@/components/annotation-item"
+import { AnnotationList } from "@/components/annotation-list"
 import { MetricTile } from "@/components/metric-tile"
 import { RailSection } from "@/components/rail-section"
 import { ScorePill } from "@/components/score-pill"
@@ -364,25 +366,136 @@ export function DesignSystemApp() {
         </DesignSystemSection>
 
         <DesignSystemSection title="MetricTile" layout="showcase">
-          <VariantCell label="lower is better · low">
+          <VariantCell label="no delta">
             <div className="w-48">
-              <MetricTile label="Complexity" value={12.4} unit="wmc" fraction={0.2} />
+              <MetricTile label="Complexity" value={12.4} unit="wmc" />
             </div>
           </VariantCell>
-          <VariantCell label="lower is better · high">
+          <VariantCell label="lower-is-better · improved (−)">
             <div className="w-48">
-              <MetricTile label="Duplication" value={18.7} unit="%" fraction={0.85} />
+              <MetricTile
+                label="Duplication"
+                value={18.7}
+                unit="%"
+                delta={-2.3}
+              />
             </div>
           </VariantCell>
-          <VariantCell label="higher is better">
+          <VariantCell label="lower-is-better · regressed (+)">
+            <div className="w-48">
+              <MetricTile
+                label="Duplication"
+                value={21.0}
+                unit="%"
+                delta={+2.3}
+              />
+            </div>
+          </VariantCell>
+          <VariantCell label="higher-is-better · improved (+)">
             <div className="w-48">
               <MetricTile
                 label="Readability"
                 value={83}
                 unit="score"
-                fraction={0.7}
+                delta={+5}
                 better="higher"
               />
+            </div>
+          </VariantCell>
+          <VariantCell label="higher-is-better · regressed (−)">
+            <div className="w-48">
+              <MetricTile
+                label="Readability"
+                value={73}
+                unit="score"
+                delta={-5}
+                better="higher"
+              />
+            </div>
+          </VariantCell>
+        </DesignSystemSection>
+
+        <DesignSystemSection title="AnnotationItem" layout="showcase">
+          <VariantCell label="ide-refactor">
+            <div className="w-72">
+              <AnnotationItem
+                annotation={{
+                  id: "ds-1",
+                  kind: "ide-refactor",
+                  title: "IDE: Extract Method",
+                  detail: "CheckoutService.ts → computeDiscount()",
+                }}
+              />
+            </div>
+          </VariantCell>
+          <VariantCell label="detected-refactor">
+            <div className="w-72">
+              <AnnotationItem
+                annotation={{
+                  id: "ds-2",
+                  kind: "detected-refactor",
+                  title: "Detected: Move Class",
+                  detail: "RefactoringMiner matched MoveClass over 3 checkpoints",
+                }}
+              />
+            </div>
+          </VariantCell>
+          <VariantCell label="event">
+            <div className="w-72">
+              <AnnotationItem
+                annotation={{
+                  id: "ds-3",
+                  kind: "event",
+                  title: "Build broke",
+                  detail: "passing at previous checkpoint → failing here, 24 LOC changed",
+                }}
+              />
+            </div>
+          </VariantCell>
+          <VariantCell label="divergence">
+            <div className="w-72">
+              <AnnotationItem
+                annotation={{
+                  id: "ds-4",
+                  kind: "divergence",
+                  title: "Divergence point",
+                  detail: "Suggested path splits here — see alt trajectory",
+                }}
+              />
+            </div>
+          </VariantCell>
+        </DesignSystemSection>
+
+        <DesignSystemSection title="AnnotationList" layout="stack">
+          <VariantCell label="populated">
+            <div className="w-96">
+              <AnnotationList
+                annotations={[
+                  {
+                    id: "dsl-1",
+                    kind: "ide-refactor",
+                    title: "IDE: Rename (×6)",
+                    detail: "identifiers renamed, 6 files touched",
+                  },
+                  {
+                    id: "dsl-2",
+                    kind: "detected-refactor",
+                    title: "Detected: Extract Interface",
+                    detail: "IOrderSink introduced; 3 implementers",
+                  },
+                  {
+                    id: "dsl-3",
+                    kind: "event",
+                    title: "Complexity spike",
+                    detail: "+8wmc since previous checkpoint",
+                  },
+                ]}
+              />
+            </div>
+          </VariantCell>
+          <VariantCell label="empty">
+            <div className="w-96">
+              <AnnotationList annotations={[]} />
             </div>
           </VariantCell>
         </DesignSystemSection>
