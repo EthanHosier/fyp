@@ -364,23 +364,49 @@ export function DesignSystemApp() {
         </DesignSystemSection>
 
         <DesignSystemSection title="MetricTile" layout="showcase">
-          <VariantCell label="lower is better · low">
+          <VariantCell label="no delta">
             <div className="w-48">
-              <MetricTile label="Complexity" value={12.4} unit="wmc" fraction={0.2} />
+              <MetricTile label="Complexity" value={12.4} unit="wmc" />
             </div>
           </VariantCell>
-          <VariantCell label="lower is better · high">
+          <VariantCell label="lower-is-better · improved (−)">
             <div className="w-48">
-              <MetricTile label="Duplication" value={18.7} unit="%" fraction={0.85} />
+              <MetricTile
+                label="Duplication"
+                value={18.7}
+                unit="%"
+                delta={-2.3}
+              />
             </div>
           </VariantCell>
-          <VariantCell label="higher is better">
+          <VariantCell label="lower-is-better · regressed (+)">
+            <div className="w-48">
+              <MetricTile
+                label="Duplication"
+                value={21.0}
+                unit="%"
+                delta={+2.3}
+              />
+            </div>
+          </VariantCell>
+          <VariantCell label="higher-is-better · improved (+)">
             <div className="w-48">
               <MetricTile
                 label="Readability"
                 value={83}
                 unit="score"
-                fraction={0.7}
+                delta={+5}
+                better="higher"
+              />
+            </div>
+          </VariantCell>
+          <VariantCell label="higher-is-better · regressed (−)">
+            <div className="w-48">
+              <MetricTile
+                label="Readability"
+                value={73}
+                unit="score"
+                delta={-5}
                 better="higher"
               />
             </div>

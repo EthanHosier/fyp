@@ -6,8 +6,6 @@ import { Text } from "@/components/text"
 import type { CheckpointVM, DashboardViewModel, MetricId } from "@/data/types"
 import { DiffSection } from "@/features/detail-panel/diff-section"
 
-type Range = { min: number; max: number }
-
 /**
  * Unified body for both checkpoint and refactoring selections. A
  * refactoring is rendered as the metrics + status of its `to` checkpoint,
@@ -31,7 +29,7 @@ export function CheckpointBody({
   patchCacheKey?: string
   patchEmptyMessage?: string
 }) {
-  const ranges = metricRanges(vm)
+  const baselines = metricBaselines(vm)
   const effectivePatch = patch ?? checkpoint.patch
   const effectiveKey = patchCacheKey ?? `checkpoint-${checkpoint.sha}`
 
@@ -56,13 +54,16 @@ export function CheckpointBody({
           {vm.metrics.map((m) => {
             const v = checkpoint.values[m.id]
             if (typeof v !== "number") return null
+            const baseline = baselines[m.id]
+            const delta =
+              typeof baseline === "number" ? v - baseline : undefined
             return (
               <MetricTile
                 key={m.id}
                 label={m.label}
                 value={v}
                 unit={m.unit}
-                fraction={fractionFor(v, ranges[m.id])}
+                delta={delta}
                 better={m.better}
               />
             )
@@ -89,21 +90,18 @@ export function CheckpointBody({
   )
 }
 
-function metricRanges(vm: DashboardViewModel): Partial<Record<MetricId, Range>> {
-  const out: Partial<Record<MetricId, Range>> = {}
+/**
+ * The baseline a metric tile compares against — first numeric value
+ * across the trajectory. Mirrors the reference's `vals[0]`.
+ */
+function metricBaselines(vm: DashboardViewModel): Partial<Record<MetricId, number>> {
+  const out: Partial<Record<MetricId, number>> = {}
   for (const m of vm.metrics) {
-    const values = vm.checkpoints
-      .map((c) => c.values[m.id])
-      .filter((v): v is number => typeof v === "number")
-    if (values.length) {
-      out[m.id] = { min: Math.min(...values), max: Math.max(...values) }
-    }
+    const first = vm.checkpoints.find(
+      (c) => typeof c.values[m.id] === "number",
+    )
+    const v = first?.values[m.id]
+    if (typeof v === "number") out[m.id] = v
   }
   return out
-}
-
-function fractionFor(value: number, range: Range | undefined): number {
-  if (!range) return 0.5
-  const span = range.max - range.min || 1
-  return Math.max(0, Math.min(1, (value - range.min) / span))
 }
