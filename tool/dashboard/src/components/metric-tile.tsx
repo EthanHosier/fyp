@@ -1,39 +1,77 @@
-import { Meter } from "@/components/meter"
 import { Text } from "@/components/text"
+import { cn } from "@/lib/utils"
 
 /**
- * Snapshot of a single metric at a point in time: uppercase label,
- * monospace value + unit, rainbow Meter showing where the value sits
- * within its min/max range.
+ * Snapshot of a single metric at a point in time. Mirrors the
+ * reference dashboard's tile: uppercase mono label, large mono value
+ * with a small unit suffix, and an optional delta-from-baseline chip
+ * coloured by whether the change is an improvement (per [better]).
+ *
+ * The progress-meter variant we used to render is gone — the
+ * reference doesn't have one and the meter pulled the eye away from
+ * the value. Range / fraction context lives on the chart itself.
  */
 export function MetricTile({
   label,
   value,
   unit,
-  fraction,
+  delta,
   better = "lower",
+  decimals,
 }: {
   label: string
   value: number | string
   unit?: string
-  /** 0..1 — where the value sits in its range (min=0, max=1). */
-  fraction: number
+  /** Change from the baseline value. Omit (or pass 0) to hide the chip. */
+  delta?: number
   better?: "lower" | "higher"
+  /** Display precision for both value and delta. Defaults to 1 for `%`,
+   *  0 otherwise — matches the reference. */
+  decimals?: number
 }) {
+  const dp = decimals ?? (unit === "%" ? 1 : 0)
+  const formattedValue =
+    typeof value === "number" ? value.toFixed(dp) : value
+
+  let deltaNode: React.ReactNode = null
+  if (typeof delta === "number" && delta !== 0) {
+    const improved = better === "lower" ? delta < 0 : delta > 0
+    deltaNode = (
+      <Text
+        variant="mono"
+        tone="inherit"
+        className={cn(
+          "text-[11px]",
+          improved ? "text-good" : "text-bad",
+        )}
+      >
+        {delta > 0 ? "+" : "−"}
+        {Math.abs(delta).toFixed(dp)}
+      </Text>
+    )
+  }
+
   return (
-    <div className="flex flex-col gap-1.5 rounded-sm border border-border px-2.5 py-2">
-      <Text as="div" variant="eyebrow" tone="fg-4" className="tracking-[0.06em]">
+    <div className="border-border bg-bg-3 flex flex-col gap-0.5 rounded-sm border px-2.5 py-2">
+      <Text
+        as="div"
+        variant="eyebrow"
+        tone="fg-4"
+        className="tracking-[0.06em]"
+      >
         {label}
       </Text>
-      <Text as="div" variant="monoStat" tone="fg">
-        {value}
-        {unit ? (
-          <Text variant="caption" tone="fg-4" className="ml-1">
-            {unit}
-          </Text>
-        ) : null}
-      </Text>
-      <Meter value={fraction} better={better} />
+      <div className="flex items-baseline gap-2">
+        <Text as="span" variant="monoStat" tone="fg">
+          {formattedValue}
+          {unit ? (
+            <Text variant="caption" tone="fg-4" className="ml-0.5">
+              {unit}
+            </Text>
+          ) : null}
+        </Text>
+        {deltaNode}
+      </div>
     </div>
   )
 }
