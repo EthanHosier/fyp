@@ -22,8 +22,11 @@ export function PrimaryMetricRow({
   onClick: () => void
 }) {
   const delta = values.length >= 2 ? values[values.length - 1] - values[0] : 0
-  const improved = metric.better === "lower" ? delta < 0 : delta > 0
   const decimals = metric.unit === "%" ? 1 : 0
+  const flat = delta === 0
+  const improved = metric.better === "lower" ? delta < 0 : delta > 0
+  const deltaTone = flat ? "fg-4" : improved ? "good" : "bad"
+  const deltaGlyph = flat ? "–" : improved ? "▼" : "▲"
 
   return (
     <button
@@ -53,10 +56,10 @@ export function PrimaryMetricRow({
       <Sparkline values={values} tone={active ? metric.tone : "muted"} />
       <Text
         variant="monoCaption"
-        tone={improved ? "good" : "bad"}
+        tone={deltaTone}
         className="inline-flex w-9 items-center justify-end gap-1"
       >
-        <span>{improved ? "▼" : "▲"}</span>
+        <span>{deltaGlyph}</span>
         <span>{Math.abs(delta).toFixed(decimals)}</span>
       </Text>
     </button>
