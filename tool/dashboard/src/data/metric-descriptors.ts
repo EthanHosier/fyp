@@ -56,4 +56,12 @@ export const METRIC_DESCRIPTORS: Record<MetricId, MetricDescriptor> = {
     detail:
       "Low cohesion means a class is doing several unrelated jobs and is a candidate to split. A score near 1 means each class has a single, focused responsibility; near 0 suggests god-class behaviour.",
   },
+  process: {
+    summary:
+      "How well the refactoring process has gone up to here — cumulative.",
+    formula:
+      "50 + 35·CleanlinessGain − 20·BrokenFrac − 15·NetSmells − 10·TestsSkipped − 8·ManualWhenIde",
+    detail:
+      "A single 0..100 score that summarises the trajectory so far rather than the code at this instant. Weighted gain in code quality from the start (cognitive, coupling, duplication, readability, smells, cohesion — weights from the literature) pushes the score up; broken checkpoints, net new smells, refactorings without follow-up tests, and manual edits where the IDE could have done the refactoring all push it down. Anchored at 50 so a flat trajectory isn't misread as perfect.",
+  },
 }

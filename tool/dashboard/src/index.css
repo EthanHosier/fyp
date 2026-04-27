@@ -37,13 +37,16 @@
   --border-color: #393b40;
   --border-strong: #4a4d54;
 
-  /* Brand (accent sextet — mint / blue / violet / amber / cyan / rose) */
+  /* Brand (accent septet — mint / blue / violet / amber / cyan / rose / lime).
+     `brand-7` is reserved for the process-score metric — distinct from the
+     six code-metric tones so the headline series reads as its own thing. */
   --brand: #7ee8d4;
   --brand-2: #548af7;
   --brand-3: #c27bff;
   --brand-4: #f0a868;
   --brand-5: #5cc0d4;
   --brand-6: #e879b8;
+  --brand-7: #bef264;
 
   /* Status */
   --good: #5fb865;
@@ -118,6 +121,7 @@
   --color-brand-4: var(--brand-4);
   --color-brand-5: var(--brand-5);
   --color-brand-6: var(--brand-6);
+  --color-brand-7: var(--brand-7);
   --color-good: var(--good);
   --color-bad: var(--bad);
   --color-warn: var(--warn);

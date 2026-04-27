@@ -5,10 +5,18 @@ export type MetricId =
   | "duplication"
   | "readability"
   | "cognitive"
+  | "process"
 
 export type StatusTone = "pass" | "fail" | "unknown"
 
-export type MetricTone = "brand" | "brand-2" | "brand-3" | "brand-4" | "brand-5" | "brand-6"
+export type MetricTone =
+  | "brand"
+  | "brand-2"
+  | "brand-3"
+  | "brand-4"
+  | "brand-5"
+  | "brand-6"
+  | "brand-7"
 
 export type MetricVM = {
   id: MetricId
@@ -46,6 +54,34 @@ export type CheckpointVM = {
   patch: string
   /** Bucketed PMD violations (added / carried / resolved) plus running totals. */
   smells: CodeSmellsVM
+  /** Cumulative process score 0..100 at this checkpoint. See process-score.ts. */
+  processScore: number
+  /** Decomposition of the process score into signed contributions. */
+  processBreakdown: ProcessScoreBreakdown
+}
+
+export type ProcessScoreContribution = {
+  id: "cleanliness" | "broken" | "smells" | "skipTests" | "manualIde"
+  label: string
+  /** Signed; sums (with `baseline`) to `total` before clamping. */
+  points: number
+  /** Short human-readable explanation, e.g. "5 of 12 checkpoints broken (42%)". */
+  detail: string
+}
+
+export type ProcessScoreBreakdown = {
+  /** Final score in [0, 100], post-clamp. */
+  total: number
+  /** Anchor score before any contributions. */
+  baseline: number
+  contributions: ProcessScoreContribution[]
+  /** True when the unclamped sum was outside [0, 100]. */
+  clamped: boolean
+}
+
+export type ProcessScoreResult = {
+  score: number
+  breakdown: ProcessScoreBreakdown
 }
 
 /** Single PMD violation reshaped for UI consumption — folds in the
