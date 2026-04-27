@@ -7,6 +7,11 @@
  * *process* taken to get there. Decomposable so the detail panel can show
  * which terms moved the score.
  *
+ * The cleanliness composite + per-sub-metric breakdown live in
+ * `cleanliness.ts` — that module owns the literature-weighted blend, the
+ * min-max normalisation, and the per-checkpoint scalar. This file just
+ * consumes the scalar to compute the cleanliness-gain term.
+ *
  * --- Design decisions ---
  *
  *  1. Prefix-cumulative, not point-in-time. Score(t) judges c0..c_t as a
@@ -39,57 +44,19 @@
  *     on the cumulative ledger from when it was `added`; adding a carry
  *     drag would double-count.
  *
- *  7. Cleanliness composite uses literature-informed weights, not equal
- *     mean. No paper covers this exact bundle, but the closest references
- *     converge on a hierarchy:
- *       cognitive   0.25 — Campbell 2018 (Sonar): strongest empirical
- *                          correlate with comprehension time
- *       coupling    0.20 — Chidamber & Kemerer 1994: coupling repeatedly
- *                          the strongest defect predictor in OO studies
- *       duplication 0.20 — Heitlager et al. 2007 (SIG): one of four
- *                          equal pillars in the maintainability model
- *       readability 0.15 — Buse & Weimer 2010: validated readability
- *                          metric, but smaller effect than structural ones
- *       smells      0.15 — symptom of the above; weighting it as primary
- *                          would risk double-counting
- *       cohesion    0.05 — LCOM family is noisy and contested
- *                          (Etzkorn, Counsell)
- *     When a metric is missing at a checkpoint (or has degenerate range
- *     across the trajectory) its weight is redistributed proportionally
- *     over the remaining metrics so the composite stays on [0, 1].
- *
- *  8. Min-max normalisation across the trajectory's observed range. Self-
- *     tunes per project (a 5-WMC bump on a 0..50 project is significant;
- *     on 0..200 it isn't). Mirrors the existing spike-detector convention
- *     in checkpoint-body.tsx.
- *
- *  9. No churn term. Bigger refactorings shouldn't be inherently worse
+ *  7. No churn term. Bigger refactorings shouldn't be inherently worse
  *     than smaller ones.
  */
 
+import { computeCleanlinessSeries } from "./cleanliness"
 import type {
   CheckpointVM,
-  MetricId,
   MetricVM,
   ProcessScoreBreakdown,
   ProcessScoreContribution,
   ProcessScoreResult,
   RefactoringStepVM,
 } from "./types"
-
-// Literature-informed weights for the cleanliness composite. Sum to 1.0.
-// See design decision 7. Tunable: change here, no other call sites need
-// touching — `cleanlinessAt` rebases dynamically when metrics are absent.
-// `Partial` because `process` is itself a MetricId but intentionally
-// excluded — including it in its own composite would be self-referential.
-const CLEANLINESS_WEIGHTS: Partial<Record<MetricId, number>> = {
-  cognitive: 0.25,
-  coupling: 0.2,
-  duplication: 0.2,
-  readability: 0.15,
-  smells: 0.15,
-  cohesion: 0.05,
-}
 
 // Top-level term weights. Sum doesn't have to be 100 — the score is
 // 50 + gain·35 - Σ penalty·weight, then clamped to [0, 100]. Worst-case
@@ -110,12 +77,12 @@ export function computeProcessScores(
 ): ProcessScoreResult[] {
   if (checkpoints.length === 0) return []
 
-  // Index metrics by id for O(1) lookup of `better` direction. The
-  // CLEANLINESS_WEIGHTS map covers all known MetricIds; we still respect
-  // whatever subset is in the metrics array (e.g. if a future config
-  // disables one).
-  const metricById = new Map(metrics.map((m) => [m.id, m]))
-  const ranges = metricRanges(checkpoints, metrics)
+  // Cleanliness scalars per checkpoint — owned by cleanliness.ts. We
+  // only consume the 0..1 scalar to compute the gain term; the rounded
+  // display score and the breakdown are surfaced separately by the
+  // view-model for the standalone cleanliness metric.
+  const cleanlinessSeries = computeCleanlinessSeries(checkpoints, metrics)
+  const cleanliness0 = cleanlinessSeries[0]?.scalar ?? null
 
   // Refactoring steps grouped by their landing checkpoint index so the
   // per-checkpoint loop is O(1) per step. A step lands "at or before"
@@ -127,8 +94,6 @@ export function computeProcessScores(
     list.push(s)
     stepsByCheckpoint.set(s.checkpointIndex, list)
   }
-
-  const cleanliness0 = cleanlinessAt(checkpoints[0], metricById, ranges)
 
   // Running totals for prefix accumulation. Smell weights are computed
   // from the CodeSmellVM buckets already on each checkpoint.
@@ -169,10 +134,11 @@ export function computeProcessScores(
       }
     }
 
-    // Cleanliness composite at t.
-    const cleanT = cleanlinessAt(c, metricById, ranges)
+    // Cleanliness gain — the scalar at t minus the scalar at c0. Both
+    // come from cleanliness.ts; null at either end yields 0 gain.
+    const cleanT = cleanlinessSeries[t]?.scalar ?? null
     const cleanlinessGain =
-      cleanlinessT_minus_0(cleanT, cleanliness0)
+      cleanT === null || cleanliness0 === null ? 0 : cleanT - cleanliness0
 
     // Penalty fractions, all in [0, 1]. Smoothing kicks in only once
     // there's at least one step / smell observed; before that the
@@ -219,65 +185,6 @@ export function computeProcessScores(
 }
 
 // ---- internals ----
-
-function metricRanges(
-  checkpoints: CheckpointVM[],
-  metrics: MetricVM[],
-): Map<MetricId, { lo: number; hi: number }> {
-  const ranges = new Map<MetricId, { lo: number; hi: number }>()
-  for (const m of metrics) {
-    let lo = Infinity
-    let hi = -Infinity
-    for (const c of checkpoints) {
-      const v = c.values[m.id]
-      if (typeof v !== "number") continue
-      if (v < lo) lo = v
-      if (v > hi) hi = v
-    }
-    if (Number.isFinite(lo) && Number.isFinite(hi)) {
-      ranges.set(m.id, { lo, hi })
-    }
-  }
-  return ranges
-}
-
-/**
- * Cleanliness ∈ [0, 1] at one checkpoint, or `null` when no metrics are
- * normalisable (all absent or all degenerate). Caller treats `null` as
- * "no cleanliness signal here" — gain contribution becomes 0.
- */
-function cleanlinessAt(
-  c: CheckpointVM,
-  metricById: Map<MetricId, MetricVM>,
-  ranges: Map<MetricId, { lo: number; hi: number }>,
-): number | null {
-  let weighted = 0
-  let totalW = 0
-  for (const [id, weight] of Object.entries(CLEANLINESS_WEIGHTS) as Array<
-    [MetricId, number]
-  >) {
-    const m = metricById.get(id)
-    if (!m) continue
-    const range = ranges.get(id)
-    if (!range || range.hi === range.lo) continue
-    const raw = c.values[id]
-    if (typeof raw !== "number") continue
-    let n = (raw - range.lo) / (range.hi - range.lo)
-    if (m.better === "lower") n = 1 - n
-    weighted += weight * n
-    totalW += weight
-  }
-  if (totalW === 0) return null
-  return weighted / totalW
-}
-
-function cleanlinessT_minus_0(
-  cleanT: number | null,
-  clean0: number | null,
-): number {
-  if (cleanT === null || clean0 === null) return 0
-  return cleanT - clean0
-}
 
 /** Priority-weighted: PMD priority 1 (worst) → 5, priority 5 → 1. */
 function sumSmellWeight(items: { priority: number }[]): number {

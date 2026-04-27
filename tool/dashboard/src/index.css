@@ -37,9 +37,11 @@
   --border-color: #393b40;
   --border-strong: #4a4d54;
 
-  /* Brand (accent septet — mint / blue / violet / amber / cyan / rose / lime).
-     `brand-7` is reserved for the process-score metric — distinct from the
-     six code-metric tones so the headline series reads as its own thing. */
+  /* Brand (accent octet — mint / blue / violet / amber / cyan / rose / lime
+     / gold). `brand` is the process-score metric; `brand-8` is the
+     cleanliness composite — both process-group metrics get distinctive
+     tones so they read as headline series rather than another code-metric
+     line. */
   --brand: #7ee8d4;
   --brand-2: #548af7;
   --brand-3: #c27bff;
@@ -47,6 +49,7 @@
   --brand-5: #5cc0d4;
   --brand-6: #e879b8;
   --brand-7: #bef264;
+  --brand-8: #facc15;
 
   /* Status */
   --good: #5fb865;
@@ -122,6 +125,7 @@
   --color-brand-5: var(--brand-5);
   --color-brand-6: var(--brand-6);
   --color-brand-7: var(--brand-7);
+  --color-brand-8: var(--brand-8);
   --color-good: var(--good);
   --color-bad: var(--bad);
   --color-warn: var(--warn);

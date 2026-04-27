@@ -17,6 +17,7 @@ const sparklineStyles = cva("block", {
       "brand-5": "text-brand-5",
       "brand-6": "text-brand-6",
       "brand-7": "text-brand-7",
+      "brand-8": "text-brand-8",
       muted: "text-fg-4",
     },
   },

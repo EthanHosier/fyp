@@ -6,6 +6,7 @@ export type MetricId =
   | "readability"
   | "cognitive"
   | "process"
+  | "cleanliness"
 
 export type StatusTone = "pass" | "fail" | "unknown"
 
@@ -17,6 +18,7 @@ export type MetricTone =
   | "brand-5"
   | "brand-6"
   | "brand-7"
+  | "brand-8"
 
 export type MetricVM = {
   id: MetricId
@@ -58,6 +60,11 @@ export type CheckpointVM = {
   processScore: number
   /** Decomposition of the process score into signed contributions. */
   processBreakdown: ProcessScoreBreakdown
+  /** Cleanliness composite 0..100 at this checkpoint, or `null` when no
+   *  underlying metrics are normalisable (degenerate trajectory). */
+  cleanlinessScore: number | null
+  /** Per-sub-metric decomposition of the cleanliness composite. */
+  cleanlinessBreakdown: CleanlinessBreakdown | null
 }
 
 export type ProcessScoreContribution = {
@@ -82,6 +89,31 @@ export type ProcessScoreBreakdown = {
 export type ProcessScoreResult = {
   score: number
   breakdown: ProcessScoreBreakdown
+}
+
+/** One sub-metric's contribution to the cleanliness composite. */
+export type CleanlinessContribution = {
+  id: MetricId
+  label: string
+  /** Literature-informed weight, 0..1. */
+  weight: number
+  /** Normalised value 0..1 where 1 = best (direction already flipped). */
+  normalised: number
+  /** Raw value at this checkpoint, before normalisation. */
+  raw: number
+  /** Points contributed to the displayed 0..100 score: `weight·normalised·100`. */
+  points: number
+}
+
+export type CleanlinessBreakdown = {
+  /** 0..100, rounded. */
+  total: number
+  contributions: CleanlinessContribution[]
+  /** True iff at least one of the literature-weighted metrics was excluded
+   *  (missing or degenerate range) and the remaining weights had to be
+   *  re-based — the breakdown card surfaces this so a 100 reading isn't
+   *  mistaken for a clean sweep across all six dimensions. */
+  rebased: boolean
 }
 
 /** Single PMD violation reshaped for UI consumption — folds in the

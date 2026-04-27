@@ -64,4 +64,12 @@ export const METRIC_DESCRIPTORS: Record<MetricId, MetricDescriptor> = {
     detail:
       "A single 0..100 score that summarises the trajectory so far rather than the code at this instant. Weighted gain in code quality from the start (cognitive, coupling, duplication, readability, smells, cohesion — weights from the literature) pushes the score up; broken checkpoints, net new smells, refactorings without follow-up tests, and manual edits where the IDE could have done the refactoring all push it down. Anchored at 50 so a flat trajectory isn't misread as perfect.",
   },
+  cleanliness: {
+    summary:
+      "Relative composite code-quality score across the six dimensions, 0..100.",
+    formula:
+      "100 · ( 0.25·Cognitive + 0.20·Coupling + 0.20·Duplication + 0.15·Readability + 0.15·Smells + 0.05·Cohesion )",
+    detail:
+      "Each sub-metric is min-max normalised against this trajectory's observed range, so 100 means \"the cleanest checkpoint in this session\" and 0 means \"the dirtiest\" — not absolute code quality. Weights come from the literature: cognitive complexity (Campbell 2018) and coupling (Chidamber & Kemerer 1994) are weighted heaviest as the strongest comprehension/defect predictors; cohesion is light because LCOM-family metrics are noisy and contested. Because the score is session-relative, comparing 60 in one session against 60 in another isn't meaningful — read it as direction within a session, not absolute quality.",
+  },
 }

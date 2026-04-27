@@ -22,6 +22,7 @@ const checkboxStyles = cva(
         "brand-5": "focus-visible:border-brand-5 data-checked:border-brand-5 data-checked:bg-brand-5 data-checked:text-bg",
         "brand-6": "focus-visible:border-brand-6 data-checked:border-brand-6 data-checked:bg-brand-6 data-checked:text-bg",
         "brand-7": "focus-visible:border-brand-7 data-checked:border-brand-7 data-checked:bg-brand-7 data-checked:text-bg",
+        "brand-8": "focus-visible:border-brand-8 data-checked:border-brand-8 data-checked:bg-brand-8 data-checked:text-bg",
         fg: "focus-visible:border-fg-2 data-checked:border-fg-2 data-checked:bg-fg-2 data-checked:text-bg",
       },
     },
