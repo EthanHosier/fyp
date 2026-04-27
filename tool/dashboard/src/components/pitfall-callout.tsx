@@ -1,7 +1,8 @@
 import { ChevronDownIcon, ChevronUpIcon } from "lucide-react"
-import { useState, type ReactNode } from "react"
+import { useState } from "react"
 
 import { Text } from "@/components/text"
+import { ToneChip } from "@/components/tone-chip"
 import { cn } from "@/lib/utils"
 
 /**
@@ -15,11 +16,10 @@ import { cn } from "@/lib/utils"
  * expands/collapses when the card is clicked. `defaultOpen` controls
  * the initial state.
  */
-type PitfallTone = "bad" | "warn"
+type PitfallTone = "bad" | "warn" | "good"
 
 type PitfallCalloutProps = {
   tone: PitfallTone
-  icon: ReactNode
   title: string
   /** Optional monospaced subline — e.g. the IDE action name. */
   mono?: string
@@ -31,21 +31,17 @@ type PitfallCalloutProps = {
 const TONE_SURFACE: Record<PitfallTone, string> = {
   bad: "border-bad/35 bg-bad/[0.08]",
   warn: "border-warn/35 bg-warn/[0.08]",
-}
-
-const TONE_CHIP: Record<PitfallTone, string> = {
-  bad: "border-bad bg-bad/20 text-bad",
-  warn: "border-warn bg-warn/20 text-warn",
+  good: "border-good/35 bg-good/[0.08]",
 }
 
 const TONE_TITLE: Record<PitfallTone, string> = {
   bad: "text-bad",
   warn: "text-warn",
+  good: "text-good",
 }
 
 export function PitfallCallout({
   tone,
-  icon,
   title,
   mono,
   description,
@@ -67,16 +63,9 @@ export function PitfallCallout({
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
-        className="flex w-full items-start gap-2.5 px-2.5 py-2 text-left"
+        className="flex w-full items-center gap-2.5 px-2.5 py-2 text-left"
       >
-        <div
-          className={cn(
-            "mt-0.5 grid size-[18px] shrink-0 place-items-center rounded-full border text-[11px] font-semibold",
-            TONE_CHIP[tone],
-          )}
-        >
-          {icon}
-        </div>
+        <ToneChip tone={tone} className="shrink-0" />
         <Text
           as="span"
           variant="body"
@@ -84,7 +73,7 @@ export function PitfallCallout({
         >
           {title}
         </Text>
-        <Chevron className="text-fg-4 mt-0.5 size-3 shrink-0" />
+        <Chevron className="text-fg-4 size-3 shrink-0" />
       </button>
       {open ? (
         <div className="flex flex-col gap-1 px-2.5 pb-2 pl-[38px]">

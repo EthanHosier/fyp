@@ -37,6 +37,36 @@ class PmdRunnerTest {
         assertTrue(npe.priority in 1..5, "priority out of range: ${npe.priority}")
         assertTrue(npe.ruleSet.isNotEmpty(), "ruleSet should be populated")
 
+        // Snippet ships as a self-contained mini unified-diff: file
+        // headers, one hunk with absolute line numbers, every body line a
+        // context line. Asserts both the framing and the offending source
+        // showing up in the body.
+        val snippet = npe.snippet
+        assertNotNull(snippet, "expected snippet for AvoidCatchingNPE violation")
+        assertTrue(
+            snippet.patch.startsWith("diff --git a/${npe.file} b/${npe.file}\n"),
+            "snippet should open with a `diff --git` header for the violation's file; got:\n${snippet.patch}",
+        )
+        assertTrue(
+            snippet.patch.contains("\n@@ -"),
+            "snippet should contain a hunk header; got:\n${snippet.patch}",
+        )
+        assertTrue(
+            snippet.patch.contains("NullPointerException"),
+            "snippet should include the offending source line; got:\n${snippet.patch}",
+        )
+        // Body lines must be context-marked (leading space) so the
+        // dashboard renderer doesn't paint them green/red.
+        val bodyLines = snippet.patch.lineSequence()
+            .dropWhile { !it.startsWith("@@") }
+            .drop(1)
+            .filter { it.isNotEmpty() }
+            .toList()
+        assertTrue(
+            bodyLines.all { it.startsWith(" ") },
+            "every snippet body line should start with a context-marker space; got:\n$bodyLines",
+        )
+
         result.violations.forEach { v ->
             assertTrue(
                 !v.file.startsWith("/"),

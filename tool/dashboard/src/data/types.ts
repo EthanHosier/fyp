@@ -44,6 +44,45 @@ export type CheckpointVM = {
   /** Unified-diff patch for the transition into this checkpoint (from the
    *  previous checkpoint, or empty for the seed state). */
   patch: string
+  /** Bucketed PMD violations (added / carried / resolved) plus running totals. */
+  smells: CodeSmellsVM
+}
+
+/** Single PMD violation reshaped for UI consumption — folds in the
+ * trajectory metadata (`firstSeenAtSha`) so consumers don't have to
+ * cross-index against the raw report. */
+export type CodeSmellVM = {
+  rule: string
+  ruleSet: string
+  /** PMD severity 1..5; 1 = highest. */
+  priority: number
+  file: string
+  beginLine: number
+  endLine: number
+  message: string
+  /** Self-contained mini unified-diff text wrapping the snippet, ready
+   *  to hand to `parsePatchFiles`. Null when the analysis pipeline
+   *  couldn't read the source. */
+  snippetPatch: string | null
+  /** SHA of the earliest checkpoint at which this logical violation was
+   *  first observed (chained forward through line-mapping). */
+  firstSeenAtSha: string
+}
+
+/** Per-checkpoint violation buckets. `added` are first-seen at this
+ *  checkpoint, `carried` are inherited from earlier, `resolved` are
+ *  prev-checkpoint violations that no longer fire here (rendered with
+ *  prev-side line numbers and prev-side snippet). */
+export type CodeSmellsVM = {
+  added: CodeSmellVM[]
+  carried: CodeSmellVM[]
+  resolved: CodeSmellVM[]
+  /** `added.length + carried.length`. */
+  totalNow: number
+  /** Total violations at the previous checkpoint, or 0 for the seed. */
+  totalPrev: number
+  /** `totalNow - totalPrev`. */
+  delta: number
 }
 
 export type IntervalVM = {

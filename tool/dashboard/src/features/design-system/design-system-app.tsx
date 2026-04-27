@@ -7,6 +7,7 @@
 import { CheckIcon, FileIcon, HelpCircleIcon, XIcon, ZapIcon } from "lucide-react"
 import { parsePatchFiles } from "@pierre/diffs"
 import { DataList, DataListRow } from "@/components/data-list"
+import { CodeSmellCard } from "@/components/code-smell-card"
 import { FileDiffCard } from "@/components/file-diff-card"
 import { FilterChip } from "@/components/filter-chip"
 import { LegendSwatch } from "@/components/legend-swatch"
@@ -134,6 +135,50 @@ rename to src/main/java/com/example/order/Cart.java
 `
 
 const SAMPLE_PATCH_FILES = parsePatchFiles(SAMPLE_PATCH, "design-system-sample")[0]?.files ?? []
+
+// Synthetic mini unified-diff strings shaped exactly like what
+// `PmdRunner.loadSnippet` will emit: one hunk, all-context lines, with
+// the absolute line range in the `@@` header so the renderer shows the
+// right line numbers without us needing to ship full file contents.
+const SAMPLE_SMELL_FILE = "src/main/java/org/example/OrderPricingService.java"
+
+function buildSamplePatch(file: string, startLine: number, lines: string[]): string {
+  const body = lines.map((l) => ` ${l}`).join("\n")
+  return (
+    [
+      `diff --git a/${file} b/${file}`,
+      `--- a/${file}`,
+      `+++ b/${file}`,
+      `@@ -${startLine},${lines.length} +${startLine},${lines.length} @@`,
+      body,
+    ].join("\n") + "\n"
+  )
+}
+
+const SAMPLE_SMELL_PATCH_POINT = buildSamplePatch(SAMPLE_SMELL_FILE, 39, [
+  "  public Money priceFor(Order o) {",
+  '    if (o == null) throw new NullPointerException();',
+  "    var total = Money.ZERO;",
+  "    for (var l : o.lines()) {",
+  "      if (l.discounted()) {",
+  "        total = total.plus(l.discountAmount());",
+  "      }",
+  "    }",
+])
+
+const SAMPLE_SMELL_PATCH_RANGE = buildSamplePatch(SAMPLE_SMELL_FILE, 39, [
+  "  public Money priceFor(Order o) {",
+  '    if (o == null) throw new NullPointerException();',
+  "    var total = Money.ZERO;",
+  "    for (var l : o.lines()) {",
+  "      if (l.discounted()) {",
+  "        total = total.plus(l.discountAmount());",
+  "      } else if (l.isGift()) {",
+  "        total = total.plus(Money.ZERO);",
+  "      }",
+  "    }",
+  "    return total;",
+])
 
 const TEXT_VARIANTS = [
   ["display", "Chart toolbar title · 17 sans semibold"],
@@ -705,6 +750,95 @@ export function DesignSystemApp() {
                 />
               ))}
             </div>
+          </VariantCell>
+        </DesignSystemSection>
+
+        <DesignSystemSection title="CodeSmellCard" layout="stack">
+          <VariantCell label="point violation · priority 3 · open · width=640">
+            <CodeSmellCard
+              width={640}
+              rule="AvoidLiteralsInIfCondition"
+              ruleSet="error prone"
+              priority={3}
+              file={SAMPLE_SMELL_FILE}
+              beginLine={42}
+              endLine={42}
+              message="Avoid using literals in if statements; assign the constant to a named variable so the intent is explicit."
+              patch={SAMPLE_SMELL_PATCH_POINT}
+              cacheKey="design-system-smell-point"
+            />
+          </VariantCell>
+          <VariantCell label="range violation · priority 3 · open">
+            <CodeSmellCard
+              width={640}
+              rule="CognitiveComplexity"
+              ruleSet="design"
+              priority={3}
+              file={SAMPLE_SMELL_FILE}
+              beginLine={42}
+              endLine={48}
+              message="The method 'priceFor(Order)' has a cognitive complexity of 18, current threshold is 15."
+              patch={SAMPLE_SMELL_PATCH_RANGE}
+              cacheKey="design-system-smell-range"
+            />
+          </VariantCell>
+          <VariantCell label="priority 1 · high severity · collapsed">
+            <CodeSmellCard
+              width={640}
+              defaultOpen={false}
+              rule="BrokenNullCheck"
+              ruleSet="errorprone"
+              priority={1}
+              file={SAMPLE_SMELL_FILE}
+              beginLine={42}
+              endLine={42}
+              message="Broken null check; the negation makes this branch unreachable."
+              patch={SAMPLE_SMELL_PATCH_POINT}
+              cacheKey="design-system-smell-collapsed"
+            />
+          </VariantCell>
+          <VariantCell label="snippet unavailable · processing error">
+            <CodeSmellCard
+              width={640}
+              rule="UseUtilityClass"
+              ruleSet="design"
+              priority={3}
+              file="src/main/java/org/example/Helpers.java"
+              beginLine={5}
+              endLine={5}
+              message="All methods are static; consider making this a utility class with a private constructor."
+              patch={null}
+            />
+          </VariantCell>
+          <VariantCell label="state=new · first seen at this checkpoint">
+            <CodeSmellCard
+              width={640}
+              state="new"
+              rule="AvoidLiteralsInIfCondition"
+              ruleSet="errorprone"
+              priority={3}
+              file={SAMPLE_SMELL_FILE}
+              beginLine={42}
+              endLine={42}
+              message="Avoid using literals in if statements; assign the constant to a named variable so the intent is explicit."
+              patch={SAMPLE_SMELL_PATCH_POINT}
+              cacheKey="design-system-smell-new"
+            />
+          </VariantCell>
+          <VariantCell label="state=resolved · was at prev, gone here">
+            <CodeSmellCard
+              width={640}
+              state="resolved"
+              rule="AvoidLiteralsInIfCondition"
+              ruleSet="errorprone"
+              priority={3}
+              file={SAMPLE_SMELL_FILE}
+              beginLine={42}
+              endLine={42}
+              message="Avoid using literals in if statements; assign the constant to a named variable so the intent is explicit."
+              patch={SAMPLE_SMELL_PATCH_POINT}
+              cacheKey="design-system-smell-resolved"
+            />
           </VariantCell>
         </DesignSystemSection>
 
