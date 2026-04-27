@@ -810,6 +810,36 @@ export function DesignSystemApp() {
               patch={null}
             />
           </VariantCell>
+          <VariantCell label="state=new · first seen at this checkpoint">
+            <CodeSmellCard
+              width={640}
+              state="new"
+              rule="AvoidLiteralsInIfCondition"
+              ruleSet="errorprone"
+              priority={3}
+              file={SAMPLE_SMELL_FILE}
+              beginLine={42}
+              endLine={42}
+              message="Avoid using literals in if statements; assign the constant to a named variable so the intent is explicit."
+              patch={SAMPLE_SMELL_PATCH_POINT}
+              cacheKey="design-system-smell-new"
+            />
+          </VariantCell>
+          <VariantCell label="state=resolved · was at prev, gone here">
+            <CodeSmellCard
+              width={640}
+              state="resolved"
+              rule="AvoidLiteralsInIfCondition"
+              ruleSet="errorprone"
+              priority={3}
+              file={SAMPLE_SMELL_FILE}
+              beginLine={42}
+              endLine={42}
+              message="Avoid using literals in if statements; assign the constant to a named variable so the intent is explicit."
+              patch={SAMPLE_SMELL_PATCH_POINT}
+              cacheKey="design-system-smell-resolved"
+            />
+          </VariantCell>
         </DesignSystemSection>
 
         <DesignSystemSection title="Card" layout="showcase">

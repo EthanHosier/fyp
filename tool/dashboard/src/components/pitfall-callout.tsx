@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils"
  * expands/collapses when the card is clicked. `defaultOpen` controls
  * the initial state.
  */
-type PitfallTone = "bad" | "warn"
+type PitfallTone = "bad" | "warn" | "good"
 
 type PitfallCalloutProps = {
   tone: PitfallTone
@@ -31,16 +31,19 @@ type PitfallCalloutProps = {
 const TONE_SURFACE: Record<PitfallTone, string> = {
   bad: "border-bad/35 bg-bad/[0.08]",
   warn: "border-warn/35 bg-warn/[0.08]",
+  good: "border-good/35 bg-good/[0.08]",
 }
 
 const TONE_CHIP: Record<PitfallTone, string> = {
   bad: "border-bad bg-bad/20 text-bad",
   warn: "border-warn bg-warn/20 text-warn",
+  good: "border-good bg-good/20 text-good",
 }
 
 const TONE_TITLE: Record<PitfallTone, string> = {
   bad: "text-bad",
   warn: "text-warn",
+  good: "text-good",
 }
 
 export function PitfallCallout({
@@ -67,16 +70,52 @@ export function PitfallCallout({
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
-        className="flex w-full items-start gap-2.5 px-2.5 py-2 text-left"
+        className="flex w-full items-center gap-2.5 px-2.5 py-2 text-left"
       >
-        <div
-          className={cn(
-            "mt-0.5 grid size-[18px] shrink-0 place-items-center rounded-full border text-[11px] font-semibold",
-            TONE_CHIP[tone],
-          )}
-        >
-          {icon}
-        </div>
+        {tone === "warn" ? (
+          // `warn` renders a hand-drawn rounded triangle outline with a
+          // bold `!` centered — the chip equivalent of the bad X-in-
+          // circle and good tick-in-circle. Lucide's TriangleAlert ships
+          // the `!` baked in but at a stroke weight that doesn't match
+          // the bad/good chips; rolling our own keeps the family
+          // visually consistent. The `icon` prop is ignored for warn.
+          <div className="relative size-[18px] shrink-0">
+            <svg
+              viewBox="0 0 18 18"
+              className={cn("absolute inset-0 size-full", TONE_TITLE[tone])}
+              fill="currentColor"
+              fillOpacity={0.15}
+              stroke="currentColor"
+              strokeWidth={1.5}
+              strokeLinejoin="round"
+              aria-hidden
+            >
+              {/* Explicit arc at each vertex (radius ~1.6) so corners
+                  read as rounded regardless of stroke width — relying
+                  on `strokeLinejoin="round"` alone gives a too-subtle
+                  curve at this stroke weight. Tinted fill mirrors the
+                  bad/good circular chips' `bg-<tone>/20`. */}
+              <path d="M7.62 2.81 L1.71 13.04 A1.6 1.6 0 0 0 3.09 15.5 L14.91 15.5 A1.6 1.6 0 0 0 16.29 13.04 L10.38 2.81 A1.6 1.6 0 0 0 7.62 2.81 Z" />
+            </svg>
+            <span
+              className={cn(
+                "absolute inset-0 grid place-items-center pt-[2px] text-[10px] font-bold leading-none",
+                TONE_TITLE[tone],
+              )}
+            >
+              !
+            </span>
+          </div>
+        ) : (
+          <div
+            className={cn(
+              "grid size-[18px] shrink-0 place-items-center rounded-full border text-[11px] font-semibold",
+              TONE_CHIP[tone],
+            )}
+          >
+            {icon}
+          </div>
+        )}
         <Text
           as="span"
           variant="body"
@@ -84,7 +123,7 @@ export function PitfallCallout({
         >
           {title}
         </Text>
-        <Chevron className="text-fg-4 mt-0.5 size-3 shrink-0" />
+        <Chevron className="text-fg-4 size-3 shrink-0" />
       </button>
       {open ? (
         <div className="flex flex-col gap-1 px-2.5 pb-2 pl-[38px]">

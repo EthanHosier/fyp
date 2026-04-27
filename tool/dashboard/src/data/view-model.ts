@@ -49,6 +49,8 @@ import { formatTLabel, shortSha } from "@/lib/format"
 import type {
   AlternativeTrajectoryVM,
   CheckpointVM,
+  CodeSmellVM,
+  CodeSmellsVM,
   DashboardViewModel,
   IntervalVM,
   MetricId,
@@ -153,6 +155,61 @@ function combineStatus(a: StatusTone, b: StatusTone): StatusTone {
   return "pass"
 }
 
+function deriveSmells(curr: CheckpointReport, prev: CheckpointReport | null): CodeSmellsVM {
+  const violations = curr.metrics.pmd?.violations ?? []
+  const firstSeen = curr.pmdTracking?.firstSeenAtSha ?? []
+  const resolvedSrc = curr.pmdTracking?.resolvedSincePrev ?? []
+
+  const added: CodeSmellVM[] = []
+  const carried: CodeSmellVM[] = []
+  for (let i = 0; i < violations.length; i++) {
+    const v = violations[i]
+    // Falls back to curr.sha if tracking hasn't been computed (e.g. an
+    // older cached report) — better to render than to crash.
+    const seenAt = firstSeen[i] ?? curr.sha
+    const vm: CodeSmellVM = {
+      rule: v.rule,
+      ruleSet: v.ruleSet,
+      priority: v.priority,
+      file: v.file,
+      beginLine: v.beginLine,
+      endLine: v.endLine,
+      message: v.message,
+      snippetPatch: v.snippet?.patch ?? null,
+      firstSeenAtSha: seenAt,
+    }
+    if (seenAt === curr.sha) added.push(vm)
+    else carried.push(vm)
+  }
+
+  const resolved: CodeSmellVM[] = resolvedSrc.map((r) => ({
+    rule: r.rule,
+    ruleSet: r.ruleSet,
+    priority: r.priority,
+    file: r.prevFile,
+    beginLine: r.prevBeginLine,
+    endLine: r.prevEndLine,
+    message: r.message,
+    snippetPatch: r.snippet?.patch ?? null,
+    firstSeenAtSha: r.firstSeenAtSha,
+  }))
+
+  // Severe first, then by file path, then by line. Stable across
+  // re-renders so the panel doesn't shuffle when the user expands a
+  // bucket.
+  const cmp = (a: CodeSmellVM, b: CodeSmellVM): number =>
+    a.priority - b.priority ||
+    a.file.localeCompare(b.file) ||
+    a.beginLine - b.beginLine
+  added.sort(cmp)
+  carried.sort(cmp)
+  resolved.sort(cmp)
+
+  const totalNow = violations.length
+  const totalPrev = prev?.metrics.pmd?.violations?.length ?? 0
+  return { added, carried, resolved, totalNow, totalPrev, delta: totalNow - totalPrev }
+}
+
 function describeCheckpoint(c: CheckpointReport): string {
   const ev = c.events[0]
   if (!ev) return shortSha(c.sha)
@@ -181,6 +238,7 @@ export function toViewModel(report: AnalysisReport): DashboardViewModel {
     const ts = c.events[0]?.timestamp ?? startedAt
     const build = buildTone(c.metrics.build.success)
     const tests = testsTone(c.metrics.tests.success, c.metrics.tests.wasSkipped)
+    const prev = i === 0 ? null : report.checkpoints[i - 1]
     return {
       index: i,
       label: `c${i}`,
@@ -196,6 +254,7 @@ export function toViewModel(report: AnalysisReport): DashboardViewModel {
       status: combineStatus(build, tests),
       churn: c.diff?.totalChurn ?? 0,
       patch: report.checkpointPatches?.[c.sha] ?? "",
+      smells: deriveSmells(c, prev),
     }
   })
 
@@ -217,6 +276,17 @@ export function toViewModel(report: AnalysisReport): DashboardViewModel {
       description: "End",
       churn: 0,
       patch: "",
+      // No real transition into the synthetic terminator, so the
+      // delta-bound buckets are empty; carried mirrors the last real
+      // checkpoint's full set so totals stay consistent.
+      smells: {
+        added: [],
+        carried: [...lastReal.smells.added, ...lastReal.smells.carried],
+        resolved: [],
+        totalNow: lastReal.smells.totalNow,
+        totalPrev: lastReal.smells.totalNow,
+        delta: 0,
+      },
     })
   }
 

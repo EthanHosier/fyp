@@ -27,6 +27,12 @@ import { cn } from "@/lib/utils"
 
 type ThemeOption = string | { dark: string; light: string }
 
+/** Trajectory state of the violation relative to the selected checkpoint:
+ *  `new` = first seen here, `carried` = inherited from earlier (default),
+ *  `resolved` = was at the previous checkpoint and no longer fires. Drives
+ *  a small status pill in the header and (for `resolved`) muted opacity. */
+export type CodeSmellState = "new" | "carried" | "resolved"
+
 export type CodeSmellCardProps = {
   rule: string
   /** PMD severity 1..5; 1 = highest. Drives the priority pill colour. */
@@ -53,6 +59,8 @@ export type CodeSmellCardProps = {
    * like `"smell-${sha}-${index}"` from the call site.
    */
   cacheKey?: string
+  /** Trajectory state — see [CodeSmellState]. Defaults to `carried`. */
+  state?: CodeSmellState
   defaultOpen?: boolean
   className?: string
   /** Pin the card to a fixed width; otherwise it fills its parent. */
@@ -70,6 +78,14 @@ const PRIORITY_TONES: Record<number, string> = {
   5: "text-fg-4",
 }
 
+// Header pill for trajectory state. `carried` is the default state and
+// shows nothing — leaving the header uncluttered for the common case.
+const STATE_BADGES: Record<CodeSmellState, { label: string; tone: string } | null> = {
+  new: { label: "NEW", tone: "text-bad" },
+  carried: null,
+  resolved: { label: "RESOLVED", tone: "text-good" },
+}
+
 export function CodeSmellCard({
   rule,
   priority,
@@ -80,6 +96,7 @@ export function CodeSmellCard({
   message,
   ruleSet,
   cacheKey,
+  state = "carried",
   defaultOpen = true,
   className,
   width,
@@ -91,11 +108,13 @@ export function CodeSmellCard({
   const headerLabel = basename(file)
   const lineLabel = beginLine === endLine ? `L${beginLine}` : `L${beginLine}–${endLine}`
   const priorityTone = PRIORITY_TONES[priority] ?? "text-fg-4"
+  const stateBadge = STATE_BADGES[state]
 
-  // parsePatchFiles is sync — it just dispatches highlight work to the
-  // worker pool. A missing/empty patch falls through to the unavailable
-  // state without us needing a second null check below.
-  const fileDiff: FileDiffMetadata | undefined = patch
+  // Gate parsing behind `open`: a checkpoint can flag 100+ violations
+  // and the section renders them all flat. Eagerly parsing each one
+  // would mean 100+ worker dispatches on mount even though most cards
+  // stay collapsed.
+  const fileDiff: FileDiffMetadata | undefined = open && patch
     ? parsePatchFiles(patch, cacheKey ?? `smell-${file}-${beginLine}`)[0]?.files[0]
     : undefined
 
@@ -103,6 +122,10 @@ export function CodeSmellCard({
     <div
       className={cn(
         "bg-bg-3 border-border-strong w-full min-w-0 overflow-hidden rounded-md border",
+        // Resolved violations no longer exist at this checkpoint; mute
+        // the whole card so it reads as "historical" without hiding the
+        // content the user came to see.
+        state === "resolved" && "opacity-70",
         className,
       )}
       style={width !== undefined ? { width } : undefined}
@@ -128,37 +151,57 @@ export function CodeSmellCard({
           </TooltipTrigger>
           <TooltipContent className="max-w-[520px] break-all">{file}</TooltipContent>
         </Tooltip>
-        <Text variant="mono" tone="fg-3" className="shrink-0 text-[10.5px]">
-          {lineLabel}
-        </Text>
-        <Text variant="mono" tone="fg-2" className="shrink-0 truncate text-[11px]">
-          {rule}
-        </Text>
-        <span
-          className={cn(
-            "font-mono text-[10px] tracking-[0.06em] uppercase",
-            priorityTone,
-          )}
-        >
-          P{priority}
-        </span>
+        {/* Rule name styled like FileDiffCard's MODIFIED label — muted,
+            mono, tight tracking. Capped at half-width so a long PMD
+            rule name (e.g. `AvoidProtectedFieldInFinalClass`) can't
+            squeeze the filename out, but a short one yields the spare
+            width back to the filename instead of leaving a gap. */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="text-fg-3 min-w-0 max-w-[50%] cursor-default truncate font-mono text-[10px] tracking-[0.04em]">
+              {rule}
+            </span>
+          </TooltipTrigger>
+          <TooltipContent className="max-w-[520px] break-all">{rule}</TooltipContent>
+        </Tooltip>
+        {stateBadge ? (
+          <span
+            className={cn(
+              "shrink-0 font-mono text-[10px] tracking-[0.06em] uppercase",
+              stateBadge.tone,
+            )}
+          >
+            {stateBadge.label}
+          </span>
+        ) : null}
       </button>
 
       {open && (
         <div className="flex flex-col">
-          {message ? (
-            <div className="border-border bg-bg-2/50 border-b px-3 py-2">
-              <Text as="p" variant="bodySm" tone="fg-2">
-                {message}
+          {message || ruleSet ? (
+            <div className="border-border bg-bg-2/50 flex flex-col gap-1 border-b px-3 py-2">
+              {/* Priority + line range live here now (out of the header
+                  per design intent) so the body keeps all metadata
+                  the reader might still want, just one click away. */}
+              <Text
+                as="span"
+                variant="monoCaption"
+                tone="fg-4"
+                className="uppercase tracking-[0.08em]"
+              >
+                <span className={priorityTone}>P{priority}</span>
+                <span className="px-1">·</span>
+                <span>{lineLabel}</span>
+                {ruleSet ? (
+                  <>
+                    <span className="px-1">·</span>
+                    <span>{ruleSet}</span>
+                  </>
+                ) : null}
               </Text>
-              {ruleSet ? (
-                <Text
-                  as="span"
-                  variant="monoCaption"
-                  tone="fg-4"
-                  className="mt-1 inline-block uppercase tracking-[0.08em]"
-                >
-                  {ruleSet}
+              {message ? (
+                <Text as="p" variant="bodySm" tone="fg-2">
+                  {message}
                 </Text>
               ) : null}
             </div>
