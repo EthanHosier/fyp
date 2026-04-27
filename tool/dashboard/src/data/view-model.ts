@@ -17,6 +17,9 @@
  *                         proxy; real composite (comments, identifiers,
  *                         indentation…) is deferred
  *   coupling    · cbo    p90 of `ck.perClass[].cbo`   (tail)
+ *   smells      · count  size of `pmd.violations` — total PMD rule
+ *                         violations across the project. Untweighted
+ *                         count; consider weighting by `priority` later.
  *
  * Churn is intentionally not a chartable metric — "fewer lines" isn't a
  * goal, it's only meaningful relative to an alternative path. We still
@@ -57,8 +60,9 @@ const METRICS: MetricVM[] = [
   { id: "cognitive",   label: "Cognitive Complexity", unit: "total", better: "lower",  group: "code", tone: "brand"   },
   { id: "readability", label: "Readability",          unit: "chars", better: "lower",  group: "code", tone: "brand-2" },
   { id: "duplication", label: "Duplication",          unit: "%",     better: "lower",  group: "code", tone: "brand-3" },
-  { id: "coupling",    label: "Coupling",             unit: "cbo",   better: "lower",  group: "code", tone: "brand-4" },
-  { id: "cohesion",    label: "Cohesion",             unit: "tcc",   better: "higher", group: "code", tone: "brand-5" },
+  { id: "smells",      label: "Code Smells",          unit: "count", better: "lower",  group: "code", tone: "brand-4" },
+  { id: "coupling",    label: "Coupling",             unit: "cbo",   better: "lower",  group: "code", tone: "brand-5" },
+  { id: "cohesion",    label: "Cohesion",             unit: "tcc",   better: "higher", group: "code", tone: "brand-6" },
 ]
 
 function round1(n: number): number {
@@ -96,9 +100,10 @@ function checkpointValues(c: CheckpointReport): Partial<Record<MetricId, number>
   if (c.metrics.readability?.summary) {
     values.readability = round1(c.metrics.readability.summary.avgLineLength)
   }
-  const methodMetrics = c.metrics.pmd?.methodMetrics
-  if (methodMetrics) {
-    values.cognitive = methodMetrics.reduce((s, m) => s + m.cognitive, 0)
+  const pmd = c.metrics.pmd
+  if (pmd) {
+    values.cognitive = pmd.methodMetrics.reduce((s, m) => s + m.cognitive, 0)
+    values.smells = pmd.violations.length
   }
   return values
 }
