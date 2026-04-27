@@ -37,6 +37,19 @@ class PmdRunnerTest {
         assertTrue(npe.priority in 1..5, "priority out of range: ${npe.priority}")
         assertTrue(npe.ruleSet.isNotEmpty(), "ruleSet should be populated")
 
+        // Snippet should cover the violation range with a few lines of
+        // surrounding context, matching `git diff -U3` framing.
+        val snippet = npe.snippet
+        assertNotNull(snippet, "expected snippet for AvoidCatchingNPE violation")
+        assertTrue(
+            snippet.contextStartLine in 1..npe.beginLine,
+            "contextStartLine ${snippet.contextStartLine} should be <= beginLine ${npe.beginLine}",
+        )
+        assertTrue(
+            snippet.code.contains("NullPointerException"),
+            "snippet should include the offending source line; got:\n${snippet.code}",
+        )
+
         result.violations.forEach { v ->
             assertTrue(
                 !v.file.startsWith("/"),

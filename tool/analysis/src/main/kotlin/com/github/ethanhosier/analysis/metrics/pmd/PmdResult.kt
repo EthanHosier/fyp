@@ -76,6 +76,21 @@ data class PmdViolation(
     val beginLine: Int,
     val endLine: Int,
     val message: String,
+    val snippet: PmdViolationSnippet? = null,
+)
+
+/**
+ * Source excerpt around a violation: the violation's line range plus a few
+ * lines of surrounding context, mirroring `git diff -U3` so the UI can render
+ * snippets the same way it renders diff hunks. Null when the file can't be
+ * read (processing errors, vanished file, etc.).
+ */
+@Serializable
+data class PmdViolationSnippet(
+    // 1-based line of the first line in `code`.
+    val contextStartLine: Int,
+    // Raw lines joined with "\n", no trailing newline.
+    val code: String,
 )
 
 @Serializable

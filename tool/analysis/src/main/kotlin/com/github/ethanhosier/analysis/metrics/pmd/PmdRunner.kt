@@ -42,14 +42,16 @@ class PmdRunner(
             val report = pmd.performAnalysisAndCollectReport()
 
             val violations = report.violations.map { v ->
+                val file = relativize(v.fileId.absolutePath, rootStr)
                 PmdViolation(
-                    file = relativize(v.fileId.absolutePath, rootStr),
+                    file = file,
                     rule = v.rule.name,
                     ruleSet = v.rule.ruleSetName ?: "",
                     priority = v.rule.priority.priority,
                     beginLine = v.beginLine,
                     endLine = v.endLine,
                     message = v.description,
+                    snippet = loadSnippet(root, file, v.beginLine, v.endLine),
                 )
             }
             val errors = report.processingErrors.map { e ->
@@ -92,6 +94,30 @@ class PmdRunner(
         }
     }
 
+    /**
+     * Reads `[beginLine - SNIPPET_CONTEXT_LINES .. endLine + SNIPPET_CONTEXT_LINES]`
+     * from the worktree file, clamped to the file's bounds. Matches the
+     * default unified-diff context width used by [com.github.ethanhosier.analysis.reconstruct.GitRunner.diffPatch]
+     * so snippets line up visually with diff hunks elsewhere in the report.
+     * Returns null when the file is missing/unreadable or the line range is
+     * outside the file — same posture as PMD processing errors.
+     */
+    private fun loadSnippet(
+        root: Path,
+        relPath: String,
+        beginLine: Int,
+        endLine: Int,
+    ): PmdViolationSnippet? = runCatching {
+        val lines = Files.readAllLines(root.resolve(relPath), Charsets.UTF_8)
+        val from = (beginLine - SNIPPET_CONTEXT_LINES - 1).coerceAtLeast(0)
+        val to = (endLine + SNIPPET_CONTEXT_LINES).coerceAtMost(lines.size)
+        if (from >= to) return@runCatching null
+        PmdViolationSnippet(
+            contextStartLine = from + 1,
+            code = lines.subList(from, to).joinToString("\n"),
+        )
+    }.getOrNull()
+
     private fun relativize(absPath: String, rootStr: String): String {
         if (absPath.startsWith(rootStr)) {
             return absPath.removePrefix(rootStr).trimStart('/', '\\')
@@ -110,5 +136,8 @@ class PmdRunner(
             "category/java/errorprone.xml",
             "category/java/design.xml",
         )
+
+        /** Lines of surrounding source kept either side of a violation range. */
+        private const val SNIPPET_CONTEXT_LINES = 3
     }
 }
