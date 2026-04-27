@@ -72,6 +72,14 @@ object PmdViolationTracker {
         val carriedFirstSeen = arrayOfNulls<String>(curr.violations.size)
         val resolved = ArrayList<ResolvedPmdViolation>()
 
+        // Prev violations whose path/line lookup misses go here instead of
+        // straight to `resolved`, so the moved-block fallback pass below
+        // gets a chance to claim a curr counterpart by snippet fingerprint
+        // (Extract Method etc., where the rule fires on the same source
+        // text but at a new file/line that path+line tracking can't reach).
+        data class Deferred(val pv: PmdViolation, val originSha: String)
+        val deferred = ArrayList<Deferred>()
+
         for (prevIdx in prev.violations.indices) {
             val pv = prev.violations[prevIdx]
             // Carried-from-further-back chain: if the prev tracking has a
@@ -81,12 +89,12 @@ object PmdViolationTracker {
 
             val newPath = translatePath(pv.file)
             if (newPath == null) {
-                resolved += pv.toResolved(originSha)
+                deferred += Deferred(pv, originSha)
                 continue
             }
             val translatedLine = when (val mapped = mapperFor(newPath).map(pv.beginLine)) {
                 Mapped.Deleted -> {
-                    resolved += pv.toResolved(originSha)
+                    deferred += Deferred(pv, originSha)
                     continue
                 }
                 is Mapped.Translated -> mapped.line
@@ -98,7 +106,50 @@ object PmdViolationTracker {
                 claimed[matchedCurrIdx] = true
                 carriedFirstSeen[matchedCurrIdx] = originSha
             } else {
-                resolved += pv.toResolved(originSha)
+                deferred += Deferred(pv, originSha)
+            }
+        }
+
+        // Moved-block fallback. Build a (rule, snippet-fingerprint) → curr
+        // index over still-unclaimed curr violations, then walk the
+        // deferred prevs in order and claim at most one curr per prev. Each
+        // curr can only be claimed once (existing `claimed[]` invariant)
+        // and each deferred prev consumes its snippet fingerprint at most
+        // once, so duplicate occurrences pair up 1:1 instead of one prev
+        // claiming all currs with the same body.
+        //
+        // This is intentionally coarse and not perfect:
+        //  - pure text comparison (whitespace-collapsed) — a refactor that
+        //    edits the block (renamed local, tweaked literal) won't match;
+        //  - same-rule-only — won't bridge a rule rename;
+        //  - no AST/structural equivalence — two unrelated blocks that
+        //    happen to share text will incorrectly pair;
+        //  - relies on snippet availability (null when PMD couldn't read
+        //    the source); falls back to the original resolved-as-deleted
+        //    behaviour when missing.
+        // It's enough to stop the obvious Extract Method double-count
+        // (resolved-here + introduced-there for the same logical smell)
+        // without claiming to be a full move detector.
+        val currByFingerprint = HashMap<Pair<String, String>, ArrayDeque<Int>>()
+        for (i in curr.violations.indices) {
+            if (claimed[i]) continue
+            val fp = snippetFingerprint(curr.violations[i]) ?: continue
+            currByFingerprint
+                .getOrPut(curr.violations[i].rule to fp) { ArrayDeque() }
+                .addLast(i)
+        }
+        for (d in deferred) {
+            val fp = snippetFingerprint(d.pv)
+            val bucket = if (fp != null) currByFingerprint[d.pv.rule to fp] else null
+            // ArrayDeque + removeFirstOrNull guarantees one-shot consumption
+            // of each curr fingerprint slot — a second deferred prev with
+            // the same fingerprint will fall through to `resolved`.
+            val matched = bucket?.removeFirstOrNull()
+            if (matched != null && !claimed[matched]) {
+                claimed[matched] = true
+                carriedFirstSeen[matched] = d.originSha
+            } else {
+                resolved += d.pv.toResolved(d.originSha)
             }
         }
 
@@ -107,6 +158,36 @@ object PmdViolationTracker {
         }
         return PmdTracking(firstSeenAtSha = firstSeen, resolvedSincePrev = resolved)
     }
+
+    /**
+     * Whitespace-collapsed concatenation of just the `beginLine..endLine`
+     * lines of a violation's snippet — i.e. the actual offending block,
+     * stripped of the surrounding context padding the snippet carries for
+     * dashboard rendering. Used as the moved-block identity key.
+     *
+     * Null when the snippet isn't available, the embedded `@@` header
+     * can't be parsed, or the offending range falls outside the snippet
+     * body — caller treats null as "no fingerprint, can't move-match".
+     */
+    private fun snippetFingerprint(v: PmdViolation): String? {
+        val patch = v.snippet?.patch ?: return null
+        val lines = patch.lineSequence().toList()
+        val hunkIdx = lines.indexOfFirst { it.startsWith("@@") }
+        if (hunkIdx < 0) return null
+        val header = HUNK_HEADER.find(lines[hunkIdx]) ?: return null
+        val startLine = header.groupValues[1].toIntOrNull() ?: return null
+        val body = lines.subList(hunkIdx + 1, lines.size)
+            .takeWhile { it.startsWith(" ") || it.isEmpty() }
+        val from = v.beginLine - startLine
+        val to = v.endLine - startLine + 1
+        if (from < 0 || to > body.size || from >= to) return null
+        val core = body.subList(from, to)
+            .joinToString("\n") { it.removePrefix(" ").replace(WS, " ").trim() }
+        return core.ifBlank { null }
+    }
+
+    private val HUNK_HEADER = Regex("@@ -(\\d+)(?:,\\d+)?")
+    private val WS = Regex("\\s+")
 
     private fun pickMatch(
         candidates: List<Int>,
