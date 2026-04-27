@@ -21,15 +21,16 @@
  *     between checkpoints / sessions / user-vs-IDE alts — not as an
  *     absolute "73/100".
  *
- *  4. Bounded (rate-based) penalties with Laplace smoothing. All penalties
- *     are fractions in [0, 1] so weights map directly to point costs
- *     ("worst-case manual-IDE costs 8 points"). The user's "don't penalise
- *     thinking" rule means long thoughtful sessions shouldn't accumulate
- *     penalties just for being long; rates decouple penalty magnitude from
- *     session length. Laplace `(bad+1)/(total+2)` on the refactoring-step
- *     rates avoids the cliff where 1/1 pins to 100% — but only applied
- *     once at least one such step exists, so a session with no
- *     refactorings doesn't get a phantom mid-rate penalty.
+ *  4. Bounded (rate-based) penalties with asymmetric Laplace smoothing.
+ *     All penalties are fractions in [0, 1] so weights map directly to
+ *     point costs ("worst-case manual-IDE costs 8 points"). The user's
+ *     "don't penalise thinking" rule means long thoughtful sessions
+ *     shouldn't accumulate penalties just for being long; rates decouple
+ *     penalty magnitude from session length. Laplace `(bad+1)/(total+2)`
+ *     on the refactoring-step rates avoids the cliff where 1/1 pins to
+ *     100%, but is *only* applied when at least one bad step has
+ *     occurred — a perfect record (0 bad of N) returns a 0 penalty so
+ *     doing the right thing every time isn't punished.
  *
  *  5. No time term. Per user constraint. The "stayed broken" intuition is
  *     captured by the count of broken checkpoints, not their duration.
@@ -182,12 +183,16 @@ export function computeProcessScores(
         ? 0
         : Math.max(0, addedSmellWeight - resolvedSmellWeight) /
           totalSmellWeightSeen
+    // Laplace smoothing only when there's at least one bad step. A
+    // perfect record (0 bad of N) deserves a 0 penalty — the smoothing
+    // was added to soften "1 of 1 = 100%", not to punish doing the
+    // right thing every time.
     const skipFrac =
-      refactoringStepsCount === 0
+      refactoringStepsCount === 0 || testsSkippedCount === 0
         ? 0
         : (testsSkippedCount + 1) / (refactoringStepsCount + 2)
     const manualFrac =
-      ideRelevantCount === 0
+      ideRelevantCount === 0 || manualWhenIdeCount === 0
         ? 0
         : (manualWhenIdeCount + 1) / (ideRelevantCount + 2)
 
