@@ -16,6 +16,8 @@ import { PitfallCallout } from "@/components/pitfall-callout"
 import { AnnotationItem } from "@/components/annotation-item"
 import { AnnotationList } from "@/components/annotation-list"
 import { MetricTile } from "@/components/metric-tile"
+import { ProcessScoreBreakdownContent } from "@/components/process-score-breakdown"
+import type { ProcessScoreBreakdown } from "@/data/types"
 import { RailSection } from "@/components/rail-section"
 import { ScorePill } from "@/components/score-pill"
 import { Sparkline } from "@/components/sparkline"
@@ -36,6 +38,48 @@ import { TextSample } from "@/features/design-system/text-sample"
 import { TokenCaption } from "@/features/design-system/token-caption"
 import { TokenRow } from "@/features/design-system/token-row"
 import { VariantCell } from "@/features/design-system/variant-cell"
+
+// Hand-tuned breakdown that hits every contribution row in both signs
+// so the showcase exercises the full layout (positive cleanliness gain,
+// each penalty firing). Numbers chosen to roughly match a mid-trajectory
+// session — not a real computation.
+const SAMPLE_PROCESS_BREAKDOWN: ProcessScoreBreakdown = {
+  total: 62,
+  baseline: 50,
+  contributions: [
+    {
+      id: "cleanliness",
+      label: "Cleanliness gain",
+      points: 12.4,
+      detail: "up 0.35 from c0 baseline",
+    },
+    {
+      id: "broken",
+      label: "Broken checkpoints",
+      points: -3,
+      detail: "2 of 13 checkpoints broken (15%)",
+    },
+    {
+      id: "smells",
+      label: "Smells introduced (net)",
+      points: -1.2,
+      detail: "8 weight introduced, 4 resolved (net 4)",
+    },
+    {
+      id: "skipTests",
+      label: "Tests skipped after refactor",
+      points: -2.5,
+      detail: "3 of 5 refactoring steps not followed by tests",
+    },
+    {
+      id: "manualIde",
+      label: "Manual when IDE could refactor",
+      points: -1.6,
+      detail: "2 of 4 IDE-relevant steps done manually",
+    },
+  ],
+  clamped: false,
+}
 
 const SURFACES = [
   ["bg", "shell"],
@@ -456,6 +500,22 @@ export function DesignSystemApp() {
                 unit="score"
                 delta={-5}
                 better="higher"
+              />
+            </div>
+          </VariantCell>
+          <VariantCell label="with hoverContent · process-score breakdown">
+            <div className="w-48">
+              <MetricTile
+                label="Process Score"
+                value={62}
+                unit="/100"
+                delta={+12}
+                better="higher"
+                hoverContent={
+                  <ProcessScoreBreakdownContent
+                    breakdown={SAMPLE_PROCESS_BREAKDOWN}
+                  />
+                }
               />
             </div>
           </VariantCell>
