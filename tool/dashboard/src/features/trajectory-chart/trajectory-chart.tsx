@@ -92,7 +92,6 @@ export function TrajectoryChart({ vm }: { vm: DashboardViewModel }) {
               vm={vm}
               primary={primary}
               secondaries={secondaries}
-              showIntervals={railCount > 0}
               scales={scales}
             />
             <ChartPoints
