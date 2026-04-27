@@ -365,8 +365,13 @@ function buildBreakdown(args: {
     smellPoints +
     skipPoints +
     manualPoints
-  const total = Math.max(0, Math.min(100, unclamped))
-  const clamped = unclamped !== total
+  const clampedValue = Math.max(0, Math.min(100, unclamped))
+  // Round at compute-time so every consumer (chart hover, tile, breakdown
+  // card) shows the same integer score without each having to remember
+  // to format. The contributions stay raw so the breakdown still
+  // explains where the points came from at higher precision.
+  const total = Math.round(clampedValue)
+  const clamped = unclamped !== clampedValue
 
   return { total, baseline: BASELINE, contributions, clamped }
 }
