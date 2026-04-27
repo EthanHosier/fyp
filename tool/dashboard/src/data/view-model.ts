@@ -178,7 +178,11 @@ function deriveSmells(curr: CheckpointReport, prev: CheckpointReport | null): Co
       snippetPatch: v.snippet?.patch ?? null,
       firstSeenAtSha: seenAt,
     }
-    if (seenAt === curr.sha) added.push(vm)
+    // Seed checkpoint: every violation is stamped at curr.sha by the
+    // tracker because there's no predecessor to carry forward from.
+    // Surfacing them as "new" misrepresents preexisting baseline smells
+    // as something the user just introduced — bucket as carried instead.
+    if (prev !== null && seenAt === curr.sha) added.push(vm)
     else carried.push(vm)
   }
 

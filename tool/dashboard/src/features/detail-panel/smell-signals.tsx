@@ -24,7 +24,7 @@ export function SmellSignals({ smells }: { smells: CodeSmellsVM }) {
           tone="warn"
           icon={<AlertTriangleIcon className="size-4" strokeWidth={2} />}
           title={`You introduced ${added} new code smell${added === 1 ? "" : "s"}`}
-          description={`This checkpoint introduced ${describeByFile(smells.added)}. See the Code Smells section below.`}
+          description={`You introduced ${describeByFile(smells.added)}. See the Code Smells section below.`}
         />
       ) : null}
       {resolved > 0 ? (
@@ -32,7 +32,7 @@ export function SmellSignals({ smells }: { smells: CodeSmellsVM }) {
           tone="good"
           icon={<CheckIcon className="size-2.5" strokeWidth={2.5} />}
           title={`You resolved ${resolved} code smell${resolved === 1 ? "" : "s"}`}
-          description={`This checkpoint cleared ${describeByFile(smells.resolved)}. See the Code Smells section below.`}
+          description={`You resolved ${describeByFile(smells.resolved)}. See the Code Smells section below.`}
         />
       ) : null}
     </>
