@@ -13,9 +13,12 @@
  *                         Higher = better. Distinct axis from cognitive
  *                         and coupling: "are responsibilities tangled?"
  *   duplication · %      `cpd.duplicatedLinesShare`   × 100
- *   readability · chars  `readability.summary.avgLineLength` — placeholder
- *                         proxy; real composite (comments, identifiers,
- *                         indentation…) is deferred
+ *   readability · /100   composite of 5 sub-signals from
+ *                         `readability.summary`: line length, indentation,
+ *                         identifier length, single-letter-ratio, dictionary
+ *                         word ratio. Each saturates against a literature
+ *                         threshold and contributes a weighted share. See
+ *                         `readabilityScore`. Higher = more readable.
  *   coupling    · cbo    p90 of `ck.perClass[].cbo`   (tail)
  *   smells      · count  size of `pmd.violations` — total PMD rule
  *                         violations across the project. Untweighted
@@ -58,7 +61,7 @@ import type {
 
 const METRICS: MetricVM[] = [
   { id: "cognitive",   label: "Cognitive Complexity", unit: "total", better: "lower",  group: "code", tone: "brand"   },
-  { id: "readability", label: "Readability",          unit: "chars", better: "lower",  group: "code", tone: "brand-2" },
+  { id: "readability", label: "Readability",          unit: "/100",  better: "higher", group: "code", tone: "brand-2" },
   { id: "duplication", label: "Duplication",          unit: "%",     better: "lower",  group: "code", tone: "brand-3" },
   { id: "smells",      label: "Code Smells",          unit: "count", better: "lower",  group: "code", tone: "brand-4" },
   { id: "coupling",    label: "Coupling",             unit: "cbo",   better: "lower",  group: "code", tone: "brand-5" },
@@ -82,6 +85,33 @@ function mean(xs: number[]): number {
   return xs.reduce((s, x) => s + x, 0) / xs.length
 }
 
+/**
+ * Composite readability score in [0, 1], higher = better. Weighted blend
+ * of 5 sub-signals from `readability.summary`, each clamped to [0, 1] and
+ * weighted to sum to 1. Comment ratio is intentionally excluded — comment
+ * density is a poor readability proxy in modern Java.
+ */
+function readabilityScore(summary: {
+  avgLineLength: number
+  avgIndentation: number
+  avgIdentifierLength: number
+  singleLetterRatio: number
+  dictionaryWordRatio: number
+}): number {
+  const lineLengthScore = 1 - Math.min(1, summary.avgLineLength / 100)
+  const indentationScore = 1 - Math.min(1, summary.avgIndentation / 12)
+  const identifierLengthScore = Math.min(1, summary.avgIdentifierLength / 5)
+  const singleLetterScore = 1 - Math.min(1, Math.max(0, summary.singleLetterRatio))
+  const dictionaryScore = Math.min(1, Math.max(0, summary.dictionaryWordRatio))
+  return (
+    0.25 * lineLengthScore +
+    0.20 * indentationScore +
+    0.20 * identifierLengthScore +
+    0.15 * singleLetterScore +
+    0.20 * dictionaryScore
+  )
+}
+
 function checkpointValues(c: CheckpointReport): Partial<Record<MetricId, number>> {
   const perClass = c.metrics.ck.perClass
   const values: Partial<Record<MetricId, number>> = {
@@ -98,7 +128,7 @@ function checkpointValues(c: CheckpointReport): Partial<Record<MetricId, number>
     values.duplication = round1(c.metrics.cpd.duplicatedLinesShare * 100)
   }
   if (c.metrics.readability?.summary) {
-    values.readability = round1(c.metrics.readability.summary.avgLineLength)
+    values.readability = round1(readabilityScore(c.metrics.readability.summary) * 100)
   }
   const pmd = c.metrics.pmd
   if (pmd) {
