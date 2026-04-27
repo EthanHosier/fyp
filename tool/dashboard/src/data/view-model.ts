@@ -55,20 +55,37 @@ import type {
   IntervalVM,
   MetricId,
   MetricVM,
+  ProcessScoreBreakdown,
   RefactoringStepVM,
   SessionVM,
   StatusTone,
   TrajectoryVM,
 } from "./types"
+import { computeCleanlinessSeries } from "./cleanliness"
+import { computeProcessScores } from "./process-score"
 
 const METRICS: MetricVM[] = [
-  { id: "cognitive",   label: "Cognitive Complexity", unit: "total", better: "lower",  group: "code", tone: "brand"   },
-  { id: "readability", label: "Readability",          unit: "/100",  better: "higher", group: "code", tone: "brand-2" },
-  { id: "duplication", label: "Duplication",          unit: "%",     better: "lower",  group: "code", tone: "brand-3" },
-  { id: "smells",      label: "Code Smells",          unit: "count", better: "lower",  group: "code", tone: "brand-4" },
-  { id: "coupling",    label: "Coupling",             unit: "cbo",   better: "lower",  group: "code", tone: "brand-5" },
-  { id: "cohesion",    label: "Cohesion",             unit: "tcc",   better: "higher", group: "code", tone: "brand-6" },
+  // Tones bump forward across the lineup so the new gold (`brand-8`)
+  // lands on cohesion (last). Process stays on prime mint.
+  { id: "process",     label: "Process Score",        unit: "/100",  better: "higher", group: "process", tone: "brand"   },
+  { id: "cleanliness", label: "Code Cleanliness",     unit: "/100",  better: "higher", group: "process", tone: "brand-2" },
+  { id: "cognitive",   label: "Cognitive Complexity", unit: "total", better: "lower",  group: "code",    tone: "brand-3" },
+  { id: "readability", label: "Readability",          unit: "/100",  better: "higher", group: "code",    tone: "brand-4" },
+  { id: "duplication", label: "Duplication",          unit: "%",     better: "lower",  group: "code",    tone: "brand-5" },
+  { id: "smells",      label: "Code Smells",          unit: "count", better: "lower",  group: "code",    tone: "brand-6" },
+  { id: "coupling",    label: "Coupling",             unit: "cbo",   better: "lower",  group: "code",    tone: "brand-7" },
+  { id: "cohesion",    label: "Cohesion",             unit: "tcc",   better: "higher", group: "code",    tone: "brand-8" },
 ]
+
+/** Placeholder breakdown used during initial checkpoint construction; gets
+ *  overwritten after refactoringSteps is built and we run the real
+ *  computation. The fields are required on CheckpointVM so we can't omit. */
+const PLACEHOLDER_BREAKDOWN: ProcessScoreBreakdown = {
+  total: 0,
+  baseline: 0,
+  contributions: [],
+  clamped: false,
+}
 
 function round1(n: number): number {
   return Math.round(n * 10) / 10
@@ -259,6 +276,10 @@ export function toViewModel(report: AnalysisReport): DashboardViewModel {
       churn: c.diff?.totalChurn ?? 0,
       patch: report.checkpointPatches?.[c.sha] ?? "",
       smells: deriveSmells(c, prev),
+      processScore: 0,
+      processBreakdown: PLACEHOLDER_BREAKDOWN,
+      cleanlinessScore: null,
+      cleanlinessBreakdown: null,
     }
   })
 
@@ -291,6 +312,10 @@ export function toViewModel(report: AnalysisReport): DashboardViewModel {
         totalPrev: lastReal.smells.totalNow,
         delta: 0,
       },
+      processScore: 0,
+      processBreakdown: PLACEHOLDER_BREAKDOWN,
+      cleanlinessScore: null,
+      cleanlinessBreakdown: null,
     })
   }
 
@@ -352,6 +377,33 @@ export function toViewModel(report: AnalysisReport): DashboardViewModel {
       }
     },
   )
+
+  // Process score depends on the assembled checkpoints (smell buckets,
+  // build/tests state) and the refactoring steps (rates of skipped tests
+  // / manual-when-IDE), so we compute it once both are ready and patch
+  // the score + breakdown back onto each checkpoint. Also surface the
+  // score on `c.values` so the chart renders it via the regular metric
+  // plumbing — `process` is just another MetricId from the chart's POV.
+  const processResults = computeProcessScores(checkpoints, refactoringSteps, METRICS)
+  const cleanlinessResults = computeCleanlinessSeries(checkpoints, METRICS)
+  for (let i = 0; i < checkpoints.length; i++) {
+    const r = processResults[i]
+    if (r) {
+      checkpoints[i].processScore = r.score
+      checkpoints[i].processBreakdown = r.breakdown
+      checkpoints[i].values.process = r.score
+    }
+    const cl = cleanlinessResults[i]
+    if (cl) {
+      checkpoints[i].cleanlinessScore = cl.score
+      checkpoints[i].cleanlinessBreakdown = cl.breakdown
+      // Skip pinning to `c.values.cleanliness` when the score is null —
+      // a null in `values` is read by every consumer as "no data" and
+      // the chart will simply omit the point, matching how it handles
+      // a missing CPD reading.
+      if (cl.score !== null) checkpoints[i].values.cleanliness = cl.score
+    }
+  }
 
   const checkpointBySha = new Map<string, number>()
   report.checkpoints.forEach((c, i) => checkpointBySha.set(c.sha, i))

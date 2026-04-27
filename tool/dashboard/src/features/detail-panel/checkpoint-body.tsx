@@ -4,9 +4,15 @@ import type { ReactNode } from "react"
 import type { Annotation } from "@/components/annotation-item"
 import { AnnotationList } from "@/components/annotation-list"
 import { MetricTile } from "@/components/metric-tile"
+import { CleanlinessBreakdownContent } from "@/components/cleanliness-breakdown"
+import { ProcessScoreBreakdownContent } from "@/components/process-score-breakdown"
 import { StatusRow } from "@/components/status-row"
 import { Text } from "@/components/text"
-import type { CheckpointVM, DashboardViewModel, MetricId } from "@/data/types"
+import type {
+  CheckpointVM,
+  DashboardViewModel,
+  MetricId,
+} from "@/data/types"
 import { CodeSmellsSection } from "@/features/detail-panel/code-smells-section"
 import { DiffSection } from "@/features/detail-panel/diff-section"
 import { SmellSignals } from "@/features/detail-panel/smell-signals"
@@ -63,6 +69,7 @@ export function CheckpointBody({
                 unit={m.unit}
                 delta={delta}
                 better={m.better}
+                hoverContent={tileHoverContent(m.id, checkpoint)}
               />
             )
           })}
@@ -108,6 +115,29 @@ export function CheckpointBody({
 
 function hasSmellSignals(checkpoint: CheckpointVM): boolean {
   return checkpoint.smells.added.length > 0 || checkpoint.smells.resolved.length > 0
+}
+
+/** Per-metric hover-card content. Process and cleanliness expose their
+ *  decompositions; the six raw code metrics have no breakdown to show. */
+function tileHoverContent(
+  id: MetricId,
+  checkpoint: CheckpointVM,
+): ReactNode {
+  if (id === "process") {
+    return (
+      <ProcessScoreBreakdownContent
+        breakdown={checkpoint.processBreakdown}
+      />
+    )
+  }
+  if (id === "cleanliness" && checkpoint.cleanlinessBreakdown) {
+    return (
+      <CleanlinessBreakdownContent
+        breakdown={checkpoint.cleanlinessBreakdown}
+      />
+    )
+  }
+  return undefined
 }
 
 /**

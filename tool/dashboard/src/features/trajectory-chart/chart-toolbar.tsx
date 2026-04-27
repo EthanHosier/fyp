@@ -20,8 +20,11 @@ export function ChartToolbar({
   const values = vm.checkpoints
     .map((c) => c.values[primary.id])
     .filter((v): v is number => typeof v === "number")
-  const first = values[0]
-  const last = values[values.length - 1]
+  // Match MetricTile's display precision: 1dp for `%`, 0dp otherwise.
+  // Without this, raw scores like 75.00555555555559 surface in the title.
+  const dp = primary.unit === "%" ? 1 : 0
+  const first = values[0]?.toFixed(dp)
+  const last = values[values.length - 1]?.toFixed(dp)
   const desc = METRIC_DESCRIPTORS[primary.id]
 
   const Arrow = primary.better === "higher" ? ArrowUpIcon : ArrowDownIcon

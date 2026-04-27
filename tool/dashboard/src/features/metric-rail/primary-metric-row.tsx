@@ -26,7 +26,11 @@ export function PrimaryMetricRow({
   const flat = delta === 0
   const improved = metric.better === "lower" ? delta < 0 : delta > 0
   const deltaTone = flat ? "fg-4" : improved ? "good" : "bad"
-  const deltaGlyph = flat ? "–" : improved ? "▼" : "▲"
+  // Glyph reflects the direction of the value (▲ went up, ▼ went down);
+  // the tone above already encodes good vs bad. Picking glyph by
+  // `improved` instead of `delta` reverses the arrow for higher-is-
+  // better metrics (e.g. process score going up showed ▼).
+  const deltaGlyph = flat ? "–" : delta > 0 ? "▲" : "▼"
 
   return (
     <button

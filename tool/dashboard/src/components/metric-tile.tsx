@@ -1,4 +1,12 @@
+import { HelpCircleIcon } from "lucide-react"
+import type { ReactNode } from "react"
+
 import { Text } from "@/components/text"
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "@/components/ui/hover-card"
 import { cn } from "@/lib/utils"
 
 /**
@@ -18,6 +26,7 @@ export function MetricTile({
   delta,
   better = "lower",
   decimals,
+  hoverContent,
 }: {
   label: string
   value: number | string
@@ -28,6 +37,10 @@ export function MetricTile({
   /** Display precision for both value and delta. Defaults to 1 for `%`,
    *  0 otherwise — matches the reference. */
   decimals?: number
+  /** When set, a "?" icon appears next to the label and reveals a
+   *  hover-card with this content — used by the Process Score tile to
+   *  surface its breakdown without taking up panel space. */
+  hoverContent?: ReactNode
 }) {
   const dp = decimals ?? (unit === "%" ? 1 : 0)
   const formattedValue =
@@ -61,16 +74,32 @@ export function MetricTile({
       >
         {label}
       </Text>
-      <div className="flex items-baseline gap-2">
-        <Text as="span" variant="monoStat" tone="fg">
-          {formattedValue}
-          {unit ? (
-            <Text variant="caption" tone="fg-4" className="ml-0.5">
-              {unit}
-            </Text>
-          ) : null}
-        </Text>
-        {deltaNode}
+      <div className="flex items-baseline justify-between gap-2">
+        <div className="flex items-baseline gap-2">
+          <Text as="span" variant="monoStat" tone="fg">
+            {formattedValue}
+            {unit ? (
+              <Text variant="caption" tone="fg-4" className="ml-0.5">
+                {unit}
+              </Text>
+            ) : null}
+          </Text>
+          {deltaNode}
+        </div>
+        {hoverContent ? (
+          <HoverCard openDelay={120} closeDelay={80}>
+            <HoverCardTrigger asChild>
+              <button
+                type="button"
+                aria-label={`${label} breakdown`}
+                className="text-fg-4 hover:text-fg-2 -mr-0.5 inline-flex translate-y-[1px] cursor-help items-center self-center"
+              >
+                <HelpCircleIcon className="size-3.5" />
+              </button>
+            </HoverCardTrigger>
+            <HoverCardContent className="w-72">{hoverContent}</HoverCardContent>
+          </HoverCard>
+        ) : null}
       </div>
     </div>
   )
