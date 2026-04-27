@@ -30,14 +30,14 @@ export const METRIC_DESCRIPTORS: Record<MetricId, MetricDescriptor> = {
   },
   duplication: {
     summary:
-      "Share of the codebase that is copy-pasted from somewhere else.",
+      "The share of the codebase that is copy-pasted from somewhere else.",
     formula: "( DuplicatedLines / TotalLines ) × 100",
     detail:
       "Duplicated logic means a bug fix has to be applied in several places and it's easy to miss one. A rising trend is a hint to extract the shared piece into a helper, base class, or utility.",
   },
   smells: {
     summary:
-      "Number of suspicious patterns flagged across the project.",
+      "The number of suspicious patterns flagged across the project.",
     formula: "count( RuleViolations )",
     detail:
       "Each flag points at a likely design, error-prone, performance, or best-practice issue. Treat the trend as the signal — a sudden jump usually means a recent change introduced a new category of issue worth looking at.",
