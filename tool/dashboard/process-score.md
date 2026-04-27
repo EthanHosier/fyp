@@ -1,69 +1,72 @@
 # Process score — single 0..100 trajectory metric
 
+> **Status:** Shipped on `feat/process-score`. This document reflects what's in the code; the open-follow-ups section at the bottom is still open.
+
 ## Context
 
 The dashboard currently shows 6 code-quality metrics (`cohesion`, `coupling`, `smells`, `duplication`, `readability`, `cognitive`) plus per-checkpoint build/test status, refactoring steps, and code-smell buckets. Users have to read all of these together to judge whether a refactoring session went well.
 
-This plan adds a single **process score** ∈ `[0, 100]` per checkpoint that summarises "is this refactoring trajectory producing cleaner code safely and efficiently, up to here?" — prefix-cumulative so it tells a story across the trajectory, decomposable so the user can see *why* the score moved.
+This adds a single **process score** ∈ `[0, 100]` per checkpoint that summarises "is this refactoring trajectory producing cleaner code safely and efficiently, up to here?" — prefix-cumulative so it tells a story across the trajectory, decomposable so the user can see *why* the score moved.
 
-The score is computed entirely dashboard-side in `view-model.ts` from data already on the VM. No analysis-side changes.
+It also surfaces **code cleanliness** as its own first-class metric (the literature-weighted composite of the 6 code metrics) — not just an internal input to the process score.
 
-## Design decisions (these go in the file's top-of-file comment)
+The score is computed entirely dashboard-side from data already on the VM. No analysis-side changes.
 
-1. **Prefix-cumulative, not point-in-time.** The score at checkpoint `t` is "process quality from `c0` through `c_t`", not "code quality at `c_t`". This is what lets it answer "did the user refactor *well*", not just "is the code good now".
+## Design decisions
 
-2. **Anchor at 50, not 100.** A trajectory that doesn't improve cleanliness but doesn't damage anything sits mid-range. Pure improvement and pure damage are both visible; a flat trajectory isn't misread as "perfect".
+1. **Prefix-cumulative, not point-in-time.** Score(t) judges c0..c_t as a trajectory, not c_t in isolation. That's what makes it a process score rather than a quality score.
 
-3. **Frame as process quality, not absolute code quality.** The thesis claim is "this score compares trajectories", not "this project is 73/100". The number is meaningful relatively (between checkpoints, between sessions, between user-vs-IDE alternative paths) — not absolutely.
+2. **Anchor at 50.** A trajectory that doesn't improve and doesn't damage anything sits mid-range; pure gain and pure damage are both visible. With the rescaled weights (see decision 9), perfect behaviour reaches 100 and worst-case clamps to 0.
 
-4. **Bounded (rate-based) penalties, with Laplace smoothing.** All penalties are fractions in `[0, 1]` (e.g. `broken / (t+1)`), so weights map directly to point costs ("worst-case manual-IDE costs 8 points"). Rates rather than counters because the user's "don't penalise thinking" rule means long thoughtful sessions shouldn't accumulate penalties just for being long. Laplace smoothing `(bad + 1) / (total + 2)` on the refactoring-step rates avoids the cliff where one bad step in a one-step session pins the rate at 100%.
+3. **Frame as process quality, not absolute code quality.** Meaningful between checkpoints / sessions / user-vs-IDE alts — not as an absolute "73/100".
 
-5. **No time term.** Explicit per user constraint: thinking is not a process failure. The "stayed broken" intuition is captured by *number of broken checkpoints*, not duration.
+4. **Bounded (rate-based) penalties with asymmetric Laplace smoothing.** All penalties are fractions in [0, 1] so weights map directly to point costs ("worst-case manual-IDE costs 11 points"). Rates rather than counters because long thoughtful sessions shouldn't accumulate penalties just for being long. Laplace `(bad+1)/(total+2)` on the refactoring-step rates avoids the cliff where 1/1 pins to 100%, but is *only* applied when at least one bad step has occurred — a perfect record (0 bad of N) returns a 0 penalty so doing the right thing every time isn't punished.
 
-6. **Net smells, no drag for carried.** A `carried` smell is already on the ledger from when it was `added`; adding a separate carry penalty double-counts. The cumulative net formula handles this correctly.
+5. **No time term.** Per user constraint: thinking is not a process failure. The "stayed broken" intuition is captured by the count of broken checkpoints, not their duration.
 
-7. **Cleanliness composite uses literature-informed weights, not equal mean.** No paper covers this exact bundle, but the closest references converge on a hierarchy:
+6. **Net smells, no separate carry penalty.** A `carried` smell is already on the cumulative ledger from when it was `added`; adding a carry drag would double-count.
 
-   | Metric | Weight | Justification |
-   |---|---|---|
-   | Cognitive complexity | 0.25 | Campbell 2018 (Sonar): strongest empirical correlate with comprehension time; supersedes cyclomatic for human effort |
-   | Coupling | 0.20 | Chidamber & Kemerer 1994 (CBO/RFC): coupling repeatedly the strongest defect predictor in OO studies |
-   | Duplication | 0.20 | Heitlager et al. 2007 (SIG maintainability model): one of four equal pillars |
-   | Readability | 0.15 | Buse & Weimer 2010: validated readability score, but smaller effect than structural metrics |
-   | Smells | 0.15 | Priority-weighted PMD; literature treats smells as a *symptom* of the above, so weighting it as primary risks double-counting |
-   | Cohesion | 0.05 | LCOM family is noisy and contested (Etzkorn, Counsell); kept low |
+7. **Intermediate degradation — running-peak dip integral.** Cleanliness gain is point-in-time so a trajectory that dips and recovers to baseline used to score identically to one that stayed clean — the score forgot the dip. The intermediate-degradation term remembers it: track the running max of cleanliness, sum `max(0, peak − clean(i))` across the prefix, and normalise by checkpoint count to keep the term in [0, 1]. Penalises both the depth of the dip and how long the trajectory stayed below its prior best. Picked running-peak over endpoint-floor because the latter lets a clever path hide a dip by ending where it started; running-peak captures "you got the code clean once, you don't get to forget that you broke it."
 
-   Weights sum to 1.0. When a metric is missing at a checkpoint, its weight is redistributed proportionally over the remaining present metrics so the composite stays on `[0, 1]`.
+8. **No churn term.** Bigger refactorings shouldn't be inherently worse than smaller ones.
 
-8. **Min-max normalisation across the trajectory's observed range.** Self-tunes per project: a 5-WMC complexity bump on a project ranging 0..50 is significant; on a project ranging 0..200 it isn't. Mirrors the existing spike-detector convention in `checkpoint-body.tsx:213`. Metrics absent at a checkpoint are skipped (composite averages whatever's present).
+9. **Weights rescaled so perfect = 100.** Original V0 weights (35 / 20 / 15 / 10 / 8) gave a soft ceiling of 85. Rescaled by 50/35 ≈ 1.43 and rounded so a flawless trajectory with maximum cleanliness gain reaches exactly 100 (`BASELINE + W_GAIN`). Internal proportions follow the original design — relative ranking unchanged, scale just spans the full 0..100 range now.
 
-9. **No churn term.** The user excluded it; bigger refactorings shouldn't be inherently worse than smaller ones.
+10. **Cleanliness composite uses literature-informed weights, not equal mean.** No paper covers this exact bundle, but the closest references converge on a hierarchy:
+
+    | Metric | Weight | Justification |
+    |---|---|---|
+    | Cognitive complexity | 0.25 | Campbell 2018 (Sonar): strongest empirical correlate with comprehension time |
+    | Coupling | 0.20 | Chidamber & Kemerer 1994: strongest defect predictor in OO studies |
+    | Duplication | 0.20 | Heitlager et al. 2007 (SIG): one of four equal pillars |
+    | Readability | 0.15 | Buse & Weimer 2010: validated readability metric, smaller effect than structural ones |
+    | Smells | 0.15 | Symptom of the above; weighting it as primary would risk double-counting |
+    | Cohesion | 0.05 | LCOM family is noisy and contested (Etzkorn, Counsell) |
+
+    Weights sum to 1.0. When a metric is missing at a checkpoint (or has degenerate range across the trajectory) its weight is redistributed proportionally over the rest, so the composite stays on [0, 1].
+
+11. **Min-max normalisation across the trajectory's observed range.** Self-tunes per project: a 5-WMC bump on a 0..50 project is significant; on 0..200 it isn't. Mirrors the existing spike-detector convention. The cleanliness metric's descriptor calls out the relativity explicitly — 100 means "the cleanest checkpoint in this session", not absolute code quality.
 
 ## Formula
 
 ```
 score(t) = clamp(
   50
-  + W_gain      · CleanlinessGain(t)
-  − W_broken    · brokenFraction(0..t)
-  − W_smell     · netSmellFraction(0..t)
-  − W_skipTests · testsSkippedFraction(0..t)
-  − W_manualIde · manualWhenIdePossibleFraction(0..t),
+  + 50 · CleanlinessGain(t)
+  − 28 · brokenFraction(0..t)
+  − 21 · netSmellFraction(0..t)
+  − 21 · intermediateDegradation(0..t)
+  − 14 · testsSkippedFraction(0..t)
+  − 11 · manualWhenIdePossibleFraction(0..t),
   0, 100
 )
 ```
 
-V0 weights:
-
-| Term | Weight |
-|---|---|
-| `W_gain` | 35 |
-| `W_broken` | 20 |
-| `W_smell` | 15 |
-| `W_skipTests` | 10 |
-| `W_manualIde` | 8 |
+Round at compute time so all consumers (chart hover, tile, breakdown card) display an integer.
 
 ### Cleanliness composite
+
+Lives in `cleanliness.ts`. Process score consumes the 0..1 scalar via `computeCleanlinessSeries`; the cleanliness metric surfaces the rounded 0..100 score and the per-sub-metric breakdown.
 
 ```
 W = { cognitive: 0.25, coupling: 0.20, duplication: 0.20,
@@ -72,24 +75,24 @@ W = { cognitive: 0.25, coupling: 0.20, duplication: 0.20,
 normalised(c, m):
   let raw       = c.values[m]                         // skip if undefined
   let [lo, hi]  = min/max of m across all checkpoints
-  if hi == lo:  skip                                   // degenerate range, no signal
+  if hi == lo:  skip                                   // degenerate range
   let n         = (raw - lo) / (hi - lo)               // 0..1
-  if m.better == "lower": n = 1 - n                    // flip so 1 = best everywhere
+  if m.better == "lower": n = 1 - n
   return n
 
 Cleanliness(t):
   let present = metrics m where normalised(c_t, m) is defined
-  let totalW  = Σ W[m] for m in present                // re-base when some absent
+  let totalW  = Σ W[m] for m in present
   return (Σ W[m] · normalised(c_t, m)) / totalW        // ∈ [0, 1]
 
 CleanlinessGain(t) = Cleanliness(t) − Cleanliness(0)   // ∈ [-1, +1]
 ```
 
-Re-basing the weights over only the present metrics keeps the composite on `[0, 1]` if some metric is missing at a checkpoint (e.g. CPD couldn't run). A metric with degenerate `hi == lo` across the whole trajectory is treated as absent — same re-basing applies.
+The breakdown carries a `rebased` flag set when any literature-weighted metric was excluded (missing or degenerate range), so the UI can flag that the score isn't a full six-axis sweep.
 
 ### Process penalty fractions
 
-All ∈ `[0, 1]`. Refactoring-step rates use Laplace smoothing.
+All ∈ [0, 1].
 
 ```
 brokenFraction(t)
@@ -99,87 +102,117 @@ brokenFraction(t)
 netSmellFraction(t)
   = max(0, addedWeight(0..t) − resolvedWeight(0..t))
   / max(1, totalWeightEverSeen(0..t))
-where weight(smell) = 6 − smell.priority    // priority 1 (worst) → weight 5
+where weight(smell) = 6 − smell.priority
+
+intermediateDegradation(t)
+  = (Σ_{i ≤ t} max(0, peak(i) − clean(i))) / observations
+where peak(i) = running max of cleanliness up to i
 
 testsSkippedFraction(t)
-  = (skipped + 1) / (totalRefactoringSteps + 2)
-where skipped = steps s with checkpointIndex ≤ t and !s.userRanTests
-      totalRefactoringSteps = steps s with checkpointIndex ≤ t
+  = 0                                       if skipped == 0
+    (skipped + 1) / (refactoringSteps + 2)  otherwise
+where skipped = steps with checkpointIndex ≤ t and !s.userRanTests
 
 manualWhenIdePossibleFraction(t)
-  = (manual + 1) / (ideRelevantTotal + 2)
-where manual = steps s with checkpointIndex ≤ t, s.ideRelevant, !s.wasPerformedByIde
-      ideRelevantTotal = steps s with checkpointIndex ≤ t and s.ideRelevant
+  = 0                                       if manual == 0
+    (manual + 1) / (ideRelevantTotal + 2)   otherwise
+where manual = steps with checkpointIndex ≤ t, s.ideRelevant, !s.wasPerformedByIde
 ```
 
-When the relevant denominator is zero (no refactoring steps yet, no smells yet), the penalty is `0`, not the smoothed mid-value — refactor-related and smell-related penalties only kick in once there's evidence to evaluate.
+When the relevant denominator is zero (no refactoring steps yet, no smells yet), the penalty is 0. When there's activity but zero bad behaviour, the penalty is also 0 (asymmetric Laplace — see design decision 4).
 
 ## Decomposition
 
-Each `CheckpointVM` carries a `processScore` and a `processBreakdown` so the detail panel can show the reasoning:
+Each `CheckpointVM` carries a `processScore`, `processBreakdown`, `cleanlinessScore`, and `cleanlinessBreakdown`:
 
 ```ts
 type ProcessScoreBreakdown = {
-  total: number              // 0..100
+  total: number              // 0..100, rounded
   baseline: number           // 50
   contributions: Array<{
-    id: "cleanliness" | "broken" | "smells" | "skipTests" | "manualIde"
-    label: string            // "Cleanliness gain"
+    id: "cleanliness" | "degradation" | "broken" | "smells" | "skipTests" | "manualIde"
+    label: string
     points: number           // signed; sums (with baseline) to total before clamping
-    detail: string           // e.g. "5 broken / 12 checkpoints (42%)"
+    detail: string
   }>
-  /** True if the unclamped sum was outside [0,100] — surfaced subtly so the
-   *  panel can show "≤0" or "≥100" rather than implying precision. */
   clamped: boolean
+}
+
+type CleanlinessBreakdown = {
+  total: number              // 0..100, rounded
+  contributions: Array<{
+    id: MetricId             // one of the six code metrics
+    label: string
+    weight: number           // literature weight, 0..1
+    normalised: number       // 0..1, 1 = best in trajectory
+    raw: number
+    points: number           // weight·normalised·100, rebased
+  }>
+  rebased: boolean           // true iff any weighted metric was excluded
 }
 ```
 
-Detail panel renders this as a contributions table mirroring the existing `MetricTile` grid in `checkpoint-body.tsx:51`.
-
 ## UI
 
-- Process score is the **default primary** on the chart (replaces whatever's currently default).
-- It's a 7th `MetricId` (`"process"`) so the existing primary-toggle / overlay / legend / tooltip plumbing handles it for free.
-- `group: "process"` distinguishes it from the 6 code metrics; descriptor declares `better: "higher"`, unit `""` (just a number), tone reserved (e.g. a non-`brand-N` tone or a new dedicated one).
-- New section in `checkpoint-body.tsx`: "Process score" with the breakdown table, rendered when the selected checkpoint has the score (i.e. always except possibly degenerate cases).
+- Process score is the **default primary** on the chart.
+- Code cleanliness is the **default first overlay**, readability the second.
+- Process and cleanliness are exposed as their own `MetricId`s with `group: "process"`. Two new brand tones (`brand-7` lime for cohesion's bumped slot, `brand-8` gold for the new headline metric).
+- Breakdowns are surfaced via **hover-cards on the metric tiles** in the detail panel, not as inline sections. `MetricTile` gained a `hoverContent?: ReactNode` prop — a `?` icon next to the tile value reveals the hover-card. Keeps the detail panel compact while making the explainers discoverable.
+- The chart toolbar's "How it's calculated" hover-card shows the full formula including the rescaled weights and the intermediate-degradation term.
 
-## Critical files
+## Files shipped
 
 **New:**
-- `tool/dashboard/src/data/process-score.ts` — pure functions: `computeProcessScores(vm) → { score, breakdown }[]` over all checkpoints. Top-of-file comment captures the design decisions above. All knobs (weights, smoothing) defined as named constants at the top so they're easy to tune.
+- `src/data/process-score.ts` — `computeProcessScores`. Top-of-file comment carries design decisions 1–9.
+- `src/data/cleanliness.ts` — `computeCleanlinessSeries` + `buildCleanlinessContext` + `evaluateCleanlinessFor`. Owns the literature-weighted composite, min-max normalisation, and breakdown shape.
+- `src/components/process-score-breakdown.tsx` — hover-card content for the process tile.
+- `src/components/cleanliness-breakdown.tsx` — hover-card content for the cleanliness tile.
 
 **Modified:**
-- `tool/dashboard/src/data/types.ts` — add `"process"` to `MetricId`; add `processScore: number` and `processBreakdown: ProcessScoreBreakdown` to `CheckpointVM`; export the breakdown type.
-- `tool/dashboard/src/data/view-model.ts` — call `computeProcessScores` after the existing checkpoint assembly; thread results onto each `CheckpointVM`. Inject `process` into the `metrics` array so the chart picks it up.
-- `tool/dashboard/src/data/metric-descriptors.ts` — register the `process` descriptor (label `"Process score"`, unit `""`, `better: "higher"`, group `"process"`, tone).
-- `tool/dashboard/src/features/detail-panel/checkpoint-body.tsx` — new "Process score" section showing the breakdown rows for the selected checkpoint. Sits above or alongside the existing metric tiles; final placement decided when implementing.
-- Wherever the default primary metric is decided (likely `view-model.ts` or a small selector) — set default to `"process"`.
+- `src/data/types.ts` — added `"process"`, `"cleanliness"` to `MetricId`; added `"brand-7"`, `"brand-8"` to `MetricTone`; added the breakdown types and the `processScore` / `cleanlinessScore` fields on `CheckpointVM`; added `"degradation"` to `ProcessScoreContribution.id`.
+- `src/data/view-model.ts` — adds the two new metrics to METRICS, computes both series after the checkpoint loop, threads scores onto each checkpoint and onto `c.values` so the chart picks them up.
+- `src/data/metric-descriptors.ts` — descriptors for `process` and `cleanliness`, including the rescaled formula and the relativity caveat.
+- `src/components/metric-tile.tsx` — `hoverContent` prop + `?` icon.
+- `src/components/{sparkline,text,ui/checkbox}.tsx` — added `brand-7` and `brand-8` variants.
+- `src/lib/metric-tone.ts` — `brand-7`, `brand-8` in TONE_TEXT / TONE_BORDER / TONE_BG.
+- `src/index.css` — `--brand-7` (lime), `--brand-8` (gold).
+- `src/features/detail-panel/checkpoint-body.tsx` — wires `hoverContent` into the process and cleanliness tiles.
+- `src/features/metric-rail/primary-metric-row.tsx` — fixed delta arrow to follow value direction (▲ when up regardless of "better"), so process going up shows ▲ in green.
+- `src/features/trajectory-chart/chart-toolbar.tsx` — formats first→last value to dp consistent with the metric.
+- `src/stores/dashboard-store.ts` — default primary `"process"`, default secondaries `["cleanliness", "readability"]`.
 
-**Reused (no change):**
-- All chart/legend/overlay/tooltip code — the new metric flows through existing `MetricVM` paths.
+## Sequencing (as actually shipped)
+
+1. Land `process-score.ts` with the formula. ✅
+2. Wire types + view-model integration. ✅
+3. Register the metric descriptor; verify the line renders. ✅
+4. Make process the default primary. ✅
+5. Surface the breakdown as a `MetricTile` hover-card (replaces the inline section originally planned). ✅
+6. Visual smoke against the bundled sample report; tune. ✅
+7. (Beyond V0) Expose code cleanliness as its own metric with its own hover-card breakdown. ✅
+8. (Beyond V0) Split cleanliness logic into `cleanliness.ts`. ✅
+9. (Beyond V0) Add intermediate-degradation term. ✅
+10. (Beyond V0) Rescale weights so perfect = 100. ✅
 
 ## Verification
 
-1. **Unit — composite normalisation**: synthetic VM with known per-metric ranges and `better` directions; assert `Cleanliness(0) ≈ 0..1`, `Cleanliness(t)` for the best/worst observation lands at 1.0 / 0.0 respectively.
-2. **Unit — degenerate range**: a metric with constant value across the trajectory contributes nothing; composite is the mean of the remaining metrics.
-3. **Unit — penalty fractions**: hand-built fixtures hitting each of broken / smells / skip-tests / manual-IDE in isolation; assert the breakdown's `points` lines up with `weight × fraction`.
-4. **Unit — Laplace smoothing**: a single-step session with one manual-IDE refactor produces fraction ≤ 0.5, not 1.0.
-5. **Unit — clamping**: synthetic worst-case trajectory drives unclamped sum below 0; assert `total === 0` and `clamped === true`.
-6. **Unit — score(0) ≈ 50**: at the seed checkpoint there's no gain yet and no penalty signals; the breakdown's only non-zero entry is the baseline.
-7. **Visual smoke**: load an existing session report, confirm the new line renders as primary, the breakdown panel populates on selection, contributions sum to total (modulo clamping), and tooltip shows the score value.
-8. **`npm run typecheck` + `npm run lint` green.**
+Dashboard project has no test framework set up — unit tests from the original plan were skipped. Verification was visual smoke against bundled sample reports:
 
-## Sequencing
+1. Process line renders as default primary on the chart.
+2. Cleanliness + readability render as overlays by default.
+3. Tile `?` icons appear on `Process Score` and `Code Cleanliness`; hover reveals the breakdown.
+4. Breakdown contributions sum to total (modulo clamping); detail rows match the running counters at the selected checkpoint.
+5. `npm run typecheck` green.
 
-1. Land `process-score.ts` with full unit tests (no UI yet) — the formula is the load-bearing piece, isolate it.
-2. Wire types + view-model integration so each `CheckpointVM` carries the score and breakdown.
-3. Register the metric descriptor so the existing chart picks it up; verify the line renders.
-4. Make it the default primary.
-5. Add the breakdown section to the detail panel.
-6. Tune weights / verify visually against a couple of real sessions; document any adjustments in the top-of-file comment.
+If we later add a test framework, the priorities are:
+- Composite normalisation + degenerate-range handling (cleanliness.ts)
+- Each penalty fraction in isolation (process-score.ts)
+- Asymmetric Laplace smoothing (perfect record → 0 penalty)
+- Clamping behaviour
+- Score(0) ≈ 50
 
-## Open follow-ups (not V0)
+## Open follow-ups
 
-- Per-metric weighting in the cleanliness composite once we have evidence one factor dominates in practice. The structure already supports this (named weight constants, single mean → weighted-mean change).
-- A second "alternative-path process score" computed for each `AlternativeTrajectoryVM` so the user can compare their actual score against what the IDE-driven path would have scored. Same formula, different input series.
-- Smell *severity* in the chart's existing smell line vs the process score's priority-weighted treatment — currently they disagree on what "smells" means. Worth reconciling once the score is in.
+- **Process score for `AlternativeTrajectoryVM`.** Compute the score the user would have hit if the IDE had performed the alt at this divergence point, render alongside the user's actual score in `alternative-body.tsx`. Plan: snapshot per-checkpoint state inside `computeProcessScores`, expose a `computeAlternativeProcessScore(snapshot, alt)` helper, evaluate alt's cleanliness against the user trajectory's ranges via the new `evaluateCleanlinessFor` API. Assumptions for the alt step: `+1` IDE-relevant refactoring, `wasPerformedByIde: true`, tests assumed run, smell delta neutral.
+- **Smell line vs process-score smell treatment.** Chart's existing smell line is a count; process score uses priority-weighted PMD. They disagree on what "smells" means. Worth reconciling.
+- **Dashboard test infra.** The project has no vitest/jest setup. If/when added, port the unit-test plan above.
