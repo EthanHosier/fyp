@@ -15,6 +15,7 @@ export const TONE_TEXT: Record<MetricTone, string> = {
   "brand-3": "text-brand-3",
   "brand-4": "text-brand-4",
   "brand-5": "text-brand-5",
+  "brand-6": "text-brand-6",
 }
 
 export const TONE_BORDER: Record<MetricTone, string> = {
@@ -23,6 +24,7 @@ export const TONE_BORDER: Record<MetricTone, string> = {
   "brand-3": "border-brand-3",
   "brand-4": "border-brand-4",
   "brand-5": "border-brand-5",
+  "brand-6": "border-brand-6",
 }
 
 export const TONE_BG: Record<MetricTone, string> = {
@@ -31,4 +33,5 @@ export const TONE_BG: Record<MetricTone, string> = {
   "brand-3": "bg-brand-3",
   "brand-4": "bg-brand-4",
   "brand-5": "bg-brand-5",
+  "brand-6": "bg-brand-6",
 }

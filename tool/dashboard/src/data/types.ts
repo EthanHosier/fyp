@@ -1,13 +1,14 @@
 export type MetricId =
   | "cohesion"
   | "coupling"
+  | "smells"
   | "duplication"
   | "readability"
   | "cognitive"
 
 export type StatusTone = "pass" | "fail" | "unknown"
 
-export type MetricTone = "brand" | "brand-2" | "brand-3" | "brand-4" | "brand-5"
+export type MetricTone = "brand" | "brand-2" | "brand-3" | "brand-4" | "brand-5" | "brand-6"
 
 export type MetricVM = {
   id: MetricId
