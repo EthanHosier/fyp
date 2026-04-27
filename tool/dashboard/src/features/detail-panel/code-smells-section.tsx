@@ -40,12 +40,12 @@ export function CodeSmellsSection({
 
   // News first (so the user lands on what just changed), then carried,
   // then resolved trailing — they're historical and dimmed inline.
-  // Within each group, sort by file then rule alphabetically so
-  // related smells cluster together.
+  // Within each group, sort by file alphabetically then line number so
+  // smells appear in source order within each file.
   const allRows: Row[] = [
-    ...sortByFileThenRule(added).map((vm) => ({ vm, state: "new" as CodeSmellState })),
-    ...sortByFileThenRule(carried).map((vm) => ({ vm, state: "carried" as CodeSmellState })),
-    ...sortByFileThenRule(resolved).map((vm) => ({ vm, state: "resolved" as CodeSmellState })),
+    ...sortByFileThenLine(added).map((vm) => ({ vm, state: "new" as CodeSmellState })),
+    ...sortByFileThenLine(carried).map((vm) => ({ vm, state: "carried" as CodeSmellState })),
+    ...sortByFileThenLine(resolved).map((vm) => ({ vm, state: "resolved" as CodeSmellState })),
   ]
 
   const canFilter = touchedFiles.length > 0
@@ -124,11 +124,11 @@ function isTouched(smellFile: string, touched: string[]): boolean {
   return false
 }
 
-function sortByFileThenRule(items: CodeSmellVM[]): CodeSmellVM[] {
+function sortByFileThenLine(items: CodeSmellVM[]): CodeSmellVM[] {
   return [...items].sort((a, b) => {
     const f = a.file.localeCompare(b.file)
     if (f !== 0) return f
-    return a.rule.localeCompare(b.rule)
+    return a.beginLine - b.beginLine
   })
 }
 
