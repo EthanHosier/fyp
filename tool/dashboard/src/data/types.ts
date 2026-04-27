@@ -68,7 +68,13 @@ export type CheckpointVM = {
 }
 
 export type ProcessScoreContribution = {
-  id: "cleanliness" | "broken" | "smells" | "skipTests" | "manualIde"
+  id:
+    | "cleanliness"
+    | "degradation"
+    | "broken"
+    | "smells"
+    | "skipTests"
+    | "manualIde"
   label: string
   /** Signed; sums (with `baseline`) to `total` before clamping. */
   points: number

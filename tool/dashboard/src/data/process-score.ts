@@ -28,7 +28,7 @@
  *
  *  4. Bounded (rate-based) penalties with asymmetric Laplace smoothing.
  *     All penalties are fractions in [0, 1] so weights map directly to
- *     point costs ("worst-case manual-IDE costs 8 points"). The user's
+ *     point costs ("worst-case manual-IDE costs 11 points"). The user's
  *     "don't penalise thinking" rule means long thoughtful sessions
  *     shouldn't accumulate penalties just for being long; rates decouple
  *     penalty magnitude from session length. Laplace `(bad+1)/(total+2)`
@@ -44,7 +44,20 @@
  *     on the cumulative ledger from when it was `added`; adding a carry
  *     drag would double-count.
  *
- *  7. No churn term. Bigger refactorings shouldn't be inherently worse
+ *  7. Intermediate degradation — running-peak dip integral. Cleanliness
+ *     gain is point-in-time (clean(t) − clean(0)) so a trajectory that
+ *     dips and then recovers to baseline scores identically to one that
+ *     stayed clean — the score forgets the dip. The intermediate-
+ *     degradation term remembers it: track the running max of
+ *     cleanliness, sum `max(0, peak − clean(i))` across the prefix, and
+ *     normalise by checkpoint count to keep the term in [0, 1].
+ *     Penalises both the depth of the dip and how long the trajectory
+ *     stayed below its prior best. Picked running-peak over endpoint-
+ *     floor because the latter lets a clever path hide a dip by ending
+ *     where it started; running-peak captures "you got the code clean
+ *     once, you don't get to forget that you broke it."
+ *
+ *  8. No churn term. Bigger refactorings shouldn't be inherently worse
  *     than smaller ones.
  */
 
@@ -58,15 +71,25 @@ import type {
   RefactoringStepVM,
 } from "./types"
 
-// Top-level term weights. Sum doesn't have to be 100 — the score is
-// 50 + gain·35 - Σ penalty·weight, then clamped to [0, 100]. Worst-case
-// total penalty is 53, so bottoming out at 0 requires both maximum
-// damage AND zero gain — intentional.
-const W_GAIN = 35
-const W_BROKEN = 20
-const W_SMELL = 15
-const W_SKIP_TESTS = 10
-const W_MANUAL_IDE = 8
+// Top-level term weights. The score is `50 + gain·W_GAIN - Σ penalty·W`,
+// clamped to [0, 100]. Weights chosen so a flawless trajectory with
+// maximum cleanliness gain reaches exactly 100 (`BASELINE + W_GAIN`),
+// and a maximally damaging one bottoms out below 0 (clamped). Internal
+// proportions follow the original 35 / 20 / 15 / 15 / 10 / 8 design,
+// scaled by 50/35 ≈ 1.43 and rounded — the score's meaning is
+// unchanged, the scale just spans the full 0..100 range now.
+//
+// Worst-case unclamped: 50 - 95 = -45, so genuinely bad sessions still
+// hit the 0 floor; clamping is a safety net, not a routine event.
+const W_GAIN = 50
+const W_BROKEN = 28
+// Same magnitude as the smells weight: both are "you let things
+// deteriorate" penalties. Lighter than broken-checkpoints (more acute)
+// and the gain term (which still dominates net improvement).
+const W_DEGRADATION = 21
+const W_SMELL = 21
+const W_SKIP_TESTS = 14
+const W_MANUAL_IDE = 11
 
 const BASELINE = 50
 
@@ -105,6 +128,13 @@ export function computeProcessScores(
   let testsSkippedCount = 0
   let ideRelevantCount = 0
   let manualWhenIdeCount = 0
+  // Running cleanliness peak + the cumulative dip-from-peak integral.
+  // `peakCleanliness` is the highest cleanliness scalar seen so far;
+  // `dipIntegral` accumulates `max(0, peak − clean(i))` per checkpoint,
+  // averaged at read time to stay in [0, 1].
+  let peakCleanliness = cleanliness0 ?? 0
+  let dipIntegral = 0
+  let dipObservations = 0
 
   const out: ProcessScoreResult[] = []
 
@@ -139,6 +169,18 @@ export function computeProcessScores(
     const cleanT = cleanlinessSeries[t]?.scalar ?? null
     const cleanlinessGain =
       cleanT === null || cleanliness0 === null ? 0 : cleanT - cleanliness0
+
+    // Running-peak dip: bump the peak if cleanliness is at a new high,
+    // and add the gap (peak − clean) to the running integral. Skips
+    // checkpoints with null cleanliness (no signal yet) so their
+    // observation count doesn't inflate the average toward 0.
+    if (cleanT !== null) {
+      if (cleanT > peakCleanliness) peakCleanliness = cleanT
+      dipIntegral += Math.max(0, peakCleanliness - cleanT)
+      dipObservations += 1
+    }
+    const degradationFrac =
+      dipObservations === 0 ? 0 : dipIntegral / dipObservations
 
     // Penalty fractions, all in [0, 1]. Smoothing kicks in only once
     // there's at least one step / smell observed; before that the
@@ -176,6 +218,9 @@ export function computeProcessScores(
       manualFrac,
       manualWhenIdeCount,
       ideRelevantCount,
+      degradationFrac,
+      peakCleanliness,
+      cleanT,
     })
 
     out.push({ score: breakdown.total, breakdown })
@@ -210,10 +255,14 @@ function buildBreakdown(args: {
   manualFrac: number
   manualWhenIdeCount: number
   ideRelevantCount: number
+  degradationFrac: number
+  peakCleanliness: number
+  cleanT: number | null
 }): ProcessScoreBreakdown {
   const cleanlinessPoints = W_GAIN * args.cleanlinessGain
   const brokenPoints = -W_BROKEN * args.brokenFrac
   const smellPoints = -W_SMELL * args.netSmell
+  const degradationPoints = -W_DEGRADATION * args.degradationFrac
   const skipPoints = -W_SKIP_TESTS * args.skipFrac
   const manualPoints = -W_MANUAL_IDE * args.manualFrac
 
@@ -223,6 +272,16 @@ function buildBreakdown(args: {
       label: "Cleanliness gain",
       points: cleanlinessPoints,
       detail: formatGainDetail(args.cleanlinessGain),
+    },
+    {
+      id: "degradation",
+      label: "Intermediate degradation",
+      points: degradationPoints,
+      detail: formatDegradationDetail(
+        args.degradationFrac,
+        args.peakCleanliness,
+        args.cleanT,
+      ),
     },
     {
       id: "broken",
@@ -270,6 +329,7 @@ function buildBreakdown(args: {
     cleanlinessPoints +
     brokenPoints +
     smellPoints +
+    degradationPoints +
     skipPoints +
     manualPoints
   const clampedValue = Math.max(0, Math.min(100, unclamped))
@@ -285,6 +345,17 @@ function buildBreakdown(args: {
 
 function pct(x: number): string {
   return `${Math.round(x * 100)}%`
+}
+
+function formatDegradationDetail(
+  frac: number,
+  peak: number,
+  cleanT: number | null,
+): string {
+  if (frac === 0) return "no dip below running peak"
+  const gap =
+    cleanT === null ? 0 : Math.max(0, peak - cleanT)
+  return `avg gap ${frac.toFixed(2)} below running peak ${peak.toFixed(2)} (currently ${gap.toFixed(2)} below)`
 }
 
 function formatGainDetail(gain: number): string {
