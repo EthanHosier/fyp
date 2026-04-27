@@ -1,5 +1,3 @@
-import { AlertTriangleIcon, CheckIcon } from "lucide-react"
-
 import { PitfallCallout } from "@/components/pitfall-callout"
 import type { CodeSmellsVM, CodeSmellVM } from "@/data/types"
 
@@ -22,7 +20,6 @@ export function SmellSignals({ smells }: { smells: CodeSmellsVM }) {
       {added > 0 ? (
         <PitfallCallout
           tone="warn"
-          icon={<AlertTriangleIcon className="size-4" strokeWidth={2} />}
           title={`You introduced ${added} new code smell${added === 1 ? "" : "s"}`}
           description={`You introduced ${describeByFile(smells.added)}. See the Code Smells section below.`}
         />
@@ -30,7 +27,6 @@ export function SmellSignals({ smells }: { smells: CodeSmellsVM }) {
       {resolved > 0 ? (
         <PitfallCallout
           tone="good"
-          icon={<CheckIcon className="size-2.5" strokeWidth={2.5} />}
           title={`You resolved ${resolved} code smell${resolved === 1 ? "" : "s"}`}
           description={`You resolved ${describeByFile(smells.resolved)}. See the Code Smells section below.`}
         />
