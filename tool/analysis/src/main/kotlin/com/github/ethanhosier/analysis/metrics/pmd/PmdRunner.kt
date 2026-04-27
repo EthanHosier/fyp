@@ -96,11 +96,17 @@ class PmdRunner(
 
     /**
      * Reads `[beginLine - SNIPPET_CONTEXT_LINES .. endLine + SNIPPET_CONTEXT_LINES]`
-     * from the worktree file, clamped to the file's bounds. Matches the
-     * default unified-diff context width used by [com.github.ethanhosier.analysis.reconstruct.GitRunner.diffPatch]
-     * so snippets line up visually with diff hunks elsewhere in the report.
-     * Returns null when the file is missing/unreadable or the line range is
-     * outside the file — same posture as PMD processing errors.
+     * from the worktree file (clamped to file bounds) and wraps it as a
+     * self-contained mini unified-diff string: one file header, one hunk
+     * with every body line marked as context (` ` prefix), absolute line
+     * numbers in the `@@` header. This is *not* a real diff — the format
+     * is reused so the dashboard's `@pierre/diffs` renderer can display
+     * the snippet with Shiki syntax highlighting and a correctly numbered
+     * gutter. Context width matches [com.github.ethanhosier.analysis.reconstruct.GitRunner.diffPatch]'s
+     * default so smell snippets and diff hunks align visually.
+     *
+     * Returns null when the file is missing/unreadable or the requested
+     * range is outside the file — same posture as PMD processing errors.
      */
     private fun loadSnippet(
         root: Path,
@@ -112,10 +118,20 @@ class PmdRunner(
         val from = (beginLine - SNIPPET_CONTEXT_LINES - 1).coerceAtLeast(0)
         val to = (endLine + SNIPPET_CONTEXT_LINES).coerceAtMost(lines.size)
         if (from >= to) return@runCatching null
-        PmdViolationSnippet(
-            contextStartLine = from + 1,
-            code = lines.subList(from, to).joinToString("\n"),
-        )
+        val startLine = from + 1
+        val count = to - from
+        val body = lines.subList(from, to).joinToString("\n") { " $it" }
+        // Trailing newline matches `git diff` output and keeps the
+        // dashboard's parser from warning about an unterminated last line.
+        val patch = buildString {
+            append("diff --git a/").append(relPath).append(" b/").append(relPath).append('\n')
+            append("--- a/").append(relPath).append('\n')
+            append("+++ b/").append(relPath).append('\n')
+            append("@@ -").append(startLine).append(',').append(count)
+                .append(" +").append(startLine).append(',').append(count).append(" @@\n")
+            append(body).append('\n')
+        }
+        PmdViolationSnippet(patch = patch)
     }.getOrNull()
 
     private fun relativize(absPath: String, rootStr: String): String {

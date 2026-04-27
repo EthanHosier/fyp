@@ -80,17 +80,20 @@ data class PmdViolation(
 )
 
 /**
- * Source excerpt around a violation: the violation's line range plus a few
- * lines of surrounding context, mirroring `git diff -U3` so the UI can render
- * snippets the same way it renders diff hunks. Null when the file can't be
- * read (processing errors, vanished file, etc.).
+ * Source excerpt around a violation, shaped as a self-contained mini
+ * unified-diff string: one file, one hunk, every body line a context
+ * line (` ` prefix), absolute line numbers in the `@@` header. There is
+ * no actual diff being shown — the format is reused so the dashboard
+ * can hand the string straight to its existing `@pierre/diffs` renderer
+ * (Shiki syntax highlighting + line-number gutter for free) without
+ * having to ship full file contents in the report.
+ *
+ * Null when the source can't be read (processing errors, vanished
+ * file, etc.).
  */
 @Serializable
 data class PmdViolationSnippet(
-    // 1-based line of the first line in `code`.
-    val contextStartLine: Int,
-    // Raw lines joined with "\n", no trailing newline.
-    val code: String,
+    val patch: String,
 )
 
 @Serializable
