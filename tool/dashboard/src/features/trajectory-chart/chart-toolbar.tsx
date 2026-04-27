@@ -1,3 +1,5 @@
+import { ArrowDownIcon, ArrowUpIcon } from "lucide-react"
+
 import { Text } from "@/components/text"
 import { METRIC_DESCRIPTORS } from "@/data/metric-descriptors"
 import type { DashboardViewModel, MetricVM } from "@/data/types"
@@ -22,6 +24,8 @@ export function ChartToolbar({
   const last = values[values.length - 1]
   const desc = METRIC_DESCRIPTORS[primary.id]
 
+  const Arrow = primary.better === "higher" ? ArrowUpIcon : ArrowDownIcon
+
   return (
     <div className="px-1 pt-1 pb-[10px]">
       <Text as="div" variant="eyebrow" tone="fg-4">
@@ -35,14 +39,22 @@ export function ChartToolbar({
           </Text>
         ) : null}
       </Text>
-      <div className="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-        <Text as="span" variant="body" tone="fg-3">
-          {desc.summary}
-        </Text>
-        <MetricExplainer label={primary.label}>
-          <MetricExplainer.Formula>{desc.formula}</MetricExplainer.Formula>
-          <MetricExplainer.Description>{desc.detail}</MetricExplainer.Description>
-        </MetricExplainer>
+      <div className="mt-1 flex flex-wrap items-baseline gap-3">
+        <div className="flex flex-1 flex-wrap items-baseline gap-x-2 gap-y-0.5">
+          <Text as="span" variant="body" tone="fg-3">
+            {desc.summary}
+          </Text>
+          <MetricExplainer label={primary.label}>
+            <MetricExplainer.Formula>{desc.formula}</MetricExplainer.Formula>
+            <MetricExplainer.Description>{desc.detail}</MetricExplainer.Description>
+          </MetricExplainer>
+        </div>
+        <span className="text-fg-3 inline-flex shrink-0 items-center gap-1 self-end">
+          <Arrow className="size-4" strokeWidth={2.5} />
+          <Text as="span" variant="body" tone="inherit">
+            {primary.better === "higher" ? "higher is better" : "lower is better"}
+          </Text>
+        </span>
       </div>
     </div>
   )

@@ -33,7 +33,7 @@ function MetricExplainerRoot({
       <HoverCardTrigger asChild>
         <button
           type="button"
-          className="text-fg-3 hover:text-fg cursor-help font-mono text-[11px] underline decoration-dotted underline-offset-4"
+          className="text-fg-3 hover:text-fg cursor-help font-sans text-[13px] underline decoration-dotted underline-offset-4"
         >
           {triggerLabel}
         </button>
