@@ -98,3 +98,24 @@ data class PmdProcessingError(
     val file: String,
     val message: String,
 )
+
+/**
+ * A violation that was reported at the *previous* checkpoint but no longer
+ * fires at the current one. Carried on [com.github.ethanhosier.analysis.metrics.model.PmdTracking]
+ * (a transition-derived sidecar on `CheckpointReport`), not on the per-SHA
+ * `PmdResult`, because resolution is inherently a cross-checkpoint
+ * observation. `firstSeenAtSha` is the earliest SHA at which this logical
+ * violation was first observed before it disappeared.
+ */
+@Serializable
+data class ResolvedPmdViolation(
+    val rule: String,
+    val ruleSet: String,
+    val priority: Int,
+    val prevFile: String,
+    val prevBeginLine: Int,
+    val prevEndLine: Int,
+    val message: String,
+    val snippet: PmdViolationSnippet?,
+    val firstSeenAtSha: String,
+)

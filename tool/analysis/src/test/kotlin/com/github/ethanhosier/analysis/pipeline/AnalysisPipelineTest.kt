@@ -6,6 +6,7 @@ import com.github.ethanhosier.analysis.metrics.ck.CkResult
 import com.github.ethanhosier.analysis.metrics.gradlebuild.BuildResult
 import com.github.ethanhosier.analysis.metrics.model.CheckpointMetrics
 import com.github.ethanhosier.analysis.metrics.pmd.PmdResult
+import com.github.ethanhosier.analysis.metrics.pmd.PmdTrackingRunner
 import com.github.ethanhosier.analysis.metrics.tests.TestResult
 import com.github.ethanhosier.analysis.diffs.DiffsRunner
 import com.github.ethanhosier.analysis.miner.RefactoringMinerRunner
@@ -62,6 +63,7 @@ class AnalysisPipelineTest {
             miner = emptyMinerSummary(),
             alternative = emptyAlternativeSummary(),
             diffs = emptyDiffsSummary(),
+            pmdTracking = emptyPmdTrackingSummary(),
             parallelism = 4,
             metricsDurationMs = 12_345,
         )
@@ -108,6 +110,7 @@ class AnalysisPipelineTest {
             miner = emptyMinerSummary(),
             alternative = emptyAlternativeSummary(),
             diffs = emptyDiffsSummary(),
+            pmdTracking = emptyPmdTrackingSummary(),
             parallelism = 1,
             metricsDurationMs = 0,
         )
@@ -131,6 +134,11 @@ class AnalysisPipelineTest {
     private fun emptyDiffsSummary() = DiffsRunner.Summary(
         checkpointPatches = emptyMap(),
         refactoringPatches = emptyMap(),
+    )
+
+    private fun emptyPmdTrackingSummary() = PmdTrackingRunner.Summary(
+        trackingBySha = emptyMap(),
+        alternativeTrackingBySha = emptyMap(),
     )
 
     private fun metadata(id: String) = SessionMetadata(
