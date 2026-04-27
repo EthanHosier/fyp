@@ -1,9 +1,7 @@
 import type {
   CheckpointVM,
   DashboardViewModel,
-  IntervalVM,
   MetricVM,
-  StatusTone,
 } from "@/data/types"
 import type { ChartScales } from "@/features/trajectory-chart/use-chart-scales"
 import { TONE_TEXT } from "@/lib/metric-tone"
@@ -12,9 +10,9 @@ import { cn } from "@/lib/utils"
 
 /**
  * The line layer:
- *   1. Primary polyline — solid when intervals are off; when on, the
- *      line goes transparent and we draw one coloured segment per
- *      interval (good/bad/unknown) between consecutive checkpoints.
+ *   1. Primary polyline — always painted in the metric's own tone.
+ *      Build/test status is communicated by the rails below the chart,
+ *      so the line itself stays focused on the metric trajectory.
  *   2. Each secondary metric as a dashed line in its own tone, using
  *      an independent Y scale so small-range metrics still read
  *      meaningfully against the primary.
@@ -23,13 +21,11 @@ export function ChartLines({
   vm,
   primary,
   secondaries,
-  showIntervals,
   scales,
 }: {
   vm: DashboardViewModel
   primary: MetricVM
   secondaries: MetricVM[]
-  showIntervals: boolean
   scales: ChartScales
 }) {
   const { xs, ys, innerH } = scales
@@ -37,14 +33,6 @@ export function ChartLines({
 
   return (
     <>
-      {showIntervals ? (
-        <g>
-          {vm.intervals.map((iv) => (
-            <IntervalSegment key={iv.index} iv={iv} vm={vm} primary={primary} scales={scales} />
-          ))}
-        </g>
-      ) : null}
-
       {primaryPoints.length >= 2 ? (
         <g className={cn(TONE_TEXT[primary.tone])}>
           <path
@@ -52,7 +40,7 @@ export function ChartLines({
             fill="none"
             stroke="currentColor"
             strokeWidth={1.6}
-            strokeOpacity={showIntervals ? 0 : 0.9}
+            strokeOpacity={0.9}
           />
         </g>
       ) : null}
@@ -61,37 +49,6 @@ export function ChartLines({
         <SecondaryLine key={m.id} vm={vm} metric={m} scales={scales} innerH={innerH} />
       ))}
     </>
-  )
-}
-
-function IntervalSegment({
-  iv,
-  vm,
-  primary,
-  scales,
-}: {
-  iv: IntervalVM
-  vm: DashboardViewModel
-  primary: MetricVM
-  scales: ChartScales
-}) {
-  const from = vm.checkpoints[iv.from]
-  const to = vm.checkpoints[iv.to]
-  const v0 = from.values[primary.id]
-  const v1 = to.values[primary.id]
-  if (typeof v0 !== "number" || typeof v1 !== "number") return null
-  return (
-    <line
-      x1={scales.xs(from.tMs)}
-      y1={scales.ys(v0)}
-      x2={scales.xs(to.tMs)}
-      y2={scales.ys(v1)}
-      className={cn(STATUS_STROKE[iv.status], "cursor-pointer")}
-      stroke="currentColor"
-      strokeOpacity={iv.status === "pass" ? 0.55 : 0.9}
-      strokeWidth={3}
-      strokeLinecap="round"
-    />
   )
 }
 
@@ -152,10 +109,4 @@ function checkpointPoints(
     .map((c) => ({ t: c.tMs, v: c.values[metric.id] }))
     .filter((p): p is { t: number; v: number } => typeof p.v === "number")
     .map((p) => ({ x: xs(p.t), y: ys(p.v) }))
-}
-
-const STATUS_STROKE: Record<StatusTone, string> = {
-  pass: "text-good",
-  fail: "text-bad",
-  unknown: "text-unknown",
 }
