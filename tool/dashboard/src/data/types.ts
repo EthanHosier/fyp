@@ -1,8 +1,9 @@
 export type MetricId =
-  | "complexity"
+  | "cohesion"
   | "coupling"
   | "duplication"
   | "readability"
+  | "cognitive"
 
 export type StatusTone = "pass" | "fail" | "unknown"
 

@@ -3,12 +3,20 @@
  * consume a single number per (checkpoint, metric). Each metric below
  * collapses a richer underlying structure:
  *
- *   complexity  · wmc    p90 of `ck.perClass[].wmc`   (tail — surfaces hotspots)
- *   coupling    · cbo    p90 of `ck.perClass[].cbo`   (tail)
+ *   cognitive   · total  sum of `pmd.methodMetrics[].cognitive` — Sonar's
+ *                         cognitive complexity is additive by design, so
+ *                         the project-wide sum is the canonical roll-up.
+ *                         Replaces WMC / mean-cyclo, which both pessimise
+ *                         Extract Method (each new method adds base 1).
+ *   cohesion    · tcc    mean of `ck.perClass[].tcc` over classes where
+ *                         TCC is defined (≥2 eligible method pairs).
+ *                         Higher = better. Distinct axis from cognitive
+ *                         and coupling: "are responsibilities tangled?"
  *   duplication · %      `cpd.duplicatedLinesShare`   × 100
  *   readability · chars  `readability.summary.avgLineLength` — placeholder
  *                         proxy; real composite (comments, identifiers,
  *                         indentation…) is deferred
+ *   coupling    · cbo    p90 of `ck.perClass[].cbo`   (tail)
  *
  * Churn is intentionally not a chartable metric — "fewer lines" isn't a
  * goal, it's only meaningful relative to an alternative path. We still
@@ -46,10 +54,11 @@ import type {
 } from "./types"
 
 const METRICS: MetricVM[] = [
-  { id: "complexity",  label: "Complexity",  unit: "wmc",   better: "lower",  group: "code", tone: "brand"   },
-  { id: "coupling",    label: "Coupling",    unit: "cbo",   better: "lower",  group: "code", tone: "brand-2" },
-  { id: "duplication", label: "Duplication", unit: "%",     better: "lower",  group: "code", tone: "brand-3" },
-  { id: "readability", label: "Readability", unit: "chars", better: "lower",  group: "code", tone: "brand-4" },
+  { id: "cognitive",   label: "Cognitive Complexity", unit: "total", better: "lower",  group: "code", tone: "brand"   },
+  { id: "readability", label: "Readability",          unit: "chars", better: "lower",  group: "code", tone: "brand-2" },
+  { id: "duplication", label: "Duplication",          unit: "%",     better: "lower",  group: "code", tone: "brand-3" },
+  { id: "coupling",    label: "Coupling",             unit: "cbo",   better: "lower",  group: "code", tone: "brand-4" },
+  { id: "cohesion",    label: "Cohesion",             unit: "tcc",   better: "higher", group: "code", tone: "brand-5" },
 ]
 
 function round1(n: number): number {
@@ -64,17 +73,32 @@ function percentile(xs: number[], p: number): number {
   return sorted[idx]
 }
 
+function mean(xs: number[]): number {
+  if (xs.length === 0) return 0
+  return xs.reduce((s, x) => s + x, 0) / xs.length
+}
+
 function checkpointValues(c: CheckpointReport): Partial<Record<MetricId, number>> {
   const perClass = c.metrics.ck.perClass
   const values: Partial<Record<MetricId, number>> = {
-    complexity: round1(percentile(perClass.map((p: CkClassMetrics) => p.wmc), 0.9)),
     coupling: round1(percentile(perClass.map((p: CkClassMetrics) => p.cbo), 0.9)),
+  }
+  // CK returns null on classes where TCC is undefined (e.g. < 2 eligible
+  // method pairs). Drop those before averaging — counting them as 0
+  // would falsely report "no cohesion" for trivial classes.
+  const tccs = perClass.map((p) => p.tcc).filter((t): t is number => t != null)
+  if (tccs.length > 0) {
+    values.cohesion = Math.round(mean(tccs) * 100) / 100
   }
   if (c.metrics.cpd) {
     values.duplication = round1(c.metrics.cpd.duplicatedLinesShare * 100)
   }
   if (c.metrics.readability?.summary) {
     values.readability = round1(c.metrics.readability.summary.avgLineLength)
+  }
+  const methodMetrics = c.metrics.pmd?.methodMetrics
+  if (methodMetrics) {
+    values.cognitive = methodMetrics.reduce((s, m) => s + m.cognitive, 0)
   }
   return values
 }
