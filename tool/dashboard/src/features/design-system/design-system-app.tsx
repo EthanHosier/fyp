@@ -25,6 +25,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
@@ -633,6 +634,38 @@ export function DesignSystemApp() {
               <span className="text-fg-2">right</span>
             </div>
           </VariantCell>
+        </DesignSystemSection>
+
+        <DesignSystemSection title="HoverCard · surfaces" layout="showcase">
+          {TOOLTIP_SURFACES.map((surface) => (
+            <VariantCell key={surface} label={surface}>
+              <HoverCard openDelay={120} closeDelay={80}>
+                <HoverCardTrigger asChild>
+                  <button
+                    type="button"
+                    className="text-fg-2 hover:text-fg cursor-help font-mono text-xs underline decoration-dotted underline-offset-4"
+                  >
+                    How it&apos;s calculated
+                  </button>
+                </HoverCardTrigger>
+                <HoverCardContent surface={surface} className="w-72">
+                  <Text as="div" variant="eyebrow" tone="fg-4">
+                    Cognitive Complexity
+                  </Text>
+                  <Text as="p" variant="bodySm" tone="fg-2" className="mt-1.5">
+                    Sum of PMD&apos;s per-method cognitive complexity over every
+                    method in the project. Penalises nesting and breaks of
+                    linear flow rather than mere branch count.
+                  </Text>
+                  <div className="border-border bg-bg-2 mt-2 rounded-sm border px-2 py-1.5">
+                    <Text as="code" variant="mono" tone="fg">
+                      Σ (cognitive complexity per method)
+                    </Text>
+                  </div>
+                </HoverCardContent>
+              </HoverCard>
+            </VariantCell>
+          ))}
         </DesignSystemSection>
 
         <DesignSystemSection title="Tooltip · surfaces" layout="showcase">
