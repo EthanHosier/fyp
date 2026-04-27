@@ -13,37 +13,71 @@
  * expands one.
  */
 
+import { useState } from "react"
+
 import { CodeSmellCard, type CodeSmellState } from "@/components/code-smell-card"
 import { Text } from "@/components/text"
 import type { CodeSmellVM, CodeSmellsVM } from "@/data/types"
+import { cn } from "@/lib/utils"
 
 type Row = { vm: CodeSmellVM; state: CodeSmellState }
 
 export function CodeSmellsSection({
   smells,
   checkpointSha,
+  touchedFiles,
 }: {
   smells: CodeSmellsVM
   checkpointSha: string
+  /** Files touched by this checkpoint's patch (repo-relative paths from
+   * git's diff output). Used to filter the default view to "smells in
+   * files this checkpoint actually touched". Empty list disables the
+   * filter (e.g. seed checkpoint with no diff). */
+  touchedFiles: string[]
 }) {
-  const { added, carried, resolved, totalNow } = smells
+  const { added, carried, resolved } = smells
+  const [showAll, setShowAll] = useState(false)
 
   // News first (so the user lands on what just changed), then carried,
   // then resolved trailing — they're historical and dimmed inline.
-  const rows: Row[] = [
-    ...added.map((vm) => ({ vm, state: "new" as CodeSmellState })),
-    ...carried.map((vm) => ({ vm, state: "carried" as CodeSmellState })),
-    ...resolved.map((vm) => ({ vm, state: "resolved" as CodeSmellState })),
+  // Within each group, sort by file then rule alphabetically so
+  // related smells cluster together.
+  const allRows: Row[] = [
+    ...sortByFileThenRule(added).map((vm) => ({ vm, state: "new" as CodeSmellState })),
+    ...sortByFileThenRule(carried).map((vm) => ({ vm, state: "carried" as CodeSmellState })),
+    ...sortByFileThenRule(resolved).map((vm) => ({ vm, state: "resolved" as CodeSmellState })),
   ]
+
+  const canFilter = touchedFiles.length > 0
+  const touchedRows = canFilter
+    ? allRows.filter((r) => isTouched(r.vm.file, touchedFiles))
+    : allRows
+  const rows = canFilter && !showAll ? touchedRows : allRows
+  const hiddenCount = allRows.length - touchedRows.length
 
   return (
     <section className="flex flex-col gap-2">
-      <Text as="h3" variant="eyebrow" tone="fg-4">
-        Code smells ({totalNow})
-      </Text>
+      <div className="flex items-center justify-between gap-2">
+        <Text as="h3" variant="eyebrow" tone="fg-4">
+          Code smells
+        </Text>
+        {canFilter && hiddenCount > 0 ? (
+          <button
+            type="button"
+            onClick={() => setShowAll((v) => !v)}
+            className={cn(
+              "text-fg-4 hover:text-fg-2 text-[10px] font-medium uppercase tracking-wider",
+            )}
+          >
+            {showAll ? `Touched only (${touchedRows.length})` : `Show all (+${hiddenCount})`}
+          </button>
+        ) : null}
+      </div>
       {rows.length === 0 ? (
         <Text variant="bodySm" tone="fg-4" className="italic">
-          No smells flagged at this checkpoint.
+          {canFilter && !showAll && allRows.length > 0
+            ? "No smells in files touched by this checkpoint."
+            : "No smells flagged at this checkpoint."}
         </Text>
       ) : (
         // Grid with `minmax(0, 1fr)` instead of a flex column — same
@@ -76,6 +110,26 @@ export function CodeSmellsSection({
       )}
     </section>
   )
+}
+
+// Smell paths come from PMD (often absolute), patch paths come from git
+// (repo-relative). Match either direction with a path-separator boundary
+// so "Foo.java" doesn't accidentally match "MyFoo.java".
+function isTouched(smellFile: string, touched: string[]): boolean {
+  for (const t of touched) {
+    if (smellFile === t) return true
+    if (smellFile.endsWith("/" + t)) return true
+    if (t.endsWith("/" + smellFile)) return true
+  }
+  return false
+}
+
+function sortByFileThenRule(items: CodeSmellVM[]): CodeSmellVM[] {
+  return [...items].sort((a, b) => {
+    const f = a.file.localeCompare(b.file)
+    if (f !== 0) return f
+    return a.rule.localeCompare(b.rule)
+  })
 }
 
 function cardKey(

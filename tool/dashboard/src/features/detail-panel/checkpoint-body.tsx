@@ -1,3 +1,4 @@
+import { parsePatchFiles } from "@pierre/diffs"
 import type { ReactNode } from "react"
 
 import type { Annotation } from "@/components/annotation-item"
@@ -35,6 +36,11 @@ export function CheckpointBody({
   const annotations = annotationsAt(vm, checkpoint.index)
   const effectivePatch = patch ?? checkpoint.patch
   const effectiveKey = patchCacheKey ?? `checkpoint-${checkpoint.sha}`
+  const touchedFiles = effectivePatch
+    ? (parsePatchFiles(effectivePatch, effectiveKey)[0]?.files ?? []).map(
+        (f) => f.name,
+      )
+    : []
 
   return (
     <div className="flex flex-col gap-4">
@@ -94,6 +100,7 @@ export function CheckpointBody({
       <CodeSmellsSection
         smells={checkpoint.smells}
         checkpointSha={checkpoint.sha}
+        touchedFiles={touchedFiles}
       />
     </div>
   )

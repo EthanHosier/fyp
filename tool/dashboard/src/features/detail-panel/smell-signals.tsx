@@ -23,7 +23,7 @@ export function SmellSignals({ smells }: { smells: CodeSmellsVM }) {
         <PitfallCallout
           tone="warn"
           icon={<AlertTriangleIcon className="size-4" strokeWidth={2} />}
-          title={`${added} new code smell${added === 1 ? "" : "s"} introduced`}
+          title={`You introduced ${added} new code smell${added === 1 ? "" : "s"}`}
           description={`This checkpoint introduced ${describeByFile(smells.added)}. See the Code Smells section below.`}
         />
       ) : null}
@@ -31,7 +31,7 @@ export function SmellSignals({ smells }: { smells: CodeSmellsVM }) {
         <PitfallCallout
           tone="good"
           icon={<CheckIcon className="size-2.5" strokeWidth={2.5} />}
-          title={`${resolved} code smell${resolved === 1 ? "" : "s"} resolved`}
+          title={`You resolved ${resolved} code smell${resolved === 1 ? "" : "s"}`}
           description={`This checkpoint cleared ${describeByFile(smells.resolved)}. See the Code Smells section below.`}
         />
       ) : null}
