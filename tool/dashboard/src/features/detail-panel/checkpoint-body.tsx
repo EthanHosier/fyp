@@ -1,3 +1,4 @@
+import { parsePatchFiles } from "@pierre/diffs"
 import type { ReactNode } from "react"
 
 import type { Annotation } from "@/components/annotation-item"
@@ -6,7 +7,9 @@ import { MetricTile } from "@/components/metric-tile"
 import { StatusRow } from "@/components/status-row"
 import { Text } from "@/components/text"
 import type { CheckpointVM, DashboardViewModel, MetricId } from "@/data/types"
+import { CodeSmellsSection } from "@/features/detail-panel/code-smells-section"
 import { DiffSection } from "@/features/detail-panel/diff-section"
+import { SmellSignals } from "@/features/detail-panel/smell-signals"
 
 /**
  * Unified body for both checkpoint and refactoring selections. A
@@ -33,6 +36,11 @@ export function CheckpointBody({
   const annotations = annotationsAt(vm, checkpoint.index)
   const effectivePatch = patch ?? checkpoint.patch
   const effectiveKey = patchCacheKey ?? `checkpoint-${checkpoint.sha}`
+  const touchedFiles = effectivePatch
+    ? (parsePatchFiles(effectivePatch, effectiveKey)[0]?.files ?? []).map(
+        (f) => f.name,
+      )
+    : []
 
   return (
     <div className="flex flex-col gap-4">
@@ -68,7 +76,15 @@ export function CheckpointBody({
         <StatusRow build={checkpoint.build} tests={checkpoint.tests} />
       </section>
 
-      {pitfalls}
+      {pitfalls || hasSmellSignals(checkpoint) ? (
+        <section className="flex flex-col gap-2">
+          <Text as="h3" variant="eyebrow" tone="fg-4">
+            Process Signals
+          </Text>
+          {pitfalls}
+          <SmellSignals smells={checkpoint.smells} />
+        </section>
+      ) : null}
 
       {annotations.length > 0 ? (
         <AnnotationList annotations={annotations} />
@@ -80,8 +96,18 @@ export function CheckpointBody({
         cacheKey={effectiveKey}
         emptyMessage={patchEmptyMessage}
       />
+
+      <CodeSmellsSection
+        smells={checkpoint.smells}
+        checkpointSha={checkpoint.sha}
+        touchedFiles={touchedFiles}
+      />
     </div>
   )
+}
+
+function hasSmellSignals(checkpoint: CheckpointVM): boolean {
+  return checkpoint.smells.added.length > 0 || checkpoint.smells.resolved.length > 0
 }
 
 /**

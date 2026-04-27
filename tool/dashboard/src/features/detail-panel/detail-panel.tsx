@@ -8,7 +8,10 @@ import type { CheckpointVM, DashboardViewModel, StatusTone } from "@/data/types"
 import { AlternativeBody } from "@/features/detail-panel/alternative-body"
 import { CheckpointBody } from "@/features/detail-panel/checkpoint-body"
 import { IntervalBody } from "@/features/detail-panel/interval-body"
-import { RefactoringPitfalls } from "@/features/detail-panel/refactoring-pitfalls"
+import {
+  hasRefactoringPitfalls,
+  RefactoringPitfalls,
+} from "@/features/detail-panel/refactoring-pitfalls"
 import { StatusIntervalBody } from "@/features/detail-panel/status-interval-body"
 import { useDashboardStore } from "@/stores/dashboard-store"
 
@@ -49,7 +52,11 @@ export function DetailPanel({ vm }: { vm: DashboardViewModel }) {
       <CheckpointBody
         vm={vm}
         checkpoint={to}
-        pitfalls={<RefactoringPitfalls vm={vm} step={step} />}
+        pitfalls={
+          hasRefactoringPitfalls(step) ? (
+            <RefactoringPitfalls vm={vm} step={step} />
+          ) : undefined
+        }
         patch={step.patch}
         patchCacheKey={`refactoring-${step.index}`}
         patchEmptyMessage="No filtered diff for this refactoring."

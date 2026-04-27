@@ -10,7 +10,9 @@ import com.github.ethanhosier.analysis.metrics.model.AlternativeTrajectory
 import com.github.ethanhosier.analysis.metrics.model.AnalysisReport
 import com.github.ethanhosier.analysis.metrics.model.CheckpointReport
 import com.github.ethanhosier.analysis.metrics.model.EventSummary
+import com.github.ethanhosier.analysis.metrics.model.PmdTracking
 import com.github.ethanhosier.analysis.metrics.model.RunInfo
+import com.github.ethanhosier.analysis.metrics.pmd.PmdTrackingRunner
 import com.github.ethanhosier.analysis.miner.RefactoringMinerRunner
 import com.github.ethanhosier.analysis.model.ReconstructionResult
 import com.github.ethanhosier.analysis.model.Trace
@@ -118,6 +120,17 @@ class AnalysisPipeline(
         val diffsDurationMs = System.currentTimeMillis() - diffsStart
         log("diffs: ${diffs.checkpointPatches.size} checkpoint, ${diffs.refactoringPatches.size} refactoring, ${diffs.alternativePatches.size} alternative patch(es) in ${diffsDurationMs}ms")
 
+        val pmdTrackingStart = System.currentTimeMillis()
+        log("pmd-tracking: starting")
+        val altPairs = alternative.synthesised.map { it.fromSha to it.altSha }
+        val pmdTracking = PmdTrackingRunner(GitRunner(reconstruction.repoDir)).run(
+            orderedUserCheckpoints = metrics.checkpoints,
+            alternativePairs = altPairs,
+            alternativeCheckpoints = metrics.alternativeCheckpoints,
+        )
+        val pmdTrackingDurationMs = System.currentTimeMillis() - pmdTrackingStart
+        log("pmd-tracking: ${pmdTracking.trackingBySha.size} user, ${pmdTracking.alternativeTrackingBySha.size} alt in ${pmdTrackingDurationMs}ms")
+
         val report = buildAnalysisReport(
             trace = trace,
             reconstruction = reconstruction,
@@ -125,6 +138,7 @@ class AnalysisPipeline(
             miner = miner,
             alternative = alternative,
             diffs = diffs,
+            pmdTracking = pmdTracking,
             parallelism = parallelism,
             metricsDurationMs = metricsDurationMs,
         )
@@ -166,6 +180,7 @@ internal fun buildAnalysisReport(
     miner: RefactoringMinerRunner.Summary,
     alternative: AlternativeTrajectoryRunner.Summary,
     diffs: DiffsRunner.Summary,
+    pmdTracking: PmdTrackingRunner.Summary,
     parallelism: Int,
     metricsDurationMs: Long,
 ): AnalysisReport {
@@ -200,6 +215,7 @@ internal fun buildAnalysisReport(
             metrics = m,
             diff = metrics.diffBySha[m.sha] ?: DiffStats.ZERO,
             touchedMembers = membersBySha[m.sha]?.toList().orEmpty(),
+            pmdTracking = pmdTracking.trackingBySha[m.sha] ?: PmdTracking.EMPTY,
         )
     }
 
@@ -222,6 +238,7 @@ internal fun buildAnalysisReport(
                 metrics = altMetrics,
                 diff = metrics.diffBySha[synth.altSha] ?: DiffStats.ZERO,
                 touchedMembers = emptyList(),
+                pmdTracking = pmdTracking.alternativeTrackingBySha[synth.altSha] ?: PmdTracking.EMPTY,
             ),
         )
     }

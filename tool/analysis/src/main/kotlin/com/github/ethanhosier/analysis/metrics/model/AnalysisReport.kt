@@ -1,6 +1,7 @@
 package com.github.ethanhosier.analysis.metrics.model
 
 import com.github.ethanhosier.analysis.metrics.gitdiff.DiffStats
+import com.github.ethanhosier.analysis.metrics.pmd.ResolvedPmdViolation
 import com.github.ethanhosier.analysis.miner.model.RefactoringStep
 import com.github.ethanhosier.ideplugin.model.EventType
 import com.github.ethanhosier.ideplugin.model.SessionMetadata
@@ -230,7 +231,38 @@ data class CheckpointReport(
     // events attributed to this checkpoint — i.e. the transition from the
     // previous checkpoint.
     val touchedMembers: List<TouchedMember> = emptyList(),
+    // Cross-checkpoint enrichment of `metrics.pmd.violations`: which
+    // violation was first seen when, plus the prev-checkpoint violations
+    // that no longer fire here. Stitched in by the trajectory walk at
+    // report-assembly time, same lifecycle as `diff` and `touchedMembers`.
+    val pmdTracking: PmdTracking = PmdTracking.EMPTY,
 )
+
+/**
+ * Trajectory-derived tracking for the violations on a single checkpoint.
+ *
+ * `firstSeenAtSha` is aligned 1:1 with `metrics.pmd.violations`: index `i`
+ * holds the SHA of the earliest checkpoint at which `violations[i]` was first
+ * observed in the trajectory (as judged by [com.github.ethanhosier.analysis.metrics.pmd.PmdViolationTracker]'s
+ * line-mapping + `(file, rule)` keying). For the seed checkpoint every entry
+ * is the seed's own SHA.
+ *
+ * `resolvedSincePrev` lists the previous checkpoint's violations that no
+ * longer fire here. Empty on the seed and on any checkpoint that hasn't been
+ * through the tracking pass.
+ *
+ * Together these let consumers derive added / carried / resolved per
+ * checkpoint by index without re-running line mapping client-side.
+ */
+@Serializable
+data class PmdTracking(
+    val firstSeenAtSha: List<String> = emptyList(),
+    val resolvedSincePrev: List<ResolvedPmdViolation> = emptyList(),
+) {
+    companion object {
+        val EMPTY = PmdTracking()
+    }
+}
 
 @OptIn(ExperimentalSerializationApi::class)
 @Serializable

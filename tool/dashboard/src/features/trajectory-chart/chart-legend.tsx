@@ -1,4 +1,5 @@
 import { LegendSwatch } from "@/components/legend-swatch"
+import { ToneChip } from "@/components/tone-chip"
 import { Separator } from "@/components/ui/separator"
 import type { MetricVM } from "@/data/types"
 import { TONE_BG } from "@/lib/metric-tone"
@@ -42,6 +43,13 @@ export function ChartLegend({
           </LegendSwatch>
         </>
       ) : null}
+      <Separator orientation="vertical" className="h-3.5" />
+      <LegendSwatch label="process error">
+        <ToneChip tone="bad" size={12} />
+      </LegendSwatch>
+      <LegendSwatch label="process warning">
+        <ToneChip tone="warn" size={12} />
+      </LegendSwatch>
     </div>
   )
 }

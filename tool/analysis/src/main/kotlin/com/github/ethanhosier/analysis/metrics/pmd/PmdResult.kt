@@ -76,10 +76,49 @@ data class PmdViolation(
     val beginLine: Int,
     val endLine: Int,
     val message: String,
+    val snippet: PmdViolationSnippet? = null,
+)
+
+/**
+ * Source excerpt around a violation, shaped as a self-contained mini
+ * unified-diff string: one file, one hunk, every body line a context
+ * line (` ` prefix), absolute line numbers in the `@@` header. There is
+ * no actual diff being shown — the format is reused so the dashboard
+ * can hand the string straight to its existing `@pierre/diffs` renderer
+ * (Shiki syntax highlighting + line-number gutter for free) without
+ * having to ship full file contents in the report.
+ *
+ * Null when the source can't be read (processing errors, vanished
+ * file, etc.).
+ */
+@Serializable
+data class PmdViolationSnippet(
+    val patch: String,
 )
 
 @Serializable
 data class PmdProcessingError(
     val file: String,
     val message: String,
+)
+
+/**
+ * A violation that was reported at the *previous* checkpoint but no longer
+ * fires at the current one. Carried on [com.github.ethanhosier.analysis.metrics.model.PmdTracking]
+ * (a transition-derived sidecar on `CheckpointReport`), not on the per-SHA
+ * `PmdResult`, because resolution is inherently a cross-checkpoint
+ * observation. `firstSeenAtSha` is the earliest SHA at which this logical
+ * violation was first observed before it disappeared.
+ */
+@Serializable
+data class ResolvedPmdViolation(
+    val rule: String,
+    val ruleSet: String,
+    val priority: Int,
+    val prevFile: String,
+    val prevBeginLine: Int,
+    val prevEndLine: Int,
+    val message: String,
+    val snippet: PmdViolationSnippet?,
+    val firstSeenAtSha: String,
 )
