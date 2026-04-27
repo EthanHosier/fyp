@@ -9,7 +9,10 @@
  *   readability · chars  `readability.summary.avgLineLength` — placeholder
  *                         proxy; real composite (comments, identifiers,
  *                         indentation…) is deferred
- *   churn       · lines  `diff.totalChurn`            (added + deleted)
+ *
+ * Churn is intentionally not a chartable metric — "fewer lines" isn't a
+ * goal, it's only meaningful relative to an alternative path. We still
+ * expose `CheckpointVM.churn` / `IntervalVM.churn` for that comparison.
  *
  * p90 over mean: a single pathological class with wmc=120 is invisible
  * next to 50 classes at wmc=5; the 90th percentile makes it visible
@@ -47,7 +50,6 @@ const METRICS: MetricVM[] = [
   { id: "coupling",    label: "Coupling",    unit: "cbo",   better: "lower",  group: "code", tone: "brand-2" },
   { id: "duplication", label: "Duplication", unit: "%",     better: "lower",  group: "code", tone: "brand-3" },
   { id: "readability", label: "Readability", unit: "chars", better: "lower",  group: "code", tone: "brand-4" },
-  { id: "churn",       label: "Churn",       unit: "lines", better: "lower",  group: "code", tone: "brand-5" },
 ]
 
 function round1(n: number): number {
@@ -73,9 +75,6 @@ function checkpointValues(c: CheckpointReport): Partial<Record<MetricId, number>
   }
   if (c.metrics.readability?.summary) {
     values.readability = round1(c.metrics.readability.summary.avgLineLength)
-  }
-  if (c.diff) {
-    values.churn = c.diff.totalChurn
   }
   return values
 }

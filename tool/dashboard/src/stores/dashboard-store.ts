@@ -34,7 +34,7 @@ type DashboardStore = {
 export const useDashboardStore = create<DashboardStore>((set) => ({
   selection: null,
   primary: "complexity",
-  secondaries: ["duplication", "churn"],
+  secondaries: ["duplication", "readability"],
   layers: {
     buildIntervals: true,
     testIntervals: true,

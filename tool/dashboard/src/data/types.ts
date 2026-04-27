@@ -3,7 +3,6 @@ export type MetricId =
   | "coupling"
   | "duplication"
   | "readability"
-  | "churn"
 
 export type StatusTone = "pass" | "fail" | "unknown"
 
