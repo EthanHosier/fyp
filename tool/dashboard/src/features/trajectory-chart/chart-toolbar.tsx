@@ -50,7 +50,7 @@ export function ChartToolbar({
           </MetricExplainer>
         </div>
         <span className="text-fg-3 inline-flex shrink-0 items-center gap-1 self-end">
-          <Arrow className="size-4" strokeWidth={2.5} />
+          <Arrow className="size-3" strokeWidth={2.5} />
           <Text as="span" variant="body" tone="inherit">
             {primary.better === "higher" ? "higher is better" : "lower is better"}
           </Text>
