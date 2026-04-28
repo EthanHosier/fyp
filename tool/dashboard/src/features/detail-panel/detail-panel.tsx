@@ -3,7 +3,6 @@ import { X } from "lucide-react"
 import { StatusDot } from "@/components/status-dot"
 import { Text } from "@/components/text"
 import { Button } from "@/components/ui/button"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import type { CheckpointVM, DashboardViewModel, StatusTone } from "@/data/types"
 import { AlternativeBody } from "@/features/detail-panel/alternative-body"
 import { CheckpointBody } from "@/features/detail-panel/checkpoint-body"
@@ -145,9 +144,12 @@ export function DetailPanel({ vm }: { vm: DashboardViewModel }) {
           <X />
         </Button>
       </header>
-      <ScrollArea className="min-h-0 flex-1">
+      {/* Native overflow rather than Radix ScrollArea: in IntelliJ's embedded
+          JCEF browser the custom-thumb position calc on every scroll event
+          stalls the main thread. Native scrolling is GPU-composited there. */}
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
         <div className="px-4 py-3">{body}</div>
-      </ScrollArea>
+      </div>
     </aside>
   )
 }

@@ -1,7 +1,6 @@
 import { RailSection } from "@/components/rail-section"
 import { Text } from "@/components/text"
 import { Checkbox } from "@/components/ui/checkbox"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import type { DashboardViewModel, MetricId } from "@/data/types"
 import { OverlayMetricRow } from "@/features/metric-rail/overlay-metric-row"
 import { PrimaryMetricRow } from "@/features/metric-rail/primary-metric-row"
@@ -23,7 +22,10 @@ export function MetricRail({ vm }: { vm: DashboardViewModel }) {
 
   return (
     <aside className="bg-bg-1 border-border w-[240px] shrink-0 border-r">
-      <ScrollArea className="h-full">
+      {/* Native overflow rather than Radix ScrollArea: in IntelliJ's embedded
+          JCEF browser the custom-thumb position calc on every scroll event
+          stalls the main thread. Native scrolling is GPU-composited there. */}
+      <div className="h-full overflow-y-auto overscroll-contain">
         <RailSection title="Primary metric">
           {vm.metrics.map((m) => (
             <PrimaryMetricRow
@@ -76,7 +78,7 @@ export function MetricRail({ vm }: { vm: DashboardViewModel }) {
             onChange={(v) => setLayer("alternativeTrajectories", v)}
           />
         </RailSection>
-      </ScrollArea>
+      </div>
     </aside>
   )
 }

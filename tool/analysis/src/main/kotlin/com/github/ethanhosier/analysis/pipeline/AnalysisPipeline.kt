@@ -5,10 +5,12 @@ import com.github.ethanhosier.analysis.alternative.AlternativeTrajectoryRunner
 import com.github.ethanhosier.analysis.diffs.DiffsRunner
 import com.github.ethanhosier.analysis.ingest.TraceLoader
 import com.github.ethanhosier.analysis.metrics.MetricsRunner
+import com.github.ethanhosier.analysis.metrics.derived.DerivedMetricsRunner
 import com.github.ethanhosier.analysis.metrics.gitdiff.DiffStats
 import com.github.ethanhosier.analysis.metrics.model.AlternativeTrajectory
 import com.github.ethanhosier.analysis.metrics.model.AnalysisReport
 import com.github.ethanhosier.analysis.metrics.model.CheckpointReport
+import com.github.ethanhosier.analysis.metrics.model.DerivedMetrics
 import com.github.ethanhosier.analysis.metrics.model.EventSummary
 import com.github.ethanhosier.analysis.metrics.model.PmdTracking
 import com.github.ethanhosier.analysis.metrics.model.RunInfo
@@ -207,7 +209,11 @@ internal fun buildAnalysisReport(
         membersBySha.getOrPut(sha) { LinkedHashSet() }.addAll(eventMembers)
     }
 
-    val checkpoints = metrics.checkpoints.map { m ->
+    // First pass: assemble checkpoints + alts WITHOUT derived metrics, so
+    // `DerivedMetricsRunner` can read their already-stitched-in events,
+    // pmdTracking, and metrics blocks. Second pass below splices the
+    // derived metrics back onto each.
+    val baseCheckpoints = metrics.checkpoints.map { m ->
         val events = eventsBySha[m.sha].orEmpty()
         CheckpointReport(
             sha = m.sha,
@@ -221,7 +227,7 @@ internal fun buildAnalysisReport(
 
     val stepsByIndex = miner.steps.associateBy { it.stepIndex }
     val altMetricsBySha = metrics.alternativeCheckpoints.associateBy { it.sha }
-    val alternativeTrajectories = alternative.synthesised.mapNotNull { synth ->
+    val baseAlternatives = alternative.synthesised.mapNotNull { synth ->
         val step = stepsByIndex[synth.stepIndex] ?: return@mapNotNull null
         val spec = step.spec ?: return@mapNotNull null
         val altMetrics = altMetricsBySha[synth.altSha] ?: return@mapNotNull null
@@ -241,6 +247,20 @@ internal fun buildAnalysisReport(
                 pmdTracking = pmdTracking.alternativeTrackingBySha[synth.altSha] ?: PmdTracking.EMPTY,
             ),
         )
+    }
+
+    val derived = DerivedMetricsRunner().run(
+        mainCheckpoints = baseCheckpoints,
+        alternatives = baseAlternatives,
+        refactoringSteps = miner.steps,
+    )
+    val checkpoints = baseCheckpoints.map { cp ->
+        cp.copy(derivedMetrics = derived.main[cp.sha] ?: DerivedMetrics.EMPTY)
+    }
+    val alternativeTrajectories = baseAlternatives.map { alt ->
+        alt.copy(altCheckpoint = alt.altCheckpoint.copy(
+            derivedMetrics = derived.alt[alt.altCheckpoint.sha] ?: DerivedMetrics.EMPTY,
+        ))
     }
 
     return AnalysisReport(

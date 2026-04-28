@@ -1,46 +1,27 @@
 /**
  * Adapter: `AnalysisReport` → `DashboardViewModel`. The chart + rail
- * consume a single number per (checkpoint, metric). Each metric below
- * collapses a richer underlying structure:
+ * consume a single number per (checkpoint, metric); the backend computes
+ * those numbers (and the cleanliness composite + process score) inside
+ * `DerivedMetricsRunner` and ships them on each `CheckpointReport.
+ * derivedMetrics`. This adapter just shapes them into VM types and
+ * exposes the headline scores via `c.values` so the chart's regular
+ * metric plumbing can render them.
  *
- *   cognitive   · total  sum of `pmd.methodMetrics[].cognitive` — Sonar's
- *                         cognitive complexity is additive by design, so
- *                         the project-wide sum is the canonical roll-up.
- *                         Replaces WMC / mean-cyclo, which both pessimise
- *                         Extract Method (each new method adds base 1).
- *   cohesion    · tcc    mean of `ck.perClass[].tcc` over classes where
- *                         TCC is defined (≥2 eligible method pairs).
- *                         Higher = better. Distinct axis from cognitive
- *                         and coupling: "are responsibilities tangled?"
- *   duplication · %      `cpd.duplicatedLinesShare`   × 100
- *   readability · /100   composite of 5 sub-signals from
- *                         `readability.summary`: line length, indentation,
- *                         identifier length, single-letter-ratio, dictionary
- *                         word ratio. Each saturates against a literature
- *                         threshold and contributes a weighted share. See
- *                         `readabilityScore`. Higher = more readable.
- *   coupling    · cbo    p90 of `ck.perClass[].cbo`   (tail)
- *   smells      · count  size of `pmd.violations` — total PMD rule
- *                         violations across the project. Untweighted
- *                         count; consider weighting by `priority` later.
+ * Sub-metric semantics live alongside the runner; see
+ * `analysis/src/main/kotlin/com/github/ethanhosier/analysis/metrics/derived/
+ * DerivedMetricsRunner.kt` for formula rationale (literature weights for
+ * cleanliness, process-score design decisions, etc.).
  *
  * Churn is intentionally not a chartable metric — "fewer lines" isn't a
  * goal, it's only meaningful relative to an alternative path. We still
  * expose `CheckpointVM.churn` / `IntervalVM.churn` for that comparison.
- *
- * p90 over mean: a single pathological class with wmc=120 is invisible
- * next to 50 classes at wmc=5; the 90th percentile makes it visible
- * without just showing `max` (which is jittery).
- *
- * Still dropped: per-file churn, PMD violations, CPD blocks, per-method
- * cognitive complexity, LOC-weighting. All sit in the raw report and
- * can be folded in here without touching feature code.
  */
 import type {
   AlternativeTrajectory,
   AnalysisReport,
   CheckpointReport,
-  CkClassMetrics,
+  Cleanliness,
+  ProcessScore,
   RefactoringSpec,
   RefactoringStep,
 } from "@/generated/report-types"
@@ -49,6 +30,7 @@ import { formatTLabel, shortSha } from "@/lib/format"
 import type {
   AlternativeTrajectoryVM,
   CheckpointVM,
+  CleanlinessBreakdown,
   CodeSmellVM,
   CodeSmellsVM,
   DashboardViewModel,
@@ -61,8 +43,6 @@ import type {
   StatusTone,
   TrajectoryVM,
 } from "./types"
-import { computeCleanlinessSeries } from "./cleanliness"
-import { computeProcessScores } from "./process-score"
 
 const METRICS: MetricVM[] = [
   // Tones bump forward across the lineup so the new gold (`brand-8`)
@@ -87,74 +67,69 @@ const PLACEHOLDER_BREAKDOWN: ProcessScoreBreakdown = {
   clamped: false,
 }
 
-function round1(n: number): number {
-  return Math.round(n * 10) / 10
-}
-
-/** Value at the given percentile (0..1), nearest-rank. */
-function percentile(xs: number[], p: number): number {
-  if (xs.length === 0) return 0
-  const sorted = [...xs].sort((a, b) => a - b)
-  const idx = Math.min(sorted.length - 1, Math.floor(p * sorted.length))
-  return sorted[idx]
-}
-
-function mean(xs: number[]): number {
-  if (xs.length === 0) return 0
-  return xs.reduce((s, x) => s + x, 0) / xs.length
+/**
+ * Pulls the six per-checkpoint aggregators (+ cleanliness + process)
+ * out of the backend-computed `derivedMetrics` block. Returns a partial
+ * map: `cohesion` may legitimately be missing when no class on the
+ * checkpoint has a defined TCC. The other metrics are always present —
+ * see `DerivedMetricsRunner.aggregate`.
+ *
+ * `cleanliness` and `process` end up here too so the chart can render
+ * them through the same MetricId plumbing as the raw aggregators.
+ * Cleanliness is omitted when the backend couldn't normalise (degenerate
+ * trajectory) — `null` in `values` reads as "no data" everywhere.
+ */
+function checkpointValues(c: CheckpointReport): Partial<Record<MetricId, number>> {
+  const d = c.derivedMetrics
+  if (!d) return {}
+  const values: Partial<Record<MetricId, number>> = {
+    coupling: d.coupling,
+    duplication: d.duplication,
+    readability: d.readability,
+    cognitive: d.cognitive,
+    smells: d.smells,
+  }
+  if (d.cohesion != null) values.cohesion = d.cohesion
+  if (d.cleanliness?.score != null) values.cleanliness = d.cleanliness.score
+  if (d.process?.total != null) values.process = d.process.total
+  return values
 }
 
 /**
- * Composite readability score in [0, 1], higher = better. Weighted blend
- * of 5 sub-signals from `readability.summary`, each clamped to [0, 1] and
- * weighted to sum to 1. Comment ratio is intentionally excluded — comment
- * density is a poor readability proxy in modern Java.
+ * Re-shape the backend's `ProcessScore` into the VM's
+ * `ProcessScoreBreakdown` — same fields, just narrowing the optional
+ * codegened types and tightening `id` to the union the breakdown panel
+ * uses for icon/label lookup.
  */
-function readabilityScore(summary: {
-  avgLineLength: number
-  avgIndentation: number
-  avgIdentifierLength: number
-  singleLetterRatio: number
-  dictionaryWordRatio: number
-}): number {
-  const lineLengthScore = 1 - Math.min(1, summary.avgLineLength / 100)
-  const indentationScore = 1 - Math.min(1, summary.avgIndentation / 12)
-  const identifierLengthScore = Math.min(1, summary.avgIdentifierLength / 5)
-  const singleLetterScore = 1 - Math.min(1, Math.max(0, summary.singleLetterRatio))
-  const dictionaryScore = Math.min(1, Math.max(0, summary.dictionaryWordRatio))
-  return (
-    0.25 * lineLengthScore +
-    0.20 * indentationScore +
-    0.20 * identifierLengthScore +
-    0.15 * singleLetterScore +
-    0.20 * dictionaryScore
-  )
+function mapProcessBreakdown(p: ProcessScore | undefined): ProcessScoreBreakdown {
+  if (!p) return PLACEHOLDER_BREAKDOWN
+  return {
+    total: p.total ?? 0,
+    baseline: p.baseline ?? 50,
+    clamped: p.clamped ?? false,
+    contributions: (p.contributions ?? []).map((c) => ({
+      id: c.id as ProcessScoreBreakdown["contributions"][number]["id"],
+      label: c.label,
+      points: c.points,
+      detail: c.detail,
+    })),
+  }
 }
 
-function checkpointValues(c: CheckpointReport): Partial<Record<MetricId, number>> {
-  const perClass = c.metrics.ck.perClass
-  const values: Partial<Record<MetricId, number>> = {
-    coupling: round1(percentile(perClass.map((p: CkClassMetrics) => p.cbo), 0.9)),
+function mapCleanlinessBreakdown(c: Cleanliness | null | undefined): CleanlinessBreakdown | null {
+  if (!c) return null
+  return {
+    total: c.score,
+    rebased: c.rebased,
+    contributions: c.contributions.map((row) => ({
+      id: row.id as MetricId,
+      label: row.label,
+      weight: row.weight,
+      normalised: row.normalised,
+      raw: row.raw,
+      points: row.points,
+    })),
   }
-  // CK returns null on classes where TCC is undefined (e.g. < 2 eligible
-  // method pairs). Drop those before averaging — counting them as 0
-  // would falsely report "no cohesion" for trivial classes.
-  const tccs = perClass.map((p) => p.tcc).filter((t): t is number => t != null)
-  if (tccs.length > 0) {
-    values.cohesion = Math.round(mean(tccs) * 100) / 100
-  }
-  if (c.metrics.cpd) {
-    values.duplication = round1(c.metrics.cpd.duplicatedLinesShare * 100)
-  }
-  if (c.metrics.readability?.summary) {
-    values.readability = round1(readabilityScore(c.metrics.readability.summary) * 100)
-  }
-  const pmd = c.metrics.pmd
-  if (pmd) {
-    values.cognitive = pmd.methodMetrics.reduce((s, m) => s + m.cognitive, 0)
-    values.smells = pmd.violations.length
-  }
-  return values
 }
 
 function buildTone(ok: boolean): StatusTone {
@@ -260,6 +235,9 @@ export function toViewModel(report: AnalysisReport): DashboardViewModel {
     const build = buildTone(c.metrics.build.success)
     const tests = testsTone(c.metrics.tests.success, c.metrics.tests.wasSkipped)
     const prev = i === 0 ? null : report.checkpoints[i - 1]
+    const d = c.derivedMetrics
+    const processBreakdown = mapProcessBreakdown(d?.process)
+    const cleanlinessBreakdown = mapCleanlinessBreakdown(d?.cleanliness)
     return {
       index: i,
       label: `c${i}`,
@@ -276,10 +254,10 @@ export function toViewModel(report: AnalysisReport): DashboardViewModel {
       churn: c.diff?.totalChurn ?? 0,
       patch: report.checkpointPatches?.[c.sha] ?? "",
       smells: deriveSmells(c, prev),
-      processScore: 0,
-      processBreakdown: PLACEHOLDER_BREAKDOWN,
-      cleanlinessScore: null,
-      cleanlinessBreakdown: null,
+      processScore: processBreakdown.total,
+      processBreakdown,
+      cleanlinessScore: cleanlinessBreakdown?.total ?? null,
+      cleanlinessBreakdown,
     }
   })
 
@@ -312,10 +290,12 @@ export function toViewModel(report: AnalysisReport): DashboardViewModel {
         totalPrev: lastReal.smells.totalNow,
         delta: 0,
       },
-      processScore: 0,
-      processBreakdown: PLACEHOLDER_BREAKDOWN,
-      cleanlinessScore: null,
-      cleanlinessBreakdown: null,
+      // Synthetic terminator just mirrors the last real checkpoint's
+      // scores so the chart's last dot doesn't appear to drop to 0.
+      processScore: lastReal.processScore,
+      processBreakdown: lastReal.processBreakdown,
+      cleanlinessScore: lastReal.cleanlinessScore,
+      cleanlinessBreakdown: lastReal.cleanlinessBreakdown,
     })
   }
 
@@ -377,33 +357,6 @@ export function toViewModel(report: AnalysisReport): DashboardViewModel {
       }
     },
   )
-
-  // Process score depends on the assembled checkpoints (smell buckets,
-  // build/tests state) and the refactoring steps (rates of skipped tests
-  // / manual-when-IDE), so we compute it once both are ready and patch
-  // the score + breakdown back onto each checkpoint. Also surface the
-  // score on `c.values` so the chart renders it via the regular metric
-  // plumbing — `process` is just another MetricId from the chart's POV.
-  const processResults = computeProcessScores(checkpoints, refactoringSteps, METRICS)
-  const cleanlinessResults = computeCleanlinessSeries(checkpoints, METRICS)
-  for (let i = 0; i < checkpoints.length; i++) {
-    const r = processResults[i]
-    if (r) {
-      checkpoints[i].processScore = r.score
-      checkpoints[i].processBreakdown = r.breakdown
-      checkpoints[i].values.process = r.score
-    }
-    const cl = cleanlinessResults[i]
-    if (cl) {
-      checkpoints[i].cleanlinessScore = cl.score
-      checkpoints[i].cleanlinessBreakdown = cl.breakdown
-      // Skip pinning to `c.values.cleanliness` when the score is null —
-      // a null in `values` is read by every consumer as "no data" and
-      // the chart will simply omit the point, matching how it handles
-      // a missing CPD reading.
-      if (cl.score !== null) checkpoints[i].values.cleanliness = cl.score
-    }
-  }
 
   const checkpointBySha = new Map<string, number>()
   report.checkpoints.forEach((c, i) => checkpointBySha.set(c.sha, i))

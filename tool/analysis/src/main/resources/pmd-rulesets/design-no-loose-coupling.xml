@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<ruleset name="design-no-loose-coupling"
+         xmlns="http://pmd.sourceforge.net/ruleset/2.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://pmd.sourceforge.net/ruleset/2.0.0 https://pmd.sourceforge.io/ruleset_2_0_0.xsd">
+
+    <description>
+        category/java/design.xml minus LoosePackageCoupling — that rule
+        requires per-project packages/classes properties we don't supply,
+        so PMD logs a misconfigured-rule warning every analysis. We don't
+        want to enforce package coupling on arbitrary user projects, so
+        excluding the rule is preferable to configuring it.
+    </description>
+
+    <rule ref="category/java/design.xml">
+        <exclude name="LoosePackageCoupling"/>
+    </rule>
+</ruleset>
