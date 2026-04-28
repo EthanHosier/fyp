@@ -37,6 +37,7 @@ configurations.all {
 dependencies {
     implementation(kotlin("stdlib"))
     implementation(project(":shared"))
+    implementation(project(":metrics-core"))
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.ck)
     implementation(libs.pmd.java)
@@ -161,5 +162,9 @@ tasks.register<JavaExec>("generateDashboardTypes") {
     inputs.dir(layout.projectDirectory.dir("src/main/kotlin/com/github/ethanhosier/analysis/metrics/model"))
     inputs.dir(layout.projectDirectory.dir("src/main/kotlin/com/github/ethanhosier/analysis/metrics/gitdiff"))
     inputs.dir(layout.projectDirectory.dir("src/main/kotlin/com/github/ethanhosier/analysis/miner/model"))
+    // CheckpointMetrics + the six per-section result classes now live in
+    // :metrics-core; re-run codegen when they change.
+    inputs.dir(rootProject.project(":metrics-core").layout.projectDirectory
+        .dir("src/main/kotlin/com/github/ethanhosier/analysis/metrics"))
     outputs.file(dashboardTypesOutput)
 }
