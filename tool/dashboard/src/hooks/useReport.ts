@@ -24,6 +24,9 @@ const REPORT_EVENT = "refdash:report-loaded"
 export function useReport(): AnalysisReport | null {
   // return reportData as AnalysisReport
 
+  // Initialiser reads `window.__REPORT__` synchronously, so a payload
+  // already injected by the plugin before this hook mounts is captured
+  // here and the effect below never has to run.
   const [report, setReport] = useState<AnalysisReport | null>(
     () => window.__REPORT__ ?? null,
   )
@@ -34,9 +37,6 @@ export function useReport(): AnalysisReport | null {
       if (window.__REPORT__) setReport(window.__REPORT__)
     }
     window.addEventListener(REPORT_EVENT, handler)
-    // Handle the case where the plugin injected after initial render but
-    // before the listener attached.
-    if (window.__REPORT__) setReport(window.__REPORT__)
     return () => window.removeEventListener(REPORT_EVENT, handler)
   }, [report])
 
