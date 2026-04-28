@@ -17,6 +17,7 @@ data class PmdResult(
     val classMetrics: List<PmdClassMetrics> = emptyList(),
     val methodMetrics: List<PmdMethodMetrics> = emptyList(),
     val processingErrors: List<PmdProcessingError> = emptyList(),
+    val durationMs: Long = 0,
 )
 
 /**

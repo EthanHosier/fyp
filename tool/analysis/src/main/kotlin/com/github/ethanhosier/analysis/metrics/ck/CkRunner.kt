@@ -24,6 +24,7 @@ class CkRunner {
         val classes = mutableListOf<CkClassMetrics>()
         val errors = mutableListOf<CkParseError>()
         val rootStr = projectDir.toAbsolutePath().normalize().toString()
+        val start = System.currentTimeMillis()
 
         // CK constructor args match the library's `Runner` example:
         //   useJars = false      → don't pull in jar dependencies for type resolution
@@ -45,7 +46,11 @@ class CkRunner {
             },
         )
 
-        return CkResult(perClass = classes, parseErrors = errors)
+        return CkResult(
+            perClass = classes,
+            parseErrors = errors,
+            durationMs = System.currentTimeMillis() - start,
+        )
     }
 
     private fun toMetrics(r: CKClassResult, rootStr: String) = CkClassMetrics(
