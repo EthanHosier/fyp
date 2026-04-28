@@ -16,6 +16,7 @@ import kotlinx.serialization.Serializable
 data class CkResult(
     val perClass: List<CkClassMetrics>,
     val parseErrors: List<CkParseError> = emptyList(),
+    val durationMs: Long = 0,
 )
 
 /**

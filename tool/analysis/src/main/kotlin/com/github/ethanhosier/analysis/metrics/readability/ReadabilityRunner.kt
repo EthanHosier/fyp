@@ -30,6 +30,7 @@ class ReadabilityRunner(
         require(Files.isDirectory(projectDir)) { "not a directory: $projectDir" }
         val root = projectDir.toAbsolutePath().normalize()
         val rootStr = root.toString()
+        val start = System.currentTimeMillis()
 
         val collector = collectIdentifiers(root)
 
@@ -71,6 +72,7 @@ class ReadabilityRunner(
             perClass = perClass,
             perMethod = perMethod,
             summary = summarise(perFile, perClass, perMethod),
+            durationMs = System.currentTimeMillis() - start,
         )
     }
 

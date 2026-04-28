@@ -20,6 +20,7 @@ data class ReadabilityResult(
     val perClass: List<ClassReadability>,
     val perMethod: List<MethodReadability>,
     val summary: ReadabilitySummary = ReadabilitySummary.EMPTY,
+    val durationMs: Long = 0,
 ) {
     companion object {
         val EMPTY = ReadabilityResult(emptyList(), emptyList(), emptyList(), ReadabilitySummary.EMPTY)
