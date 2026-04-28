@@ -17,6 +17,15 @@ import java.nio.file.Path
 class PmdRunner(
     private val ruleSets: List<String> = DEFAULT_RULESETS,
     private val javaVersion: String = "21",
+    /**
+     * If non-null, PMD persists per-file analysis state here and reuses
+     * results for files whose content + ruleset hash hasn't changed. The
+     * file is read on construction and rewritten on close. Caller owns
+     * the lifecycle: pass a path scoped to the unit of work that should
+     * share the cache (e.g. one path per analysis session). Null disables
+     * caching — appropriate for one-shot runs and unit tests.
+     */
+    private val cacheFile: Path? = null,
 ) {
 
     /**
@@ -34,6 +43,7 @@ class PmdRunner(
             setDefaultLanguageVersion(languageVersion)
             addInputPath(root)
             ruleSets.forEach { addRuleSet(it) }
+            cacheFile?.let { setAnalysisCacheLocation(it.toAbsolutePath().toString()) }
         }
 
         val collector = PmdMetricsCollectorRule()
@@ -152,7 +162,11 @@ class PmdRunner(
         val DEFAULT_RULESETS: List<String> = listOf(
             "category/java/bestpractices.xml",
             "category/java/errorprone.xml",
-            "category/java/design.xml",
+            // Custom variant of category/java/design.xml that drops
+            // LoosePackageCoupling — that rule needs per-project
+            // packages/classes properties we don't supply, so otherwise
+            // PMD logs a misconfigured-rule warning every analysis.
+            "pmd-rulesets/design-no-loose-coupling.xml",
         )
 
         /** Lines of surrounding source kept either side of a violation range. */

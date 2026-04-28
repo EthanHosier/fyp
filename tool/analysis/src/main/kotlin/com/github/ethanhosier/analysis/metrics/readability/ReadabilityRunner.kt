@@ -24,6 +24,15 @@ import kotlin.io.path.extension
 class ReadabilityRunner(
     private val javaVersion: String = "21",
     private val tabWidth: Int = 4,
+    /**
+     * If non-null, PMD persists per-file analysis state for the
+     * identifier-collection pass here. Identical lifecycle to
+     * [com.github.ethanhosier.analysis.metrics.pmd.PmdRunner.cacheFile];
+     * keep this distinct from PmdRunner's cache because the rulesets
+     * differ — sharing one file risks one runner's close overwriting
+     * the other's entries.
+     */
+    private val cacheFile: Path? = null,
 ) {
 
     fun run(projectDir: Path): ReadabilityResult {
@@ -132,6 +141,7 @@ class ReadabilityRunner(
         val config = PMDConfiguration().apply {
             setDefaultLanguageVersion(languageVersion)
             addInputPath(root)
+            cacheFile?.let { setAnalysisCacheLocation(it.toAbsolutePath().toString()) }
         }
         val collector = ReadabilityCollectorRule()
         PmdAnalysis.create(config).use { pmd ->
