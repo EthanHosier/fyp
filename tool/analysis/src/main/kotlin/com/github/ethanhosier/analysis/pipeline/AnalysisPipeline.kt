@@ -5,7 +5,8 @@ import com.github.ethanhosier.analysis.alternative.AlternativeTrajectoryRunner
 import com.github.ethanhosier.analysis.diffs.DiffsRunner
 import com.github.ethanhosier.analysis.ingest.TraceLoader
 import com.github.ethanhosier.analysis.metrics.MetricsRunner
-import com.github.ethanhosier.analysis.metrics.exec.LocalCheckpointExecutor
+import com.github.ethanhosier.analysis.metrics.exec.CheckpointExecutorFactory
+import com.github.ethanhosier.analysis.metrics.exec.LocalCheckpointExecutorFactory
 import com.github.ethanhosier.analysis.metrics.gitdiff.DiffStats
 import com.github.ethanhosier.analysis.metrics.model.AlternativeTrajectory
 import com.github.ethanhosier.analysis.metrics.model.AnalysisReport
@@ -50,6 +51,13 @@ import java.nio.file.Path
 class AnalysisPipeline(
     private val refactoringClient: RefactoringClient,
     private val parallelism: Int = defaultParallelism(),
+    /**
+     * Where per-SHA metric work runs. Default keeps today's behaviour
+     * (in-process worktrees + thread pool); a [com.github.ethanhosier.analysis.metrics.remote.RemoteCheckpointExecutorFactory]
+     * here switches the metrics stage to fan out across AWS Lambda
+     * without changing anything else in the pipeline.
+     */
+    private val executorFactory: CheckpointExecutorFactory = LocalCheckpointExecutorFactory(),
 ) {
 
     data class Result(
@@ -106,9 +114,9 @@ class AnalysisPipeline(
         val altShas = alternative.synthesised.map { it.altSha }
         val totalShas = reconstruction.eventCommits.mapping.values.toSet().size + altShas.size
         log("metrics: starting on $totalShas SHA(s) (${altShas.size} alt) at parallelism=$parallelism")
-        val metrics = LocalCheckpointExecutor(
+        val metrics = executorFactory.create(
             shadowRepoDir = reconstruction.repoDir,
-            worktreeBase = sessionDir.resolve("shadow-worktrees"),
+            sessionDir = sessionDir,
             parallelism = parallelism,
         ).use { executor ->
             MetricsRunner(executor).run(

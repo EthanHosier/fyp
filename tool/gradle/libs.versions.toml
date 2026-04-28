@@ -9,6 +9,7 @@ pmd = "7.13.0"
 ktor = "3.0.3"
 refactoringMiner = "3.1.3"
 kxsTsGen = "0.2.2"
+awsSdk = "2.30.0"
 
 # plugins
 changelog = "2.5.0"
@@ -32,6 +33,8 @@ ktor-serialization-kotlinx-json = { group = "io.ktor", name = "ktor-serializatio
 ktor-server-test-host = { group = "io.ktor", name = "ktor-server-test-host", version.ref = "ktor" }
 refactoring-miner = { group = "com.github.tsantalis", name = "refactoring-miner", version.ref = "refactoringMiner" }
 kxs-ts-gen-core = { group = "dev.adamko.kxstsgen", name = "kxs-ts-gen-core", version.ref = "kxsTsGen" }
+aws-sdk-lambda = { group = "software.amazon.awssdk", name = "lambda", version.ref = "awsSdk" }
+aws-sdk-s3 = { group = "software.amazon.awssdk", name = "s3", version.ref = "awsSdk" }
 
 [plugins]
 changelog = { id = "org.jetbrains.changelog", version.ref = "changelog" }

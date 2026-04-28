@@ -42,6 +42,11 @@ dependencies {
     implementation(libs.ck)
     implementation(libs.pmd.java)
     implementation(libs.refactoring.miner)
+    // AWS SDK used by the (currently scaffolded) RemoteCheckpointExecutor.
+    // Dragged in as `implementation` rather than a separate config so the
+    // remote path is callable from the standard runtime classpath.
+    implementation(libs.aws.sdk.lambda)
+    implementation(libs.aws.sdk.s3)
     implementation(libs.ktor.server.core)
     implementation(libs.ktor.server.netty)
     implementation(libs.ktor.server.content.negotiation)
