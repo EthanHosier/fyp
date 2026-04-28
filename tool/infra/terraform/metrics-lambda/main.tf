@@ -157,20 +157,22 @@ resource "aws_lambda_function" "metrics" {
   package_type = "Image"
   image_uri    = "${aws_ecr_repository.metrics_compute.repository_url}:${var.lambda_image_tag}"
 
+  // Match the architecture the Dockerfile builds on the typical dev
+  // host (Apple Silicon → arm64). Graviton Lambda is also ~20% cheaper
+  // per GB-second than x86. If a CI runner ever builds on x86, force
+  // `docker build --platform linux/arm64`.
+  architectures = ["arm64"]
+
   memory_size = var.lambda_memory_mb
   timeout     = var.lambda_timeout_seconds
   ephemeral_storage {
     size = var.lambda_ephemeral_storage_mb
   }
 
-  // SnapStart for faster cold-start on the handler-side JVM (loading
-  // PMD/CK classes, S3 client init, kotlinx.serialization codecs).
-  // Has no effect on the Gradle subprocess, which is the dominant
-  // cold-start cost — that's where the baked dep cache (Dockerfile
-  // follow-up) will help.
-  snap_start {
-    apply_on = "PublishedVersions"
-  }
+  // SnapStart would shave ~1-3 s off handler-side JVM cold start but
+  // caps /tmp at 512 MB — incompatible with the 10 GB we need for
+  // bundle clones + Gradle build/. Dropped: the bigger lever is baking
+  // the Gradle dep cache into the image layer (Dockerfile follow-up).
 
   tags = local.tags
 }

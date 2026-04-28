@@ -1,7 +1,7 @@
 variable "aws_region" {
-  description = "AWS region where everything is deployed."
+  description = "AWS region where everything is deployed. Default matches the AWS CLI's default region so LambdaClient.builder().build() in the analysis tool resolves to the same place without needing ANALYSIS_AWS_REGION set."
   type        = string
-  default     = "eu-west-2"
+  default     = "us-east-1"
 }
 
 variable "project" {
