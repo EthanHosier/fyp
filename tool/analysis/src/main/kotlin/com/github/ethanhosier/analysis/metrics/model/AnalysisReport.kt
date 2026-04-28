@@ -236,6 +236,122 @@ data class CheckpointReport(
     // that no longer fire here. Stitched in by the trajectory walk at
     // report-assembly time, same lifecycle as `diff` and `touchedMembers`.
     val pmdTracking: PmdTracking = PmdTracking.EMPTY,
+    // Backend-computed scores derived from the per-checkpoint metric blocks
+    // and the trajectory walk: per-checkpoint aggregators, cleanliness
+    // composite, prefix-cumulative process score. Populated for main and
+    // alt checkpoints alike (alts read main's running counters as their
+    // starting state and use main's value range for cleanliness norms;
+    // main scores never depend on alt data). Defaulted so older cached
+    // reports still deserialise.
+    val derivedMetrics: DerivedMetrics = DerivedMetrics.EMPTY,
+)
+
+/**
+ * Backend-computed scores attached to a [CheckpointReport]. Replaces what
+ * the dashboard used to derive client-side at view-model construction.
+ *
+ * The point-in-time aggregators are nullable — each one depends on a
+ * specific raw metric block (CK / PMD / CPD / readability), and a runner
+ * may legitimately fail to produce one (e.g. PMD failure on a checkpoint
+ * still produces a report; that checkpoint just has `cognitive`/`smells`
+ * null). [cleanliness] is null when no sub-metric is normalisable across
+ * the trajectory (degenerate range or all absent). [process] is always
+ * present — at minimum it anchors at the baseline of 50 with no
+ * contributions.
+ */
+@Serializable
+data class DerivedMetrics(
+    // P90 of CK `cbo` across classes, rounded to 1dp. Always emitted —
+    // empty class list yields 0 via the percentile fallback.
+    val coupling: Double = 0.0,
+    // Mean of non-null CK `tcc` across classes, rounded to 2dp. Null when
+    // no class has a defined TCC (the only sub-metric that may be
+    // genuinely missing — < 2 eligible method pairs).
+    val cohesion: Double? = null,
+    // `cpd.duplicatedLinesShare * 100`, rounded to 1dp. Always emitted.
+    val duplication: Double = 0.0,
+    // 5-signal weighted blend of `readability.summary` × 100, rounded to
+    // 1dp. Always emitted (degenerate inputs blend to a stable 60).
+    val readability: Double = 0.0,
+    // Σ `pmd.methodMetrics[].cognitive`. Always emitted.
+    val cognitive: Int = 0,
+    // `pmd.violations.size`. Always emitted.
+    val smells: Int = 0,
+    val cleanliness: Cleanliness? = null,
+    val process: ProcessScore = ProcessScore.EMPTY,
+) {
+    companion object {
+        val EMPTY = DerivedMetrics()
+    }
+}
+
+/**
+ * Code-cleanliness composite at one checkpoint. Min-max normalised across
+ * the main trajectory's observed range per sub-metric; weights match the
+ * literature-informed mix used previously in the frontend (cognitive 0.25,
+ * coupling 0.20, duplication 0.20, readability 0.15, smells 0.15,
+ * cohesion 0.05). Weights re-base when a sub-metric is missing or
+ * degenerate, in which case [rebased] is true.
+ *
+ * For alt checkpoints, the same main-trajectory range is used and the
+ * normalised value is clamped to [0, 1] before blending — so alts read on
+ * the same scale as the main path without their extremes shifting main
+ * scores.
+ */
+@Serializable
+data class Cleanliness(
+    // 0..100, rounded; what the dashboard tile renders.
+    val score: Int,
+    // 0..1; the raw scalar consumed by the process-score gain term.
+    val scalar: Double,
+    // True if any literature-weighted sub-metric was excluded from this
+    // checkpoint (absent on this checkpoint, or degenerate across the
+    // trajectory). Surface as a UI hint that the score isn't a full sweep.
+    val rebased: Boolean,
+    val contributions: List<CleanlinessContribution>,
+)
+
+@Serializable
+data class CleanlinessContribution(
+    // Stable id matching MetricId on the frontend (cognitive, coupling, ...).
+    val id: String,
+    val label: String,
+    val weight: Double,
+    // 0..1 after better-direction flip + (for alts) clamp.
+    val normalised: Double,
+    // Raw sub-metric value at this checkpoint.
+    val raw: Double,
+    // (weight / totalW) * normalised * 100 — sums to `score` across rows.
+    val points: Double,
+)
+
+/**
+ * Prefix-cumulative process score at one checkpoint. Anchored at 50; gain
+ * + penalty terms add/subtract points; [total] is the clamped, rounded
+ * 0..100 score the dashboard renders.
+ */
+@Serializable
+data class ProcessScore(
+    val total: Int,
+    val baseline: Int = 50,
+    // True if `baseline + Σ contributions.points` fell outside [0, 100].
+    val clamped: Boolean,
+    val contributions: List<ProcessContribution>,
+) {
+    companion object {
+        val EMPTY = ProcessScore(total = 50, baseline = 50, clamped = false, contributions = emptyList())
+    }
+}
+
+@Serializable
+data class ProcessContribution(
+    // cleanliness | degradation | broken | smells | skipTests | manualIde
+    val id: String,
+    val label: String,
+    // Signed; sum + baseline = unclamped total.
+    val points: Double,
+    // Human-readable explanation rendered in the breakdown panel.
+    val detail: String,
 )
 
 /**
