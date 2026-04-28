@@ -134,9 +134,7 @@ class AlternativeTrajectoryRunner(
             val rejectReason = rejectReason(s, shaIndex)
             if (rejectReason == null) {
                 candidates += s
-                log("step ${s.stepIndex} ${s.refactoring.type}: candidate (spec=${s.spec!!::class.simpleName})")
             } else {
-                log("step ${s.stepIndex} ${s.refactoring.type}: skipped — $rejectReason")
             }
         }
         if (candidates.isEmpty()) {
@@ -160,11 +158,9 @@ class AlternativeTrajectoryRunner(
                         when (outcome) {
                             is OneResult.Ok -> {
                                 synthesised += outcome.synth
-                                log("step ${step.stepIndex}: synthesised → ${outcome.synth.altSha.take(10)} on ${outcome.synth.branchRef}")
                             }
                             is OneResult.Skipped -> {
                                 skipped[step.stepIndex] = outcome.reason
-                                log("step ${step.stepIndex}: synthesis failed — ${outcome.reason}")
                             }
                         }
                     }
@@ -595,9 +591,5 @@ class AlternativeTrajectoryRunner(
     private sealed interface OneResult {
         data class Ok(val synth: Synthesised) : OneResult
         data class Skipped(val reason: String) : OneResult
-    }
-
-    private fun log(msg: String) {
-        System.err.println("[alt-traj] $msg")
     }
 }

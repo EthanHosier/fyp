@@ -93,6 +93,15 @@ class MetricsRunner(
         val worktreeBase = sessionFolder.resolve("shadow-worktrees")
         Files.createDirectories(worktreeBase)
         val worktreeDir = worktreeBase.resolve("metrics")
+        // PMD analysis caches per session: PMD reads on construction and
+        // rewrites on close, so SHAs after the first reuse per-file results
+        // for files whose content + ruleset hash hasn't changed. Sibling of
+        // shadow-repo / shadow-worktrees so `git checkout` between SHAs
+        // can't disturb them. Separate files per runner — each runner uses
+        // a distinct ruleset, and sharing one file risks one runner's close
+        // overwriting the other's entries.
+        val pmdCacheFile = sessionFolder.resolve("pmd-analysis-cache")
+        val readabilityCacheFile = sessionFolder.resolve("pmd-readability-cache")
 
         // LinkedHashSet: keep chronological iteration order from the event
         // log so progress output lands in the order a human would expect.
@@ -120,11 +129,11 @@ class MetricsRunner(
             // preserving its `build/` between checkpoints.
             val first = allShas.first()
             git.worktreeAdd(worktreeDir, first)
-            val seeded = computeOne(first, worktreeDir)
+            val seeded = computeOne(first, worktreeDir, pmdCacheFile, readabilityCacheFile)
 
             val rest = allShas.drop(1).map { sha ->
                 GitRunner(worktreeDir).checkoutDetach(sha)
-                computeOne(sha, worktreeDir)
+                computeOne(sha, worktreeDir, pmdCacheFile, readabilityCacheFile)
             }
             listOf(seeded) + rest
         } finally {
@@ -157,11 +166,16 @@ class MetricsRunner(
         )
     }
 
-    private fun computeOne(sha: String, worktree: Path): CheckpointMetrics {
+    private fun computeOne(
+        sha: String,
+        worktree: Path,
+        pmdCacheFile: Path,
+        readabilityCacheFile: Path,
+    ): CheckpointMetrics {
         val ck = CkRunner().run(worktree)
-        val pmd = PmdRunner().run(worktree)
+        val pmd = PmdRunner(cacheFile = pmdCacheFile).run(worktree)
         val cpd = CpdRunner().run(worktree)
-        val readability = ReadabilityRunner().run(worktree)
+        val readability = ReadabilityRunner(cacheFile = readabilityCacheFile).run(worktree)
         val build = GradleBuildRunner(
             timeout = buildTimeout,
             gradleUserHome = gradleUserHome,

@@ -4,6 +4,7 @@ import { Text } from "@/components/text"
 import { METRIC_DESCRIPTORS } from "@/data/metric-descriptors"
 import type { DashboardViewModel, MetricVM } from "@/data/types"
 import { MetricExplainer } from "@/features/trajectory-chart/metric-explainer"
+import { TONE_TEXT } from "@/lib/metric-tone"
 
 /**
  * Header strip above the chart canvas. Mirrors the reference:
@@ -52,7 +53,7 @@ export function ChartToolbar({
             <MetricExplainer.Description>{desc.detail}</MetricExplainer.Description>
           </MetricExplainer>
         </div>
-        <span className="text-fg-3 inline-flex shrink-0 items-center gap-1 self-end">
+        <span className={`${TONE_TEXT[primary.tone]} inline-flex shrink-0 items-center gap-1 self-end`}>
           <Arrow className="size-3" strokeWidth={2.5} />
           <Text as="span" variant="body" tone="inherit">
             {primary.better === "higher" ? "higher is better" : "lower is better"}

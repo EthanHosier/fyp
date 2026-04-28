@@ -29,14 +29,14 @@ fun main(args: Array<String>) {
         exitProcess(2)
     }
 
+    val totalStart = System.currentTimeMillis()
     val dataArea = Files.createTempDirectory("analysis-equinox-").resolve("osgi")
     val refactoringClient = RefactoringClientFactory.create(dataArea)
-    val result = try {
+    val result = refactoringClient.use { refactoringClient ->
         AnalysisPipeline(refactoringClient = refactoringClient, parallelism = opts.parallelism)
             .run(opts.sessionFolder)
-    } finally {
-        refactoringClient.close()
     }
+    val totalDurationMs = System.currentTimeMillis() - totalStart
 
     val reportPath = opts.sessionFolder.resolve("analysis-report.json")
     Files.writeString(reportPath, reportJson.encodeToString(AnalysisReport.serializer(), result.report))
@@ -80,6 +80,7 @@ fun main(args: Array<String>) {
     )
     println("report:     ${reportPath.toAbsolutePath()}")
     println("normalized: ${normalizedPath.toAbsolutePath()}")
+    println("total:      ${totalDurationMs / 1000}s")
 }
 
 private data class CliOptions(val sessionFolder: Path, val parallelism: Int)
