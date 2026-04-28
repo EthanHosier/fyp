@@ -85,6 +85,17 @@ class GitRunner(private val workDir: Path) {
     }
 
     /**
+     * Switches the working tree to [sha] in detached-HEAD state. Untracked
+     * files (e.g. `build/` from a prior checkpoint) are preserved — callers
+     * relying on incremental compile state want that. Tracked files that
+     * would be overwritten are replaced; tracked files only present in the
+     * old SHA but not the new one are removed.
+     */
+    fun checkoutDetach(sha: String) {
+        run("checkout", "--detach", sha)
+    }
+
+    /**
      * Raw lines from `git diff --numstat -M <from> <to>`. Each line is
      * `added\tdeleted\tpath` where `added` / `deleted` are `-` for binary
      * files. Rename entries use the `{from => to}` path syntax.

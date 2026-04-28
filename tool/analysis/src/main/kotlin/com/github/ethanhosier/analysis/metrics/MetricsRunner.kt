@@ -12,11 +12,9 @@ import com.github.ethanhosier.analysis.metrics.tests.GradleTestRunner
 import com.github.ethanhosier.analysis.metrics.tests.TestResult
 import com.github.ethanhosier.analysis.model.ReconstructionResult
 import com.github.ethanhosier.analysis.reconstruct.GitRunner
+import java.nio.file.Files
 import java.nio.file.Path
 import java.time.Duration
-import java.util.concurrent.ExecutionException
-import java.util.concurrent.Executors
-import java.util.concurrent.TimeUnit
 
 /**
  * Computes [CheckpointMetrics] for every unique commit SHA produced by the
@@ -26,17 +24,24 @@ import java.util.concurrent.TimeUnit
  * but far fewer unique commits — every no-op event collapses onto its
  * preceding SHA.
  *
- * Parallelism is the pool size: each concurrent task borrows a dedicated
- * `git worktree` from [WorktreePool] (fresh-per-SHA, no cross-checkpoint
- * pollution) and runs CK + PMD + Gradle build + Gradle test sequentially
- * inside it. Any failure in any section aborts the whole run.
+ * Sequential single-worktree strategy: provision one persistent worktree
+ * off the shadow repo, then walk SHAs by `git checkout --detach <sha>`
+ * between them — preserving the worktree's `build/` so Gradle's daemon +
+ * `--build-cache` + incremental-compile machinery has prior state to
+ * reuse. Empirically this beats parallel-fresh-worktree by ~2× on small
+ * sessions because daemon warmup + cache reuse dominates over wall-clock
+ * fan-out at this scale.
  *
- * No on-disk caching: each pipeline run recomputes every SHA from scratch.
- * Sessions are processed once and the surrounding orchestration assumes
- * that, so caching just adds invalidation surface for no real win.
+ * The [parallelism] parameter is retained for API compatibility (the CLI
+ * still accepts `--parallelism=N`) but is now ignored — metrics run
+ * sequentially regardless.
+ *
+ * No on-disk caching of metrics output: each pipeline run recomputes every
+ * SHA. Sessions are processed once and surrounding orchestration assumes
+ * that, so caching the report adds invalidation surface for no real win.
  */
 class MetricsRunner(
-    private val parallelism: Int = (Runtime.getRuntime().availableProcessors() / 2).coerceAtLeast(1),
+    @Suppress("UNUSED_PARAMETER") parallelism: Int = (Runtime.getRuntime().availableProcessors() / 2).coerceAtLeast(1),
     private val gradleUserHome: Path? = null,
     private val buildTimeout: Duration = Duration.ofMinutes(5),
     private val testTimeout: Duration = Duration.ofMinutes(10),
@@ -86,38 +91,45 @@ class MetricsRunner(
         }
 
         val worktreeBase = sessionFolder.resolve("shadow-worktrees")
+        Files.createDirectories(worktreeBase)
+        val worktreeDir = worktreeBase.resolve("metrics")
 
         // LinkedHashSet: keep chronological iteration order from the event
         // log so progress output lands in the order a human would expect.
         val uniqueShas = reconstruction.eventCommits.mapping.values.toCollection(LinkedHashSet())
         val altShasSet = alternativeShas.toCollection(LinkedHashSet())
-        // Union for the executor; preserve trace-order, then alt-order.
+        // Union for sequential walk; preserve trace-order, then alt-order
+        // so cache reuse runs along the natural commit lineage.
         val allShas = LinkedHashSet<String>().apply {
             addAll(uniqueShas)
             addAll(altShasSet)
-        }
+        }.toList()
 
-        val pool = WorktreePool(reconstruction.repoDir, worktreeBase, parallelism)
-        val executor = Executors.newFixedThreadPool(parallelism)
+        val git = GitRunner(reconstruction.repoDir)
+        // Defensive: clear any stale worktree from a crashed prior run so
+        // `worktree add` doesn't fail on an existing directory.
+        if (Files.exists(worktreeDir)) {
+            runCatching { git.worktreeRemove(worktreeDir) }
+            if (Files.exists(worktreeDir)) worktreeDir.toFile().deleteRecursively()
+        }
+        runCatching { git.worktreePrune() }
 
         val results = try {
-            val futures = allShas.map { sha ->
-                executor.submit<CheckpointMetrics> { computeOne(sha, pool) }
+            // Seed the worktree at the first SHA. Subsequent SHAs are
+            // reached by `git checkout --detach` *inside* the worktree,
+            // preserving its `build/` between checkpoints.
+            val first = allShas.first()
+            git.worktreeAdd(worktreeDir, first)
+            val seeded = computeOne(first, worktreeDir)
+
+            val rest = allShas.drop(1).map { sha ->
+                GitRunner(worktreeDir).checkoutDetach(sha)
+                computeOne(sha, worktreeDir)
             }
-            // Propagate the first failure out — .get() wraps thrown exceptions
-            // in ExecutionException; unwrap so the stack trace points at the
-            // real cause (e.g. a Gradle timeout, a git failure).
-            futures.map { future ->
-                try {
-                    future.get()
-                } catch (e: ExecutionException) {
-                    throw e.cause ?: e
-                }
-            }
+            listOf(seeded) + rest
         } finally {
-            executor.shutdownNow()
-            executor.awaitTermination(1, TimeUnit.MINUTES)
-            pool.close()
+            runCatching { git.worktreeRemove(worktreeDir) }
+            runCatching { git.worktreePrune() }
         }
 
         val byShaResult = results.associateBy { it.sha }
@@ -145,31 +157,26 @@ class MetricsRunner(
         )
     }
 
-    private fun computeOne(sha: String, pool: WorktreePool): CheckpointMetrics {
-        val worktree = pool.borrow(sha)
-        return try {
-            val ck = CkRunner().run(worktree)
-            val pmd = PmdRunner().run(worktree)
-            val cpd = CpdRunner().run(worktree)
-            val readability = ReadabilityRunner().run(worktree)
-            val build = GradleBuildRunner(
-                timeout = buildTimeout,
+    private fun computeOne(sha: String, worktree: Path): CheckpointMetrics {
+        val ck = CkRunner().run(worktree)
+        val pmd = PmdRunner().run(worktree)
+        val cpd = CpdRunner().run(worktree)
+        val readability = ReadabilityRunner().run(worktree)
+        val build = GradleBuildRunner(
+            timeout = buildTimeout,
+            gradleUserHome = gradleUserHome,
+        ).run(worktree)
+        // Skip tests when build failed — `./gradlew test` re-runs compileJava
+        // and hits the same error, wasting seconds per broken checkpoint
+        // without producing any test outcome we didn't already know.
+        val tests = if (build.success) {
+            GradleTestRunner(
+                timeout = testTimeout,
                 gradleUserHome = gradleUserHome,
             ).run(worktree)
-            // Skip tests when build failed — `./gradlew test` re-runs compileJava
-            // and hits the same error, wasting seconds per broken checkpoint
-            // without producing any test outcome we didn't already know.
-            val tests = if (build.success) {
-                GradleTestRunner(
-                    timeout = testTimeout,
-                    gradleUserHome = gradleUserHome,
-                ).run(worktree)
-            } else {
-                TestResult.skipped("build failed (exit ${build.exitCode})")
-            }
-            CheckpointMetrics(sha, ck, pmd, cpd, readability, build, tests)
-        } finally {
-            pool.release(worktree)
+        } else {
+            TestResult.skipped("build failed (exit ${build.exitCode})")
         }
+        return CheckpointMetrics(sha, ck, pmd, cpd, readability, build, tests)
     }
 }

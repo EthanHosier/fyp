@@ -31,8 +31,8 @@ class GradleTestRunner(
 
         val cmd = buildList {
             add(gradlew.toAbsolutePath().toString())
-            add("--no-daemon")
             add("--console=plain")
+            add("--build-cache")
             // See GradleBuildRunner: skip --stacktrace so stderrTail keeps
             // the actionable "What went wrong" block instead of 40KB of
             // Gradle internals.

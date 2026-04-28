@@ -44,8 +44,8 @@ class GradleBuildRunner(
 
         val cmd = buildList {
             add(gradlew.toAbsolutePath().toString())
-            add("--no-daemon")
             add("--console=plain")
+            add("--build-cache")
             // Deliberately no --stacktrace: it dumps ~40KB of Gradle internals
             // after the actionable "What went wrong" block, which then gets
             // kept by our tail buffer instead of the diagnostic. The "What
