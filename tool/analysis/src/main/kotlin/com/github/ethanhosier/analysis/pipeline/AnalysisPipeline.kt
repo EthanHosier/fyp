@@ -5,6 +5,7 @@ import com.github.ethanhosier.analysis.alternative.AlternativeTrajectoryRunner
 import com.github.ethanhosier.analysis.diffs.DiffsRunner
 import com.github.ethanhosier.analysis.ingest.TraceLoader
 import com.github.ethanhosier.analysis.metrics.MetricsRunner
+import com.github.ethanhosier.analysis.metrics.exec.LocalCheckpointExecutor
 import com.github.ethanhosier.analysis.metrics.gitdiff.DiffStats
 import com.github.ethanhosier.analysis.metrics.model.AlternativeTrajectory
 import com.github.ethanhosier.analysis.metrics.model.AnalysisReport
@@ -105,12 +106,17 @@ class AnalysisPipeline(
         val altShas = alternative.synthesised.map { it.altSha }
         val totalShas = reconstruction.eventCommits.mapping.values.toSet().size + altShas.size
         log("metrics: starting on $totalShas SHA(s) (${altShas.size} alt) at parallelism=$parallelism")
-        val metrics = MetricsRunner(parallelism = parallelism).run(
-            reconstruction = reconstruction,
-            sessionFolder = sessionDir,
-            alternativeShas = altShas,
-            alternativeFromShas = alternative.synthesised.map { it.fromSha },
-        )
+        val metrics = LocalCheckpointExecutor(
+            shadowRepoDir = reconstruction.repoDir,
+            worktreeBase = sessionDir.resolve("shadow-worktrees"),
+            parallelism = parallelism,
+        ).use { executor ->
+            MetricsRunner(executor).run(
+                reconstruction = reconstruction,
+                alternativeShas = altShas,
+                alternativeFromShas = alternative.synthesised.map { it.fromSha },
+            )
+        }
         val metricsDurationMs = System.currentTimeMillis() - metricsStart
         log("metrics: ${metrics.computed} computed, ${metrics.buildOk} build-ok, ${metrics.testsOk} tests-ok in ${metricsDurationMs}ms")
 

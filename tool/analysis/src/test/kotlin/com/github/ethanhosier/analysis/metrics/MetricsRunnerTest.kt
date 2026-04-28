@@ -1,5 +1,6 @@
 package com.github.ethanhosier.analysis.metrics
 
+import com.github.ethanhosier.analysis.metrics.exec.LocalCheckpointExecutor
 import com.github.ethanhosier.analysis.model.ReconstructionResult
 import com.github.ethanhosier.analysis.reconstruct.EventCommitMap
 import com.github.ethanhosier.analysis.reconstruct.GitRunner
@@ -37,7 +38,13 @@ class MetricsRunnerTest {
             eventCommits = EventCommitMap(mapping = mapOf("e1" to sha, "e2" to sha)),
         )
 
-        val summary = MetricsRunner(parallelism = 1).run(reconstruction, sessionFolder)
+        val summary = LocalCheckpointExecutor(
+            shadowRepoDir = shadowRepo,
+            worktreeBase = sessionFolder.resolve("shadow-worktrees"),
+            parallelism = 1,
+        ).use { executor ->
+            MetricsRunner(executor).run(reconstruction)
+        }
 
         println("summary: $summary")
         assertEquals(1, summary.totalShas, "two events should collapse onto one unique SHA")
