@@ -26,6 +26,7 @@ class PmdRunner(
         require(Files.isDirectory(projectDir)) { "not a directory: $projectDir" }
         val root = projectDir.toAbsolutePath().normalize()
         val rootStr = root.toString()
+        val start = System.currentTimeMillis()
 
         val languageVersion = JavaLanguageModule.getInstance().getVersion(javaVersion)
             ?: error("unknown java language version: $javaVersion")
@@ -90,6 +91,7 @@ class PmdRunner(
                 classMetrics = classMetrics,
                 methodMetrics = methodMetrics,
                 processingErrors = errors,
+                durationMs = System.currentTimeMillis() - start,
             )
         }
     }

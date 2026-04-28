@@ -26,6 +26,7 @@ data class CpdResult(
     val filesInvolvedInDuplication: Int,
     val duplications: List<CpdDuplication>,
     val processingErrors: List<CpdProcessingError> = emptyList(),
+    val durationMs: Long = 0,
 ) {
     companion object {
         val EMPTY = CpdResult(
