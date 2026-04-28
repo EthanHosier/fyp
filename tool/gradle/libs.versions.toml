@@ -10,6 +10,7 @@ ktor = "3.0.3"
 refactoringMiner = "3.1.3"
 kxsTsGen = "0.2.2"
 awsSdk = "2.30.0"
+awsLambdaCore = "1.2.3"
 
 # plugins
 changelog = "2.5.0"
@@ -35,6 +36,7 @@ refactoring-miner = { group = "com.github.tsantalis", name = "refactoring-miner"
 kxs-ts-gen-core = { group = "dev.adamko.kxstsgen", name = "kxs-ts-gen-core", version.ref = "kxsTsGen" }
 aws-sdk-lambda = { group = "software.amazon.awssdk", name = "lambda", version.ref = "awsSdk" }
 aws-sdk-s3 = { group = "software.amazon.awssdk", name = "s3", version.ref = "awsSdk" }
+aws-lambda-core = { group = "com.amazonaws", name = "aws-lambda-java-core", version.ref = "awsLambdaCore" }
 
 [plugins]
 changelog = { id = "org.jetbrains.changelog", version.ref = "changelog" }

@@ -7,10 +7,12 @@ group = "com.github.ethanhosier.metricscore"
 version = "0.0.1"
 
 kotlin {
-    // Match :analysis (23) so refactoring-miner's runtimeElements variant
-    // resolves consistently if this module ever ends up on a classpath
-    // that shares it. CK + PMD work fine on 23.
-    jvmToolchain(23)
+    // Java 21 — matches AWS Lambda's `java21` runtime so the bytecode
+    // emitted here loads cleanly when :metrics-lambda packages this jar
+    // into its container image. :analysis is on 23 (for refactoring-miner)
+    // but newer JDKs load older bytecode, so the cross-module classpath
+    // is fine.
+    jvmToolchain(21)
 }
 
 repositories {
