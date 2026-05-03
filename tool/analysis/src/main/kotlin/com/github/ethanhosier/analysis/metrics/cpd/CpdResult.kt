@@ -55,6 +55,15 @@ data class CpdDuplication(
     val tokens: Int,
     val lines: Int,
     val occurrences: List<CpdOccurrence>,
+    /**
+     * Stable per-checkpoint key for this clone group, used by
+     * cross-checkpoint trackers to detect when a clone is added or
+     * resolved. Hash of the snippet body (whitespace-trimmed lines from
+     * one occurrence's snippet patch); two groups with identical body
+     * text — even if their occurrence locations differ — share an
+     * identity. Empty default keeps old reports deserialisable.
+     */
+    val identity: String = "",
 )
 
 @Serializable
@@ -62,7 +71,22 @@ data class CpdOccurrence(
     val file: String,
     val beginLine: Int,
     val endLine: Int,
+    /**
+     * Source text at this occurrence, framed as a self-contained mini
+     * unified-diff (every line a context line). Null when the file was
+     * unreadable at analysis time. Default-null preserves backward
+     * compatibility with reports generated before snippets shipped.
+     */
+    val snippet: CpdSnippet? = null,
 )
+
+/**
+ * Wraps the unified-diff-shaped source text for one [CpdOccurrence].
+ * Mirrors `PmdViolationSnippet` so frontend renderers can treat both the
+ * same way.
+ */
+@Serializable
+data class CpdSnippet(val patch: String)
 
 @Serializable
 data class CpdProcessingError(

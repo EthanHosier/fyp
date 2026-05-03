@@ -1,5 +1,6 @@
 package com.github.ethanhosier.analysis.metrics.model
 
+import com.github.ethanhosier.analysis.metrics.cpd.CpdOccurrence
 import com.github.ethanhosier.analysis.metrics.gitdiff.DiffStats
 import com.github.ethanhosier.analysis.metrics.pmd.ResolvedPmdViolation
 import com.github.ethanhosier.analysis.miner.model.RefactoringStep
@@ -236,6 +237,11 @@ data class CheckpointReport(
     // that no longer fire here. Stitched in by the trajectory walk at
     // report-assembly time, same lifecycle as `diff` and `touchedMembers`.
     val pmdTracking: PmdTracking = PmdTracking.EMPTY,
+    // Cross-checkpoint enrichment of `metrics.cpd.duplications`: which
+    // clone group was first seen when, plus the prev-checkpoint groups
+    // whose body no longer appears here. Identity is body-hash only, so
+    // file moves / occurrence-count changes don't surface as churn.
+    val cpdTracking: CpdTracking = CpdTracking.EMPTY,
     // Backend-computed scores derived from the per-checkpoint metric blocks
     // and the trajectory walk: per-checkpoint aggregators, cleanliness
     // composite, prefix-cumulative process score. Populated for main and
@@ -379,6 +385,43 @@ data class PmdTracking(
         val EMPTY = PmdTracking()
     }
 }
+
+/**
+ * Trajectory-derived tracking for the duplication groups on a single
+ * checkpoint. `firstSeenAtSha` is aligned 1:1 with
+ * `metrics.cpd.duplications`: index `i` holds the SHA of the earliest
+ * checkpoint at which `duplications[i]` (matched by snippet-body identity)
+ * was first observed. `resolvedSincePrev` lists the previous checkpoint's
+ * clone groups that no longer appear here, snippets and all.
+ *
+ * Identity is the body-text hash carried on each `CpdDuplication.identity`
+ * — pure code-motion (file/line shifts) preserves identity, edits to the
+ * cloned body change it.
+ */
+@Serializable
+data class CpdTracking(
+    val firstSeenAtSha: List<String> = emptyList(),
+    val resolvedSincePrev: List<ResolvedCpdDuplication> = emptyList(),
+) {
+    companion object {
+        val EMPTY = CpdTracking()
+    }
+}
+
+/**
+ * A clone group that fired at the previous checkpoint but no longer fires
+ * at the current one. Carries enough state (occurrences + snippets) for
+ * the dashboard to render the resolved card without needing the previous
+ * checkpoint's report.
+ */
+@Serializable
+data class ResolvedCpdDuplication(
+    val tokens: Int,
+    val lines: Int,
+    val identity: String,
+    val prevOccurrences: List<CpdOccurrence>,
+    val firstSeenAtSha: String,
+)
 
 @OptIn(ExperimentalSerializationApi::class)
 @Serializable
