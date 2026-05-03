@@ -1,5 +1,6 @@
 package com.github.ethanhosier.analysis.metrics.cpd
 
+import com.github.ethanhosier.analysis.metrics.util.SnippetIdentity
 import com.github.ethanhosier.analysis.metrics.util.SourceSnippet
 import net.sourceforge.pmd.cpd.CPDConfiguration
 import net.sourceforge.pmd.cpd.CpdAnalysis
@@ -72,10 +73,14 @@ class CpdRunner(
                                 ?.let(::CpdSnippet),
                         )
                     }
+                    val identity = occurrences
+                        .firstNotNullOfOrNull { SnippetIdentity.fromPatch(it.snippet?.patch) }
+                        .orEmpty()
                     duplications += CpdDuplication(
                         tokens = tokens,
                         lines = lines,
                         occurrences = occurrences,
+                        identity = identity,
                     )
                 }
                 for (err in report.processingErrors) {

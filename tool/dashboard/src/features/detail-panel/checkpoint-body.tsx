@@ -14,6 +14,7 @@ import type {
   MetricId,
 } from "@/data/types"
 import { CodeSmellsSection } from "@/features/detail-panel/code-smells-section"
+import { DuplicationsSection } from "@/features/detail-panel/duplications-section"
 import { DiffSection } from "@/features/detail-panel/diff-section"
 import { SmellSignals } from "@/features/detail-panel/smell-signals"
 
@@ -108,6 +109,11 @@ export function CheckpointBody({
         smells={checkpoint.smells}
         checkpointSha={checkpoint.sha}
         touchedFiles={touchedFiles}
+      />
+
+      <DuplicationsSection
+        duplications={checkpoint.duplications}
+        checkpointSha={checkpoint.sha}
       />
     </div>
   )
