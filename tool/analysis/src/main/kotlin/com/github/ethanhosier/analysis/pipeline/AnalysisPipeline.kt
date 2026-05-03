@@ -8,8 +8,10 @@ import com.github.ethanhosier.analysis.metrics.MetricsRunner
 import com.github.ethanhosier.analysis.metrics.derived.DerivedMetricsRunner
 import com.github.ethanhosier.analysis.metrics.gitdiff.DiffStats
 import com.github.ethanhosier.analysis.metrics.model.AlternativeTrajectory
+import com.github.ethanhosier.analysis.metrics.cpd.CpdTrackingRunner
 import com.github.ethanhosier.analysis.metrics.model.AnalysisReport
 import com.github.ethanhosier.analysis.metrics.model.CheckpointReport
+import com.github.ethanhosier.analysis.metrics.model.CpdTracking
 import com.github.ethanhosier.analysis.metrics.model.DerivedMetrics
 import com.github.ethanhosier.analysis.metrics.model.EventSummary
 import com.github.ethanhosier.analysis.metrics.model.PmdTracking
@@ -133,6 +135,16 @@ class AnalysisPipeline(
         val pmdTrackingDurationMs = System.currentTimeMillis() - pmdTrackingStart
         log("pmd-tracking: ${pmdTracking.trackingBySha.size} user, ${pmdTracking.alternativeTrackingBySha.size} alt in ${pmdTrackingDurationMs}ms")
 
+        val cpdTrackingStart = System.currentTimeMillis()
+        log("cpd-tracking: starting")
+        val cpdTracking = CpdTrackingRunner().run(
+            orderedUserCheckpoints = metrics.checkpoints,
+            alternativePairs = altPairs,
+            alternativeCheckpoints = metrics.alternativeCheckpoints,
+        )
+        val cpdTrackingDurationMs = System.currentTimeMillis() - cpdTrackingStart
+        log("cpd-tracking: ${cpdTracking.trackingBySha.size} user, ${cpdTracking.alternativeTrackingBySha.size} alt in ${cpdTrackingDurationMs}ms")
+
         val report = buildAnalysisReport(
             trace = trace,
             reconstruction = reconstruction,
@@ -141,6 +153,7 @@ class AnalysisPipeline(
             alternative = alternative,
             diffs = diffs,
             pmdTracking = pmdTracking,
+            cpdTracking = cpdTracking,
             parallelism = parallelism,
             metricsDurationMs = metricsDurationMs,
         )
@@ -183,6 +196,7 @@ internal fun buildAnalysisReport(
     alternative: AlternativeTrajectoryRunner.Summary,
     diffs: DiffsRunner.Summary,
     pmdTracking: PmdTrackingRunner.Summary,
+    cpdTracking: CpdTrackingRunner.Summary = CpdTrackingRunner.Summary(emptyMap(), emptyMap()),
     parallelism: Int,
     metricsDurationMs: Long,
 ): AnalysisReport {
@@ -222,6 +236,7 @@ internal fun buildAnalysisReport(
             diff = metrics.diffBySha[m.sha] ?: DiffStats.ZERO,
             touchedMembers = membersBySha[m.sha]?.toList().orEmpty(),
             pmdTracking = pmdTracking.trackingBySha[m.sha] ?: PmdTracking.EMPTY,
+            cpdTracking = cpdTracking.trackingBySha[m.sha] ?: CpdTracking.EMPTY,
         )
     }
 
@@ -245,6 +260,7 @@ internal fun buildAnalysisReport(
                 diff = metrics.diffBySha[synth.altSha] ?: DiffStats.ZERO,
                 touchedMembers = emptyList(),
                 pmdTracking = pmdTracking.alternativeTrackingBySha[synth.altSha] ?: PmdTracking.EMPTY,
+                cpdTracking = cpdTracking.alternativeTrackingBySha[synth.altSha] ?: CpdTracking.EMPTY,
             ),
         )
     }
