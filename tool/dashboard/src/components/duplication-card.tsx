@@ -158,12 +158,18 @@ function OccurrenceBody({
         <div className="w-full overflow-x-auto">
           <FileDiff
             fileDiff={fileDiff}
+            selectedLines={{
+              start: occurrence.beginLine,
+              end: occurrence.endLine,
+              side: "additions",
+              endSide: "additions",
+            }}
             options={{
               theme,
               diffStyle: "unified",
               hunkSeparators: "simple",
               disableFileHeader: true,
-              enableLineSelection: false,
+              enableLineSelection: true,
             }}
           />
         </div>
