@@ -1,5 +1,6 @@
 package com.github.ethanhosier.analysis.metrics.cpd
 
+import com.github.ethanhosier.analysis.metrics.util.SourceSnippet
 import net.sourceforge.pmd.cpd.CPDConfiguration
 import net.sourceforge.pmd.cpd.CpdAnalysis
 import net.sourceforge.pmd.lang.java.JavaLanguageModule
@@ -61,10 +62,14 @@ class CpdRunner(
                     val tokens = match.tokenCount
                     val occurrences = match.markSet.map { mark ->
                         val loc = mark.location
+                        val relFile = relativize(loc.fileId.absolutePath, rootStr)
                         CpdOccurrence(
-                            file = relativize(loc.fileId.absolutePath, rootStr),
+                            file = relFile,
                             beginLine = loc.startLine,
                             endLine = loc.endLine,
+                            snippet = SourceSnippet
+                                .load(root, relFile, loc.startLine, loc.endLine)
+                                ?.let(::CpdSnippet),
                         )
                     }
                     duplications += CpdDuplication(
