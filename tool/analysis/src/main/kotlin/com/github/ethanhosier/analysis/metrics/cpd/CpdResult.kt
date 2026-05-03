@@ -62,7 +62,22 @@ data class CpdOccurrence(
     val file: String,
     val beginLine: Int,
     val endLine: Int,
+    /**
+     * Source text at this occurrence, framed as a self-contained mini
+     * unified-diff (every line a context line). Null when the file was
+     * unreadable at analysis time. Default-null preserves backward
+     * compatibility with reports generated before snippets shipped.
+     */
+    val snippet: CpdSnippet? = null,
 )
+
+/**
+ * Wraps the unified-diff-shaped source text for one [CpdOccurrence].
+ * Mirrors `PmdViolationSnippet` so frontend renderers can treat both the
+ * same way.
+ */
+@Serializable
+data class CpdSnippet(val patch: String)
 
 @Serializable
 data class CpdProcessingError(
