@@ -25,6 +25,10 @@ class CpdRunnerTest {
 
         for (dup in result.duplications) {
             assertTrue(dup.occurrences.size >= 2, "every group should have ≥2 occurrences")
+            assertTrue(
+                dup.identity.isNotBlank(),
+                "every group should carry a non-empty identity hash",
+            )
             for (occ in dup.occurrences) {
                 val snippet = occ.snippet
                 assertNotNull(

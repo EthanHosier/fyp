@@ -34,6 +34,9 @@ import type {
   CodeSmellVM,
   CodeSmellsVM,
   DashboardViewModel,
+  DuplicationGroupVM,
+  DuplicationOccurrenceVM,
+  DuplicationsVM,
   IntervalVM,
   MetricId,
   MetricVM,
@@ -206,6 +209,69 @@ function deriveSmells(curr: CheckpointReport, prev: CheckpointReport | null): Co
   return { added, carried, resolved, totalNow, totalPrev, delta: totalNow - totalPrev }
 }
 
+function deriveDuplications(
+  curr: CheckpointReport,
+  prev: CheckpointReport | null,
+): DuplicationsVM {
+  const duplications = curr.metrics.cpd?.duplications ?? []
+  const firstSeen = curr.cpdTracking?.firstSeenAtSha ?? []
+  const resolvedSrc = curr.cpdTracking?.resolvedSincePrev ?? []
+
+  const added: DuplicationGroupVM[] = []
+  for (let i = 0; i < duplications.length; i++) {
+    const dup = duplications[i]
+    const seenAt = firstSeen[i] ?? curr.sha
+    // Skip the seed checkpoint (no predecessor → everything looks "new"
+    // but is really preexisting baseline). Same convention as smells.
+    if (prev === null || seenAt !== curr.sha) continue
+    added.push({
+      identity: dup.identity ?? "",
+      tokens: dup.tokens,
+      lines: dup.lines,
+      occurrences: dup.occurrences.map(toOccurrenceVM),
+      state: "new",
+      firstSeenAtSha: seenAt,
+    })
+  }
+
+  const resolved: DuplicationGroupVM[] = resolvedSrc.map((r) => ({
+    identity: r.identity,
+    tokens: r.tokens,
+    lines: r.lines,
+    occurrences: r.prevOccurrences.map(toOccurrenceVM),
+    state: "resolved",
+    firstSeenAtSha: r.firstSeenAtSha,
+  }))
+
+  // Larger blocks are more interesting → tokens DESC, then lines DESC,
+  // then first occurrence's file+line as a stable tiebreaker.
+  const cmp = (a: DuplicationGroupVM, b: DuplicationGroupVM): number =>
+    b.tokens - a.tokens ||
+    b.lines - a.lines ||
+    (a.occurrences[0]?.file ?? "").localeCompare(b.occurrences[0]?.file ?? "") ||
+    (a.occurrences[0]?.beginLine ?? 0) - (b.occurrences[0]?.beginLine ?? 0)
+  added.sort(cmp)
+  resolved.sort(cmp)
+
+  const totalNow = duplications.length
+  const totalPrev = prev?.metrics.cpd?.duplications?.length ?? 0
+  return { added, resolved, totalNow, totalPrev, delta: totalNow - totalPrev }
+}
+
+function toOccurrenceVM(o: {
+  file: string
+  beginLine: number
+  endLine: number
+  snippet?: { patch: string } | null
+}): DuplicationOccurrenceVM {
+  return {
+    file: o.file,
+    beginLine: o.beginLine,
+    endLine: o.endLine,
+    snippetPatch: o.snippet?.patch ?? null,
+  }
+}
+
 function describeCheckpoint(c: CheckpointReport): string {
   const ev = c.events[0]
   if (!ev) return shortSha(c.sha)
@@ -254,6 +320,7 @@ export function toViewModel(report: AnalysisReport): DashboardViewModel {
       churn: c.diff?.totalChurn ?? 0,
       patch: report.checkpointPatches?.[c.sha] ?? "",
       smells: deriveSmells(c, prev),
+      duplications: deriveDuplications(c, prev),
       processScore: processBreakdown.total,
       processBreakdown,
       cleanlinessScore: cleanlinessBreakdown?.total ?? null,
@@ -288,6 +355,14 @@ export function toViewModel(report: AnalysisReport): DashboardViewModel {
         resolved: [],
         totalNow: lastReal.smells.totalNow,
         totalPrev: lastReal.smells.totalNow,
+        delta: 0,
+      },
+      // No transition into the synthetic terminator → no duplication churn.
+      duplications: {
+        added: [],
+        resolved: [],
+        totalNow: lastReal.duplications.totalNow,
+        totalPrev: lastReal.duplications.totalNow,
         delta: 0,
       },
       // Synthetic terminator just mirrors the last real checkpoint's

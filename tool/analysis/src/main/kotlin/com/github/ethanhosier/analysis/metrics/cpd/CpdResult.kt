@@ -55,6 +55,15 @@ data class CpdDuplication(
     val tokens: Int,
     val lines: Int,
     val occurrences: List<CpdOccurrence>,
+    /**
+     * Stable per-checkpoint key for this clone group, used by
+     * cross-checkpoint trackers to detect when a clone is added or
+     * resolved. Hash of the snippet body (whitespace-trimmed lines from
+     * one occurrence's snippet patch); two groups with identical body
+     * text — even if their occurrence locations differ — share an
+     * identity. Empty default keeps old reports deserialisable.
+     */
+    val identity: String = "",
 )
 
 @Serializable

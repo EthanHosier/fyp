@@ -56,6 +56,9 @@ export type CheckpointVM = {
   patch: string
   /** Bucketed PMD violations (added / carried / resolved) plus running totals. */
   smells: CodeSmellsVM
+  /** Clone groups added or resolved at this checkpoint vs. the previous one.
+   *  Only churn — carried groups intentionally omitted. */
+  duplications: DuplicationsVM
   /** Cumulative process score 0..100 at this checkpoint. See process-score.ts. */
   processScore: number
   /** Decomposition of the process score into signed contributions. */
@@ -154,6 +157,42 @@ export type CodeSmellsVM = {
   /** `added.length + carried.length`. */
   totalNow: number
   /** Total violations at the previous checkpoint, or 0 for the seed. */
+  totalPrev: number
+  /** `totalNow - totalPrev`. */
+  delta: number
+}
+
+/** One occurrence of a clone group, reshaped for UI consumption. */
+export type DuplicationOccurrenceVM = {
+  file: string
+  beginLine: number
+  endLine: number
+  /** Self-contained mini unified-diff text wrapping the snippet, ready to
+   *  hand to `parsePatchFiles`. Null when the analysis pipeline couldn't
+   *  read the source. */
+  snippetPatch: string | null
+}
+
+/** A single clone group flagged at this checkpoint, tagged with whether
+ *  it appeared (`new`) or disappeared (`resolved`) since the previous
+ *  checkpoint. Carried groups are intentionally not surfaced. */
+export type DuplicationGroupVM = {
+  /** Snippet body hash; stable across pure code-motion. */
+  identity: string
+  tokens: number
+  lines: number
+  occurrences: DuplicationOccurrenceVM[]
+  state: "new" | "resolved"
+  /** SHA where this group was first observed (== current sha for `new`). */
+  firstSeenAtSha: string
+}
+
+export type DuplicationsVM = {
+  added: DuplicationGroupVM[]
+  resolved: DuplicationGroupVM[]
+  /** Total clone groups at this checkpoint. */
+  totalNow: number
+  /** Total clone groups at the previous checkpoint, or 0 for the seed. */
   totalPrev: number
   /** `totalNow - totalPrev`. */
   delta: number
