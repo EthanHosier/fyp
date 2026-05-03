@@ -105,15 +105,15 @@ export function CheckpointBody({
         emptyMessage={patchEmptyMessage}
       />
 
+      <DuplicationsSection
+        duplications={checkpoint.duplications}
+        checkpointSha={checkpoint.sha}
+      />
+
       <CodeSmellsSection
         smells={checkpoint.smells}
         checkpointSha={checkpoint.sha}
         touchedFiles={touchedFiles}
-      />
-
-      <DuplicationsSection
-        duplications={checkpoint.duplications}
-        checkpointSha={checkpoint.sha}
       />
     </div>
   )
