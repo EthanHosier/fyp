@@ -11,7 +11,10 @@ import {
   hasRefactoringPitfalls,
   RefactoringPitfalls,
 } from "@/features/detail-panel/refactoring-pitfalls"
-import { StatusIntervalBody } from "@/features/detail-panel/status-interval-body"
+import {
+  StatusIntervalBody,
+  statusLabelFor,
+} from "@/features/detail-panel/status-interval-body"
 import { useDashboardStore } from "@/stores/dashboard-store"
 
 const PANEL_WIDTH = 380
@@ -162,14 +165,6 @@ function endpointLabel(vm: DashboardViewModel, checkpointIndex: number): string 
   const step = vm.refactoringSteps.find((s) => s.checkpointIndex === checkpointIndex)
   if (step) return step.refactoringType
   return vm.checkpoints[checkpointIndex]?.description ?? `c${checkpointIndex}`
-}
-
-// Tests being "unknown" specifically means the test run was skipped
-// (build failed so we never ran them). Surface that distinction here —
-// other statuses pass through unchanged.
-function statusLabelFor(statusKind: "build" | "tests", status: StatusTone): string {
-  if (statusKind === "tests" && status === "unknown") return "skipped"
-  return status
 }
 
 // Rail rects merge adjacent same-status intervals into one visual run;
