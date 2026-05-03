@@ -205,6 +205,10 @@ function annotationsAt(vm: DashboardViewModel, checkpointIndex: number): Annotat
   // not. Skipping i=0 (no prior to compare against).
   if (cp && prev) {
     for (const m of vm.metrics) {
+      // Cleanliness drops are already conveyed by the process-score
+      // breakdown panel; surfacing them again as a sidebar annotation
+      // is redundant noise.
+      if (m.id === "cleanliness") continue
       const a = prev.values[m.id]
       const b = cp.values[m.id]
       if (typeof a !== "number" || typeof b !== "number") continue
