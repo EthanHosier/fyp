@@ -60,3 +60,14 @@ function statusDotTone(s: StatusTone): "success" | "danger" | "neutral" {
   if (s === "fail") return "danger"
   return "neutral"
 }
+
+// Tests being "unknown" specifically means the test run was skipped
+// (build failed so we never ran them). Surface that distinction here —
+// other statuses pass through unchanged.
+export function statusLabelFor(
+  statusKind: "build" | "tests",
+  status: StatusTone,
+): string {
+  if (statusKind === "tests" && status === "unknown") return "skipped"
+  return status
+}
