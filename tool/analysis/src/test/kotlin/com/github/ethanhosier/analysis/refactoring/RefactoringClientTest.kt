@@ -65,6 +65,7 @@ import com.github.ethanhosier.analysis.refactoring.ops.renameMethod
 import com.github.ethanhosier.analysis.refactoring.ops.renamePackage
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.io.TempDir
@@ -2134,5 +2135,507 @@ class RefactoringClientTest {
             ),
         )
         assertIs<RefactoringOutcome.Failed>(after, "second call after failure still works")
+    }
+
+    /**
+     * Verifies the AST-subtree-hash anchor on
+     * [com.github.ethanhosier.analysis.miner.model.RefactoringSpec.ExtractMethod]
+     * survives drift in the surrounding code as long as the selection's
+     * own subtree is unchanged. Each test:
+     *  1. writes an "anchor source" — the file as it looked when the
+     *     spec was mined, used to compute the hash anchor;
+     *  2. overwrites the same file with a "drifted source" — same
+     *     to-be-extracted code, edits elsewhere (lines shifted,
+     *     unrelated statements changed, formatting adjusted);
+     *  3. runs `client.extractMethod` with the *original* anchor and
+     *     asserts the refactoring still locates and extracts the
+     *     intended window.
+     *
+     * Together these exercise the resilience that motivates the
+     * AST-anchor scheme: an alt-trajectory replays a refactoring after
+     * a prior op rewrote part of the file, and the anchor needs to
+     * re-find its target without relying on stale (line, col)
+     * addressing.
+     */
+    @Nested
+    inner class `extract method anchor drift` {
+
+        @Test
+        fun `survives a new method added above the host`(@TempDir worktree: Path) {
+            val (file, request) = anchorSource(
+                worktree,
+                """
+                package org.example;
+
+                public class Pricer {
+                    public double priceFor(String tier, double total) {
+                        if (tier.equals("gold")) {
+                            double discount = total * 0.2;
+                            double taxed = (total - discount) * 1.2;
+                            return taxed - 5.0;
+                        }
+                        return total;
+                    }
+                }
+                """.trimIndent(),
+                startLine = 6, endLine = 9, newMethodName = "handleGold",
+            )
+
+            // Drift: prepend a brand-new method above `priceFor`. Every
+            // line of the host shifts down. The selection's AST is
+            // byte-identical to the anchor source.
+            file.writeText(
+                """
+                package org.example;
+
+                public class Pricer {
+                    private double surcharge(double total) {
+                        return total * 0.05;
+                    }
+
+                    public double priceFor(String tier, double total) {
+                        if (tier.equals("gold")) {
+                            double discount = total * 0.2;
+                            double taxed = (total - discount) * 1.2;
+                            return taxed - 5.0;
+                        }
+                        return total;
+                    }
+                }
+                """.trimIndent(),
+            )
+
+            val outcome = client.extractMethod(request)
+            assertIs<RefactoringOutcome.Success>(outcome, "outcome=$outcome")
+            assertEquals(
+                """
+                package org.example;
+
+                public class Pricer {
+                    private double surcharge(double total) {
+                        return total * 0.05;
+                    }
+
+                    public double priceFor(String tier, double total) {
+                        if (tier.equals("gold")) {
+                            return handleGold(total);
+                        }
+                        return total;
+                    }
+
+                    private double handleGold(double total) {
+                        double discount = total * 0.2;
+                        double taxed = (total - discount) * 1.2;
+                        return taxed - 5.0;
+                    }
+                }
+                """.trimIndent(),
+                Files.readString(file).trimEnd(),
+            )
+        }
+
+        @Test
+        fun `survives an unrelated statement in the same method changing`(@TempDir worktree: Path) {
+            val (file, request) = anchorSource(
+                worktree,
+                """
+                package org.example;
+
+                public class Pricer {
+                    public double priceFor(String tier, double total) {
+                        double tax = total * 0.1;
+                        if (tier.equals("gold")) {
+                            double discount = total * 0.2;
+                            double taxed = (total - discount) * 1.2;
+                            return taxed - 5.0;
+                        }
+                        return total + tax;
+                    }
+                }
+                """.trimIndent(),
+                startLine = 7, endLine = 10, newMethodName = "handleGold",
+            )
+
+            // Drift: change the unrelated `tax = total * 0.1` to
+            // `total * 0.15`. The if-body — the selection — is
+            // untouched, so its hash still matches.
+            file.writeText(
+                """
+                package org.example;
+
+                public class Pricer {
+                    public double priceFor(String tier, double total) {
+                        double tax = total * 0.15;
+                        if (tier.equals("gold")) {
+                            double discount = total * 0.2;
+                            double taxed = (total - discount) * 1.2;
+                            return taxed - 5.0;
+                        }
+                        return total + tax;
+                    }
+                }
+                """.trimIndent(),
+            )
+
+            val outcome = client.extractMethod(request)
+            assertIs<RefactoringOutcome.Success>(outcome, "outcome=$outcome")
+            assertEquals(
+                """
+                package org.example;
+
+                public class Pricer {
+                    public double priceFor(String tier, double total) {
+                        double tax = total * 0.15;
+                        if (tier.equals("gold")) {
+                            return handleGold(total);
+                        }
+                        return total + tax;
+                    }
+
+                    private double handleGold(double total) {
+                        double discount = total * 0.2;
+                        double taxed = (total - discount) * 1.2;
+                        return taxed - 5.0;
+                    }
+                }
+                """.trimIndent(),
+                Files.readString(file).trimEnd(),
+            )
+        }
+
+        @Test
+        fun `survives comments and javadoc added around the selection`(@TempDir worktree: Path) {
+            val (file, request) = anchorSource(
+                worktree,
+                """
+                package org.example;
+
+                public class Pricer {
+                    public double priceFor(String tier, double total) {
+                        if (tier.equals("gold")) {
+                            double discount = total * 0.2;
+                            double taxed = (total - discount) * 1.2;
+                            return taxed - 5.0;
+                        }
+                        return total;
+                    }
+                }
+                """.trimIndent(),
+                startLine = 6, endLine = 9, newMethodName = "handleGold",
+            )
+
+            // Drift: add javadoc on the host, a line comment inside
+            // the if-block above the selection, and a block comment
+            // after. Comments are skipped by the AST hasher.
+            file.writeText(
+                """
+                package org.example;
+
+                /** Pricing logic. */
+                public class Pricer {
+                    /**
+                     * Computes the price for a tier.
+                     */
+                    public double priceFor(String tier, double total) {
+                        if (tier.equals("gold")) {
+                            // gold-tier discount + tax + flat-five fee
+                            double discount = total * 0.2;
+                            double taxed = (total - discount) * 1.2;
+                            return taxed - 5.0;
+                            /* end of gold branch */
+                        }
+                        return total;
+                    }
+                }
+                """.trimIndent(),
+            )
+
+            val outcome = client.extractMethod(request)
+            assertIs<RefactoringOutcome.Success>(outcome, "outcome=$outcome")
+            val rewritten = Files.readString(file)
+            assertTrue(
+                rewritten.contains("private double handleGold"),
+                "expected `handleGold` method to be created — got:\n$rewritten",
+            )
+            assertTrue(
+                rewritten.contains("return handleGold(total);"),
+                "expected the original block to be replaced by a call",
+            )
+        }
+
+        @Test
+        fun `survives reformatted indentation in the host method`(@TempDir worktree: Path) {
+            val (file, request) = anchorSource(
+                worktree,
+                """
+                package org.example;
+
+                public class Pricer {
+                    public double priceFor(String tier, double total) {
+                        if (tier.equals("gold")) {
+                            double discount = total * 0.2;
+                            double taxed = (total - discount) * 1.2;
+                            return taxed - 5.0;
+                        }
+                        return total;
+                    }
+                }
+                """.trimIndent(),
+                startLine = 6, endLine = 9, newMethodName = "handleGold",
+            )
+
+            // Drift: change indentation throughout the host body. JDT's
+            // structural property descriptors don't carry whitespace,
+            // so the selection's hash is invariant to formatting.
+            file.writeText(
+                """
+                package org.example;
+
+                public class Pricer {
+                  public double priceFor(String tier, double total) {
+                      if (tier.equals("gold"))
+                      {
+                                double discount = total * 0.2;
+                                double taxed = (total - discount) * 1.2;
+                                return taxed - 5.0;
+                      }
+                      return total;
+                  }
+                }
+                """.trimIndent(),
+            )
+
+            val outcome = client.extractMethod(request)
+            assertIs<RefactoringOutcome.Success>(outcome, "outcome=$outcome")
+            assertTrue(
+                Files.readString(file).contains("private double handleGold"),
+                "expected `handleGold` method to be created",
+            )
+        }
+
+        @Test
+        fun `survives new statements added inside the host but outside the selection`(@TempDir worktree: Path) {
+            val (file, request) = anchorSource(
+                worktree,
+                """
+                package org.example;
+
+                public class Pricer {
+                    public double priceFor(String tier, double total) {
+                        if (tier.equals("gold")) {
+                            double discount = total * 0.2;
+                            double taxed = (total - discount) * 1.2;
+                            return taxed - 5.0;
+                        }
+                        return total;
+                    }
+                }
+                """.trimIndent(),
+                startLine = 6, endLine = 9, newMethodName = "handleGold",
+            )
+
+            // Drift: insert new statements both *before* the if-block
+            // and *after* it. The selection (the if-then-block's three
+            // statements) is byte-identical, so the hash still matches.
+            file.writeText(
+                """
+                package org.example;
+
+                public class Pricer {
+                    public double priceFor(String tier, double total) {
+                        double base = total;
+                        double tax = base * 0.1;
+                        if (tier.equals("gold")) {
+                            double discount = total * 0.2;
+                            double taxed = (total - discount) * 1.2;
+                            return taxed - 5.0;
+                        }
+                        double surcharge = base * 0.05;
+                        return total + tax + surcharge;
+                    }
+                }
+                """.trimIndent(),
+            )
+
+            val outcome = client.extractMethod(request)
+            assertIs<RefactoringOutcome.Success>(outcome, "outcome=$outcome")
+            assertEquals(
+                """
+                package org.example;
+
+                public class Pricer {
+                    public double priceFor(String tier, double total) {
+                        double base = total;
+                        double tax = base * 0.1;
+                        if (tier.equals("gold")) {
+                            return handleGold(total);
+                        }
+                        double surcharge = base * 0.05;
+                        return total + tax + surcharge;
+                    }
+
+                    private double handleGold(double total) {
+                        double discount = total * 0.2;
+                        double taxed = (total - discount) * 1.2;
+                        return taxed - 5.0;
+                    }
+                }
+                """.trimIndent(),
+                Files.readString(file).trimEnd(),
+            )
+        }
+
+        @Test
+        fun `survives statements deleted from the host but outside the selection`(@TempDir worktree: Path) {
+            val (file, request) = anchorSource(
+                worktree,
+                """
+                package org.example;
+
+                public class Pricer {
+                    public double priceFor(String tier, double total) {
+                        double base = total;
+                        double tax = base * 0.1;
+                        double surcharge = base * 0.05;
+                        if (tier.equals("gold")) {
+                            double discount = total * 0.2;
+                            double taxed = (total - discount) * 1.2;
+                            return taxed - 5.0;
+                        }
+                        return total + tax + surcharge;
+                    }
+                }
+                """.trimIndent(),
+                startLine = 9, endLine = 12, newMethodName = "handleGold",
+            )
+
+            // Drift: delete the unrelated `tax` and `surcharge` setup
+            // statements *and* simplify the trailing return. The
+            // selection (if-then-block's three statements) is
+            // unchanged so the hash still matches; the apply path
+            // re-finds the window at its new (shifted-up) position.
+            file.writeText(
+                """
+                package org.example;
+
+                public class Pricer {
+                    public double priceFor(String tier, double total) {
+                        double base = total;
+                        if (tier.equals("gold")) {
+                            double discount = total * 0.2;
+                            double taxed = (total - discount) * 1.2;
+                            return taxed - 5.0;
+                        }
+                        return base;
+                    }
+                }
+                """.trimIndent(),
+            )
+
+            val outcome = client.extractMethod(request)
+            assertIs<RefactoringOutcome.Success>(outcome, "outcome=$outcome")
+            assertEquals(
+                """
+                package org.example;
+
+                public class Pricer {
+                    public double priceFor(String tier, double total) {
+                        double base = total;
+                        if (tier.equals("gold")) {
+                            return handleGold(total);
+                        }
+                        return base;
+                    }
+
+                    private double handleGold(double total) {
+                        double discount = total * 0.2;
+                        double taxed = (total - discount) * 1.2;
+                        return taxed - 5.0;
+                    }
+                }
+                """.trimIndent(),
+                Files.readString(file).trimEnd(),
+            )
+        }
+
+        @Test
+        fun `fails gracefully when a literal inside the selection was changed`(@TempDir worktree: Path) {
+            val (file, request) = anchorSource(
+                worktree,
+                """
+                package org.example;
+
+                public class Pricer {
+                    public double priceFor(String tier, double total) {
+                        if (tier.equals("gold")) {
+                            double discount = total * 0.2;
+                            double taxed = (total - discount) * 1.2;
+                            return taxed - 5.0;
+                        }
+                        return total;
+                    }
+                }
+                """.trimIndent(),
+                startLine = 6, endLine = 9, newMethodName = "handleGold",
+            )
+
+            // Drift: change the discount factor *inside* the selection
+            // window from 0.2 → 0.25. Selection hash no longer matches.
+            file.writeText(
+                """
+                package org.example;
+
+                public class Pricer {
+                    public double priceFor(String tier, double total) {
+                        if (tier.equals("gold")) {
+                            double discount = total * 0.25;
+                            double taxed = (total - discount) * 1.2;
+                            return taxed - 5.0;
+                        }
+                        return total;
+                    }
+                }
+                """.trimIndent(),
+            )
+
+            val outcome = client.extractMethod(request)
+            val failed = assertIs<RefactoringOutcome.Failed>(outcome, "outcome=$outcome")
+            assertTrue(
+                failed.reason.contains("no AST subtree match") || failed.reason.contains("hash"),
+                "reason should mention hash / no AST subtree match — got: ${failed.reason}",
+            )
+        }
+
+        /**
+         * Write [source] to a Java file under [worktree] and build the
+         * extract-method request against that snapshot. Returns the
+         * file (so callers can overwrite it with drifted source) and
+         * the request (which carries the AST-subtree-hash anchor that
+         * survives subsequent edits).
+         */
+        private fun anchorSource(
+            worktree: Path,
+            source: String,
+            startLine: Int,
+            endLine: Int,
+            newMethodName: String,
+        ): Pair<Path, com.github.ethanhosier.analysis.refactoring.ops.ExtractMethodRequest> {
+            val src = worktree.resolve("src").also(Path::createDirectories)
+            val file = src.resolve("org/example/Pricer.java")
+            file.parent.createDirectories()
+            file.writeText(source)
+            val request = extractMethodRequestAt(
+                projectRoot = worktree,
+                sourceFolders = listOf("src"),
+                classpathJars = emptyList(),
+                relativeFilePath = "src/org/example/Pricer.java",
+                startLine = startLine,
+                startColumn = 1,
+                endLine = endLine,
+                endColumn = Int.MAX_VALUE,
+                newMethodName = newMethodName,
+            )
+            return file to request
+        }
     }
 }
