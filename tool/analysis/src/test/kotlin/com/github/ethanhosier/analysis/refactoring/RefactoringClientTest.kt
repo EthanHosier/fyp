@@ -128,7 +128,7 @@ class RefactoringClientTest {
         )
 
         val outcome = client.extractMethod(
-            ExtractMethodRequest(
+            extractMethodRequestAt(
                 projectRoot = worktree,
                 sourceFolders = listOf("src"),
                 classpathJars = emptyList(),
@@ -478,7 +478,7 @@ class RefactoringClientTest {
 
         // Column points inside the `x` parameter declaration on line 4.
         val outcome = client.renameLocalVariable(
-            RenameLocalVariableRequest(
+            renameLocalVariableRequestAt(
                 projectRoot = worktree,
                 sourceFolders = listOf("src"),
                 classpathJars = emptyList(),
@@ -526,7 +526,7 @@ class RefactoringClientTest {
 
         // Select the expression `total * 0.2` on line 5 (columns 24..34 inclusive).
         val outcome = client.extractVariable(
-            ExtractVariableRequest(
+            extractVariableRequestAt(
                 projectRoot = worktree,
                 sourceFolders = listOf("src"),
                 classpathJars = emptyList(),
@@ -577,7 +577,7 @@ class RefactoringClientTest {
 
         // Column 13 sits inside `total` on line 5.
         val outcome = client.inlineVariable(
-            InlineVariableRequest(
+            inlineVariableRequestAt(
                 projectRoot = worktree,
                 sourceFolders = listOf("src"),
                 classpathJars = emptyList(),
@@ -1736,7 +1736,7 @@ class RefactoringClientTest {
 
         // Select the literal `0.2` on line 5 (columns 28..30).
         val outcome = client.extractAttribute(
-            ExtractAttributeRequest(
+            extractAttributeRequestAt(
                 projectRoot = worktree,
                 sourceFolders = listOf("src"),
                 classpathJars = emptyList(),
@@ -1796,7 +1796,7 @@ class RefactoringClientTest {
 
         // Point at the variable name `xs` on line 7.
         val outcome = client.changeVariableType(
-            ChangeVariableTypeRequest(
+            changeVariableTypeRequestAt(
                 projectRoot = worktree,
                 sourceFolders = listOf("src"),
                 classpathJars = emptyList(),
@@ -1899,7 +1899,7 @@ class RefactoringClientTest {
 
         // Point at the `cache` declaration on line 5.
         val outcome = client.replaceVariableWithAttribute(
-            ReplaceVariableWithAttributeRequest(
+            replaceVariableWithAttributeRequestAt(
                 projectRoot = worktree,
                 sourceFolders = listOf("src"),
                 classpathJars = emptyList(),
@@ -1948,7 +1948,7 @@ class RefactoringClientTest {
 
         // Select the literal "Ada" on line 5 (columns 16..20 inclusive, quotes included).
         val outcome = client.parameterizeVariable(
-            ParameterizeVariableRequest(
+            parameterizeVariableRequestAt(
                 projectRoot = worktree,
                 sourceFolders = listOf("src"),
                 classpathJars = emptyList(),
@@ -1997,7 +1997,7 @@ class RefactoringClientTest {
 
         // Select `base` on line 7.
         val outcome = client.parameterizeAttribute(
-            ParameterizeAttributeRequest(
+            parameterizeAttributeRequestAt(
                 projectRoot = worktree,
                 sourceFolders = listOf("src"),
                 classpathJars = emptyList(),
@@ -2103,7 +2103,7 @@ class RefactoringClientTest {
         // Lines 3..4 straddle the class declaration and a field — not a
         // clean statement selection, so ExtractMethod should refuse.
         val outcome = client.extractMethod(
-            ExtractMethodRequest(
+            extractMethodRequestAt(
                 projectRoot = worktree,
                 sourceFolders = listOf("src"),
                 classpathJars = emptyList(),
@@ -2121,7 +2121,7 @@ class RefactoringClientTest {
 
         // Client must still be usable after a failure.
         val after = client.extractMethod(
-            ExtractMethodRequest(
+            extractMethodRequestAt(
                 projectRoot = worktree,
                 sourceFolders = listOf("src"),
                 classpathJars = emptyList(),

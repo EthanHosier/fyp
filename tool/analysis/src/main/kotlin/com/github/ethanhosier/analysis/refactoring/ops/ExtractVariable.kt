@@ -10,10 +10,13 @@ data class ExtractVariableRequest(
     val sourceFolders: List<String>,
     val classpathJars: List<Path>,
     val relativeFilePath: String,
-    val startLine: Int,            // 1-indexed
-    val startColumn: Int,          // 1-indexed, inclusive
-    val endLine: Int,              // 1-indexed
-    val endColumn: Int,            // 1-indexed, inclusive
+    val declaringTypeFqn: String,
+    val hostMethodName: String,
+    val hostMethodParamTypes: List<String>,
+    val selectionSubtreeHash: String,
+    val selectionNodeCount: Int,
+    val originalLineHint: Int? = null,
+    val originalColumnHint: Int? = null,
     val newName: String,
 )
 
@@ -22,7 +25,10 @@ private val paramTypes: Array<Class<*>> = arrayOf(
     Array<String>::class.java,
     Array<String>::class.java,
     String::class.java,
-    Int::class.javaPrimitiveType!!,
+    String::class.java,
+    String::class.java,
+    Array<String>::class.java,
+    String::class.java,
     Int::class.javaPrimitiveType!!,
     Int::class.javaPrimitiveType!!,
     Int::class.javaPrimitiveType!!,
@@ -38,10 +44,13 @@ fun RefactoringClient.extractVariable(req: ExtractVariableRequest): RefactoringO
             req.sourceFolders.toTypedArray(),
             req.classpathJars.map { it.toAbsolutePath().toString() }.toTypedArray(),
             req.relativeFilePath,
-            req.startLine,
-            req.startColumn,
-            req.endLine,
-            req.endColumn,
+            req.declaringTypeFqn,
+            req.hostMethodName,
+            req.hostMethodParamTypes.toTypedArray(),
+            req.selectionSubtreeHash,
+            req.selectionNodeCount,
+            req.originalLineHint ?: -1,
+            req.originalColumnHint ?: -1,
             req.newName,
         ),
     )

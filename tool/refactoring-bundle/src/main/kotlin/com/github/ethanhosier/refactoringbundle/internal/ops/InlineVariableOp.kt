@@ -1,58 +1,49 @@
 package com.github.ethanhosier.refactoringbundle.internal.ops
 
 import com.github.ethanhosier.refactoringbundle.internal.RefactoringRunner
-import org.eclipse.core.resources.IFile
-import org.eclipse.jdt.core.ICompilationUnit
+import com.github.ethanhosier.refactoringbundle.internal.anchor.AnchorOps
+import com.github.ethanhosier.refactoringbundle.internal.anchor.AnchorResolver
 import org.eclipse.jdt.core.IJavaProject
-import org.eclipse.jdt.core.JavaCore
 import org.eclipse.jdt.core.dom.AST
 import org.eclipse.jdt.core.dom.ASTParser
 import org.eclipse.jdt.core.dom.CompilationUnit
 import org.eclipse.jdt.internal.corext.refactoring.code.InlineTempRefactoring
 
-/**
- * Inline the local variable at ([line], [column]) in [relativeFilePath],
- * replacing every use of the variable with its initialiser expression.
- */
 internal object InlineVariableOp {
 
     fun run(
         javaProject: IJavaProject,
         relativeFilePath: String,
-        line: Int,
-        column: Int,
+        declaringTypeFqn: String,
+        hostMethodName: String,
+        hostMethodParamTypes: Array<String>,
+        declarationSubtreeHash: String,
+        originalLineHint: Int,
+        originalColumnHint: Int,
     ): RefactoringRunner.Outcome {
-        val icu = findCompilationUnit(javaProject, relativeFilePath)
+        val icu = AnchorOps.findCompilationUnit(javaProject, relativeFilePath)
             ?: return RefactoringRunner.Outcome.Failure("no compilation unit at $relativeFilePath")
+        val cu = AnchorResolver.parse(icu)
+        val host = AnchorResolver.findHostMethod(cu, declaringTypeFqn, hostMethodName, hostMethodParamTypes)
+            ?: return RefactoringRunner.Outcome.Failure(
+                "host method not found: $declaringTypeFqn#$hostMethodName(${hostMethodParamTypes.joinToString(",")})",
+            )
+        val decl = AnchorResolver.findDeclaration(host, declarationSubtreeHash, AnchorOps.hintOrNull(originalLineHint))
+            ?: return RefactoringRunner.Outcome.Failure("no declaration match for hash=$declarationSubtreeHash")
+        val (offset, _) = AnchorOps.nameOffsetAndLength(decl)
+            ?: return RefactoringRunner.Outcome.Failure("declaration node has no name: ${decl.javaClass.simpleName}")
 
-        val source = String(icu.buffer.characters)
-        val offset = lineColumnOffset(source, line, column)
-
-        val parser = ASTParser.newParser(AST.JLS_Latest).apply {
+        // InlineTempRefactoring needs a binding-resolved AST so it can
+        // resolve the variable's IVariableBinding. The shared
+        // [AnchorResolver.parse] uses `setResolveBindings(false)` for
+        // speed (sufficient for hashing) — re-parse here just for this op.
+        val resolvedParser = ASTParser.newParser(AST.JLS_Latest).apply {
             setKind(ASTParser.K_COMPILATION_UNIT)
             setSource(icu)
             setResolveBindings(true)
         }
-        @Suppress("UNUSED_VARIABLE")
-        val astRoot = parser.createAST(null) as CompilationUnit
-
-        val refactoring = InlineTempRefactoring(icu, astRoot, offset, 0)
+        val resolved = resolvedParser.createAST(null) as CompilationUnit
+        val refactoring = InlineTempRefactoring(icu, resolved, offset, 0)
         return RefactoringRunner.run(refactoring)
-    }
-
-    private fun findCompilationUnit(javaProject: IJavaProject, relativeFilePath: String): ICompilationUnit? {
-        val file: IFile = javaProject.project.getFile(relativeFilePath).takeIf { it.exists() }
-            ?: return null
-        return JavaCore.createCompilationUnitFrom(file)
-    }
-
-    private fun lineColumnOffset(source: String, line: Int, column: Int): Int {
-        var idx = 0
-        var seen = 1
-        while (seen < line && idx < source.length) {
-            if (source[idx] == '\n') seen++
-            idx++
-        }
-        return idx + (column - 1).coerceAtLeast(0)
     }
 }

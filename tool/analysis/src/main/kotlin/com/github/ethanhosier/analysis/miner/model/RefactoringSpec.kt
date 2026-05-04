@@ -37,10 +37,13 @@ sealed interface RefactoringSpec {
     @Serializable @SerialName("ExtractMethod")
     data class ExtractMethod(
         val relativeFilePath: String,
-        val startLine: Int,
-        val startColumn: Int,
-        val endLine: Int,
-        val endColumn: Int,
+        val declaringTypeFqn: String,
+        val hostMethodName: String,
+        val hostMethodParamTypes: List<String>,
+        val selectionSubtreeHash: String,
+        val selectionNodeCount: Int,
+        val originalLineHint: Int? = null,
+        val originalColumnHint: Int? = null,
         val newMethodName: String,
     ) : RefactoringSpec
 
@@ -54,27 +57,37 @@ sealed interface RefactoringSpec {
     @Serializable @SerialName("ExtractVariable")
     data class ExtractVariable(
         val relativeFilePath: String,
-        val startLine: Int,
-        val startColumn: Int,
-        val endLine: Int,
-        val endColumn: Int,
+        val declaringTypeFqn: String,
+        val hostMethodName: String,
+        val hostMethodParamTypes: List<String>,
+        val selectionSubtreeHash: String,
+        val selectionNodeCount: Int,
+        val originalLineHint: Int? = null,
+        val originalColumnHint: Int? = null,
         val newName: String,
     ) : RefactoringSpec
 
     @Serializable @SerialName("InlineVariable")
     data class InlineVariable(
         val relativeFilePath: String,
-        val line: Int,
-        val column: Int,
+        val declaringTypeFqn: String,
+        val hostMethodName: String,
+        val hostMethodParamTypes: List<String>,
+        val declarationSubtreeHash: String,
+        val originalLineHint: Int? = null,
+        val originalColumnHint: Int? = null,
     ) : RefactoringSpec
 
     @Serializable @SerialName("ExtractAttribute")
     data class ExtractAttribute(
         val relativeFilePath: String,
-        val startLine: Int,
-        val startColumn: Int,
-        val endLine: Int,
-        val endColumn: Int,
+        val declaringTypeFqn: String,
+        val hostMethodName: String,
+        val hostMethodParamTypes: List<String>,
+        val selectionSubtreeHash: String,
+        val selectionNodeCount: Int,
+        val originalLineHint: Int? = null,
+        val originalColumnHint: Int? = null,
         val newName: String,
         val visibility: String = "private",
     ) : RefactoringSpec
@@ -137,16 +150,24 @@ sealed interface RefactoringSpec {
     @Serializable @SerialName("RenameLocalVariable")
     data class RenameLocalVariable(
         val relativeFilePath: String,
-        val line: Int,
-        val column: Int,
+        val declaringTypeFqn: String,
+        val hostMethodName: String,
+        val hostMethodParamTypes: List<String>,
+        val declarationSubtreeHash: String,
+        val originalLineHint: Int? = null,
+        val originalColumnHint: Int? = null,
         val newName: String,
     ) : RefactoringSpec
 
     @Serializable @SerialName("RenameParameter")
     data class RenameParameter(
         val relativeFilePath: String,
-        val line: Int,
-        val column: Int,
+        val declaringTypeFqn: String,
+        val hostMethodName: String,
+        val hostMethodParamTypes: List<String>,
+        val declarationSubtreeHash: String,
+        val originalLineHint: Int? = null,
+        val originalColumnHint: Int? = null,
         val newName: String,
     ) : RefactoringSpec
 
@@ -268,8 +289,12 @@ sealed interface RefactoringSpec {
     @Serializable @SerialName("ChangeVariableType")
     data class ChangeVariableType(
         val relativeFilePath: String,
-        val line: Int,
-        val column: Int,
+        val declaringTypeFqn: String,
+        val hostMethodName: String,
+        val hostMethodParamTypes: List<String>,
+        val declarationSubtreeHash: String,
+        val originalLineHint: Int? = null,
+        val originalColumnHint: Int? = null,
         val newTypeFqn: String,
     ) : RefactoringSpec
 
@@ -283,28 +308,38 @@ sealed interface RefactoringSpec {
     @Serializable @SerialName("ParameterizeVariable")
     data class ParameterizeVariable(
         val relativeFilePath: String,
-        val startLine: Int,
-        val startColumn: Int,
-        val endLine: Int,
-        val endColumn: Int,
+        val declaringTypeFqn: String,
+        val hostMethodName: String,
+        val hostMethodParamTypes: List<String>,
+        val selectionSubtreeHash: String,
+        val selectionNodeCount: Int,
+        val originalLineHint: Int? = null,
+        val originalColumnHint: Int? = null,
         val newParameterName: String,
     ) : RefactoringSpec
 
     @Serializable @SerialName("ParameterizeAttribute")
     data class ParameterizeAttribute(
         val relativeFilePath: String,
-        val startLine: Int,
-        val startColumn: Int,
-        val endLine: Int,
-        val endColumn: Int,
+        val declaringTypeFqn: String,
+        val hostMethodName: String,
+        val hostMethodParamTypes: List<String>,
+        val selectionSubtreeHash: String,
+        val selectionNodeCount: Int,
+        val originalLineHint: Int? = null,
+        val originalColumnHint: Int? = null,
         val newParameterName: String,
     ) : RefactoringSpec
 
     @Serializable @SerialName("ReplaceVariableWithAttribute")
     data class ReplaceVariableWithAttribute(
         val relativeFilePath: String,
-        val line: Int,
-        val column: Int,
+        val declaringTypeFqn: String,
+        val hostMethodName: String,
+        val hostMethodParamTypes: List<String>,
+        val declarationSubtreeHash: String,
+        val originalLineHint: Int? = null,
+        val originalColumnHint: Int? = null,
         val newFieldName: String,
         val visibility: String = "private",
     ) : RefactoringSpec

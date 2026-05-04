@@ -2,6 +2,7 @@ package com.github.ethanhosier.analysis.refactoring.ops
 
 import com.github.ethanhosier.analysis.refactoring.RefactoringClient
 import com.github.ethanhosier.analysis.refactoring.RefactoringOutcome
+import com.github.ethanhosier.analysis.refactoring.anchor.SpecAnchorBuilder
 import java.nio.file.Path
 
 /**
@@ -32,16 +33,28 @@ data class ExtractAndMoveMethodRequest(
 )
 
 fun RefactoringClient.extractAndMoveMethod(req: ExtractAndMoveMethodRequest): RefactoringOutcome {
+    // Resolve the AST-subtree anchor for the extracted range from the
+    // current on-disk source. The bundle uses the hash to re-find the
+    // window even if prior ops shifted line numbers in this file.
+    val anchor = SpecAnchorBuilder(req.projectRoot).rangeAnchor(
+        req.relativeFilePath, req.startLine, req.startColumn, req.endLine, req.endColumn,
+    ) ?: return RefactoringOutcome.Failed(
+        "could not resolve AST anchor for ${req.relativeFilePath}:${req.startLine}:${req.startColumn}",
+    )
+
     val extract = extractMethod(
         ExtractMethodRequest(
             projectRoot = req.projectRoot,
             sourceFolders = req.sourceFolders,
             classpathJars = req.classpathJars,
             relativeFilePath = req.relativeFilePath,
-            startLine = req.startLine,
-            startColumn = req.startColumn,
-            endLine = req.endLine,
-            endColumn = req.endColumn,
+            declaringTypeFqn = anchor.declaringTypeFqn,
+            hostMethodName = anchor.hostMethodName,
+            hostMethodParamTypes = anchor.hostMethodParamTypes,
+            selectionSubtreeHash = anchor.selectionSubtreeHash,
+            selectionNodeCount = anchor.selectionNodeCount,
+            originalLineHint = req.startLine,
+            originalColumnHint = req.startColumn,
             newMethodName = req.newMethodName,
         ),
     )
