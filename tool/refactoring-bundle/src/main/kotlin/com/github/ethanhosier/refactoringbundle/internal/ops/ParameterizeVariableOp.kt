@@ -1,50 +1,49 @@
 package com.github.ethanhosier.refactoringbundle.internal.ops
 
 import com.github.ethanhosier.refactoringbundle.internal.RefactoringRunner
+import com.github.ethanhosier.refactoringbundle.internal.anchor.AnchorOps
+import com.github.ethanhosier.refactoringbundle.internal.anchor.AnchorResolver
 import org.eclipse.core.resources.IFile
 import org.eclipse.core.resources.IResource
 import org.eclipse.core.runtime.NullProgressMonitor
 import org.eclipse.jdt.core.ICompilationUnit
 import org.eclipse.jdt.core.IJavaProject
-import org.eclipse.jdt.core.JavaCore
 import org.eclipse.jdt.internal.corext.refactoring.code.IntroduceParameterRefactoring
 import org.eclipse.ltk.core.refactoring.Change
 import org.eclipse.ltk.core.refactoring.CompositeChange
 import java.nio.file.Path
 
-/**
- * Promote an expression — a local or a literal occurrence inside a
- * method — into a new parameter of the enclosing method. All existing
- * call sites pass the original expression as the new argument. JDT's
- * IntroduceParameterRefactoring. The selection should span the
- * expression exactly (start..end inclusive).
- */
 internal object ParameterizeVariableOp {
 
     fun run(
         javaProject: IJavaProject,
         relativeFilePath: String,
-        startLine: Int,
-        startColumn: Int,
-        endLine: Int,
-        endColumn: Int,
+        declaringTypeFqn: String,
+        hostMethodName: String,
+        hostMethodParamTypes: Array<String>,
+        selectionSubtreeHash: String,
+        selectionNodeCount: Int,
+        originalLineHint: Int,
+        originalColumnHint: Int,
         newParameterName: String,
     ): RefactoringRunner.Outcome {
-        val icu = findCompilationUnit(javaProject, relativeFilePath)
+        val icu = AnchorOps.findCompilationUnit(javaProject, relativeFilePath)
             ?: return RefactoringRunner.Outcome.Failure("no compilation unit at $relativeFilePath")
-
-        val source = String(icu.buffer.characters)
-        val offsetStart = lineColumnOffset(source, startLine, startColumn)
-        val offsetEnd = lineColumnOffset(source, endLine, endColumn + 1)
-        val length = offsetEnd - offsetStart
+        val cu = AnchorResolver.parse(icu)
+        val host = AnchorResolver.findHostMethod(cu, declaringTypeFqn, hostMethodName, hostMethodParamTypes)
+            ?: return RefactoringRunner.Outcome.Failure(
+                "host method not found: $declaringTypeFqn#$hostMethodName(${hostMethodParamTypes.joinToString(",")})",
+            )
+        val selection = AnchorResolver.findSelection(
+            host, selectionSubtreeHash, selectionNodeCount, AnchorOps.hintOrNull(originalLineHint),
+        ) ?: return RefactoringRunner.Outcome.Failure("no AST subtree match for hash=$selectionSubtreeHash")
 
         // IntroduceParameterRefactoring's fParameter is populated by
         // checkInitialConditions, so setParameterName must be called
         // after that. RefactoringRunner.run would re-invoke
-        // checkInitialConditions and (depending on JDT internals) may
-        // clobber the custom name — so we inline the LTK pipeline
-        // here and interleave the setName call ourselves.
-        val refactoring = IntroduceParameterRefactoring(icu, offsetStart, length)
+        // checkInitialConditions and clobber the custom name — so we
+        // inline the LTK pipeline here.
+        val refactoring = IntroduceParameterRefactoring(icu, selection.startPosition, selection.length)
         val pm = NullProgressMonitor()
         val initial = refactoring.checkInitialConditions(pm)
         if (initial.hasFatalError()) {
@@ -79,21 +78,5 @@ internal object ParameterizeVariableOp {
                 if (res is IResource) res.location?.toOSString()?.let { out.add(Path.of(it)) }
             }
         }
-    }
-
-    private fun findCompilationUnit(javaProject: IJavaProject, relativeFilePath: String): ICompilationUnit? {
-        val file: IFile = javaProject.project.getFile(relativeFilePath).takeIf { it.exists() }
-            ?: return null
-        return JavaCore.createCompilationUnitFrom(file)
-    }
-
-    private fun lineColumnOffset(source: String, line: Int, column: Int): Int {
-        var idx = 0
-        var seen = 1
-        while (seen < line && idx < source.length) {
-            if (source[idx] == '\n') seen++
-            idx++
-        }
-        return idx + (column - 1).coerceAtLeast(0)
     }
 }

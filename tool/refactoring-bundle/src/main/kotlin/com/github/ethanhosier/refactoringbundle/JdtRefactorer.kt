@@ -118,13 +118,20 @@ object JdtRefactorer {
         sourceFolders: Array<String>,
         classpathJars: Array<String>,
         relativeFilePath: String,
-        startLine: Int,
-        startColumn: Int,
-        endLine: Int,
-        endColumn: Int,
+        declaringTypeFqn: String,
+        hostMethodName: String,
+        hostMethodParamTypes: Array<String>,
+        selectionSubtreeHash: String,
+        selectionNodeCount: Int,
+        originalLineHint: Int,
+        originalColumnHint: Int,
         newMethodName: String,
     ): String = RefactoringHost.run(projectRoot, sourceFolders, classpathJars) { jp ->
-        ExtractMethodOp.run(jp, relativeFilePath, startLine, startColumn, endLine, endColumn, newMethodName)
+        ExtractMethodOp.run(
+            jp, relativeFilePath, declaringTypeFqn, hostMethodName, hostMethodParamTypes,
+            selectionSubtreeHash, selectionNodeCount,
+            originalLineHint, originalColumnHint, newMethodName,
+        )
     }
 
     @JvmStatic
@@ -180,11 +187,18 @@ object JdtRefactorer {
         sourceFolders: Array<String>,
         classpathJars: Array<String>,
         relativeFilePath: String,
-        line: Int,
-        column: Int,
+        declaringTypeFqn: String,
+        hostMethodName: String,
+        hostMethodParamTypes: Array<String>,
+        declarationSubtreeHash: String,
+        originalLineHint: Int,
+        originalColumnHint: Int,
         newName: String,
     ): String = RefactoringHost.run(projectRoot, sourceFolders, classpathJars) { jp ->
-        RenameLocalVariableOp.run(jp, relativeFilePath, line, column, newName)
+        RenameLocalVariableOp.run(
+            jp, relativeFilePath, declaringTypeFqn, hostMethodName, hostMethodParamTypes,
+            declarationSubtreeHash, originalLineHint, originalColumnHint, newName,
+        )
     }
 
     @JvmStatic
@@ -193,13 +207,20 @@ object JdtRefactorer {
         sourceFolders: Array<String>,
         classpathJars: Array<String>,
         relativeFilePath: String,
-        startLine: Int,
-        startColumn: Int,
-        endLine: Int,
-        endColumn: Int,
+        declaringTypeFqn: String,
+        hostMethodName: String,
+        hostMethodParamTypes: Array<String>,
+        selectionSubtreeHash: String,
+        selectionNodeCount: Int,
+        originalLineHint: Int,
+        originalColumnHint: Int,
         newName: String,
     ): String = RefactoringHost.run(projectRoot, sourceFolders, classpathJars) { jp ->
-        ExtractVariableOp.run(jp, relativeFilePath, startLine, startColumn, endLine, endColumn, newName)
+        ExtractVariableOp.run(
+            jp, relativeFilePath, declaringTypeFqn, hostMethodName, hostMethodParamTypes,
+            selectionSubtreeHash, selectionNodeCount,
+            originalLineHint, originalColumnHint, newName,
+        )
     }
 
     @JvmStatic
@@ -208,10 +229,17 @@ object JdtRefactorer {
         sourceFolders: Array<String>,
         classpathJars: Array<String>,
         relativeFilePath: String,
-        line: Int,
-        column: Int,
+        declaringTypeFqn: String,
+        hostMethodName: String,
+        hostMethodParamTypes: Array<String>,
+        declarationSubtreeHash: String,
+        originalLineHint: Int,
+        originalColumnHint: Int,
     ): String = RefactoringHost.run(projectRoot, sourceFolders, classpathJars) { jp ->
-        InlineVariableOp.run(jp, relativeFilePath, line, column)
+        InlineVariableOp.run(
+            jp, relativeFilePath, declaringTypeFqn, hostMethodName, hostMethodParamTypes,
+            declarationSubtreeHash, originalLineHint, originalColumnHint,
+        )
     }
 
     @JvmStatic
@@ -316,11 +344,18 @@ object JdtRefactorer {
         sourceFolders: Array<String>,
         classpathJars: Array<String>,
         relativeFilePath: String,
-        line: Int,
-        column: Int,
+        declaringTypeFqn: String,
+        hostMethodName: String,
+        hostMethodParamTypes: Array<String>,
+        declarationSubtreeHash: String,
+        originalLineHint: Int,
+        originalColumnHint: Int,
         newTypeFqn: String,
     ): String = RefactoringHost.run(projectRoot, sourceFolders, classpathJars) { jp ->
-        ChangeVariableTypeOp.run(jp, relativeFilePath, line, column, newTypeFqn)
+        ChangeVariableTypeOp.run(
+            jp, relativeFilePath, declaringTypeFqn, hostMethodName, hostMethodParamTypes,
+            declarationSubtreeHash, originalLineHint, originalColumnHint, newTypeFqn,
+        )
     }
 
     @JvmStatic
@@ -372,14 +407,21 @@ object JdtRefactorer {
         sourceFolders: Array<String>,
         classpathJars: Array<String>,
         relativeFilePath: String,
-        startLine: Int,
-        startColumn: Int,
-        endLine: Int,
-        endColumn: Int,
+        declaringTypeFqn: String,
+        hostMethodName: String,
+        hostMethodParamTypes: Array<String>,
+        selectionSubtreeHash: String,
+        selectionNodeCount: Int,
+        originalLineHint: Int,
+        originalColumnHint: Int,
         newName: String,
         visibility: String,
     ): String = RefactoringHost.run(projectRoot, sourceFolders, classpathJars) { jp ->
-        ExtractAttributeOp.run(jp, relativeFilePath, startLine, startColumn, endLine, endColumn, newName, visibility)
+        ExtractAttributeOp.run(
+            jp, relativeFilePath, declaringTypeFqn, hostMethodName, hostMethodParamTypes,
+            selectionSubtreeHash, selectionNodeCount,
+            originalLineHint, originalColumnHint, newName, visibility,
+        )
     }
 
     @JvmStatic
@@ -415,13 +457,20 @@ object JdtRefactorer {
         sourceFolders: Array<String>,
         classpathJars: Array<String>,
         relativeFilePath: String,
-        startLine: Int,
-        startColumn: Int,
-        endLine: Int,
-        endColumn: Int,
+        declaringTypeFqn: String,
+        hostMethodName: String,
+        hostMethodParamTypes: Array<String>,
+        selectionSubtreeHash: String,
+        selectionNodeCount: Int,
+        originalLineHint: Int,
+        originalColumnHint: Int,
         newParameterName: String,
     ): String = RefactoringHost.run(projectRoot, sourceFolders, classpathJars) { jp ->
-        ParameterizeVariableOp.run(jp, relativeFilePath, startLine, startColumn, endLine, endColumn, newParameterName)
+        ParameterizeVariableOp.run(
+            jp, relativeFilePath, declaringTypeFqn, hostMethodName, hostMethodParamTypes,
+            selectionSubtreeHash, selectionNodeCount,
+            originalLineHint, originalColumnHint, newParameterName,
+        )
     }
 
     @JvmStatic
@@ -430,12 +479,19 @@ object JdtRefactorer {
         sourceFolders: Array<String>,
         classpathJars: Array<String>,
         relativeFilePath: String,
-        line: Int,
-        column: Int,
+        declaringTypeFqn: String,
+        hostMethodName: String,
+        hostMethodParamTypes: Array<String>,
+        declarationSubtreeHash: String,
+        originalLineHint: Int,
+        originalColumnHint: Int,
         newFieldName: String,
         visibility: String,
     ): String = RefactoringHost.run(projectRoot, sourceFolders, classpathJars) { jp ->
-        ReplaceVariableWithAttributeOp.run(jp, relativeFilePath, line, column, newFieldName, visibility)
+        ReplaceVariableWithAttributeOp.run(
+            jp, relativeFilePath, declaringTypeFqn, hostMethodName, hostMethodParamTypes,
+            declarationSubtreeHash, originalLineHint, originalColumnHint, newFieldName, visibility,
+        )
     }
 
     @JvmStatic
