@@ -135,6 +135,7 @@ class AlternativeTrajectoryRunner(
             if (rejectReason == null) {
                 candidates += s
             } else {
+                log("step ${s.stepIndex} ${s.refactoring.type}: skipped — $rejectReason")
             }
         }
         if (candidates.isEmpty()) {
@@ -161,6 +162,7 @@ class AlternativeTrajectoryRunner(
                             }
                             is OneResult.Skipped -> {
                                 skipped[step.stepIndex] = outcome.reason
+                                log("step ${step.stepIndex} ${step.refactoring.type}: synthesis failed — ${outcome.reason}")
                             }
                         }
                     }
@@ -356,10 +358,13 @@ class AlternativeTrajectoryRunner(
                     sourceFolders = sourceFolders,
                     classpathJars = classpathJars,
                     relativeFilePath = spec.relativeFilePath,
-                    startLine = spec.startLine,
-                    startColumn = spec.startColumn,
-                    endLine = spec.endLine,
-                    endColumn = spec.endColumn,
+                    declaringTypeFqn = spec.declaringTypeFqn,
+                    hostMethodName = spec.hostMethodName,
+                    hostMethodParamTypes = spec.hostMethodParamTypes,
+                    selectionSubtreeHash = spec.selectionSubtreeHash,
+                    selectionNodeCount = spec.selectionNodeCount,
+                    originalLineHint = spec.originalLineHint,
+                    originalColumnHint = spec.originalColumnHint,
                     newMethodName = spec.newMethodName,
                 ),
             )
@@ -381,10 +386,13 @@ class AlternativeTrajectoryRunner(
                     sourceFolders = sourceFolders,
                     classpathJars = classpathJars,
                     relativeFilePath = spec.relativeFilePath,
-                    startLine = spec.startLine,
-                    startColumn = spec.startColumn,
-                    endLine = spec.endLine,
-                    endColumn = spec.endColumn,
+                    declaringTypeFqn = spec.declaringTypeFqn,
+                    hostMethodName = spec.hostMethodName,
+                    hostMethodParamTypes = spec.hostMethodParamTypes,
+                    selectionSubtreeHash = spec.selectionSubtreeHash,
+                    selectionNodeCount = spec.selectionNodeCount,
+                    originalLineHint = spec.originalLineHint,
+                    originalColumnHint = spec.originalColumnHint,
                     newName = spec.newName,
                 ),
             )
@@ -395,8 +403,12 @@ class AlternativeTrajectoryRunner(
                     sourceFolders = sourceFolders,
                     classpathJars = classpathJars,
                     relativeFilePath = spec.relativeFilePath,
-                    line = spec.line,
-                    column = spec.column,
+                    declaringTypeFqn = spec.declaringTypeFqn,
+                    hostMethodName = spec.hostMethodName,
+                    hostMethodParamTypes = spec.hostMethodParamTypes,
+                    declarationSubtreeHash = spec.declarationSubtreeHash,
+                    originalLineHint = spec.originalLineHint,
+                    originalColumnHint = spec.originalColumnHint,
                 ),
             )
 
@@ -406,10 +418,13 @@ class AlternativeTrajectoryRunner(
                     sourceFolders = sourceFolders,
                     classpathJars = classpathJars,
                     relativeFilePath = spec.relativeFilePath,
-                    startLine = spec.startLine,
-                    startColumn = spec.startColumn,
-                    endLine = spec.endLine,
-                    endColumn = spec.endColumn,
+                    declaringTypeFqn = spec.declaringTypeFqn,
+                    hostMethodName = spec.hostMethodName,
+                    hostMethodParamTypes = spec.hostMethodParamTypes,
+                    selectionSubtreeHash = spec.selectionSubtreeHash,
+                    selectionNodeCount = spec.selectionNodeCount,
+                    originalLineHint = spec.originalLineHint,
+                    originalColumnHint = spec.originalColumnHint,
                     newName = spec.newName,
                     visibility = spec.visibility,
                 ),
@@ -421,8 +436,12 @@ class AlternativeTrajectoryRunner(
                     sourceFolders = sourceFolders,
                     classpathJars = classpathJars,
                     relativeFilePath = spec.relativeFilePath,
-                    line = spec.line,
-                    column = spec.column,
+                    declaringTypeFqn = spec.declaringTypeFqn,
+                    hostMethodName = spec.hostMethodName,
+                    hostMethodParamTypes = spec.hostMethodParamTypes,
+                    declarationSubtreeHash = spec.declarationSubtreeHash,
+                    originalLineHint = spec.originalLineHint,
+                    originalColumnHint = spec.originalColumnHint,
                     newTypeFqn = spec.newTypeFqn,
                 ),
             )
@@ -444,22 +463,30 @@ class AlternativeTrajectoryRunner(
                     sourceFolders = sourceFolders,
                     classpathJars = classpathJars,
                     relativeFilePath = spec.relativeFilePath,
-                    line = spec.line,
-                    column = spec.column,
+                    declaringTypeFqn = spec.declaringTypeFqn,
+                    hostMethodName = spec.hostMethodName,
+                    hostMethodParamTypes = spec.hostMethodParamTypes,
+                    declarationSubtreeHash = spec.declarationSubtreeHash,
+                    originalLineHint = spec.originalLineHint,
+                    originalColumnHint = spec.originalColumnHint,
                     newName = spec.newName,
                 ),
             )
 
             // JDT's "Rename Local Variable" op handles parameters too —
-            // the position picked the symbol regardless of declaration kind.
+            // the anchor resolves the symbol regardless of declaration kind.
             is RefactoringSpec.RenameParameter -> refactoringClient.renameLocalVariable(
                 RenameLocalVariableRequest(
                     projectRoot = worktree,
                     sourceFolders = sourceFolders,
                     classpathJars = classpathJars,
                     relativeFilePath = spec.relativeFilePath,
-                    line = spec.line,
-                    column = spec.column,
+                    declaringTypeFqn = spec.declaringTypeFqn,
+                    hostMethodName = spec.hostMethodName,
+                    hostMethodParamTypes = spec.hostMethodParamTypes,
+                    declarationSubtreeHash = spec.declarationSubtreeHash,
+                    originalLineHint = spec.originalLineHint,
+                    originalColumnHint = spec.originalColumnHint,
                     newName = spec.newName,
                 ),
             )
@@ -470,10 +497,13 @@ class AlternativeTrajectoryRunner(
                     sourceFolders = sourceFolders,
                     classpathJars = classpathJars,
                     relativeFilePath = spec.relativeFilePath,
-                    startLine = spec.startLine,
-                    startColumn = spec.startColumn,
-                    endLine = spec.endLine,
-                    endColumn = spec.endColumn,
+                    declaringTypeFqn = spec.declaringTypeFqn,
+                    hostMethodName = spec.hostMethodName,
+                    hostMethodParamTypes = spec.hostMethodParamTypes,
+                    selectionSubtreeHash = spec.selectionSubtreeHash,
+                    selectionNodeCount = spec.selectionNodeCount,
+                    originalLineHint = spec.originalLineHint,
+                    originalColumnHint = spec.originalColumnHint,
                     newParameterName = spec.newParameterName,
                 ),
             )
@@ -484,10 +514,13 @@ class AlternativeTrajectoryRunner(
                     sourceFolders = sourceFolders,
                     classpathJars = classpathJars,
                     relativeFilePath = spec.relativeFilePath,
-                    startLine = spec.startLine,
-                    startColumn = spec.startColumn,
-                    endLine = spec.endLine,
-                    endColumn = spec.endColumn,
+                    declaringTypeFqn = spec.declaringTypeFqn,
+                    hostMethodName = spec.hostMethodName,
+                    hostMethodParamTypes = spec.hostMethodParamTypes,
+                    selectionSubtreeHash = spec.selectionSubtreeHash,
+                    selectionNodeCount = spec.selectionNodeCount,
+                    originalLineHint = spec.originalLineHint,
+                    originalColumnHint = spec.originalColumnHint,
                     newParameterName = spec.newParameterName,
                 ),
             )
@@ -498,8 +531,12 @@ class AlternativeTrajectoryRunner(
                     sourceFolders = sourceFolders,
                     classpathJars = classpathJars,
                     relativeFilePath = spec.relativeFilePath,
-                    line = spec.line,
-                    column = spec.column,
+                    declaringTypeFqn = spec.declaringTypeFqn,
+                    hostMethodName = spec.hostMethodName,
+                    hostMethodParamTypes = spec.hostMethodParamTypes,
+                    declarationSubtreeHash = spec.declarationSubtreeHash,
+                    originalLineHint = spec.originalLineHint,
+                    originalColumnHint = spec.originalColumnHint,
                     newFieldName = spec.newFieldName,
                     visibility = spec.visibility,
                 ),
@@ -591,5 +628,9 @@ class AlternativeTrajectoryRunner(
     private sealed interface OneResult {
         data class Ok(val synth: Synthesised) : OneResult
         data class Skipped(val reason: String) : OneResult
+    }
+
+    private fun log(msg: String) {
+        System.err.println("[alt-traj] $msg")
     }
 }

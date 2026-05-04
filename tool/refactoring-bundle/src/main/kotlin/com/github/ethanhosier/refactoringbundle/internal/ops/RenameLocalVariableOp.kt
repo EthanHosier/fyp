@@ -1,38 +1,44 @@
 package com.github.ethanhosier.refactoringbundle.internal.ops
 
 import com.github.ethanhosier.refactoringbundle.internal.RefactoringRunner
-import org.eclipse.core.resources.IFile
-import org.eclipse.jdt.core.ICompilationUnit
-import org.eclipse.jdt.core.IJavaProject
+import com.github.ethanhosier.refactoringbundle.internal.anchor.AnchorOps
+import com.github.ethanhosier.refactoringbundle.internal.anchor.AnchorResolver
 import org.eclipse.jdt.core.ILocalVariable
-import org.eclipse.jdt.core.JavaCore
+import org.eclipse.jdt.core.IJavaProject
 import org.eclipse.jdt.core.refactoring.IJavaRefactorings
 import org.eclipse.jdt.core.refactoring.descriptors.RenameJavaElementDescriptor
 import org.eclipse.ltk.core.refactoring.RefactoringCore
 import org.eclipse.ltk.core.refactoring.RefactoringStatus
 
-/**
- * Rename the local variable (or method parameter) at
- * ([line], [column]) in [relativeFilePath] to [newName]. Both lines and
- * columns are 1-indexed.
- */
 internal object RenameLocalVariableOp {
 
     fun run(
         javaProject: IJavaProject,
         relativeFilePath: String,
-        line: Int,
-        column: Int,
+        declaringTypeFqn: String,
+        hostMethodName: String,
+        hostMethodParamTypes: Array<String>,
+        declarationSubtreeHash: String,
+        originalLineHint: Int,
+        originalColumnHint: Int,
         newName: String,
     ): RefactoringRunner.Outcome {
-        val icu = findCompilationUnit(javaProject, relativeFilePath)
+        val icu = AnchorOps.findCompilationUnit(javaProject, relativeFilePath)
             ?: return RefactoringRunner.Outcome.Failure("no compilation unit at $relativeFilePath")
-        val source = String(icu.buffer.characters)
-        val offset = lineColumnOffset(source, line, column)
+        val cu = AnchorResolver.parse(icu)
+        val host = AnchorResolver.findHostMethod(cu, declaringTypeFqn, hostMethodName, hostMethodParamTypes)
+            ?: return RefactoringRunner.Outcome.Failure(
+                "host method not found: $declaringTypeFqn#$hostMethodName(${hostMethodParamTypes.joinToString(",")})",
+            )
+        val decl = AnchorResolver.findDeclaration(host, declarationSubtreeHash, AnchorOps.hintOrNull(originalLineHint))
+            ?: return RefactoringRunner.Outcome.Failure("no declaration match for hash=$declarationSubtreeHash")
+        val (offset, _) = AnchorOps.nameOffsetAndLength(decl)
+            ?: return RefactoringRunner.Outcome.Failure("declaration node has no name: ${decl.javaClass.simpleName}")
+
         val selected = icu.codeSelect(offset, 0)
         val local = selected.firstOrNull() as? ILocalVariable
             ?: return RefactoringRunner.Outcome.Failure(
-                "no local variable at $relativeFilePath:$line:$column (got ${selected.firstOrNull()?.javaClass?.simpleName})",
+                "no local variable at resolved offset (got ${selected.firstOrNull()?.javaClass?.simpleName})",
             )
 
         val contribution = RefactoringCore.getRefactoringContribution(IJavaRefactorings.RENAME_LOCAL_VARIABLE)
@@ -49,21 +55,5 @@ internal object RenameLocalVariableOp {
                 "failed to construct rename refactoring: ${status.entries.joinToString("; ") { it.message }}",
             )
         return RefactoringRunner.run(refactoring)
-    }
-
-    private fun findCompilationUnit(javaProject: IJavaProject, relativeFilePath: String): ICompilationUnit? {
-        val file: IFile = javaProject.project.getFile(relativeFilePath).takeIf { it.exists() }
-            ?: return null
-        return JavaCore.createCompilationUnitFrom(file)
-    }
-
-    private fun lineColumnOffset(source: String, line: Int, column: Int): Int {
-        var idx = 0
-        var seen = 1
-        while (seen < line && idx < source.length) {
-            if (source[idx] == '\n') seen++
-            idx++
-        }
-        return idx + (column - 1).coerceAtLeast(0)
     }
 }

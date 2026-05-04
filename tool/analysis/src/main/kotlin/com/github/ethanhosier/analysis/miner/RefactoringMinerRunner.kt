@@ -7,6 +7,7 @@ import com.github.ethanhosier.analysis.miner.model.RefactoringSpec
 import com.github.ethanhosier.analysis.miner.model.RefactoringStep
 import com.github.ethanhosier.analysis.model.ReconstructionResult
 import com.github.ethanhosier.analysis.model.Trace
+import com.github.ethanhosier.analysis.refactoring.anchor.SpecAnchorBuilder
 import com.github.ethanhosier.ideplugin.model.EventType
 import gr.uom.java.xmi.VariableDeclarationContainer
 import gr.uom.java.xmi.diff.AddParameterRefactoring
@@ -118,19 +119,28 @@ class RefactoringMinerRunner(
 
                 val toCheckpointIndex = rIdx
                 val timestamp = shaToTimestamp[rSha] ?: 0L
-                for (d in detections) {
-                    steps.add(
-                        RefactoringStep(
-                            stepIndex = steps.size,
-                            fromSha = tightestLSha,
-                            toSha = rSha,
-                            toCheckpointIndex = toCheckpointIndex,
-                            timestamp = timestamp,
-                            refactoring = toDetected(d),
-                            wasPerformedByIde = rSha in idePerformedShas,
-                            spec = toSpec(d),
-                        ),
-                    )
+                // Borrow the pre-refactoring worktree once for the whole
+                // detection batch so position-anchored specs can resolve
+                // their AST-subtree hashes from the source at fromSha.
+                val anchorWorktree = pool.borrow(tightestLSha)
+                try {
+                    val anchors = SpecAnchorBuilder(anchorWorktree)
+                    for (d in detections) {
+                        steps.add(
+                            RefactoringStep(
+                                stepIndex = steps.size,
+                                fromSha = tightestLSha,
+                                toSha = rSha,
+                                toCheckpointIndex = toCheckpointIndex,
+                                timestamp = timestamp,
+                                refactoring = toDetected(d),
+                                wasPerformedByIde = rSha in idePerformedShas,
+                                spec = toSpec(d, anchors),
+                            ),
+                        )
+                    }
+                } finally {
+                    pool.release(anchorWorktree)
                 }
 
                 lIdx = rIdx
@@ -198,7 +208,7 @@ class RefactoringMinerRunner(
      * a kind has its arm, manual detections of that kind don't
      * synthesise an alternative.
      */
-    private fun toSpec(r: Refactoring): RefactoringSpec = when (r) {
+    private fun toSpec(r: Refactoring, anchors: SpecAnchorBuilder): RefactoringSpec = when (r) {
         is RenameOperationRefactoring -> RefactoringSpec.RenameMethod(
             declaringTypeFqn = r.originalOperation.className,
             oldName = r.originalOperation.name,
@@ -300,12 +310,19 @@ class RefactoringMinerRunner(
                 val sorted = fragments.sortedWith(compareBy({ it.startLine }, { it.startColumn }))
                 val first = sorted.first()
                 val last = sorted.maxByOrNull { it.endLine * 10_000 + it.endColumn }!!
-                RefactoringSpec.ExtractMethod(
+                val anchor = anchors.rangeAnchor(
+                    first.filePath, first.startLine, first.startColumn, last.endLine, last.endColumn,
+                )
+                if (anchor == null) RefactoringSpec.Other
+                else RefactoringSpec.ExtractMethod(
                     relativeFilePath = first.filePath,
-                    startLine = first.startLine,
-                    startColumn = first.startColumn,
-                    endLine = last.endLine,
-                    endColumn = last.endColumn,
+                    declaringTypeFqn = anchor.declaringTypeFqn,
+                    hostMethodName = anchor.hostMethodName,
+                    hostMethodParamTypes = anchor.hostMethodParamTypes,
+                    selectionSubtreeHash = anchor.selectionSubtreeHash,
+                    selectionNodeCount = anchor.selectionNodeCount,
+                    originalLineHint = first.startLine,
+                    originalColumnHint = first.startColumn,
                     newMethodName = r.extractedOperation.name,
                 )
             }
@@ -322,14 +339,23 @@ class RefactoringMinerRunner(
             // Variable selects.
             val left = r.leftSide().firstOrNull()
             if (left == null) RefactoringSpec.Other
-            else RefactoringSpec.ExtractVariable(
-                relativeFilePath = left.filePath,
-                startLine = left.startLine,
-                startColumn = left.startColumn,
-                endLine = left.endLine,
-                endColumn = left.endColumn,
-                newName = r.variableDeclaration.variableName,
-            )
+            else {
+                val anchor = anchors.rangeAnchor(
+                    left.filePath, left.startLine, left.startColumn, left.endLine, left.endColumn,
+                )
+                if (anchor == null) RefactoringSpec.Other
+                else RefactoringSpec.ExtractVariable(
+                    relativeFilePath = left.filePath,
+                    declaringTypeFqn = anchor.declaringTypeFqn,
+                    hostMethodName = anchor.hostMethodName,
+                    hostMethodParamTypes = anchor.hostMethodParamTypes,
+                    selectionSubtreeHash = anchor.selectionSubtreeHash,
+                    selectionNodeCount = anchor.selectionNodeCount,
+                    originalLineHint = left.startLine,
+                    originalColumnHint = left.startColumn,
+                    newName = r.variableDeclaration.variableName,
+                )
+            }
         }
 
         is InlineVariableRefactoring -> {
@@ -337,32 +363,53 @@ class RefactoringMinerRunner(
             // Variable needs to find the symbol — leftSide first entry
             // covers the declaration site for inline detections.
             val loc = r.variableDeclaration.locationInfo
-            RefactoringSpec.InlineVariable(
+            val anchor = anchors.pointAnchor(loc.filePath, loc.startLine, loc.startColumn)
+            if (anchor == null) RefactoringSpec.Other
+            else RefactoringSpec.InlineVariable(
                 relativeFilePath = loc.filePath,
-                line = loc.startLine,
-                column = loc.startColumn,
+                declaringTypeFqn = anchor.declaringTypeFqn,
+                hostMethodName = anchor.hostMethodName,
+                hostMethodParamTypes = anchor.hostMethodParamTypes,
+                declarationSubtreeHash = anchor.declarationSubtreeHash,
+                originalLineHint = loc.startLine,
+                originalColumnHint = loc.startColumn,
             )
         }
 
         is ExtractAttributeRefactoring -> {
             val left = r.leftSide().firstOrNull()
             if (left == null) RefactoringSpec.Other
-            else RefactoringSpec.ExtractAttribute(
-                relativeFilePath = left.filePath,
-                startLine = left.startLine,
-                startColumn = left.startColumn,
-                endLine = left.endLine,
-                endColumn = left.endColumn,
-                newName = r.variableDeclaration.name,
-            )
+            else {
+                val anchor = anchors.rangeAnchor(
+                    left.filePath, left.startLine, left.startColumn, left.endLine, left.endColumn,
+                )
+                if (anchor == null) RefactoringSpec.Other
+                else RefactoringSpec.ExtractAttribute(
+                    relativeFilePath = left.filePath,
+                    declaringTypeFqn = anchor.declaringTypeFqn,
+                    hostMethodName = anchor.hostMethodName,
+                    hostMethodParamTypes = anchor.hostMethodParamTypes,
+                    selectionSubtreeHash = anchor.selectionSubtreeHash,
+                    selectionNodeCount = anchor.selectionNodeCount,
+                    originalLineHint = left.startLine,
+                    originalColumnHint = left.startColumn,
+                    newName = r.variableDeclaration.name,
+                )
+            }
         }
 
         is ChangeVariableTypeRefactoring -> {
             val loc = r.originalVariable.locationInfo
-            RefactoringSpec.ChangeVariableType(
+            val anchor = anchors.pointAnchor(loc.filePath, loc.startLine, loc.startColumn)
+            if (anchor == null) RefactoringSpec.Other
+            else RefactoringSpec.ChangeVariableType(
                 relativeFilePath = loc.filePath,
-                line = loc.startLine,
-                column = loc.startColumn,
+                declaringTypeFqn = anchor.declaringTypeFqn,
+                hostMethodName = anchor.hostMethodName,
+                hostMethodParamTypes = anchor.hostMethodParamTypes,
+                declarationSubtreeHash = anchor.declarationSubtreeHash,
+                originalLineHint = loc.startLine,
+                originalColumnHint = loc.startColumn,
                 newTypeFqn = r.changedTypeVariable.type.toString(),
             )
         }
@@ -380,44 +427,86 @@ class RefactoringMinerRunner(
             val loc = r.originalVariable.locationInfo
             val newName = r.renamedVariable.variableName
             when (r.refactoringType) {
-                RefactoringType.RENAME_VARIABLE -> RefactoringSpec.RenameLocalVariable(
-                    relativeFilePath = loc.filePath,
-                    line = loc.startLine,
-                    column = loc.startColumn,
-                    newName = newName,
-                )
+                RefactoringType.RENAME_VARIABLE -> {
+                    val a = anchors.pointAnchor(loc.filePath, loc.startLine, loc.startColumn)
+                    if (a == null) RefactoringSpec.Other
+                    else RefactoringSpec.RenameLocalVariable(
+                        relativeFilePath = loc.filePath,
+                        declaringTypeFqn = a.declaringTypeFqn,
+                        hostMethodName = a.hostMethodName,
+                        hostMethodParamTypes = a.hostMethodParamTypes,
+                        declarationSubtreeHash = a.declarationSubtreeHash,
+                        originalLineHint = loc.startLine,
+                        originalColumnHint = loc.startColumn,
+                        newName = newName,
+                    )
+                }
 
-                RefactoringType.RENAME_PARAMETER -> RefactoringSpec.RenameParameter(
-                    relativeFilePath = loc.filePath,
-                    line = loc.startLine,
-                    column = loc.startColumn,
-                    newName = newName,
-                )
+                RefactoringType.RENAME_PARAMETER -> {
+                    val a = anchors.pointAnchor(loc.filePath, loc.startLine, loc.startColumn)
+                    if (a == null) RefactoringSpec.Other
+                    else RefactoringSpec.RenameParameter(
+                        relativeFilePath = loc.filePath,
+                        declaringTypeFqn = a.declaringTypeFqn,
+                        hostMethodName = a.hostMethodName,
+                        hostMethodParamTypes = a.hostMethodParamTypes,
+                        declarationSubtreeHash = a.declarationSubtreeHash,
+                        originalLineHint = loc.startLine,
+                        originalColumnHint = loc.startColumn,
+                        newName = newName,
+                    )
+                }
 
-                RefactoringType.PARAMETERIZE_VARIABLE -> RefactoringSpec.ParameterizeVariable(
-                    relativeFilePath = loc.filePath,
-                    startLine = loc.startLine,
-                    startColumn = loc.startColumn,
-                    endLine = loc.endLine,
-                    endColumn = loc.endColumn,
-                    newParameterName = newName,
-                )
+                RefactoringType.PARAMETERIZE_VARIABLE -> {
+                    val a = anchors.rangeAnchor(
+                        loc.filePath, loc.startLine, loc.startColumn, loc.endLine, loc.endColumn,
+                    )
+                    if (a == null) RefactoringSpec.Other
+                    else RefactoringSpec.ParameterizeVariable(
+                        relativeFilePath = loc.filePath,
+                        declaringTypeFqn = a.declaringTypeFqn,
+                        hostMethodName = a.hostMethodName,
+                        hostMethodParamTypes = a.hostMethodParamTypes,
+                        selectionSubtreeHash = a.selectionSubtreeHash,
+                        selectionNodeCount = a.selectionNodeCount,
+                        originalLineHint = loc.startLine,
+                        originalColumnHint = loc.startColumn,
+                        newParameterName = newName,
+                    )
+                }
 
-                RefactoringType.PARAMETERIZE_ATTRIBUTE -> RefactoringSpec.ParameterizeAttribute(
-                    relativeFilePath = loc.filePath,
-                    startLine = loc.startLine,
-                    startColumn = loc.startColumn,
-                    endLine = loc.endLine,
-                    endColumn = loc.endColumn,
-                    newParameterName = newName,
-                )
+                RefactoringType.PARAMETERIZE_ATTRIBUTE -> {
+                    val a = anchors.rangeAnchor(
+                        loc.filePath, loc.startLine, loc.startColumn, loc.endLine, loc.endColumn,
+                    )
+                    if (a == null) RefactoringSpec.Other
+                    else RefactoringSpec.ParameterizeAttribute(
+                        relativeFilePath = loc.filePath,
+                        declaringTypeFqn = a.declaringTypeFqn,
+                        hostMethodName = a.hostMethodName,
+                        hostMethodParamTypes = a.hostMethodParamTypes,
+                        selectionSubtreeHash = a.selectionSubtreeHash,
+                        selectionNodeCount = a.selectionNodeCount,
+                        originalLineHint = loc.startLine,
+                        originalColumnHint = loc.startColumn,
+                        newParameterName = newName,
+                    )
+                }
 
-                RefactoringType.REPLACE_VARIABLE_WITH_ATTRIBUTE -> RefactoringSpec.ReplaceVariableWithAttribute(
-                    relativeFilePath = loc.filePath,
-                    line = loc.startLine,
-                    column = loc.startColumn,
-                    newFieldName = newName,
-                )
+                RefactoringType.REPLACE_VARIABLE_WITH_ATTRIBUTE -> {
+                    val a = anchors.pointAnchor(loc.filePath, loc.startLine, loc.startColumn)
+                    if (a == null) RefactoringSpec.Other
+                    else RefactoringSpec.ReplaceVariableWithAttribute(
+                        relativeFilePath = loc.filePath,
+                        declaringTypeFqn = a.declaringTypeFqn,
+                        hostMethodName = a.hostMethodName,
+                        hostMethodParamTypes = a.hostMethodParamTypes,
+                        declarationSubtreeHash = a.declarationSubtreeHash,
+                        originalLineHint = loc.startLine,
+                        originalColumnHint = loc.startColumn,
+                        newFieldName = newName,
+                    )
+                }
 
                 else -> RefactoringSpec.Other
             }
