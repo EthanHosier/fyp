@@ -129,10 +129,12 @@ class AnalysisPipeline(
             validatorPool.close()
         }
         val validationsByIndex = validations.associateBy { it.stepIndex }
+        val stepsByIndex = miner.steps.associateBy { it.stepIndex }
         validations.sortedBy { it.stepIndex }.forEach { v ->
+            val type = stepsByIndex[v.stepIndex]?.refactoring?.type ?: "?"
             val tail = v.reason?.let { " — $it" } ?: ""
             val files = v.divergedFiles?.takeIf { it.isNotEmpty() }?.let { " $it" } ?: ""
-            log("validator: step #${v.stepIndex} ${v.status}$tail$files")
+            log("validator: step #${v.stepIndex} [$type] ${v.status}$tail$files")
         }
         val validatorDurationMs = System.currentTimeMillis() - validatorStart
         val validCount = validations.count { it.status == RefactoringStepValidator.Status.VALID }

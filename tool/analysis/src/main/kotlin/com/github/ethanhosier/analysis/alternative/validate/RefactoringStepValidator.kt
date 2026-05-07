@@ -5,49 +5,58 @@ import com.github.ethanhosier.analysis.miner.model.RefactoringSpec
 import com.github.ethanhosier.analysis.miner.model.RefactoringStep
 import com.github.ethanhosier.analysis.reconstruct.GitRunner
 import java.nio.file.Files
+import java.nio.file.Path
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
 /**
- * Per-step ground-truth check: for each typed [RefactoringStep],
- * replay `step.spec` from `step.fromSha` and check whether the
- * resulting AST matches the user's `step.toSha`.
+ * Bracket-level ground-truth check.
  *
- * The classification feeds windowing for the reorder enumerator —
- * only [Status.VALID] steps are eligible to participate in a
- * reorder window. Anything else (apply failed, our reapplication
- * doesn't match the user, or the step had no typed spec) acts as a
- * window splitter.
+ * RM may surface several detected refactorings under the **same**
+ * `(fromSha, toSha)` pair — i.e. the user did multiple ops in one
+ * commit-bracket. The validator groups all such steps and applies
+ * them **together** (in stepIndex order) on a single fromSha
+ * worktree before comparing the result to the user's `toSha`. Every
+ * step in the bracket inherits the bracket-level verdict; this is
+ * the right semantic for the reorder enumerator (a step is safe to
+ * include in a window iff its bracket replays cleanly).
  *
- * Per-step flow (parallelised over [pool]; JDT serialisation handled
- * by the bundle's process-wide lock inside [SpecDispatcher.apply]):
+ * Per-bracket flow (each bracket runs as a single unit; brackets are
+ * parallelised over [pool]; JDT serialisation handled by the
+ * bundle's process-wide lock inside [SpecDispatcher.apply]):
  *
- *  1. `spec == null` or [RefactoringSpec.Other] → [Status.UNTYPED].
+ *  1. Any spec in the bracket is `null` or [RefactoringSpec.Other]
+ *     → entire bracket emits [Status.UNTYPED]. We can't model the
+ *     unknown op.
  *  2. Compute the user-changed `.java` set
  *     (`git diff --name-status -M fromSha toSha -- '*.java'`).
  *  3. Hash the user's `toSha` ASTs for those paths (cached).
- *  4. Borrow a worktree at `fromSha`. Run [SpecDispatcher.apply].
- *     Failure → [Status.REFACTOR_FAILED].
+ *  4. Borrow a worktree at `fromSha`. For each step in the bracket,
+ *     in stepIndex order, run [SpecDispatcher.apply]. First failure
+ *     short-circuits the whole bracket to [Status.REFACTOR_FAILED].
  *  5. Compute our-changed `.java` set from the dirty worktree.
- *     Empty → [Status.REFACTOR_FAILED] (no textual change).
- *     Differs from user-set → [Status.AST_DIVERGED] (file-set
- *     mismatch).
- *  6. Hash our post-apply ASTs and compare per file. All match →
- *     [Status.VALID]; else [Status.AST_DIVERGED] (file-content
- *     mismatch + the divergent paths).
+ *     Empty → [Status.REFACTOR_FAILED]; differs from user-set →
+ *     [Status.AST_DIVERGED] (file-set mismatch).
+ *  6. Hash post-apply ASTs and compare per file. All match → all
+ *     steps emit [Status.VALID]; else all emit [Status.AST_DIVERGED]
+ *     (file-content mismatch + the divergent paths).
+ *
+ * Single-step brackets are the N=1 specialisation of the above and
+ * behave exactly as the per-step model did.
  */
 class RefactoringStepValidator(
-    private val applySpec: (RefactoringSpec, java.nio.file.Path) -> SpecDispatcher.Result,
+    private val applySpec: (RefactoringSpec, Path) -> SpecDispatcher.Result,
     private val pool: WorktreePool,
     private val shadowGit: GitRunner,
     private val parallelism: Int = (Runtime.getRuntime().availableProcessors() / 2).coerceAtLeast(1),
-    /** When non-null, every divergent step writes the post-apply
-     *  file (`<step>/<path>.ours`) and the user's `toSha` file
-     *  (`<step>/<path>.user`) under this directory. Lets the
-     *  caller `diff` the two to inspect why ASTs disagree. */
-    private val debugDumpDir: java.nio.file.Path? = null,
+    /** When non-null, divergent brackets write their post-apply
+     *  files (`.ours`) and the user's `toSha` files (`.user`) under
+     *  this directory. Singleton brackets dump under
+     *  `step-<stepIndex>/`; multi-step brackets dump under
+     *  `bracket-<minStepIndex>/`. */
+    private val debugDumpDir: Path? = null,
 ) {
 
     constructor(
@@ -55,24 +64,32 @@ class RefactoringStepValidator(
         pool: WorktreePool,
         shadowGit: GitRunner,
         parallelism: Int = (Runtime.getRuntime().availableProcessors() / 2).coerceAtLeast(1),
-        debugDumpDir: java.nio.file.Path? = null,
+        debugDumpDir: Path? = null,
     ) : this(dispatcher::apply, pool, shadowGit, parallelism, debugDumpDir)
 
-    /** Bounded `(toSha, relativePath) -> astHash` cache. Hashing a
-     *  given `(toSha, path)` is deterministic, so chained traces
-     *  that share a `toSha` only pay the I/O once. Capped to keep
-     *  memory predictable. */
+    /** Bounded `(toSha, relativePath) -> astHash` cache. */
     private val toShaHashCache = ConcurrentHashMap<Pair<String, String>, String?>()
     private val changedFilesCache = ConcurrentHashMap<Pair<String, String>, Set<String>>()
     private val cacheCap = 1024
 
     fun validate(steps: List<RefactoringStep>): List<StepValidation> {
         if (steps.isEmpty()) return emptyList()
-        val results = arrayOfNulls<StepValidation>(steps.size)
+
+        // Group by (fromSha, toSha). Within each group, sort by
+        // stepIndex so apply order is deterministic and matches the
+        // user's natural performance order.
+        val brackets: List<List<RefactoringStep>> = steps
+            .groupBy { it.fromSha to it.toSha }
+            .values
+            .map { group -> group.sortedBy { it.stepIndex } }
+
+        // Collect bracket validations in parallel. Each bracket
+        // produces a List<StepValidation> (one per step inside).
+        val perBracket = arrayOfNulls<List<StepValidation>>(brackets.size)
         val executor = Executors.newFixedThreadPool(parallelism)
         try {
-            val futures = steps.mapIndexed { idx, step ->
-                executor.submit<Unit> { results[idx] = validateOne(step) }
+            val futures = brackets.mapIndexed { idx, group ->
+                executor.submit<Unit> { perBracket[idx] = validateBracket(group) }
             }
             futures.forEach { f ->
                 try {
@@ -85,75 +102,87 @@ class RefactoringStepValidator(
             executor.shutdownNow()
             executor.awaitTermination(1, TimeUnit.MINUTES)
         }
-        return results.map { it!! }
+
+        // Flatten and re-sort by stepIndex so the output order
+        // matches the input order (which is itself stepIndex-sorted
+        // by the miner).
+        return perBracket.asSequence()
+            .flatMap { it!!.asSequence() }
+            .sortedBy { it.stepIndex }
+            .toList()
     }
 
-    private fun validateOne(step: RefactoringStep): StepValidation {
-        val spec = step.spec
-        if (spec == null || spec is RefactoringSpec.Other) {
-            return StepValidation(
-                stepIndex = step.stepIndex,
-                status = Status.UNTYPED,
-                reason = if (spec == null) "no typed RefactoringSpec" else "RefactoringSpec.Other",
-                divergedFiles = null,
-            )
+    private fun validateBracket(group: List<RefactoringStep>): List<StepValidation> {
+        require(group.isNotEmpty()) { "empty bracket" }
+        val first = group.first()
+        val fromSha = first.fromSha
+        val toSha = first.toSha
+
+        // Untyped specs short-circuit the whole bracket.
+        val untypedStep = group.firstOrNull { it.spec == null || it.spec is RefactoringSpec.Other }
+        if (untypedStep != null) {
+            val reason = if (untypedStep.spec == null) {
+                "no typed RefactoringSpec at step #${untypedStep.stepIndex}"
+            } else {
+                "RefactoringSpec.Other at step #${untypedStep.stepIndex}"
+            }
+            return group.map {
+                StepValidation(it.stepIndex, Status.UNTYPED, reason, divergedFiles = null)
+            }
         }
 
-        val userChanged = changedFilesBetweenCached(step.fromSha, step.toSha)
+        val userChanged = changedFilesBetweenCached(fromSha, toSha)
         if (userChanged.isEmpty()) {
-            return StepValidation(
-                stepIndex = step.stepIndex,
-                status = Status.AST_DIVERGED,
-                reason = "user touched no .java files between fromSha and toSha",
-                divergedFiles = null,
-            )
+            return group.allWith(Status.AST_DIVERGED, "user touched no .java files between fromSha and toSha")
         }
 
         // Pre-fetch toSha hashes (cached). Done before borrowing the
         // fromSha worktree so we never hold two borrows at once.
-        val userHashes = hashesAtSha(step.toSha, userChanged)
+        val userHashes = hashesAtSha(toSha, userChanged)
 
-        val worktree = pool.borrow(step.fromSha)
+        val dumpDirName = if (group.size == 1) "step-${first.stepIndex}" else "bracket-${first.stepIndex}"
+
+        val worktree = pool.borrow(fromSha)
         val ourHashes: Map<String, String?>
-        val ourChanged: Set<String>
         try {
-            val applyResult = applySpec(spec, worktree)
-            if (applyResult is SpecDispatcher.Result.Failed) {
-                return StepValidation(
-                    stepIndex = step.stepIndex,
-                    status = Status.REFACTOR_FAILED,
-                    reason = applyResult.reason,
-                    divergedFiles = null,
-                )
+            // Apply every spec in stepIndex order. First failure
+            // short-circuits the whole bracket.
+            for (s in group) {
+                val outcome = applySpec(s.spec!!, worktree)
+                if (outcome is SpecDispatcher.Result.Failed) {
+                    val reason = if (group.size == 1) {
+                        outcome.reason
+                    } else {
+                        "in bracket at step #${s.stepIndex}: ${outcome.reason}"
+                    }
+                    return group.allWith(Status.REFACTOR_FAILED, reason)
+                }
             }
             val worktreeGit = GitRunner(worktree)
-            ourChanged = worktreeGit.changedJavaFilesFromHeadDirty()
+            val ourChanged = worktreeGit.changedJavaFilesFromHeadDirty()
             if (ourChanged.isEmpty()) {
-                return StepValidation(
-                    stepIndex = step.stepIndex,
-                    status = Status.REFACTOR_FAILED,
-                    reason = "refactoring produced no textual change",
-                    divergedFiles = null,
-                )
+                val reason = if (group.size == 1) {
+                    "refactoring produced no textual change"
+                } else {
+                    "bracket produced no textual change"
+                }
+                return group.allWith(Status.REFACTOR_FAILED, reason)
             }
             if (ourChanged != userChanged) {
                 val onlyUser = userChanged - ourChanged
                 val onlyOurs = ourChanged - userChanged
-                return StepValidation(
-                    stepIndex = step.stepIndex,
-                    status = Status.AST_DIVERGED,
-                    reason = "file-set mismatch (only-in-user=$onlyUser, only-in-ours=$onlyOurs)",
+                return group.allWith(
+                    Status.AST_DIVERGED,
+                    "file-set mismatch (only-in-user=$onlyUser, only-in-ours=$onlyOurs)",
                     divergedFiles = (onlyUser + onlyOurs).toList(),
                 )
             }
             // Hash our post-apply files while we still hold the worktree.
             ourHashes = userChanged.associateWith { JavaFileAstHasher.hashFile(worktree, it) }
-            // If debugging, snapshot ALL changed files now while the
-            // dirty worktree is still around. We may not need them
-            // (only if the comparison below diverges), but we have to
-            // capture before releasing.
+            // Snapshot post-apply files speculatively — we may
+            // discard them if the comparison turns out clean.
             if (debugDumpDir != null) {
-                stashOurDump(step.stepIndex, worktree, userChanged)
+                stashOurDump(dumpDirName, worktree, userChanged)
             }
         } finally {
             pool.release(worktree)
@@ -165,24 +194,23 @@ class RefactoringStepValidator(
             ours == null || theirs == null || ours != theirs
         }
         return if (mismatching.isEmpty()) {
-            // Clean up the speculative `.ours` dump for this step —
-            // we don't need it.
             if (debugDumpDir != null) {
-                debugDumpDir.resolve("step-${step.stepIndex}").toFile().deleteRecursively()
+                debugDumpDir.resolve(dumpDirName).toFile().deleteRecursively()
             }
-            StepValidation(step.stepIndex, Status.VALID, reason = null, divergedFiles = null)
+            group.map { StepValidation(it.stepIndex, Status.VALID, reason = null, divergedFiles = null) }
         } else {
             if (debugDumpDir != null) {
-                dumpUserSide(step.stepIndex, step.toSha, mismatching)
+                dumpUserSide(dumpDirName, toSha, mismatching)
             }
-            StepValidation(
-                stepIndex = step.stepIndex,
-                status = Status.AST_DIVERGED,
-                reason = "file-content mismatch",
-                divergedFiles = mismatching,
-            )
+            group.allWith(Status.AST_DIVERGED, "file-content mismatch", divergedFiles = mismatching)
         }
     }
+
+    private fun List<RefactoringStep>.allWith(
+        status: Status,
+        reason: String,
+        divergedFiles: List<String>? = null,
+    ): List<StepValidation> = map { StepValidation(it.stepIndex, status, reason, divergedFiles) }
 
     private fun changedFilesBetweenCached(fromSha: String, toSha: String): Set<String> {
         val key = fromSha to toSha
@@ -220,11 +248,11 @@ class RefactoringStepValidator(
     }
 
     private fun stashOurDump(
-        stepIndex: Int,
-        worktree: java.nio.file.Path,
+        dumpDirName: String,
+        worktree: Path,
         paths: Set<String>,
     ) {
-        val root = debugDumpDir!!.resolve("step-$stepIndex")
+        val root = debugDumpDir!!.resolve(dumpDirName)
         for (rel in paths) {
             val src = worktree.resolve(rel)
             if (!Files.exists(src)) continue
@@ -234,9 +262,9 @@ class RefactoringStepValidator(
         }
     }
 
-    private fun dumpUserSide(stepIndex: Int, toSha: String, paths: List<String>) {
+    private fun dumpUserSide(dumpDirName: String, toSha: String, paths: List<String>) {
         if (paths.isEmpty()) return
-        val root = debugDumpDir!!.resolve("step-$stepIndex")
+        val root = debugDumpDir!!.resolve(dumpDirName)
         val worktree = pool.borrow(toSha)
         try {
             for (rel in paths) {
