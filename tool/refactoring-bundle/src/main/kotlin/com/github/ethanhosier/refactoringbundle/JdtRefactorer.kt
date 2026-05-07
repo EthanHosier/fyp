@@ -126,11 +126,12 @@ object JdtRefactorer {
         originalLineHint: Int,
         originalColumnHint: Int,
         newMethodName: String,
+        isStatic: Boolean,
     ): String = RefactoringHost.run(projectRoot, sourceFolders, classpathJars) { jp ->
         ExtractMethodOp.run(
             jp, relativeFilePath, declaringTypeFqn, hostMethodName, hostMethodParamTypes,
             selectionSubtreeHash, selectionNodeCount,
-            originalLineHint, originalColumnHint, newMethodName,
+            originalLineHint, originalColumnHint, newMethodName, isStatic,
         )
     }
 

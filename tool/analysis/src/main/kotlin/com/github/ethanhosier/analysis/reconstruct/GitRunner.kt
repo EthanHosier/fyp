@@ -148,6 +148,65 @@ class GitRunner(private val workDir: Path) {
         run("branch", "-f", name, sha)
     }
 
+    /**
+     * `.java` paths changed between [from] and [to] — adds, modifies,
+     * deletes and both sides of a rename. Uses `--name-status -M` so
+     * a rename surfaces as both old and new path (the validator needs
+     * to compare ASTs at both ends).
+     */
+    fun changedJavaFilesBetween(from: String, to: String): Set<String> {
+        val out = exec(
+            listOf("diff", "--name-status", "-M", from, to, "--", "*.java"),
+            allowNonZero = false,
+        ).stdout
+        val result = LinkedHashSet<String>()
+        for (raw in out.lineSequence()) {
+            val line = raw.trimEnd('\r')
+            if (line.isBlank()) continue
+            val parts = line.split('\t')
+            // status\tpath  OR  R###\told\tnew  /  C###\told\tnew
+            val status = parts[0]
+            when {
+                status.startsWith("R") || status.startsWith("C") -> {
+                    if (parts.size >= 3) {
+                        result += parts[1]
+                        result += parts[2]
+                    }
+                }
+                else -> if (parts.size >= 2) result += parts[1]
+            }
+        }
+        return result
+    }
+
+    /**
+     * `.java` paths changed in the worktree relative to HEAD —
+     * tracked-modified, added, deleted, plus untracked files.
+     * Mirrors [changedJavaFilesBetween] for a dirty working tree
+     * the validator just produced.
+     */
+    fun changedJavaFilesFromHeadDirty(): Set<String> {
+        val out = exec(
+            listOf("status", "--porcelain", "--untracked-files=all", "--", "*.java"),
+            allowNonZero = false,
+        ).stdout
+        val result = LinkedHashSet<String>()
+        for (raw in out.lineSequence()) {
+            val line = raw.trimEnd('\r')
+            if (line.length < 4) continue
+            // Porcelain v1: XY<space>path  (or XY<space>old -> new for renames).
+            val rest = line.substring(3)
+            val arrow = rest.indexOf(" -> ")
+            if (arrow >= 0) {
+                result += rest.substring(0, arrow)
+                result += rest.substring(arrow + 4)
+            } else {
+                result += rest
+            }
+        }
+        return result
+    }
+
     /** First-parent SHA of [sha], or null if it's the root commit. */
     fun parentOf(sha: String): String? {
         val result = exec(listOf("rev-parse", "--verify", "$sha^"), allowNonZero = true)
