@@ -2,6 +2,7 @@
 package com.github.ethanhosier.analysis.pipeline
 
 import com.github.ethanhosier.analysis.alternative.AlternativeTrajectoryRunner
+import com.github.ethanhosier.analysis.alternative.reorder.ReorderWindowLogger
 import com.github.ethanhosier.analysis.diffs.DiffsRunner
 import com.github.ethanhosier.analysis.ingest.TraceLoader
 import com.github.ethanhosier.analysis.metrics.MetricsRunner
@@ -95,6 +96,22 @@ class AnalysisPipeline(
         val miner = RefactoringMinerRunner(parallelism = parallelism).run(trace, reconstruction, sessionDir)
         val minerDurationMs = System.currentTimeMillis() - minerStart
         log("miner: ${miner.steps.size} step(s) detected across ${miner.checkpointsAnalysed} checkpoint(s) in ${minerDurationMs}ms")
+
+        // Inspection-only: split the mined trace on untyped (Other /
+        // null) specs and log the dependency DAG + enumerated
+        // orderings per resulting sub-window. No synthesis yet — this
+        // lets us measure the reorder model on real sessions before
+        // wiring multi-step alt synthesis.
+        // See `tool/PLAN-reorder-enumerator.md`.
+        val reorderLogStart = System.currentTimeMillis()
+        val reorderSummary = ReorderWindowLogger.log(miner.steps) { line -> log(line) }
+        log(
+            "reorder-log: ${reorderSummary.eligibleWindows} eligible window(s), " +
+                "${reorderSummary.singletonWindows} singleton(s) of " +
+                "${reorderSummary.totalWindows} total " +
+                "(${reorderSummary.typedCount} typed, ${reorderSummary.untypedCount} untyped/splitter) in " +
+                "${System.currentTimeMillis() - reorderLogStart}ms",
+        )
 
         val alternativeStart = System.currentTimeMillis()
         log("alt-traj: starting (refactoringClient=ready)")
