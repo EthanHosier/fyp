@@ -507,4 +507,26 @@ object JdtRefactorer {
     ): String = RefactoringHost.run(projectRoot, sourceFolders, classpathJars) { jp ->
         ExtractSuperclassOp.run(jp, sourceTypeFqn, newSupertypeName, methodNames, fieldNames)
     }
+
+    /**
+     * Flip the bundle's project-cache keep flag. While set, [RefactoringHost.run]
+     * keeps the indexed [org.eclipse.jdt.core.IJavaProject] alive across
+     * consecutive calls on the same `projectRoot`, skipping init+index
+     * on cache hits. Always paired with [clearProjectCache] in a
+     * `finally` block on the host side; never left set across batches.
+     */
+    @JvmStatic
+    fun setKeepProject(keep: Boolean): String = RefactoringHost.setKeepProject(keep)
+
+    /** Tear down the cached project (if any). No-op if the cache is empty. */
+    @JvmStatic
+    fun clearProjectCache(): String = RefactoringHost.clearProjectCache()
+
+    /**
+     * Test-only: number of times [com.github.ethanhosier.refactoringbundle.internal.ProjectInitializer.initProject]
+     * has been invoked since process start. Lets bundle smoke tests
+     * verify that batch applies index exactly once.
+     */
+    @JvmStatic
+    fun initCount(): Int = RefactoringHost.initCount
 }
