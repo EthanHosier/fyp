@@ -45,6 +45,95 @@ class JavaFileAstHasherTest {
         assertNull(JavaFileAstHasher.hashFile(tmp, "ghost/Nope.java"))
     }
 
+    /**
+     * Two extract-method orderings produce the same set of methods in
+     * different source positions. Java doesn't care, so the hash
+     * shouldn't either — otherwise the validator would mark a
+     * commuting alt ordering as `AST_DIVERGED` purely on cosmetics.
+     */
+    @Test
+    fun `method declaration order is canonicalised`(@TempDir tmp: Path) {
+        write(
+            tmp,
+            "A.java",
+            "package p; public class C { void a() {} void b() {} }",
+        )
+        write(
+            tmp,
+            "B.java",
+            "package p; public class C { void b() {} void a() {} }",
+        )
+        assertEquals(JavaFileAstHasher.hashFile(tmp, "A.java"), JavaFileAstHasher.hashFile(tmp, "B.java"))
+    }
+
+    @Test
+    fun `overload signatures sort distinctly from one another`(@TempDir tmp: Path) {
+        write(
+            tmp,
+            "A.java",
+            "package p; public class C { void f(int x) {} void f(String s) {} void f() {} }",
+        )
+        write(
+            tmp,
+            "B.java",
+            "package p; public class C { void f() {} void f(String s) {} void f(int x) {} }",
+        )
+        // Three distinct overloads of `f` rearranged — same set, hash equal.
+        assertEquals(JavaFileAstHasher.hashFile(tmp, "A.java"), JavaFileAstHasher.hashFile(tmp, "B.java"))
+    }
+
+    /**
+     * Field declarations stay positional — initializer
+     * cross-references make their order observable. Reordering fields
+     * MUST change the hash so we don't accidentally collapse two
+     * structurally different programs.
+     */
+    @Test
+    fun `field declaration order still affects the hash`(@TempDir tmp: Path) {
+        write(
+            tmp,
+            "A.java",
+            "package p; public class C { int a = 1; int b = 2; }",
+        )
+        write(
+            tmp,
+            "B.java",
+            "package p; public class C { int b = 2; int a = 1; }",
+        )
+        assertNotEquals(JavaFileAstHasher.hashFile(tmp, "A.java"), JavaFileAstHasher.hashFile(tmp, "B.java"))
+    }
+
+    @Test
+    fun `statement order inside a method still affects the hash`(@TempDir tmp: Path) {
+        write(
+            tmp,
+            "A.java",
+            "package p; public class C { int run() { int x = 1; int y = 2; return x; } }",
+        )
+        write(
+            tmp,
+            "B.java",
+            "package p; public class C { int run() { int y = 2; int x = 1; return x; } }",
+        )
+        assertNotEquals(JavaFileAstHasher.hashFile(tmp, "A.java"), JavaFileAstHasher.hashFile(tmp, "B.java"))
+    }
+
+    @Test
+    fun `removing or renaming a method still diverges`(@TempDir tmp: Path) {
+        write(
+            tmp,
+            "A.java",
+            "package p; public class C { void a() {} void b() {} }",
+        )
+        write(
+            tmp,
+            "B.java",
+            "package p; public class C { void a() {} void c() {} }",
+        )
+        // `b` → `c` — different method set; canonicalisation must not mask this.
+        assertNotEquals(JavaFileAstHasher.hashFile(tmp, "A.java"), JavaFileAstHasher.hashFile(tmp, "B.java"))
+    }
+
     private fun write(root: Path, rel: String, content: String) {
         val p = root.resolve(rel)
         Files.createDirectories(p.parent ?: root)
