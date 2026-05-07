@@ -53,6 +53,65 @@ class RefactoringClient internal constructor(
         parse(handle.invoke(refactorer, *args) as String)
     }
 
+    /**
+     * Run [block] inside a "batch session" — the bundle keeps the
+     * indexed Eclipse project alive across consecutive
+     * [invokeOnBundle] calls on the same `projectRoot`, so a sequence
+     * of refactorings pays only one full init+index for the whole
+     * batch instead of one per call.
+     *
+     * Lifecycle, in order, on every call:
+     * 1. Acquire [lock] (the same lock [invokeOnBundle] uses; it's
+     *    reentrant so nested per-op calls inside [block] don't
+     *    deadlock).
+     * 2. Tell the bundle to keep the project after each call.
+     * 3. Run [block]. Per-op calls inside it transparently benefit
+     *    from the cache.
+     * 4. In a `finally`: tear down whatever's cached, reset the
+     *    keep-flag to off. No state survives past this method.
+     *
+     * Holding the lock for the whole batch serialises out any
+     * concurrent caller (`apply`, another `applyAll`, etc.) — without
+     * that, a different worktree's `apply()` could race the keep-flag
+     * and reuse a project rooted elsewhere. The JDT lock at the
+     * bundle layer makes parallel bundle calls impossible regardless,
+     * so this isn't a throughput regression.
+     */
+    fun <T> withBatchSession(block: () -> T): T = lock.withLock {
+        setKeepProject(true)
+        try {
+            block()
+        } finally {
+            // Order matters: clear the cache while the flag is still
+            // truthful about whether a project is held, then reset.
+            runCatching { clearProjectCache() }
+            runCatching { setKeepProject(false) }
+        }
+    }
+
+    private fun setKeepProject(keep: Boolean) {
+        invokeOnBundle(
+            "setKeepProject",
+            arrayOf(java.lang.Boolean.TYPE),
+            arrayOf<Any?>(keep),
+        )
+    }
+
+    private fun clearProjectCache() {
+        invokeOnBundle("clearProjectCache", emptyArray(), emptyArray())
+    }
+
+    /**
+     * Test-only: read the bundle's project-init counter. Smoke tests
+     * use this to assert that an N-step batch indexed only once.
+     */
+    internal fun initCount(): Int = lock.withLock {
+        val handle = methodCache.getOrPut("initCount") {
+            refactorerClass.getMethod("initCount")
+        }
+        handle.invoke(refactorer) as Int
+    }
+
     override fun close() {
         lock.withLock {
             framework.stop()
