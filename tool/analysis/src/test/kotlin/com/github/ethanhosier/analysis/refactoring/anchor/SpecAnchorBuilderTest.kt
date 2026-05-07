@@ -70,6 +70,59 @@ class SpecAnchorBuilderTest {
         )
     }
 
+    /**
+     * Regression for the "deepest block wins" bug: when the user
+     * selects a whole compound statement (here: an entire `if (...)
+     * { ... }` block) at the method-body level, multiple nested
+     * Blocks satisfy `first.start >= startOffset && last.end <=
+     * endOffset` — the outer body Block (1-stmt window = the if),
+     * the if's then-block (all inner stmts), and any leaf branch
+     * Block. The previous comparator picked the *deepest* match,
+     * which extracted only the leaf statement. Now we prefer the
+     * tightest-fit window, breaking ties by shallowest depth, so
+     * the outer if-stmt wins.
+     */
+    @Test
+    fun `whole compound statement selection resolves to the outer if-stmt window`(@TempDir tmp: Path) {
+        val src = """
+            package com.example;
+            public class Demo {
+                public void run(String promo, StringBuilder sb) {
+                    if (promo != null) {
+                        sb.append(" | promo=").append(promo);
+                        if (promo.equals("SAVE10") || promo.equals("SAVE20")) {
+                            sb.append(" (flat)");
+                        } else if (promo.startsWith("PCT")) {
+                            sb.append(" (percent)");
+                        } else {
+                            sb.append(" (unknown)");
+                        }
+                    }
+                }
+            }
+        """.trimIndent()
+        val rel = "src/main/java/com/example/Demo.java"
+        val file = tmp.resolve(rel)
+        Files.createDirectories(file.parent)
+        Files.writeString(file, src)
+
+        val builder = SpecAnchorBuilder(tmp)
+        // Range covers the whole `if (promo != null) { ... }` block
+        // (lines 4..14 in the trimIndent'd source, 1-based).
+        val whole = builder.rangeAnchor(rel, startLine = 4, startColumn = 9, endLine = 14, endColumn = 80)
+        assertNotNull(whole)
+        assertEquals(1, whole.selectionNodeCount, "expected the if-stmt as a single node, not a deeper subset")
+
+        // Range covering only the inner `else if (PCT)` body — must
+        // still resolve to that single inner statement (prove the
+        // shallowest-preference doesn't break the deep-only case).
+        val inner = builder.rangeAnchor(rel, startLine = 9, startColumn = 17, endLine = 9, endColumn = 80)
+        assertNotNull(inner)
+        assertEquals(1, inner.selectionNodeCount)
+        // The two anchors must hash differently — distinct AST subtrees.
+        assertNotEquals(whole.selectionSubtreeHash, inner.selectionSubtreeHash)
+    }
+
     @Test
     fun `end column at exact end of line resolves correctly (no off-by-one collapse)`(@TempDir tmp: Path) {
         val src = """

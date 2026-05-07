@@ -68,6 +68,7 @@ fun extractMethodRequestAt(
     relativeFilePath: String,
     startLine: Int, startColumn: Int, endLine: Int, endColumn: Int,
     newMethodName: String,
+    isStatic: Boolean = false,
 ): ExtractMethodRequest {
     val a = rangeAnchor(projectRoot, relativeFilePath, startLine, startColumn, endLine, endColumn)
     return ExtractMethodRequest(
@@ -83,6 +84,7 @@ fun extractMethodRequestAt(
         originalLineHint = startLine,
         originalColumnHint = startColumn,
         newMethodName = newMethodName,
+        isStatic = isStatic,
     )
 }
 

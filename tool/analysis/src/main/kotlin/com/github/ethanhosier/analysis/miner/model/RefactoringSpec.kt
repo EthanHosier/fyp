@@ -45,6 +45,13 @@ sealed interface RefactoringSpec {
         val originalLineHint: Int? = null,
         val originalColumnHint: Int? = null,
         val newMethodName: String,
+        /** True iff the user's resulting method declaration carries
+         *  `static`. JDT's `ExtractMethodRefactoring` only adds the
+         *  modifier when it's *required*; IntelliJ's heuristic adds
+         *  it whenever the body permits. We post-process the result
+         *  to add `static` if this is set, so our reapplication
+         *  matches whatever the user actually did. */
+        val isStatic: Boolean = false,
     ) : RefactoringSpec
 
     @Serializable @SerialName("InlineMethod")

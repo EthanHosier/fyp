@@ -113,12 +113,17 @@ class AnalysisPipeline(
             baseDir = sessionDir.resolve("validator-worktrees"),
             size = parallelism,
         )
+        val validatorDebugDir = sessionDir.resolve("validator-debug").also {
+            it.toFile().deleteRecursively()
+            java.nio.file.Files.createDirectories(it)
+        }
         val validations = try {
             RefactoringStepValidator(
                 dispatcher = SpecDispatcher(refactoringClient),
                 pool = validatorPool,
                 shadowGit = shadowGitForValidator,
                 parallelism = parallelism,
+                debugDumpDir = validatorDebugDir,
             ).validate(miner.steps)
         } finally {
             validatorPool.close()
@@ -138,6 +143,9 @@ class AnalysisPipeline(
             "validator: summary valid=$validCount diverged=$divergedCount " +
                 "refactorFailed=$failedCount untyped=$untypedCount in ${validatorDurationMs}ms",
         )
+        if (divergedCount > 0) {
+            log("validator: divergent step dumps under $validatorDebugDir (`*.ours` vs `*.user` per file)")
+        }
 
         // Inspection-only: log the dependency DAG + enumerated
         // orderings per resulting sub-window. No synthesis yet —

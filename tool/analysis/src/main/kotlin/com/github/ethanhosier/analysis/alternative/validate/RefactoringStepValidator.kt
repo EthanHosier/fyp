@@ -4,6 +4,7 @@ import com.github.ethanhosier.analysis.metrics.WorktreePool
 import com.github.ethanhosier.analysis.miner.model.RefactoringSpec
 import com.github.ethanhosier.analysis.miner.model.RefactoringStep
 import com.github.ethanhosier.analysis.reconstruct.GitRunner
+import java.nio.file.Files
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.Executors
@@ -42,6 +43,11 @@ class RefactoringStepValidator(
     private val pool: WorktreePool,
     private val shadowGit: GitRunner,
     private val parallelism: Int = (Runtime.getRuntime().availableProcessors() / 2).coerceAtLeast(1),
+    /** When non-null, every divergent step writes the post-apply
+     *  file (`<step>/<path>.ours`) and the user's `toSha` file
+     *  (`<step>/<path>.user`) under this directory. Lets the
+     *  caller `diff` the two to inspect why ASTs disagree. */
+    private val debugDumpDir: java.nio.file.Path? = null,
 ) {
 
     constructor(
@@ -49,7 +55,8 @@ class RefactoringStepValidator(
         pool: WorktreePool,
         shadowGit: GitRunner,
         parallelism: Int = (Runtime.getRuntime().availableProcessors() / 2).coerceAtLeast(1),
-    ) : this(dispatcher::apply, pool, shadowGit, parallelism)
+        debugDumpDir: java.nio.file.Path? = null,
+    ) : this(dispatcher::apply, pool, shadowGit, parallelism, debugDumpDir)
 
     /** Bounded `(toSha, relativePath) -> astHash` cache. Hashing a
      *  given `(toSha, path)` is deterministic, so chained traces
@@ -141,6 +148,13 @@ class RefactoringStepValidator(
             }
             // Hash our post-apply files while we still hold the worktree.
             ourHashes = userChanged.associateWith { JavaFileAstHasher.hashFile(worktree, it) }
+            // If debugging, snapshot ALL changed files now while the
+            // dirty worktree is still around. We may not need them
+            // (only if the comparison below diverges), but we have to
+            // capture before releasing.
+            if (debugDumpDir != null) {
+                stashOurDump(step.stepIndex, worktree, userChanged)
+            }
         } finally {
             pool.release(worktree)
         }
@@ -151,8 +165,16 @@ class RefactoringStepValidator(
             ours == null || theirs == null || ours != theirs
         }
         return if (mismatching.isEmpty()) {
+            // Clean up the speculative `.ours` dump for this step —
+            // we don't need it.
+            if (debugDumpDir != null) {
+                debugDumpDir.resolve("step-${step.stepIndex}").toFile().deleteRecursively()
+            }
             StepValidation(step.stepIndex, Status.VALID, reason = null, divergedFiles = null)
         } else {
+            if (debugDumpDir != null) {
+                dumpUserSide(step.stepIndex, step.toSha, mismatching)
+            }
             StepValidation(
                 stepIndex = step.stepIndex,
                 status = Status.AST_DIVERGED,
@@ -195,6 +217,38 @@ class RefactoringStepValidator(
             pool.release(worktree)
         }
         return out
+    }
+
+    private fun stashOurDump(
+        stepIndex: Int,
+        worktree: java.nio.file.Path,
+        paths: Set<String>,
+    ) {
+        val root = debugDumpDir!!.resolve("step-$stepIndex")
+        for (rel in paths) {
+            val src = worktree.resolve(rel)
+            if (!Files.exists(src)) continue
+            val dst = root.resolve("$rel.ours")
+            Files.createDirectories(dst.parent)
+            Files.copy(src, dst, java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+        }
+    }
+
+    private fun dumpUserSide(stepIndex: Int, toSha: String, paths: List<String>) {
+        if (paths.isEmpty()) return
+        val root = debugDumpDir!!.resolve("step-$stepIndex")
+        val worktree = pool.borrow(toSha)
+        try {
+            for (rel in paths) {
+                val src = worktree.resolve(rel)
+                if (!Files.exists(src)) continue
+                val dst = root.resolve("$rel.user")
+                Files.createDirectories(dst.parent)
+                Files.copy(src, dst, java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+            }
+        } finally {
+            pool.release(worktree)
+        }
     }
 
     data class StepValidation(

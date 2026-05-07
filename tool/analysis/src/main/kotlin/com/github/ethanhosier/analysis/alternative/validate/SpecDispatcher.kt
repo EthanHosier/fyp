@@ -206,6 +206,7 @@ class SpecDispatcher(
                     originalLineHint = spec.originalLineHint,
                     originalColumnHint = spec.originalColumnHint,
                     newMethodName = spec.newMethodName,
+                    isStatic = spec.isStatic,
                 ),
             )
 

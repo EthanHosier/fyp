@@ -39,6 +39,29 @@ internal object AnchorResolver {
         return parser.createAST(null) as CompilationUnit
     }
 
+    /** Find a method declaration by `(declaringTypeFqn, methodName)` —
+     *  no param-type matching. Used to locate the freshly-extracted
+     *  method when post-processing modifiers. Returns the first match;
+     *  callers rely on extract-method names being unique within their
+     *  type at the moment of extraction. */
+    fun findMethodByName(
+        cu: CompilationUnit,
+        declaringTypeFqn: String,
+        methodName: String,
+    ): MethodDeclaration? {
+        var found: MethodDeclaration? = null
+        cu.accept(object : ASTVisitor() {
+            override fun visit(node: MethodDeclaration): Boolean {
+                if (found != null) return false
+                if (node.name.identifier != methodName) return true
+                if (qualifiedName(node) != declaringTypeFqn) return true
+                found = node
+                return false
+            }
+        })
+        return found
+    }
+
     fun findHostMethod(
         cu: CompilationUnit,
         declaringTypeFqn: String,
