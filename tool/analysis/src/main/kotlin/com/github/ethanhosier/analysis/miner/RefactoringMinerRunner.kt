@@ -324,6 +324,7 @@ class RefactoringMinerRunner(
                     originalLineHint = first.startLine,
                     originalColumnHint = first.startColumn,
                     newMethodName = r.extractedOperation.name,
+                    isStatic = r.extractedOperation.isStatic,
                 )
             }
         }

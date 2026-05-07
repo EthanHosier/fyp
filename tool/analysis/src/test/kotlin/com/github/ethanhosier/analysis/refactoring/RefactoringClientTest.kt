@@ -169,6 +169,102 @@ class RefactoringClientTest {
     }
 
     @Test
+    fun `extract method with isStatic true adds static modifier`(@TempDir worktree: Path) {
+        val src = worktree.resolve("src").also(Path::createDirectories)
+        val file = src.resolve("org/example/Demo.java")
+        file.parent.createDirectories()
+        // The extracted body uses only the parameters — JDT's own
+        // `forceStatic()` would NOT trigger here (host method is
+        // non-static, so a non-static extracted method is a valid
+        // choice). The post-process should still add `static`
+        // because the spec says so.
+        file.writeText(
+            """
+            package org.example;
+
+            public class Demo {
+                public double compute(double a, double b) {
+                    double sum = a + b;
+                    double doubled = sum * 2;
+                    return doubled;
+                }
+            }
+            """.trimIndent(),
+        )
+
+        val outcome = client.extractMethod(
+            extractMethodRequestAt(
+                projectRoot = worktree,
+                sourceFolders = listOf("src"),
+                classpathJars = emptyList(),
+                relativeFilePath = "src/org/example/Demo.java",
+                startLine = 5, startColumn = 9,
+                endLine = 6, endColumn = Int.MAX_VALUE,
+                newMethodName = "combine",
+                isStatic = true,
+            ),
+        )
+
+        assertIs<RefactoringOutcome.Success>(outcome, "outcome=$outcome")
+        val result = Files.readString(file)
+        // The new method must carry `static`.
+        assertTrue(
+            "private static" in result,
+            "expected `private static` on extracted method, got:\n$result",
+        )
+        // And `compute` (the host) must NOT have been made static.
+        assertTrue(
+            "public double compute" in result,
+            "host method should be untouched by the static rewrite, got:\n$result",
+        )
+    }
+
+    @Test
+    fun `extract method with isStatic false leaves modifier off`(@TempDir worktree: Path) {
+        val src = worktree.resolve("src").also(Path::createDirectories)
+        val file = src.resolve("org/example/Demo.java")
+        file.parent.createDirectories()
+        file.writeText(
+            """
+            package org.example;
+
+            public class Demo {
+                public double compute(double a, double b) {
+                    double sum = a + b;
+                    double doubled = sum * 2;
+                    return doubled;
+                }
+            }
+            """.trimIndent(),
+        )
+
+        val outcome = client.extractMethod(
+            extractMethodRequestAt(
+                projectRoot = worktree,
+                sourceFolders = listOf("src"),
+                classpathJars = emptyList(),
+                relativeFilePath = "src/org/example/Demo.java",
+                startLine = 5, startColumn = 9,
+                endLine = 6, endColumn = Int.MAX_VALUE,
+                newMethodName = "combine",
+                isStatic = false,
+            ),
+        )
+
+        assertIs<RefactoringOutcome.Success>(outcome, "outcome=$outcome")
+        val result = Files.readString(file)
+        assertTrue(
+            "private static" !in result,
+            "expected non-static extracted method, got:\n$result",
+        )
+        // Sanity check the extraction itself happened.
+        assertTrue(
+            "private double combine" in result || "private static double combine" !in result,
+            "expected `private double combine(...)` in result, got:\n$result",
+        )
+    }
+
+    @Test
     fun `rename method updates call sites across files`(@TempDir worktree: Path) {
         val src = worktree.resolve("src").also(Path::createDirectories)
         val greeter = src.resolve("com/example/Greeter.java")

@@ -162,13 +162,37 @@ class SpecAnchorBuilder(private val worktree: Path) {
     /**
      * Look in every [Block] under [host] for a contiguous sibling
      * statement window whose first statement's start ≥ [startOffset]
-     * and whose last statement's end ≤ [endOffset]. Picks the deepest
-     * (most-nested) such block — that's the JDT semantics for
-     * extract-method on a selection inside an `if`/`for`/etc. body.
+     * and whose last statement's end ≤ [endOffset].
+     *
+     * When the user's range tightly brackets a whole compound
+     * statement (e.g. an entire `if (...) { ... }`), multiple Blocks
+     * satisfy that constraint:
+     *   - the host's body Block, with a 1-statement window
+     *     containing the if-statement (correct for "extract the
+     *     whole if as one unit");
+     *   - any nested Block inside the if's branches, whose
+     *     statements *also* fall within the input range (wrong —
+     *     extracts a strict subset).
+     *
+     * We rank candidates by:
+     *   1. **Slack** — `(firstStart - startOffset) + (endOffset -
+     *      lastEnd)`. Lower is tighter. The outer "if-as-a-unit"
+     *      window has slack 0 against a tight RM range; a nested
+     *      window leaves the surrounding compound stmt's brackets
+     *      outside, so its slack is positive.
+     *   2. **Shallowest depth** as tie-breaker — when two blocks
+     *      both match tightly (e.g. a nested if extracted as a
+     *      whole), the outer one is the user's intent.
+     *
+     * Inner-only selections (user chose statements *inside* a
+     * branch body) still resolve correctly: the wrapping compound
+     * stmt's `startPosition` is before the input range, so outer
+     * Blocks can't match at all — only the inner Block does.
      */
     private fun findSiblingWindow(host: MethodDeclaration, startOffset: Int, endOffset: Int): List<Statement>? {
         var best: List<Statement>? = null
-        var bestDepth = -1
+        var bestSlack = Int.MAX_VALUE
+        var bestDepth = Int.MAX_VALUE
         host.accept(object : ASTVisitor() {
             override fun visit(node: Block): Boolean {
                 @Suppress("UNCHECKED_CAST")
@@ -177,9 +201,13 @@ class SpecAnchorBuilder(private val worktree: Path) {
                 val last = stmts.indexOfLast { (it.startPosition + it.length) <= endOffset }
                 if (first in 0..last) {
                     val window = stmts.subList(first, last + 1)
+                    val firstStart = window.first().startPosition
+                    val lastEnd = window.last().startPosition + window.last().length
+                    val slack = (firstStart - startOffset) + (endOffset - lastEnd)
                     val depth = depthOf(node)
-                    if (depth > bestDepth) {
+                    if (slack < bestSlack || (slack == bestSlack && depth < bestDepth)) {
                         best = window
+                        bestSlack = slack
                         bestDepth = depth
                     }
                 }

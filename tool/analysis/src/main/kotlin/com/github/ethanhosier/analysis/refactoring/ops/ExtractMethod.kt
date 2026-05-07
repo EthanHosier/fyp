@@ -18,6 +18,7 @@ data class ExtractMethodRequest(
     val originalLineHint: Int? = null,
     val originalColumnHint: Int? = null,
     val newMethodName: String,
+    val isStatic: Boolean = false,
 )
 
 private val paramTypes: Array<Class<*>> = arrayOf(
@@ -33,6 +34,7 @@ private val paramTypes: Array<Class<*>> = arrayOf(
     Int::class.javaPrimitiveType!!,         // originalStartLineHint (-1 = absent)
     Int::class.javaPrimitiveType!!,         // originalStartColumnHint
     String::class.java,                     // newMethodName
+    Boolean::class.javaPrimitiveType!!,     // isStatic
 )
 
 fun RefactoringClient.extractMethod(req: ExtractMethodRequest): RefactoringOutcome =
@@ -52,5 +54,6 @@ fun RefactoringClient.extractMethod(req: ExtractMethodRequest): RefactoringOutco
             req.originalLineHint ?: -1,
             req.originalColumnHint ?: -1,
             req.newMethodName,
+            req.isStatic,
         ),
     )
