@@ -117,15 +117,31 @@ class SpecAnchorBuilder(private val worktree: Path) {
         cu.getPosition(line, (column - 1).coerceAtLeast(0)).coerceAtLeast(0)
 
     /**
-     * Inclusive endColumn → exclusive end offset. Handles the
-     * `Int.MAX_VALUE` "to end of line" idiom by clamping to the start
-     * of the next line (or to source length).
+     * RM's `endColumn` is 1-based inclusive — it points at the last
+     * character of the range. JDT's `getPosition(line, col)` is
+     * 0-based exclusive — `getPosition(line, K)` returns the offset
+     * of the (K+1)-th character on the line. So passing RM's 1-based
+     * inclusive column straight into JDT yields the offset
+     * one-past-the-end of the range (= the exclusive end offset we
+     * want).
+     *
+     * Two edge cases:
+     *  - RM's "to end of line" idiom (`column ≥ 1_000_000`) → clamp to
+     *    the start of the next line (or to source length).
+     *  - When `column` lies past the end of the actual line, JDT
+     *    returns `-1`. **Do not** silently clamp that to `0` — that
+     *    sends us to the start of the file and corrupts every range
+     *    that hits this case. Fall back to `nextLineStart` instead.
      */
     private fun positionOfEnd(cu: CompilationUnit, sourceLength: Int, line: Int, column: Int): Int {
         val nextLineStart = cu.getPosition(line + 1, 0).let { if (it >= 0) it else sourceLength }
         if (column >= 1_000_000) return nextLineStart
-        val abs = cu.getPosition(line, column).coerceAtLeast(0)
-        return if (abs in 0..nextLineStart) abs else nextLineStart
+        val abs = cu.getPosition(line, column)
+        return when {
+            abs < 0 -> nextLineStart
+            abs > nextLineStart -> nextLineStart
+            else -> abs
+        }
     }
 
     private fun findEnclosingMethod(cu: CompilationUnit, offset: Int): MethodDeclaration? {
