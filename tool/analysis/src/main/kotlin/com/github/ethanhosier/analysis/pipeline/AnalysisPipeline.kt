@@ -3,6 +3,9 @@ package com.github.ethanhosier.analysis.pipeline
 
 import com.github.ethanhosier.analysis.alternative.AlternativeTrajectoryRunner
 import com.github.ethanhosier.analysis.alternative.reorder.ReorderWindowLogger
+import com.github.ethanhosier.analysis.alternative.validate.RefactoringStepValidator
+import com.github.ethanhosier.analysis.alternative.validate.SpecDispatcher
+import com.github.ethanhosier.analysis.metrics.WorktreePool
 import com.github.ethanhosier.analysis.diffs.DiffsRunner
 import com.github.ethanhosier.analysis.ingest.TraceLoader
 import com.github.ethanhosier.analysis.metrics.MetricsRunner
@@ -97,19 +100,58 @@ class AnalysisPipeline(
         val minerDurationMs = System.currentTimeMillis() - minerStart
         log("miner: ${miner.steps.size} step(s) detected across ${miner.checkpointsAnalysed} checkpoint(s) in ${minerDurationMs}ms")
 
-        // Inspection-only: split the mined trace on untyped (Other /
-        // null) specs and log the dependency DAG + enumerated
-        // orderings per resulting sub-window. No synthesis yet — this
-        // lets us measure the reorder model on real sessions before
-        // wiring multi-step alt synthesis.
+        // Per-step ground-truth check before windowing: replay each
+        // typed spec from `fromSha` and compare the resulting AST to
+        // the user's `toSha`. Only steps that reproduce the user's
+        // end-state are eligible to participate in a reorder window;
+        // anything else (apply failed, AST diverged, untyped) becomes
+        // a window splitter. See `tool/PLAN-step-validator.md`.
+        val validatorStart = System.currentTimeMillis()
+        val shadowGitForValidator = GitRunner(reconstruction.repoDir)
+        val validatorPool = WorktreePool(
+            shadowRepo = reconstruction.repoDir,
+            baseDir = sessionDir.resolve("validator-worktrees"),
+            size = parallelism,
+        )
+        val validations = try {
+            RefactoringStepValidator(
+                dispatcher = SpecDispatcher(refactoringClient),
+                pool = validatorPool,
+                shadowGit = shadowGitForValidator,
+                parallelism = parallelism,
+            ).validate(miner.steps)
+        } finally {
+            validatorPool.close()
+        }
+        val validationsByIndex = validations.associateBy { it.stepIndex }
+        validations.sortedBy { it.stepIndex }.forEach { v ->
+            val tail = v.reason?.let { " — $it" } ?: ""
+            val files = v.divergedFiles?.takeIf { it.isNotEmpty() }?.let { " $it" } ?: ""
+            log("validator: step #${v.stepIndex} ${v.status}$tail$files")
+        }
+        val validatorDurationMs = System.currentTimeMillis() - validatorStart
+        val validCount = validations.count { it.status == RefactoringStepValidator.Status.VALID }
+        val divergedCount = validations.count { it.status == RefactoringStepValidator.Status.AST_DIVERGED }
+        val failedCount = validations.count { it.status == RefactoringStepValidator.Status.REFACTOR_FAILED }
+        val untypedCount = validations.count { it.status == RefactoringStepValidator.Status.UNTYPED }
+        log(
+            "validator: summary valid=$validCount diverged=$divergedCount " +
+                "refactorFailed=$failedCount untyped=$untypedCount in ${validatorDurationMs}ms",
+        )
+
+        // Inspection-only: log the dependency DAG + enumerated
+        // orderings per resulting sub-window. No synthesis yet —
+        // this lets us measure the reorder model on real sessions
+        // before wiring multi-step alt synthesis.
         // See `tool/PLAN-reorder-enumerator.md`.
         val reorderLogStart = System.currentTimeMillis()
-        val reorderSummary = ReorderWindowLogger.log(miner.steps) { line -> log(line) }
+        val reorderSummary = ReorderWindowLogger.log(miner.steps, validationsByIndex) { line -> log(line) }
         log(
             "reorder-log: ${reorderSummary.eligibleWindows} eligible window(s), " +
                 "${reorderSummary.singletonWindows} singleton(s) of " +
                 "${reorderSummary.totalWindows} total " +
-                "(${reorderSummary.typedCount} typed, ${reorderSummary.untypedCount} untyped/splitter) in " +
+                "(${reorderSummary.typedCount} typed, ${reorderSummary.untypedCount} untyped, " +
+                "${reorderSummary.divergentCount} diverged, ${reorderSummary.refactorFailedCount} failed) in " +
                 "${System.currentTimeMillis() - reorderLogStart}ms",
         )
 
