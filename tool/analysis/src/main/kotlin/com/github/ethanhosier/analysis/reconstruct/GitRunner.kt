@@ -100,6 +100,16 @@ class GitRunner(private val workDir: Path) {
     }
 
     /**
+     * Force the working tree, index, and HEAD to [sha]. Clobbers any
+     * dirty changes — required when callers know the prior state was
+     * left dirty by a refactoring apply but want to start the next
+     * bracket from a clean snapshot.
+     */
+    fun resetHard(sha: String) {
+        run("reset", "--hard", sha)
+    }
+
+    /**
      * Raw lines from `git diff --numstat -M <from> <to>`. Each line is
      * `added\tdeleted\tpath` where `added` / `deleted` are `-` for binary
      * files. Rename entries use the `{from => to}` path syntax.
