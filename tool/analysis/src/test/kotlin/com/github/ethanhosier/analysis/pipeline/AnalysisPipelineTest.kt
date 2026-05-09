@@ -5,6 +5,8 @@ import com.github.ethanhosier.analysis.metrics.MetricsRunner
 import com.github.ethanhosier.analysis.metrics.ck.CkResult
 import com.github.ethanhosier.analysis.metrics.gradlebuild.BuildResult
 import com.github.ethanhosier.analysis.metrics.model.CheckpointMetrics
+import com.github.ethanhosier.analysis.metrics.model.ReorderOrdering
+import com.github.ethanhosier.analysis.metrics.model.ReorderTrajectory
 import com.github.ethanhosier.analysis.metrics.pmd.PmdResult
 import com.github.ethanhosier.analysis.metrics.pmd.PmdTrackingRunner
 import com.github.ethanhosier.analysis.metrics.tests.TestResult
@@ -19,6 +21,8 @@ import com.github.ethanhosier.ideplugin.model.TraceEvent
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertSame
+import kotlin.test.assertTrue
 
 /**
  * Unit tests for the pure in-memory report assembly — no I/O, no Gradle.
@@ -118,6 +122,115 @@ class AnalysisPipelineTest {
         assertEquals(1, report.checkpoints.size)
         assertEquals("sha-orphan", report.checkpoints[0].sha)
         assertEquals(emptyList(), report.checkpoints[0].events)
+    }
+
+    @Test
+    fun `successful reorder ordering aliases terminal step to windowToSha checkpoint`() {
+        val trace = Trace(metadata = metadata("sess-r1"), events = emptyList())
+        val reconstruction = ReconstructionResult(
+            repoDir = Path.of("/tmp/fake"),
+            eventCommits = EventCommitMap(
+                mapping = linkedMapOf("e1" to "from", "e2" to "to"),
+            ),
+        )
+        val fromCp = checkpoint("from")
+        val toCp = checkpoint("to")
+        val intermediateCp = checkpoint("ord-s0")
+        val metrics = MetricsRunner.Summary(
+            totalShas = 2,
+            computed = 3,
+            buildOk = 3,
+            testsOk = 3,
+            checkpoints = listOf(fromCp, toCp),
+            alternativeCheckpoints = listOf(intermediateCp),
+        )
+        val ord = ReorderOrdering(
+            orderIndex = 0,
+            permutation = listOf(1, 0),
+            permutationLabels = listOf("B", "A"),
+            stepShas = listOf("ord-s0", "ord-s1-terminal"),
+            branchRefs = listOf("reorder/win0/0", "reorder/win0/0-1"),
+            terminalSuccess = true,
+        )
+        val traj = ReorderTrajectory(
+            windowIndex = 0,
+            windowFromSha = "from",
+            windowToSha = "to",
+            windowStepIndexes = listOf(0, 1),
+            windowSpecLabels = listOf("A", "B"),
+            orderings = listOf(ord),
+        )
+
+        val report = buildAnalysisReport(
+            trace = trace,
+            reconstruction = reconstruction,
+            metrics = metrics,
+            miner = emptyMinerSummary(),
+            alternative = emptyAlternativeSummary(),
+            diffs = emptyDiffsSummary(),
+            pmdTracking = emptyPmdTrackingSummary(),
+            parallelism = 1,
+            metricsDurationMs = 0,
+            reorderTrajectories = listOf(traj),
+        )
+
+        val scoredOrd = report.reorderTrajectories.single().orderings.single()
+        assertEquals(2, scoredOrd.metrics.size)
+        // Intermediate step → alt checkpoint by SHA.
+        assertSame(intermediateCp, scoredOrd.metrics[0])
+        // Terminal step → user windowToSha checkpoint by reference (no rebuild).
+        assertSame(toCp, scoredOrd.metrics[1])
+    }
+
+    @Test
+    fun `failed reorder ordering keeps empty metrics`() {
+        val trace = Trace(metadata = metadata("sess-r2"), events = emptyList())
+        val reconstruction = ReconstructionResult(
+            repoDir = Path.of("/tmp/fake"),
+            eventCommits = EventCommitMap(
+                mapping = linkedMapOf("e1" to "from", "e2" to "to"),
+            ),
+        )
+        val metrics = MetricsRunner.Summary(
+            totalShas = 2,
+            computed = 2,
+            buildOk = 2,
+            testsOk = 2,
+            checkpoints = listOf(checkpoint("from"), checkpoint("to")),
+        )
+        val ord = ReorderOrdering(
+            orderIndex = 0,
+            permutation = listOf(1, 0),
+            permutationLabels = listOf("B", "A"),
+            stepShas = listOf("ord-s0"),
+            branchRefs = listOf("reorder/win0/0"),
+            terminalSuccess = false,
+            failedAt = 1,
+        )
+        val traj = ReorderTrajectory(
+            windowIndex = 0,
+            windowFromSha = "from",
+            windowToSha = "to",
+            windowStepIndexes = listOf(0, 1),
+            windowSpecLabels = listOf("A", "B"),
+            orderings = listOf(ord),
+        )
+
+        val report = buildAnalysisReport(
+            trace = trace,
+            reconstruction = reconstruction,
+            metrics = metrics,
+            miner = emptyMinerSummary(),
+            alternative = emptyAlternativeSummary(),
+            diffs = emptyDiffsSummary(),
+            pmdTracking = emptyPmdTrackingSummary(),
+            parallelism = 1,
+            metricsDurationMs = 0,
+            reorderTrajectories = listOf(traj),
+        )
+
+        val scoredOrd = report.reorderTrajectories.single().orderings.single()
+        assertTrue(scoredOrd.metrics.isEmpty())
     }
 
     private fun emptyMinerSummary() = RefactoringMinerRunner.Summary(
