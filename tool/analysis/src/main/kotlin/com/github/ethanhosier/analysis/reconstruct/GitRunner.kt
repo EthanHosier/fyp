@@ -58,6 +58,10 @@ class GitRunner(private val workDir: Path) {
 
     fun head(): String = run("rev-parse", "HEAD").trim()
 
+    /** Resolve [ref] (a branch name, tag, or shorthand SHA) to a full
+     *  40-char SHA. Errors if the ref doesn't resolve. */
+    fun revParse(ref: String): String = run("rev-parse", ref).trim()
+
     /**
      * Adds a new linked worktree at [path], checked out in detached-HEAD state
      * at [sha]. The parent directory must exist; [path] itself must not.
