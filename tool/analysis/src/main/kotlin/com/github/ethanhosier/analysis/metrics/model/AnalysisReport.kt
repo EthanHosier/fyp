@@ -51,6 +51,14 @@ data class AnalysisReport(
     // [refactoringPatches]. Mirrors that map's shape so the frontend
     // can render IDE-driven and manual diffs side-by-side.
     val alternativePatches: Map<Int, String> = emptyMap(),
+    // Multi-step alt orderings synthesised by ReorderSynthesiser.
+    // One entry per reorder window with ≥2 typed VALID specs;
+    // each carries every alt ordering's commit chain (excluding
+    // the user's own ordering). Slice 2a populates this with
+    // synthesised SHAs only — metrics for these intermediates are
+    // a future slice. Empty default keeps older cached reports
+    // deserialisable.
+    val reorderTrajectories: List<ReorderTrajectory> = emptyList(),
 )
 
 /**
