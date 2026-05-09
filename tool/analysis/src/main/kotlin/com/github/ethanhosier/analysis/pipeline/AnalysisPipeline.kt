@@ -185,7 +185,10 @@ class AnalysisPipeline(
                 "${reorderSynth.divergentCount} diverged, ${reorderSynth.refactorFailedCount} failed); " +
                 "synthesised ${reorderSynth.orderingsSynthesised} orderings, " +
                 "${reorderSynth.commitsCreated} commits, " +
-                "${reorderSynth.appliesIssued} applies, ${reorderSynth.backtracksIssued} backtracks in " +
+                "${reorderSynth.appliesIssued} applies, ${reorderSynth.backtracksIssued} backtracks; " +
+                "terminal AST: ${reorderSynth.terminalsAstMatched} matched, " +
+                "${reorderSynth.terminalsAstDiverged} diverged (filtered out) of " +
+                "${reorderSynth.terminalsChecked} checked in " +
                 "${System.currentTimeMillis() - reorderStart}ms",
         )
 
