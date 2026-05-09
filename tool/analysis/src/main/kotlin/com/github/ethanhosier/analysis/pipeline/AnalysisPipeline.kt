@@ -201,13 +201,41 @@ class AnalysisPipeline(
 
         val metricsStart = System.currentTimeMillis()
         val altShas = alternative.synthesised.map { it.altSha }
-        val totalShas = reconstruction.eventCommits.mapping.values.toSet().size + altShas.size
-        log("metrics: starting on $totalShas SHA(s) (${altShas.size} alt) at parallelism=$parallelism")
+        val altFromShas = alternative.synthesised.map { it.fromSha }
+        // Reorder intermediates piggy-back on the alt-shas bucket so
+        // MetricsRunner's existing dedup + sequential-walk path covers
+        // them. Terminal stepShas of successful orderings are excluded:
+        // they're AST-equivalent to windowToSha by construction (the
+        // synthesiser already filtered divergent terminals), so the
+        // user's windowToSha checkpoint metrics are reused for them at
+        // attach time — saves a build+test per ordering. Failed
+        // orderings (terminalSuccess=false) are skipped entirely per
+        // Slice 2b scope.
+        val reorderIntermediateShas = mutableListOf<String>()
+        val reorderIntermediateFromShas = mutableListOf<String>()
+        for (traj in reorderSynth.trajectories) {
+            for (ord in traj.orderings) {
+                if (!ord.terminalSuccess) continue
+                val intermediates = ord.stepShas.dropLast(1)
+                intermediates.forEachIndexed { i, sha ->
+                    val from = if (i == 0) traj.windowFromSha else ord.stepShas[i - 1]
+                    reorderIntermediateShas += sha
+                    reorderIntermediateFromShas += from
+                }
+            }
+        }
+        val mergedAltShas = altShas + reorderIntermediateShas
+        val mergedAltFromShas = altFromShas + reorderIntermediateFromShas
+        val totalShas = reconstruction.eventCommits.mapping.values.toSet().size + mergedAltShas.size
+        log(
+            "metrics: starting on $totalShas SHA(s) (${altShas.size} alt-single, " +
+                "${reorderIntermediateShas.size} reorder-intermediate) at parallelism=$parallelism",
+        )
         val metrics = MetricsRunner(parallelism = parallelism).run(
             reconstruction = reconstruction,
             sessionFolder = sessionDir,
-            alternativeShas = altShas,
-            alternativeFromShas = alternative.synthesised.map { it.fromSha },
+            alternativeShas = mergedAltShas,
+            alternativeFromShas = mergedAltFromShas,
         )
         val metricsDurationMs = System.currentTimeMillis() - metricsStart
         log("metrics: ${metrics.computed} computed, ${metrics.buildOk} build-ok, ${metrics.testsOk} tests-ok in ${metricsDurationMs}ms")
@@ -375,6 +403,21 @@ internal fun buildAnalysisReport(
         ))
     }
 
+    val userMetricsBySha = metrics.checkpoints.associateBy { it.sha }
+    val reorderTrajectoriesScored = reorderTrajectories.map { traj ->
+        val terminalAlias = userMetricsBySha[traj.windowToSha]
+        val orderings = traj.orderings.map { ord ->
+            if (!ord.terminalSuccess || terminalAlias == null) return@map ord
+            val intermediates = ord.stepShas.dropLast(1)
+            val perStep = intermediates.map { sha ->
+                altMetricsBySha[sha]
+                    ?: error("reorder intermediate $sha missing from alt checkpoints")
+            } + terminalAlias
+            ord.copy(metrics = perStep)
+        }
+        traj.copy(orderings = orderings)
+    }
+
     return AnalysisReport(
         session = trace.metadata,
         run = RunInfo(
@@ -389,6 +432,6 @@ internal fun buildAnalysisReport(
         refactoringPatches = diffs.refactoringPatches,
         alternativeTrajectories = alternativeTrajectories,
         alternativePatches = diffs.alternativePatches,
-        reorderTrajectories = reorderTrajectories,
+        reorderTrajectories = reorderTrajectoriesScored,
     )
 }
