@@ -2,7 +2,7 @@
 package com.github.ethanhosier.analysis.pipeline
 
 import com.github.ethanhosier.analysis.alternative.AlternativeTrajectoryRunner
-import com.github.ethanhosier.analysis.alternative.reorder.ReorderWindowLogger
+import com.github.ethanhosier.analysis.alternative.synthesise.ReorderSynthesiser
 import com.github.ethanhosier.analysis.alternative.validate.RefactoringStepValidator
 import com.github.ethanhosier.analysis.alternative.validate.SpecDispatcher
 import com.github.ethanhosier.analysis.metrics.WorktreePool
@@ -149,20 +149,44 @@ class AnalysisPipeline(
             log("validator: divergent step dumps under $validatorDebugDir (`*.ours` vs `*.user` per file)")
         }
 
-        // Inspection-only: log the dependency DAG + enumerated
-        // orderings per resulting sub-window. No synthesis yet —
-        // this lets us measure the reorder model on real sessions
-        // before wiring multi-step alt synthesis.
-        // See `tool/PLAN-reorder-enumerator.md`.
-        val reorderLogStart = System.currentTimeMillis()
-        val reorderSummary = ReorderWindowLogger.log(miner.steps, validationsByIndex) { line -> log(line) }
+        // Multi-step alt-trajectory synthesis: for each VALID
+        // reorder window, materialise every alt ordering as a chain
+        // of git commits in the shadow repo, with an ordered-prefix
+        // cache so orderings sharing a prefix re-use materialised
+        // commits. Replaces the previous inspection-only
+        // ReorderWindowLogger — same window-splitting + summary
+        // counts, plus the synthesis loop. See
+        // `tool/PLAN-reorder-synthesis.md`.
+        val reorderStart = System.currentTimeMillis()
+        val reorderShadowGit = GitRunner(reconstruction.repoDir)
+        val reorderPool = WorktreePool(
+            shadowRepo = reconstruction.repoDir,
+            baseDir = sessionDir.resolve("reorder-worktrees"),
+            size = parallelism,
+        )
+        val reorderSynth = try {
+            ReorderSynthesiser(
+                client = refactoringClient,
+                shadowGit = reorderShadowGit,
+                pool = reorderPool,
+            ).run(
+                steps = miner.steps,
+                validations = validationsByIndex,
+                log = { line -> log(line) },
+            )
+        } finally {
+            reorderPool.close()
+        }
         log(
-            "reorder-log: ${reorderSummary.eligibleWindows} eligible window(s), " +
-                "${reorderSummary.singletonWindows} singleton(s) of " +
-                "${reorderSummary.totalWindows} total " +
-                "(${reorderSummary.typedCount} typed, ${reorderSummary.untypedCount} untyped, " +
-                "${reorderSummary.divergentCount} diverged, ${reorderSummary.refactorFailedCount} failed) in " +
-                "${System.currentTimeMillis() - reorderLogStart}ms",
+            "reorder synth: ${reorderSynth.eligibleWindows} eligible window(s), " +
+                "${reorderSynth.singletonWindows} singleton(s) of " +
+                "${reorderSynth.totalWindows} total " +
+                "(${reorderSynth.typedCount} typed, ${reorderSynth.untypedCount} untyped, " +
+                "${reorderSynth.divergentCount} diverged, ${reorderSynth.refactorFailedCount} failed); " +
+                "synthesised ${reorderSynth.orderingsSynthesised} orderings, " +
+                "${reorderSynth.commitsCreated} commits, " +
+                "${reorderSynth.prefixCacheHits} prefix-cache hits in " +
+                "${System.currentTimeMillis() - reorderStart}ms",
         )
 
         val alternativeStart = System.currentTimeMillis()
@@ -225,6 +249,7 @@ class AnalysisPipeline(
             cpdTracking = cpdTracking,
             parallelism = parallelism,
             metricsDurationMs = metricsDurationMs,
+            reorderTrajectories = reorderSynth.trajectories,
         )
 
         return Result(
@@ -268,6 +293,7 @@ internal fun buildAnalysisReport(
     cpdTracking: CpdTrackingRunner.Summary = CpdTrackingRunner.Summary(emptyMap(), emptyMap()),
     parallelism: Int,
     metricsDurationMs: Long,
+    reorderTrajectories: List<com.github.ethanhosier.analysis.metrics.model.ReorderTrajectory> = emptyList(),
 ): AnalysisReport {
     // Preserve event order so each checkpoint's event list reads
     // chronologically — LinkedHashMap's insertion order is what we want.
@@ -362,5 +388,6 @@ internal fun buildAnalysisReport(
         refactoringPatches = diffs.refactoringPatches,
         alternativeTrajectories = alternativeTrajectories,
         alternativePatches = diffs.alternativePatches,
+        reorderTrajectories = reorderTrajectories,
     )
 }
