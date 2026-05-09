@@ -1,5 +1,6 @@
 package com.github.ethanhosier.analysis.alternative.validate
 
+import com.github.ethanhosier.analysis.reconstruct.GitRunner
 import com.github.ethanhosier.analysis.refactoring.anchor.AstSubtreeHasher
 import org.eclipse.jdt.core.dom.AST
 import org.eclipse.jdt.core.dom.ASTParser
@@ -28,6 +29,22 @@ object JavaFileAstHasher {
         } catch (_: Exception) {
             return null
         }
+        return hashSource(source)
+    }
+
+    /**
+     * Hash the canonical AST of [relativePath] as it exists at [sha]
+     * in the [git] repo, without touching the working tree. Useful
+     * when comparing against a historical commit (e.g. the user's
+     * `windowToSha`) without borrowing a worktree. Returns `null`
+     * if the path is absent at that SHA or fails to parse.
+     */
+    fun hashFileAtSha(git: GitRunner, sha: String, relativePath: String): String? {
+        val source = git.showAtSha(sha, relativePath) ?: return null
+        return hashSource(source)
+    }
+
+    private fun hashSource(source: String): String? {
         val parser = ASTParser.newParser(AST.JLS_Latest).apply {
             setKind(ASTParser.K_COMPILATION_UNIT)
             setSource(source.toCharArray())

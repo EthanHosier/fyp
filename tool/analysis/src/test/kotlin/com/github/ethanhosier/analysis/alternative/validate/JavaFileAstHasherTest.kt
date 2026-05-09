@@ -1,11 +1,13 @@
 package com.github.ethanhosier.analysis.alternative.validate
 
+import com.github.ethanhosier.analysis.reconstruct.GitRunner
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
+import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 
 class JavaFileAstHasherTest {
@@ -132,6 +134,34 @@ class JavaFileAstHasherTest {
         )
         // `b` → `c` — different method set; canonicalisation must not mask this.
         assertNotEquals(JavaFileAstHasher.hashFile(tmp, "A.java"), JavaFileAstHasher.hashFile(tmp, "B.java"))
+    }
+
+    @Test
+    fun `hashFileAtSha matches hashFile for committed content`(@TempDir tmp: Path) {
+        val src = "package p; public class C { public int run() { return 1; } }"
+        val git = initRepoWith(tmp, "C.java", src)
+        val sha = git.head()
+        val viaSha = JavaFileAstHasher.hashFileAtSha(git, sha, "C.java")
+        val viaFile = JavaFileAstHasher.hashFile(tmp, "C.java")
+        assertNotNull(viaSha)
+        assertEquals(viaFile, viaSha)
+    }
+
+    @Test
+    fun `hashFileAtSha returns null for missing path`(@TempDir tmp: Path) {
+        val git = initRepoWith(tmp, "C.java", "package p; public class C {}")
+        val sha = git.head()
+        assertNull(JavaFileAstHasher.hashFileAtSha(git, sha, "ghost/Nope.java"))
+    }
+
+    private fun initRepoWith(root: Path, rel: String, content: String): GitRunner {
+        val git = GitRunner(root)
+        git.init()
+        git.setLocalIdentity("test@example.com", "test")
+        write(root, rel, content)
+        git.addAll()
+        git.commit("seed")
+        return git
     }
 
     private fun write(root: Path, rel: String, content: String) {

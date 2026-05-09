@@ -217,6 +217,17 @@ class GitRunner(private val workDir: Path) {
         return if (result.exitCode == 0) result.stdout.trim() else null
     }
 
+    /**
+     * Read the contents of [relativePath] at [sha] without touching
+     * the working tree. Returns `null` if the path does not exist at
+     * that SHA (or any other git error). Useful for hashing files at
+     * historical states without borrowing a worktree.
+     */
+    fun showAtSha(sha: String, relativePath: String): String? {
+        val result = exec(listOf("show", "$sha:$relativePath"), allowNonZero = true)
+        return if (result.exitCode == 0) result.stdout else null
+    }
+
     private data class ExecResult(val exitCode: Int, val stdout: String, val stderr: String)
 
     private fun run(vararg args: String): String =
