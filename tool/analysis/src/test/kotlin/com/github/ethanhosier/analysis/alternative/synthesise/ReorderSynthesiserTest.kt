@@ -305,6 +305,123 @@ class ReorderSynthesiserTest {
         }
     }
 
+    @Nested
+    inner class TerminalAstDivergence {
+
+        @Test
+        fun `matching terminal keeps the ordering and is counted as matched`(@TempDir tmp: Path) {
+            withDivergenceCtx(
+                tmp = tmp,
+                userTerminalContent = "package p; class Foo {}",
+                ourTerminalHash = "USER-HASH",
+                userTerminalHash = "USER-HASH",
+            ) { ctx ->
+                val steps = listOf(
+                    step(0, "from", "mid", renameClass("com.A0", "B0")),
+                    step(1, "mid", "term", renameClass("com.A1", "B1")),
+                )
+                val summary = ctx.synth.run(steps, allValid(steps)) { ctx.lines += it }
+                assertEquals(1, summary.terminalsChecked)
+                assertEquals(1, summary.terminalsAstMatched)
+                assertEquals(0, summary.terminalsAstDiverged)
+                assertEquals(1, summary.trajectories[0].orderings.size)
+                assertEquals(listOf(1, 0), summary.trajectories[0].orderings[0].permutation)
+                assertEquals(null, summary.trajectories[0].orderings[0].terminalDivergedFiles)
+            }
+        }
+
+        @Test
+        fun `diverging terminal filters the ordering and logs the divergence`(@TempDir tmp: Path) {
+            withDivergenceCtx(
+                tmp = tmp,
+                userTerminalContent = "package p; class Foo {}",
+                ourTerminalHash = "OURS-HASH",
+                userTerminalHash = "USER-HASH",
+            ) { ctx ->
+                val steps = listOf(
+                    step(0, "from", "mid", renameClass("com.A0", "B0")),
+                    step(1, "mid", "term", renameClass("com.A1", "B1")),
+                )
+                val summary = ctx.synth.run(steps, allValid(steps)) { ctx.lines += it }
+                assertEquals(1, summary.terminalsChecked)
+                assertEquals(0, summary.terminalsAstMatched)
+                assertEquals(1, summary.terminalsAstDiverged)
+                assertTrue(summary.trajectories[0].orderings.isEmpty(), "divergent ordering should be filtered")
+                assertTrue(
+                    ctx.lines.any { "ast-divergence" in it && "Foo.java" in it },
+                    "log should describe the divergence: ${ctx.lines}",
+                )
+            }
+        }
+
+        @Test
+        fun `non-terminal prefixes are not hash-checked`(@TempDir tmp: Path) {
+            // 3-spec window: 5 alt orderings, 13 distinct prefixes, 5 terminals.
+            // hashWorktreeFile must be invoked exactly 5 times (one per
+            // terminal × 1 user-changed file).
+            var workCalls = 0
+            withDivergenceCtx(
+                tmp = tmp,
+                userTerminalContent = "package p; class Foo {}",
+                userTerminalHash = "USER-HASH",
+                ourHashWorktreeFile = { _, _ ->
+                    workCalls++
+                    "USER-HASH"
+                },
+            ) { ctx ->
+                val steps = (0 until 3).map {
+                    step(it, sha(it), terminalShaFor(it), renameClass("com.A$it", "B$it"))
+                }
+                ctx.synth.run(steps, allValid(steps)) { ctx.lines += it }
+                assertEquals(5, workCalls, "hashWorktreeFile should fire only at terminals")
+            }
+        }
+
+        @Test
+        fun `divergent terminal still leaves branch refs in shadow repo`(@TempDir tmp: Path) {
+            withDivergenceCtx(
+                tmp = tmp,
+                userTerminalContent = "package p; class Foo {}",
+                ourTerminalHash = "OURS-HASH",
+                userTerminalHash = "USER-HASH",
+            ) { ctx ->
+                val steps = listOf(
+                    step(0, "from", "mid", renameClass("com.A0", "B0")),
+                    step(1, "mid", "term", renameClass("com.A1", "B1")),
+                )
+                ctx.synth.run(steps, allValid(steps)) { ctx.lines += it }
+                // Both forced refs (depth-1 and depth-2) must still
+                // resolve in the shadow repo even though the ordering
+                // was filtered from the report.
+                val refs = listOf(
+                    "reorder/win0/path/1",
+                    "reorder/win0/path/1-0",
+                )
+                refs.forEach { ref ->
+                    GitRunner(ctx.shadowRepo).revParse(ref) // throws if missing
+                }
+            }
+        }
+
+        @Test
+        fun `unparseable user-side file counts as divergence`(@TempDir tmp: Path) {
+            withDivergenceCtx(
+                tmp = tmp,
+                userTerminalContent = "package p; class Foo {}",
+                ourTerminalHash = "OURS-HASH",
+                userTerminalHashOverride = { null }, // user-side null → divergence
+            ) { ctx ->
+                val steps = listOf(
+                    step(0, "from", "mid", renameClass("com.A0", "B0")),
+                    step(1, "mid", "term", renameClass("com.A1", "B1")),
+                )
+                val summary = ctx.synth.run(steps, allValid(steps)) { ctx.lines += it }
+                assertEquals(1, summary.terminalsAstDiverged)
+                assertEquals(0, summary.trajectories[0].orderings.size)
+            }
+        }
+    }
+
     // -------- fixtures --------
 
     private fun validation(idx: Int, status: Status, reason: String? = null) =
@@ -407,6 +524,75 @@ class ReorderSynthesiserTest {
             runCatching { pool.close() }
         }
     }
+
+    /**
+     * Fixture for terminal-AST-divergence tests. Builds a shadow repo
+     * with a real second commit that adds a single user-side `.java`
+     * file, then re-points specific branch names so
+     * `changedJavaFilesBetween(fromSha, windowToSha)` returns
+     * exactly that file. Hashers are fully test-controlled so the
+     * worktree side and user side report whatever the test wants.
+     */
+    private inline fun withDivergenceCtx(
+        tmp: Path,
+        userTerminalContent: String,
+        userTerminalHash: String? = "USER-HASH",
+        ourTerminalHash: String? = "USER-HASH",
+        noinline userTerminalHashOverride: ((String) -> String?)? = null,
+        noinline ourHashWorktreeFile: ((Path, String) -> String?)? = null,
+        block: (SynthCtx) -> Unit,
+    ) {
+        initShadowRepo(tmp)
+        val shadow = tmp.resolve("shadow-repo")
+        val shadowGit = GitRunner(shadow)
+        val seedSha = shadowGit.head()
+        // Add 2-step + 3-step window aliases that aren't in the
+        // default fixture set.
+        listOf("from", "mid").forEach { shadowGit.branchForce(it, seedSha) }
+        // Materialise a real user-toSha commit so
+        // `changedJavaFilesBetween` reports a non-empty set.
+        val foo = shadow.resolve("Foo.java")
+        foo.writeText(userTerminalContent)
+        shadowGit.addAll()
+        val termSha = shadowGit.commit("user windowToSha")
+        // Re-point branches used as windowToSha by tests.
+        listOf("term", "sha3".padEnd(40, '0')).forEach {
+            shadowGit.branchForce(it, termSha)
+        }
+
+        val pool = WorktreePool(
+            shadowRepo = shadow,
+            baseDir = tmp.resolve("synth-worktrees"),
+            size = 1,
+        )
+        try {
+            lateinit var ctx: SynthCtxImpl
+            val synth = ReorderSynthesiser(
+                applySpec = { spec, worktree ->
+                    ctx._applyCount++
+                    val rc = spec as RefactoringSpec.RenameClass
+                    val target = worktree.resolve("renames/${rc.typeFqn.replace('.', '_')}.txt")
+                    Files.createDirectories(target.parent)
+                    target.writeText("renamed=${rc.newName}\n")
+                    SpecDispatcher.Result.Ok
+                },
+                refreshProject = { /* no-op in tests */ },
+                runInSession = { it() },
+                shadowGit = shadowGit,
+                pool = pool,
+                hashWorktreeFile = ourHashWorktreeFile ?: { _, _ -> ourTerminalHash },
+                hashShaFile = { _, path ->
+                    userTerminalHashOverride?.invoke(path) ?: userTerminalHash
+                },
+            )
+            ctx = SynthCtxImpl(synth = synth, shadowRepo = shadow)
+            block(ctx)
+        } finally {
+            runCatching { pool.close() }
+        }
+    }
+
+    private fun terminalShaFor(i: Int): String = "sha${i + 1}".padEnd(40, '0')
 
     private fun initShadowRepo(tmp: Path) {
         val shadow = tmp.resolve("shadow-repo")

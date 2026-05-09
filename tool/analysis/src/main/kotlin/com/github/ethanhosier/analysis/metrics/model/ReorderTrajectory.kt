@@ -74,4 +74,11 @@ data class ReorderOrdering(
     /** Window-local index of the first failing spec, or null if
      *  all succeeded. */
     val failedAt: Int? = null,
+    /** Non-null when the ordering completed every step but the
+     *  terminal AST diverged from the window's `windowToSha` over
+     *  the user-changed file set — list of the divergent paths.
+     *  Such orderings are filtered out of the report by the
+     *  synthesiser; this field is reserved for future diagnostic
+     *  use and stays null on every kept entry. */
+    val terminalDivergedFiles: List<String>? = null,
 )
