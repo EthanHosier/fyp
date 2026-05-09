@@ -4,7 +4,6 @@ package com.github.ethanhosier.analysis.pipeline
 import com.github.ethanhosier.analysis.alternative.AlternativeTrajectoryRunner
 import com.github.ethanhosier.analysis.alternative.synthesise.ReorderSynthesiser
 import com.github.ethanhosier.analysis.alternative.validate.RefactoringStepValidator
-import com.github.ethanhosier.analysis.alternative.validate.SpecDispatcher
 import com.github.ethanhosier.analysis.metrics.WorktreePool
 import com.github.ethanhosier.analysis.diffs.DiffsRunner
 import com.github.ethanhosier.analysis.ingest.TraceLoader
@@ -119,10 +118,9 @@ class AnalysisPipeline(
         }
         val validations = try {
             RefactoringStepValidator(
-                dispatcher = SpecDispatcher(refactoringClient),
+                client = refactoringClient,
                 pool = validatorPool,
                 shadowGit = shadowGitForValidator,
-                parallelism = parallelism,
                 debugDumpDir = validatorDebugDir,
             ).validate(miner.steps)
         } finally {
