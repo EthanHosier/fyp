@@ -29,7 +29,7 @@ class RefactoringStepValidatorTest {
         try {
             val v = RefactoringStepValidator(
                 applySpec = { _, _ -> error("should not apply") },
-                pool = pool, shadowGit = shadowGit, parallelism = 1,
+                pool = pool, shadowGit = shadowGit,
             )
             val r = v.validate(listOf(makeStep(spec = null))).single()
             assertEquals(Status.UNTYPED, r.status)
@@ -47,7 +47,7 @@ class RefactoringStepValidatorTest {
         try {
             val v = RefactoringStepValidator(
                 applySpec = { _, _ -> SpecDispatcher.Result.Failed("anchor not found") },
-                pool = pool, shadowGit = shadowGit, parallelism = 1,
+                pool = pool, shadowGit = shadowGit,
             )
             val r = v.validate(listOf(makeStep(spec = SAMPLE_SPEC, fromSha = ctx.fromSha, toSha = ctx.toSha))).single()
             assertEquals(Status.REFACTOR_FAILED, r.status)
@@ -61,7 +61,7 @@ class RefactoringStepValidatorTest {
         try {
             val v = RefactoringStepValidator(
                 applySpec = { _, _ -> SpecDispatcher.Result.Ok }, // touches nothing
-                pool = pool, shadowGit = shadowGit, parallelism = 1,
+                pool = pool, shadowGit = shadowGit,
             )
             val r = v.validate(listOf(makeStep(spec = SAMPLE_SPEC, fromSha = ctx.fromSha, toSha = ctx.toSha))).single()
             assertEquals(Status.REFACTOR_FAILED, r.status)
@@ -79,7 +79,7 @@ class RefactoringStepValidatorTest {
                     Files.writeString(worktree.resolve("src/Other.java"), "package p; class Other {}")
                     SpecDispatcher.Result.Ok
                 },
-                pool = pool, shadowGit = shadowGit, parallelism = 1,
+                pool = pool, shadowGit = shadowGit,
             )
             val r = v.validate(listOf(makeStep(spec = SAMPLE_SPEC, fromSha = ctx.fromSha, toSha = ctx.toSha))).single()
             assertEquals(Status.AST_DIVERGED, r.status)
@@ -101,7 +101,7 @@ class RefactoringStepValidatorTest {
                     Files.writeString(worktree.resolve("src/A.java"), SRC_A_V2)
                     SpecDispatcher.Result.Ok
                 },
-                pool = pool, shadowGit = shadowGit, parallelism = 1,
+                pool = pool, shadowGit = shadowGit,
             )
             val r = v.validate(listOf(makeStep(spec = SAMPLE_SPEC, fromSha = ctx.fromSha, toSha = ctx.toSha))).single()
             assertEquals(Status.VALID, r.status, "reason=${r.reason} divergedFiles=${r.divergedFiles}")
@@ -120,7 +120,7 @@ class RefactoringStepValidatorTest {
                     Files.writeString(worktree.resolve("src/A.java"), SRC_A_V_OURS)
                     SpecDispatcher.Result.Ok
                 },
-                pool = pool, shadowGit = shadowGit, parallelism = 1,
+                pool = pool, shadowGit = shadowGit,
             )
             val r = v.validate(listOf(makeStep(spec = SAMPLE_SPEC, fromSha = ctx.fromSha, toSha = ctx.toSha))).single()
             assertEquals(Status.AST_DIVERGED, r.status)
@@ -148,7 +148,7 @@ class RefactoringStepValidatorTest {
                     Files.writeString(worktree.resolve("src/A.java"), next)
                     SpecDispatcher.Result.Ok
                 },
-                pool = pool, shadowGit = shadowGit, parallelism = 1,
+                pool = pool, shadowGit = shadowGit,
             )
             val r = v.validate(
                 listOf(
@@ -180,7 +180,7 @@ class RefactoringStepValidatorTest {
                     Files.writeString(worktree.resolve("src/A.java"), next)
                     SpecDispatcher.Result.Ok
                 },
-                pool = pool, shadowGit = shadowGit, parallelism = 1,
+                pool = pool, shadowGit = shadowGit,
             )
             val r = v.validate(
                 listOf(
@@ -206,7 +206,7 @@ class RefactoringStepValidatorTest {
             // shared verdict referencing step 0 as the culprit.
             val v = RefactoringStepValidator(
                 applySpec = { _, _ -> SpecDispatcher.Result.Failed("boom") },
-                pool = pool, shadowGit = shadowGit, parallelism = 1,
+                pool = pool, shadowGit = shadowGit,
             )
             val r = v.validate(
                 listOf(
@@ -240,7 +240,7 @@ class RefactoringStepValidatorTest {
                         SpecDispatcher.Result.Failed("second-step boom")
                     }
                 },
-                pool = pool, shadowGit = shadowGit, parallelism = 1,
+                pool = pool, shadowGit = shadowGit,
             )
             val r = v.validate(
                 listOf(
@@ -261,7 +261,7 @@ class RefactoringStepValidatorTest {
         try {
             val v = RefactoringStepValidator(
                 applySpec = { _, _ -> error("should not apply: bracket has untyped sibling") },
-                pool = pool, shadowGit = shadowGit, parallelism = 1,
+                pool = pool, shadowGit = shadowGit,
             )
             val r = v.validate(
                 listOf(
@@ -306,7 +306,7 @@ class RefactoringStepValidatorTest {
                     Files.writeString(worktree.resolve("src/A.java"), SRC_A_V2)
                     SpecDispatcher.Result.Ok
                 },
-                pool = pool, shadowGit = shadowGit, parallelism = 1,
+                pool = pool, shadowGit = shadowGit,
             )
             val r = v.validate(
                 listOf(
@@ -319,6 +319,147 @@ class RefactoringStepValidatorTest {
             assertEquals(Status.VALID, r[0].status)
             assertEquals(0, r[0].stepIndex)
         } finally { pool.close() }
+    }
+
+    @Test
+    fun `multi-step bracket invokes runInSession once around the apply loop`(@TempDir tmp: Path) {
+        // Pin the wrap invariant: every applySpec call in a bracket
+        // happens inside one runInSession call. Drives the production
+        // batch-session optimisation.
+        val (pool, shadowGit, ctx) = setup(tmp, beforeContent = SRC_A_V1, afterContent = SRC_A_V2)
+        try {
+            var sessionEntries = 0
+            var inSession = false
+            val applySawSession = mutableListOf<Boolean>()
+            val v = RefactoringStepValidator(
+                applySpec = { _, worktree ->
+                    applySawSession += inSession
+                    val cur = Files.readString(worktree.resolve("src/A.java"))
+                    val next = when (cur) {
+                        SRC_A_V1 -> SRC_A_INTERMEDIATE
+                        SRC_A_INTERMEDIATE -> SRC_A_V2
+                        else -> cur
+                    }
+                    Files.writeString(worktree.resolve("src/A.java"), next)
+                    SpecDispatcher.Result.Ok
+                },
+                pool = pool,
+                shadowGit = shadowGit,
+                runInSession = { body ->
+                    sessionEntries++
+                    inSession = true
+                    try {
+                        body()
+                    } finally {
+                        inSession = false
+                    }
+                },
+            )
+            v.validate(
+                listOf(
+                    makeStep(spec = SAMPLE_SPEC, fromSha = ctx.fromSha, toSha = ctx.toSha, stepIndex = 0),
+                    makeStep(spec = SAMPLE_SPEC, fromSha = ctx.fromSha, toSha = ctx.toSha, stepIndex = 1),
+                ),
+            )
+            assertEquals(1, sessionEntries, "runInSession should fire exactly once per bracket")
+            assertEquals(listOf(true, true), applySawSession, "every applySpec call must run inside the session")
+        } finally { pool.close() }
+    }
+
+    @Test
+    fun `validate runs one runInSession across all brackets`(@TempDir tmp: Path) {
+        val multi = setupMultiBracket(tmp, contents = listOf(SRC_A_V1, SRC_A_V2, SRC_A_INTERMEDIATE, SRC_A_V_OURS))
+        try {
+            var sessionEntries = 0
+            val v = RefactoringStepValidator(
+                applySpec = { _, _ -> SpecDispatcher.Result.Failed("ignored") },
+                pool = multi.pool,
+                shadowGit = multi.git,
+                runInSession = { body -> sessionEntries++; body() },
+            )
+            v.validate(
+                listOf(
+                    makeStep(spec = SAMPLE_SPEC, fromSha = multi.shas[0], toSha = multi.shas[1], stepIndex = 0),
+                    makeStep(spec = SAMPLE_SPEC, fromSha = multi.shas[1], toSha = multi.shas[2], stepIndex = 1),
+                    makeStep(spec = SAMPLE_SPEC, fromSha = multi.shas[2], toSha = multi.shas[3], stepIndex = 2),
+                ),
+            )
+            assertEquals(1, sessionEntries, "exactly one session for the whole validate call")
+        } finally { multi.pool.close() }
+    }
+
+    @Test
+    fun `validate resets worktree between brackets`(@TempDir tmp: Path) {
+        // Bracket 0 fromSha=c0 (A=v1), bracket 1 fromSha=c1 (A=v2).
+        // Recorder reads A.java at apply time.
+        val multi = setupMultiBracket(tmp, contents = listOf(SRC_A_V1, SRC_A_V2, SRC_A_INTERMEDIATE))
+        try {
+            val seen = mutableListOf<String>()
+            val v = RefactoringStepValidator(
+                applySpec = { _, worktree ->
+                    seen += Files.readString(worktree.resolve("src/A.java"))
+                    SpecDispatcher.Result.Failed("ignored")
+                },
+                pool = multi.pool,
+                shadowGit = multi.git,
+            )
+            v.validate(
+                listOf(
+                    makeStep(spec = SAMPLE_SPEC, fromSha = multi.shas[0], toSha = multi.shas[1], stepIndex = 0),
+                    makeStep(spec = SAMPLE_SPEC, fromSha = multi.shas[1], toSha = multi.shas[2], stepIndex = 1),
+                ),
+            )
+            assertEquals(listOf(SRC_A_V1, SRC_A_V2), seen, "second bracket should see the post-reset state")
+        } finally { multi.pool.close() }
+    }
+
+    @Test
+    fun `validate calls refreshProject between brackets`(@TempDir tmp: Path) {
+        val multi = setupMultiBracket(tmp, contents = listOf(SRC_A_V1, SRC_A_V2, SRC_A_INTERMEDIATE, SRC_A_V_OURS))
+        try {
+            var refreshes = 0
+            val v = RefactoringStepValidator(
+                applySpec = { _, _ -> SpecDispatcher.Result.Failed("ignored") },
+                pool = multi.pool,
+                shadowGit = multi.git,
+                refreshProject = { refreshes++ },
+            )
+            v.validate(
+                listOf(
+                    makeStep(spec = SAMPLE_SPEC, fromSha = multi.shas[0], toSha = multi.shas[1], stepIndex = 0),
+                    makeStep(spec = SAMPLE_SPEC, fromSha = multi.shas[1], toSha = multi.shas[2], stepIndex = 1),
+                    makeStep(spec = SAMPLE_SPEC, fromSha = multi.shas[2], toSha = multi.shas[3], stepIndex = 2),
+                ),
+            )
+            assertEquals(2, refreshes, "refreshProject should fire (brackets - 1) times")
+        } finally { multi.pool.close() }
+    }
+
+    @Test
+    fun `validate does not borrow a second worktree across brackets`(@TempDir tmp: Path) {
+        // Pool size 1 — a second concurrent borrow would block forever.
+        // If the validator's helpers were still doing per-bracket toSha
+        // borrows, this would deadlock.
+        val multi = setupMultiBracket(
+            tmp,
+            contents = listOf(SRC_A_V1, SRC_A_V2, SRC_A_INTERMEDIATE),
+            poolSize = 1,
+        )
+        try {
+            val v = RefactoringStepValidator(
+                applySpec = { _, _ -> SpecDispatcher.Result.Failed("ignored") },
+                pool = multi.pool,
+                shadowGit = multi.git,
+            )
+            // Just needs to return without hanging.
+            val r = v.validate(
+                listOf(
+                    makeStep(spec = SAMPLE_SPEC, fromSha = multi.shas[0], toSha = multi.shas[1], stepIndex = 0),
+                    makeStep(spec = SAMPLE_SPEC, fromSha = multi.shas[1], toSha = multi.shas[2], stepIndex = 1),
+                ),
+            )
+            assertEquals(2, r.size)
+        } finally { multi.pool.close() }
     }
 
     // --- shared fixtures ---------------------------------------------
@@ -354,6 +495,33 @@ class RefactoringStepValidatorTest {
         git.checkoutDetach(toSha)
         val pool = WorktreePool(repo, tmpRoot.resolve("worktrees"), 2)
         return Triple(pool, git, Ctx(fromSha, toSha))
+    }
+
+    private data class MultiCtx(val pool: WorktreePool, val git: GitRunner, val shas: List<String>)
+
+    /** Linear chain of N commits where each commit overwrites
+     *  `src/A.java` with the corresponding entry from [contents].
+     *  Returns the SHAs in commit order. The pool is left at HEAD =
+     *  last SHA (so worktree adds at any prior SHA work). */
+    private fun setupMultiBracket(
+        tmpRoot: Path,
+        contents: List<String>,
+        poolSize: Int = 2,
+    ): MultiCtx {
+        require(contents.size >= 2) { "need at least 2 commits to form a bracket" }
+        val repo = tmpRoot.resolve("shadow")
+        Files.createDirectories(repo.resolve("src"))
+        val git = GitRunner(repo)
+        git.init()
+        git.setLocalIdentity("test@local", "Test")
+        val shas = mutableListOf<String>()
+        for ((i, c) in contents.withIndex()) {
+            Files.writeString(repo.resolve("src/A.java"), c)
+            git.addAll()
+            shas += git.commit("c$i")
+        }
+        val pool = WorktreePool(repo, tmpRoot.resolve("worktrees"), poolSize)
+        return MultiCtx(pool, git, shas)
     }
 
     private fun makeStep(
