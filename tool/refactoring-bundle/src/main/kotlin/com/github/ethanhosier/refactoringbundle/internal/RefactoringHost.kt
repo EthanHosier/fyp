@@ -1,5 +1,6 @@
 package com.github.ethanhosier.refactoringbundle.internal
 
+import org.eclipse.core.resources.IResource
 import org.eclipse.core.runtime.NullProgressMonitor
 import org.eclipse.jdt.core.IJavaProject
 import java.nio.file.Path
@@ -59,6 +60,27 @@ internal object RefactoringHost {
             OutcomeJson.ok(emptyList())
         } catch (t: Throwable) {
             OutcomeJson.failed("clearProjectCache: ${t::class.simpleName}: ${t.message ?: ""}")
+        }
+    }
+
+    /**
+     * Force the cached project to re-stat every file, propagating
+     * any disk-side changes (e.g. an out-of-band `git checkout`)
+     * into Eclipse's `IResource` model. Standard pathway for
+     * "files modified by something other than JDT" — IDE users
+     * exercise it constantly. No-op if no project is cached.
+     *
+     * Cost is proportional to file count. Don't call on hot paths
+     * inside a single refactoring; it's intended to bracket a
+     * wholesale on-disk state change like a git operation.
+     */
+    fun refreshProject(): String {
+        val jp = cachedProject ?: return OutcomeJson.ok(emptyList())
+        return try {
+            jp.project.refreshLocal(IResource.DEPTH_INFINITE, NullProgressMonitor())
+            OutcomeJson.ok(emptyList())
+        } catch (t: Throwable) {
+            OutcomeJson.failed("refreshProject: ${t::class.simpleName}: ${t.message ?: ""}")
         }
     }
 

@@ -523,6 +523,15 @@ object JdtRefactorer {
     fun clearProjectCache(): String = RefactoringHost.clearProjectCache()
 
     /**
+     * Force Eclipse to re-stat every file in the cached project.
+     * Use after rewriting working-tree files behind Eclipse's back
+     * (e.g. a host-side `git checkout`). Cost scales with file
+     * count.
+     */
+    @JvmStatic
+    fun refreshProject(): String = RefactoringHost.refreshProject()
+
+    /**
      * Test-only: number of times [com.github.ethanhosier.refactoringbundle.internal.ProjectInitializer.initProject]
      * has been invoked since process start. Lets bundle smoke tests
      * verify that batch applies index exactly once.
