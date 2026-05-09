@@ -123,16 +123,19 @@ class MetricsRunner(
         }
         runCatching { git.worktreePrune() }
 
+        val total = allShas.size
         val results = try {
             // Seed the worktree at the first SHA. Subsequent SHAs are
             // reached by `git checkout --detach` *inside* the worktree,
             // preserving its `build/` between checkpoints.
             val first = allShas.first()
             git.worktreeAdd(worktreeDir, first)
+            logProgress(1, total, first)
             val seeded = computeOne(first, worktreeDir, pmdCacheFile, readabilityCacheFile)
 
-            val rest = allShas.drop(1).map { sha ->
+            val rest = allShas.drop(1).mapIndexed { i, sha ->
                 GitRunner(worktreeDir).checkoutDetach(sha)
+                logProgress(i + 2, total, sha)
                 computeOne(sha, worktreeDir, pmdCacheFile, readabilityCacheFile)
             }
             listOf(seeded) + rest
@@ -192,5 +195,9 @@ class MetricsRunner(
             TestResult.skipped("build failed (exit ${build.exitCode})")
         }
         return CheckpointMetrics(sha, ck, pmd, cpd, readability, build, tests)
+    }
+
+    private fun logProgress(index: Int, total: Int, sha: String) {
+        println("[metrics] computing $index/$total sha=${sha.take(8)}")
     }
 }
