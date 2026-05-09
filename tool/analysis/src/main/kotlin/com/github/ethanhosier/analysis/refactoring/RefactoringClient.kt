@@ -89,6 +89,18 @@ class RefactoringClient internal constructor(
         }
     }
 
+    /**
+     * Force the bundle's cached Eclipse project to re-stat every
+     * file. Use after rewriting working-tree files behind Eclipse's
+     * back — typically after a `git checkout` between sibling
+     * subtrees in a DFS walk.
+     */
+    fun refreshProject(): RefactoringOutcome = invokeOnBundle(
+        "refreshProject",
+        emptyArray(),
+        emptyArray(),
+    )
+
     private fun setKeepProject(keep: Boolean) {
         invokeOnBundle(
             "setKeepProject",

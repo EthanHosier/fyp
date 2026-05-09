@@ -185,7 +185,7 @@ class AnalysisPipeline(
                 "${reorderSynth.divergentCount} diverged, ${reorderSynth.refactorFailedCount} failed); " +
                 "synthesised ${reorderSynth.orderingsSynthesised} orderings, " +
                 "${reorderSynth.commitsCreated} commits, " +
-                "${reorderSynth.prefixCacheHits} prefix-cache hits in " +
+                "${reorderSynth.appliesIssued} applies, ${reorderSynth.backtracksIssued} backtracks in " +
                 "${System.currentTimeMillis() - reorderStart}ms",
         )
 

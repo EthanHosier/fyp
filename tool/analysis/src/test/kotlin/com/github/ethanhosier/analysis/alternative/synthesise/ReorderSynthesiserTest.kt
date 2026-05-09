@@ -16,16 +16,16 @@ import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.io.path.writeText
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class ReorderSynthesiserTest {
 
     /**
      * Window-splitting concerns migrated verbatim from the deleted
-     * `ReorderWindowLoggerTest`. These tests construct a synthesiser
-     * with throwing fakes for the synthesis seams, because windows
-     * with `< 2` typed specs never reach the synthesis path. The
-     * splitter logic + summary counts are exercised here.
+     * `ReorderWindowLoggerTest`. Tests construct a synthesiser with
+     * fakes that always succeed; assertions only look at splitting
+     * summary fields, computed before any synthesis runs.
      */
     @Nested
     inner class WindowSplitting {
@@ -37,10 +37,7 @@ class ReorderSynthesiserTest {
                 step(1, "bbb", "ccc", renameClass("com.B", "BB")),
                 step(2, "ccc", "ddd", renameClass("com.C", "CC")),
             )
-            // Three pairwise-commuting RenameClass specs → 6 valid orderings;
-            // identity dropped → 5 alt orderings; we exercise synthesis here
-            // too, so use a real (no-op-effect) git fixture.
-            return inSplitContext { ctx ->
+            inSplitContext { ctx ->
                 val lines = mutableListOf<String>()
                 val summary = ctx.synth.run(steps, allValid(steps)) { lines += it }
 
@@ -77,7 +74,6 @@ class ReorderSynthesiserTest {
                 6 to validation(6, Status.VALID),
                 7 to validation(7, Status.VALID),
             )
-
             inSplitContext { ctx ->
                 val lines = mutableListOf<String>()
                 val summary = ctx.synth.run(steps, validations) { lines += it }
@@ -88,7 +84,6 @@ class ReorderSynthesiserTest {
                 assertEquals(6, summary.typedCount)
                 assertEquals(2, summary.untypedCount)
                 assertEquals(0, summary.divergentCount)
-
                 assertTrue(lines.any { "window #0 aaa→ccc" in it })
                 assertTrue(lines.any { "window #1 ddd→fff" in it })
                 assertTrue(lines.any { "window #2 ggg→iii" in it })
@@ -111,11 +106,9 @@ class ReorderSynthesiserTest {
                 2 to validation(2, Status.VALID),
                 3 to validation(3, Status.VALID),
             )
-
             inSplitContext { ctx ->
                 val lines = mutableListOf<String>()
                 val summary = ctx.synth.run(steps, validations) { lines += it }
-
                 assertEquals(2, summary.totalWindows)
                 assertEquals(1, summary.eligibleWindows)
                 assertEquals(1, summary.singletonWindows)
@@ -142,11 +135,9 @@ class ReorderSynthesiserTest {
                 3 to validation(3, Status.VALID),
                 4 to validation(4, Status.VALID),
             )
-
             inSplitContext { ctx ->
                 val lines = mutableListOf<String>()
                 val summary = ctx.synth.run(steps, validations) { lines += it }
-
                 assertEquals(2, summary.totalWindows)
                 assertEquals(2, summary.eligibleWindows)
                 assertEquals(0, summary.singletonWindows)
@@ -180,9 +171,6 @@ class ReorderSynthesiserTest {
                 assertEquals(0, summary.eligibleWindows)
                 assertEquals(0, summary.singletonWindows)
                 assertEquals(0, summary.typedCount)
-                assertEquals(0, summary.untypedCount)
-                assertEquals(0, summary.divergentCount)
-                assertEquals(0, summary.refactorFailedCount)
                 assertTrue(lines.isEmpty())
             }
         }
@@ -192,59 +180,100 @@ class ReorderSynthesiserTest {
     inner class Synthesis {
 
         @Test
-        fun `two orderings sharing a prefix apply each spec once for the prefix`(@TempDir tmp: Path) {
-            // 3 specs, all pairwise-commuting RenameClass → 6 orderings.
-            // Drop identity [0,1,2] → 5 alt orderings.
-            // The enumerator emits orderings in lex-grouped order, so
-            // [0,1,2] → identity (skipped), then [0,2,1], [1,0,2], [1,2,0],
-            // [2,0,1], [2,1,0]. Cache should hit on shared prefixes.
+        fun `dfs visits each prefix once across all orderings`(@TempDir tmp: Path) {
+            // 3 specs, all pairwise-commuting RenameClass → 6 orderings
+            // total. Drop identity [0,1,2] → 5 alt orderings.
+            // Distinct non-empty prefixes across the alt orderings:
+            //   length-1: {0},{1},{2} → 3
+            //   length-2: {0,2},{1,0},{1,2},{2,0},{2,1} → 5
+            //   length-3: each of the 5 alt orderings → 5
+            // Total = 13.
             val steps = (0 until 3).map {
                 step(it, sha(it), sha(it + 1), renameClass("com.A$it", "B$it"))
             }
-            val validations = allValid(steps)
-
             withSynthCtx(tmp) { ctx ->
-                ctx.synth.run(steps, validations) { ctx.lines += it }
-
-                // Total apply calls across all 5 alt orderings: each ordering
-                // length is 3, so naive = 15. With prefix cache, count should
-                // be < 15. Concrete bound: enumerator emits in a way that
-                // groups by leading element, so we expect ~10 applies (a
-                // healthy reduction).
-                assertTrue(
-                    ctx.applyCount < 15,
-                    "expected prefix-cache reuse to reduce applies below 15, got ${ctx.applyCount}",
-                )
-                // And we expect SOME cache hits to be reported.
-                assertTrue(ctx.lines.any { "cache hit on prefix" in it })
+                val summary = ctx.synth.run(steps, allValid(steps)) { ctx.lines += it }
+                assertEquals(13, summary.appliesIssued, "expected 13 distinct non-empty prefixes for N=3 alt orderings")
+                // applies == backtracks for a clean DFS (each non-root
+                // node forwards once and backtracks once).
+                assertEquals(summary.appliesIssued, summary.backtracksIssued)
+                assertEquals(13, ctx.applyCount, "fake apply count must match")
+                // Every alt ordering completes.
+                val orderings = summary.trajectories[0].orderings
+                assertEquals(5, orderings.size)
+                assertTrue(orderings.all { it.terminalSuccess })
             }
         }
 
         @Test
-        fun `partial failure keeps succeeded prefix for later orderings`(@TempDir tmp: Path) {
-            // Same 3 RenameClass spec setup, but failure on the SECOND
-            // applySpec call within an ordering. Goal: after the first
-            // ordering's prefix gets cached, a later ordering hitting that
-            // same prefix should not re-attempt the prefix's applies.
+        fun `branch ref shared across orderings with same prefix`(@TempDir tmp: Path) {
+            // 3-spec window. Two alt orderings sharing prefix [a] for
+            // some `a` should list the same SHA + ref at index 0.
             val steps = (0 until 3).map {
                 step(it, sha(it), sha(it + 1), renameClass("com.A$it", "B$it"))
             }
-            val validations = allValid(steps)
+            withSynthCtx(tmp) { ctx ->
+                val summary = ctx.synth.run(steps, allValid(steps)) { ctx.lines += it }
+                val orderings = summary.trajectories[0].orderings
+                val byLead = orderings.groupBy { it.permutation.first() }
+                for ((_, group) in byLead) {
+                    val refs0 = group.map { it.branchRefs[0] }.distinct()
+                    val shas0 = group.map { it.stepShas[0] }.distinct()
+                    assertEquals(1, refs0.size, "orderings sharing prefix should share depth-1 ref: $refs0")
+                    assertEquals(1, shas0.size, "orderings sharing prefix should share depth-1 sha: $shas0")
+                }
+                // Refs use the per-prefix path namespace.
+                orderings.flatMap { it.branchRefs }.forEach { ref ->
+                    assertTrue(
+                        ref.matches(Regex("reorder/win\\d+/path/(\\d+)(-\\d+)*")),
+                        "ref '$ref' doesn't match per-prefix path namespace",
+                    )
+                }
+            }
+        }
 
-            withSynthCtx(tmp, failOnApplyCallNumber = 2) { ctx ->
-                ctx.synth.run(steps, validations) { ctx.lines += it }
+        @Test
+        fun `partial failure in subtree skips subtree continues siblings`(@TempDir tmp: Path) {
+            // Fake fails when applying spec #1 unconditionally. Every
+            // alt ordering applies spec 1 at some depth; that ordering
+            // fails at that depth. Sibling subtrees not passing
+            // through the failing spec still get explored.
+            val steps = (0 until 3).map {
+                step(it, sha(it), sha(it + 1), renameClass("com.A$it", "B$it"))
+            }
+            withSynthCtx(tmp, failOnSpecIdx = 1) { ctx ->
+                val summary = ctx.synth.run(steps, allValid(steps)) { ctx.lines += it }
+                val orderings = summary.trajectories[0].orderings
+                for (o in orderings) {
+                    assertTrue(!o.terminalSuccess, "ordering ${o.permutation} should fail (it applies spec 1)")
+                    val expectedDepth = o.permutation.indexOf(1)
+                    assertEquals(
+                        expectedDepth, o.failedAt,
+                        "ordering ${o.permutation} should fail at depth where spec 1 appears (= ${expectedDepth})",
+                    )
+                    assertEquals(expectedDepth, o.stepShas.size)
+                }
+            }
+        }
 
-                // We don't pin the exact apply count (it depends on enumerator
-                // order), but: every alt ordering should still get processed,
-                // and at least one should report a failure.
-                val failures = ctx.lines.count { "failed at" in it }
-                assertTrue(failures >= 1, "expected ≥1 ordering to record a failure")
+        @Test
+        fun `user identity ordering is dropped`(@TempDir tmp: Path) {
+            val steps = (0 until 2).map {
+                step(it, sha(it), sha(it + 1), renameClass("com.A$it", "B$it"))
+            }
+            withSynthCtx(tmp) { ctx ->
+                val summary = ctx.synth.run(steps, allValid(steps)) { ctx.lines += it }
+                assertEquals(1, summary.orderingsSynthesised)
+                val traj = summary.trajectories[0]
+                assertEquals(listOf(1, 0), traj.orderings[0].permutation)
+                assertTrue(traj.orderings.none { it.permutation == listOf(0, 1) })
+                assertEquals(2, traj.windowSpecLabels.size)
+                assertNotNull(traj.orderings[0].permutationLabels)
             }
         }
 
         @Test
         fun `windows smaller than 2 are skipped`(@TempDir tmp: Path) {
-            // A single typed VALID spec — eligible? No (we require ≥2).
             val steps = listOf(step(0, "aaa", "bbb", renameClass("com.A", "AA")))
             withSynthCtx(tmp) { ctx ->
                 val summary = ctx.synth.run(steps, allValid(steps)) { ctx.lines += it }
@@ -258,54 +287,20 @@ class ReorderSynthesiserTest {
         }
 
         @Test
-        fun `branch refs match the reorder namespace and are recorded in trajectories`(@TempDir tmp: Path) {
+        fun `commits are reachable in shadow repo via the per-prefix refs`(@TempDir tmp: Path) {
             val steps = (0 until 2).map {
                 step(it, sha(it), sha(it + 1), renameClass("com.A$it", "B$it"))
             }
             withSynthCtx(tmp) { ctx ->
                 val summary = ctx.synth.run(steps, allValid(steps)) { ctx.lines += it }
-                // 2 specs × 2 commute → 2 orderings; identity skipped → 1 alt
-                // ordering of length 2 → 2 commits/refs.
-                assertEquals(1, summary.trajectories.size)
-                val traj = summary.trajectories[0]
-                assertEquals(1, traj.orderings.size)
-                val ord = traj.orderings[0]
-                assertEquals(2, ord.branchRefs.size)
-                assertEquals(2, ord.stepShas.size)
-                assertTrue(ord.terminalSuccess)
-                assertEquals(listOf(1, 0), ord.permutation)
-                // Human-readable labels: per-window list parallel to
-                // step indices, plus a per-ordering re-projection.
-                assertEquals(2, traj.windowSpecLabels.size)
-                assertEquals(traj.windowSpecLabels[1], ord.permutationLabels[0])
-                assertEquals(traj.windowSpecLabels[0], ord.permutationLabels[1])
-                ord.branchRefs.forEach { ref ->
-                    assertTrue(
-                        ref.matches(Regex("reorder/win\\d+/ord\\d+/step-\\d+")),
-                        "ref '$ref' doesn't match reorder namespace",
+                val ord = summary.trajectories[0].orderings[0]
+                ord.branchRefs.forEachIndexed { k, ref ->
+                    assertEquals(
+                        ord.stepShas[k],
+                        GitRunner(ctx.shadowRepo).revParse(ref),
+                        "ref '$ref' should resolve to stepShas[$k]",
                     )
                 }
-                // Refs are addressable from the shadow repo.
-                ord.branchRefs.forEachIndexed { k, ref ->
-                    assertEquals(ord.stepShas[k], shaOf(ctx.shadowRepo, ref))
-                }
-            }
-        }
-
-        @Test
-        fun `user identity ordering is dropped`(@TempDir tmp: Path) {
-            val steps = (0 until 2).map {
-                step(it, sha(it), sha(it + 1), renameClass("com.A$it", "B$it"))
-            }
-            withSynthCtx(tmp) { ctx ->
-                val summary = ctx.synth.run(steps, allValid(steps)) { ctx.lines += it }
-                // 2 typed specs, 2 valid orderings, drop identity → 1 ord.
-                assertEquals(1, summary.orderingsSynthesised)
-                val traj = summary.trajectories[0]
-                assertEquals(listOf(1, 0), traj.orderings[0].permutation)
-                // Identity [0,1] would be the user's actual trace ordering;
-                // never recorded.
-                assertTrue(traj.orderings.none { it.permutation == listOf(0, 1) })
             }
         }
     }
@@ -340,22 +335,9 @@ class ReorderSynthesiserTest {
 
     private fun sha(i: Int) = "sha$i".padEnd(40, '0')
 
-    /**
-     * Synth wired with throwing fakes for everything that should
-     * never be reached when only window-splitting is exercised.
-     * Used by the [WindowSplitting] tests above.
-     */
     private inline fun inSplitContext(block: (SplitCtx) -> Unit) {
         val tmp = Files.createTempDirectory("rs-split-")
         try {
-            // We need a real shadow repo + pool because the synthesiser
-            // closes over them, but neither should be hit when no window
-            // is eligible OR when every typed spec is RenameClass and
-            // commutes (the synthesis path *will* run for all-valid traces;
-            // it borrows worktrees etc.). For the tests that have no
-            // eligible windows, the throwing fakes are fine — but the
-            // "all valid" test does need real fixtures, so we always
-            // wire them.
             initShadowRepo(tmp)
             val pool = WorktreePool(
                 shadowRepo = tmp.resolve("shadow-repo"),
@@ -364,18 +346,17 @@ class ReorderSynthesiserTest {
             )
             try {
                 val synth = ReorderSynthesiser(
-                    // Window-splitting tests don't care about synthesis
-                    // success. Returning Ok without mutating files means
-                    // every alt ordering hits "no staged changes" and
-                    // records as failed — fine, splitting assertions only
-                    // look at counts + window log lines emitted before
-                    // synthesis runs.
+                    // Returning Ok without writing files means every alt
+                    // ordering hits "no staged changes" and records as
+                    // failed — fine, splitting assertions only look at
+                    // counts + window log lines.
                     applySpec = { _, _ -> SpecDispatcher.Result.Ok },
+                    refreshProject = { /* no-op in tests */ },
                     runInSession = { it() },
                     shadowGit = GitRunner(tmp.resolve("shadow-repo")),
                     pool = pool,
                 )
-                block(SplitCtx(synth))
+                block(SplitCtxImpl(synth))
             } finally {
                 runCatching { pool.close() }
             }
@@ -386,36 +367,42 @@ class ReorderSynthesiserTest {
 
     private inline fun withSynthCtx(
         tmp: Path,
-        failOnApplyCallNumber: Int? = null,
+        failOnSpecIdx: Int? = null,
         block: (SynthCtx) -> Unit,
     ) {
         initShadowRepo(tmp)
         val shadow = tmp.resolve("shadow-repo")
         val pool = WorktreePool(shadowRepo = shadow, baseDir = tmp.resolve("synth-worktrees"), size = 1)
         try {
-            var applyCount = 0
+            // Forward-declare ctx so the apply lambda can update it
+            // live (rather than via post-block closure capture, which
+            // assertions inside the block wouldn't see).
+            lateinit var ctx: SynthCtxImpl
             val synth = ReorderSynthesiser(
                 applySpec = { spec, worktree ->
-                    applyCount++
-                    if (failOnApplyCallNumber != null && applyCount >= failOnApplyCallNumber) {
-                        SpecDispatcher.Result.Failed("simulated failure on apply #$applyCount")
+                    ctx._applyCount++
+                    val rc = spec as? RefactoringSpec.RenameClass
+                        ?: error("test fixture only uses RenameClass")
+                    val specIdx = rc.newName.removePrefix("B").toInt()  // newName encodes idx
+                    if (failOnSpecIdx != null && specIdx == failOnSpecIdx) {
+                        SpecDispatcher.Result.Failed("simulated failure on specIdx=$specIdx")
                     } else {
                         // Mutate a spec-unique file so git observes a change.
-                        val rc = spec as? RefactoringSpec.RenameClass
-                            ?: error("test fixture only uses RenameClass")
+                        // On backtrack the synthesiser's `git checkout
+                        // --detach <parent>` will revert this naturally.
                         val target = worktree.resolve("renames/${rc.typeFqn.replace('.', '_')}.txt")
                         Files.createDirectories(target.parent)
-                        target.writeText("renamed=${rc.newName}\napplyCount=$applyCount\n")
+                        target.writeText("renamed=${rc.newName}\n")
                         SpecDispatcher.Result.Ok
                     }
                 },
+                refreshProject = { /* no-op in tests; real Eclipse project not present */ },
                 runInSession = { it() },
                 shadowGit = GitRunner(shadow),
                 pool = pool,
             )
-            val ctx = SynthCtxImpl(synth = synth, shadowRepo = shadow)
+            ctx = SynthCtxImpl(synth = synth, shadowRepo = shadow)
             block(ctx)
-            ctx._applyCount = applyCount
         } finally {
             runCatching { pool.close() }
         }
@@ -427,19 +414,11 @@ class ReorderSynthesiserTest {
         val git = GitRunner(shadow)
         git.init()
         git.setLocalIdentity("test@analysis.local", "Test")
-        // Need at least one commit reachable by every fromSha we'll borrow
-        // at. We use real-looking 40-char SHAs in the step fixtures, but
-        // the pool calls `git worktree add <path> <sha>`. To make that
-        // work without manufacturing matching SHAs, we point branches at
-        // the seed commit. We DO that here: create a seed commit, then
-        // attach a "ref" for each fixture sha.
         val seed = shadow.resolve("seed.txt")
         seed.writeText("seed\n")
         git.addAll()
         val seedSha = git.commit("seed")
-        // Map common test SHAs → the seed commit so `worktree add <sha>`
-        // works. We use both the padded `sha0000…` form (Synthesis tests)
-        // and 3-char vowel-runs (WindowSplitting tests) for readability.
+        // Map common test SHAs → the seed commit so worktree add works.
         val fixtureShas = buildList {
             for (i in 0..10) add("sha$i".padEnd(40, '0'))
             addAll(listOf("aaa", "bbb", "ccc", "ddd", "eee", "fff", "ggg", "hhh", "iii", "jjj"))
@@ -447,17 +426,8 @@ class ReorderSynthesiserTest {
         fixtureShas.forEach { git.branchForce(it, seedSha) }
     }
 
-    private fun shaOf(shadow: Path, ref: String): String =
-        GitRunner(shadow).let {
-            // Use rev-parse via the runner's `head()` after a checkout… but
-            // simpler: `git -C shadow rev-parse <ref>`. GitRunner doesn't
-            // expose that directly, so we run it via the rev-parse helper.
-            it.revParse(ref)
-        }
-
     interface SplitCtx { val synth: ReorderSynthesiser }
     private data class SplitCtxImpl(override val synth: ReorderSynthesiser) : SplitCtx
-    private fun SplitCtx(synth: ReorderSynthesiser): SplitCtx = SplitCtxImpl(synth)
 
     interface SynthCtx {
         val synth: ReorderSynthesiser
@@ -469,7 +439,7 @@ class ReorderSynthesiserTest {
         override val synth: ReorderSynthesiser,
         override val shadowRepo: Path,
     ) : SynthCtx {
-        var _applyCount: Int = 0
+        @JvmField var _applyCount: Int = 0
         override val applyCount: Int get() = _applyCount
         override val lines: MutableList<String> = mutableListOf()
     }

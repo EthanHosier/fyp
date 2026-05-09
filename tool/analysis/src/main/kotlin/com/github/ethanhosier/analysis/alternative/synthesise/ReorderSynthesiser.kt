@@ -18,22 +18,48 @@ import java.nio.file.Path
 /**
  * Pipeline stage: for each VALID reorder window in the trace,
  * synthesise every alt ordering as a chain of git commits in the
- * shadow repo, with an ordered-prefix cache so orderings sharing
- * a prefix re-use the materialised commits.
+ * shadow repo.
  *
- * Replaces the previous [com.github.ethanhosier.analysis.alternative.reorder.ReorderWindowLogger]
- * (deleted) — absorbs that class's window-splitting logic and
- * summary counts, adds the synthesis loop on top.
+ * Strategy: build the prefix trie of all alt orderings (excluding
+ * the user's identity ordering), then DFS over the trie with
+ * **one** worktree borrowed at the window's `fromSha` and **one**
+ * `withBatchSession` open for the window. Forward edges are
+ * applied via [SpecDispatcher.apply]; backtracking happens via
+ * `git checkout --detach <parentSha>` followed by a project
+ * `refreshLocal` so Eclipse's resource model picks up the on-disk
+ * change.
  *
- * Failure semantics: any per-step apply failure short-circuits
- * the *current ordering* (not the whole window); the successful
- * prefix is kept (committed, ref'd, cached for later orderings).
+ * Each unique prefix gets one commit and one branch ref, shared
+ * across every ordering passing through it. Branch refs use the
+ * pattern `reorder/win<W>/path/<dash-joined-prefix>`. Result
+ * schema unchanged ([ReorderOrdering] still carries `permutation`,
+ * `stepShas`, `branchRefs` parallel to it); orderings with shared
+ * prefixes simply reference the same SHAs and refs.
  *
- * No metrics. Slice 2b runs `MetricsRunner` on the synthesised
- * SHAs.
+ * Failure: when an apply fails (or produces no textual change) at
+ * depth k of the trie, the failing prefix is recorded and its
+ * subtree is skipped (sibling subtrees still explored). Every
+ * ordering passing through that failing prefix has
+ * `terminalSuccess = false`, `failedAt = k - 1`, and
+ * stepShas/branchRefs truncated to length `k - 1`.
+ *
+ * This trades the per-ordering re-init+re-index cost (the previous
+ * prefix-cache implementation paid one per cache-miss ordering)
+ * for a per-backtrack `git checkout` + `refreshLocal` cost. On
+ * sessions where index time dominates, the window's wall-clock
+ * drops materially.
+ *
+ * Why git checkout instead of JDT undo: an earlier attempt used
+ * `Change.perform`'s undo Change to revert between siblings, but
+ * JDT's per-file caches (working-copy buffers + JavaModel element
+ * info) didn't reliably invalidate, producing corrupted commits on
+ * the next forward apply. Git checkout + refreshLocal goes through
+ * Eclipse's standard out-of-band-edit pathway, which IDE users
+ * exercise constantly and which JDT handles cleanly.
  */
 class ReorderSynthesiser(
     private val applySpec: (RefactoringSpec, Path) -> SpecDispatcher.Result,
+    private val refreshProject: () -> Unit,
     private val runInSession: (() -> Unit) -> Unit,
     private val shadowGit: GitRunner,
     private val pool: WorktreePool,
@@ -41,8 +67,8 @@ class ReorderSynthesiser(
 ) {
 
     /** Wires the production seams: real [SpecDispatcher] + the
-     *  bundle's batch session. Tests use the primary constructor
-     *  with fakes. */
+     *  bundle's `withBatchSession`. Tests use the primary
+     *  constructor with fakes. */
     constructor(
         client: RefactoringClient,
         shadowGit: GitRunner,
@@ -51,6 +77,7 @@ class ReorderSynthesiser(
         budget: EnumerationBudget = EnumerationBudget(),
     ) : this(
         applySpec = dispatcher::apply,
+        refreshProject = { client.refreshProject() },
         runInSession = { body -> client.withBatchSession(body) },
         shadowGit = shadowGit,
         pool = pool,
@@ -59,7 +86,7 @@ class ReorderSynthesiser(
 
     data class Summary(
         val trajectories: List<ReorderTrajectory>,
-        // Window-splitting counts (migrated from ReorderWindowLogger.Summary).
+        // Window-splitting counts (migrated from the deleted ReorderWindowLogger).
         val totalWindows: Int,
         val eligibleWindows: Int,
         val singletonWindows: Int,
@@ -70,8 +97,21 @@ class ReorderSynthesiser(
         // Synthesis counts.
         val orderingsSynthesised: Int,
         val commitsCreated: Int,
-        val prefixCacheHits: Int,
+        // Apply / backtrack call counts at the trie level. For a
+        // clean DFS, applies == backtracks == distinct prefixes
+        // visited.
+        val appliesIssued: Int,
+        val backtracksIssued: Int,
     )
+
+    /** Per-prefix DFS outcome. `Materialised` means the apply
+     *  succeeded and the resulting commit was forced under the
+     *  per-prefix ref. `Failed` means the apply or the
+     *  staged-changes check failed and no commit exists. */
+    private sealed interface NodeResult {
+        data class Materialised(val sha: String, val ref: String) : NodeResult
+        data class Failed(val reason: String) : NodeResult
+    }
 
     fun run(
         steps: List<RefactoringStep>,
@@ -96,7 +136,8 @@ class ReorderSynthesiser(
         var singletons = 0
         var orderingsSynthesised = 0
         var commitsCreated = 0
-        var prefixCacheHits = 0
+        var appliesIssued = 0
+        var backtracksIssued = 0
         val trajectories = mutableListOf<ReorderTrajectory>()
 
         for ((wIdx, window) in windows.withIndex()) {
@@ -109,10 +150,7 @@ class ReorderSynthesiser(
             val from = shortSha(window.first().fromSha)
             val to = shortSha(window.last().toSha)
             val indices = window.map { it.stepIndex }
-            log(
-                "reorder synth: window #$wIdx $from→$to " +
-                    "(${typedSpecs.size} typed specs, step indices=$indices):",
-            )
+            log("reorder synth: window #$wIdx $from→$to (${typedSpecs.size} typed specs, step indices=$indices):")
             ReorderDebug.describe(typedSpecs).lineSequence().forEach { line ->
                 log("  $line")
             }
@@ -127,51 +165,61 @@ class ReorderSynthesiser(
                 log("  reorder synth: window #$wIdx enumerator truncated at ${enumeration.orderings.size} orderings")
             }
 
-            // Drop the user's own ordering (identity permutation): its
-            // commit chain already exists in the user's actual trace.
             val identity = (0 until typedSpecs.size).toList()
             val altOrderings = enumeration.orderings.filter { it != identity }
             log("  reorder synth: window #$wIdx — synthesising ${altOrderings.size} alt ordering(s)")
+            if (altOrderings.isEmpty()) continue
 
-            // Pre-compute once (used both per-ordering and on the
-            // trajectory itself).
+            val trie = PrefixTrie.of(altOrderings)
+            val prefixOutcomes = mutableMapOf<List<Int>, NodeResult>()
+            val fromSha = window.first().fromSha
             val windowSpecLabels = window.map { it.refactoring.description }
-            val cache = PrefixCache(fromSha = window.first().fromSha)
-            val results = mutableListOf<ReorderOrdering>()
-            for ((ordIdx, ordering) in altOrderings.withIndex()) {
-                val (prefixHit, hitSha) = cache.deepestHit(ordering)
-                if (prefixHit.isNotEmpty()) prefixCacheHits++
-                val cachePrelude = if (prefixHit.isNotEmpty()) " (cache hit on prefix $prefixHit)" else " (cache miss)"
-                log("  ord ${ordIdx + 1}/${altOrderings.size} $ordering: starting$cachePrelude")
-                val orderStart = System.currentTimeMillis()
-                val res = synthesiseOrdering(
-                    window = window,
-                    typedSpecs = typedSpecs,
-                    windowSpecLabels = windowSpecLabels,
-                    ordering = ordering,
-                    cachedPrefix = prefixHit,
-                    cachedPrefixSha = hitSha,
-                    cache = cache,
-                    windowIdx = wIdx,
-                    orderIdx = ordIdx,
-                    log = log,
-                )
-                val orderMs = System.currentTimeMillis() - orderStart
-                val failNote = if (!res.terminalSuccess) " — failed at ${res.failedAt}" else ""
-                log("  ord ${ordIdx + 1}/${altOrderings.size} $ordering: ${res.stepShas.size} commit(s) in ${orderMs}ms$failNote")
-                orderingsSynthesised++
-                commitsCreated += res.stepShas.size
-                results.add(res)
+            log("  reorder synth: window #$wIdx — trie has ${trie.size()} distinct prefix(es)")
+
+            val worktree = pool.borrow(fromSha)
+            try {
+                val worktreeGit = GitRunner(worktree)
+                worktreeGit.setLocalIdentity("alt@analysis.local", "Alternative Trajectory")
+                val counters = DfsCounters()
+                runInSession {
+                    walkTrie(
+                        node = trie.root,
+                        prefix = emptyList(),
+                        parentSha = fromSha,
+                        windowIdx = wIdx,
+                        typedSpecs = typedSpecs,
+                        worktree = worktree,
+                        worktreeGit = worktreeGit,
+                        prefixOutcomes = prefixOutcomes,
+                        counters = counters,
+                        log = log,
+                    )
+                }
+                appliesIssued += counters.applies
+                backtracksIssued += counters.backtracks
+            } finally {
+                pool.release(worktree)
             }
+
+            val orderingResults = altOrderings.mapIndexed { ordIdx, ordering ->
+                buildOrdering(
+                    ordIdx = ordIdx,
+                    ordering = ordering,
+                    windowSpecLabels = windowSpecLabels,
+                    prefixOutcomes = prefixOutcomes,
+                )
+            }
+            orderingsSynthesised += orderingResults.size
+            commitsCreated += orderingResults.sumOf { it.stepShas.size }
 
             trajectories.add(
                 ReorderTrajectory(
                     windowIndex = wIdx,
-                    windowFromSha = window.first().fromSha,
+                    windowFromSha = fromSha,
                     windowToSha = window.last().toSha,
                     windowStepIndexes = indices,
                     windowSpecLabels = windowSpecLabels,
-                    orderings = results,
+                    orderings = orderingResults,
                 ),
             )
         }
@@ -187,118 +235,113 @@ class ReorderSynthesiser(
             refactorFailedCount = failed,
             orderingsSynthesised = orderingsSynthesised,
             commitsCreated = commitsCreated,
-            prefixCacheHits = prefixCacheHits,
+            appliesIssued = appliesIssued,
+            backtracksIssued = backtracksIssued,
         )
     }
 
-    private fun synthesiseOrdering(
-        window: List<RefactoringStep>,
-        typedSpecs: List<RefactoringSpec>,
-        windowSpecLabels: List<String>,
-        ordering: List<Int>,
-        cachedPrefix: List<Int>,
-        cachedPrefixSha: String,
-        cache: PrefixCache,
+    private class DfsCounters {
+        var applies: Int = 0
+        var backtracks: Int = 0
+    }
+
+    /**
+     * DFS over the prefix trie. Forward edge → apply spec, commit,
+     * branchForce. Back edge → `git checkout --detach parentSha` +
+     * `refreshProject` so Eclipse re-stats files and JDT picks up
+     * the new on-disk state.
+     *
+     * On forward failure (apply Failed, or no staged changes): record
+     * the node as Failed, skip its subtree, return without
+     * backtracking (no commit was made; HEAD unchanged from parent).
+     */
+    private fun walkTrie(
+        node: PrefixTrie.Node,
+        prefix: List<Int>,
+        parentSha: String,
         windowIdx: Int,
-        orderIdx: Int,
-        log: (String) -> Unit = {},
-    ): ReorderOrdering {
-        // Suffix to apply: drop the cached prefix; everything after is fresh work.
-        val suffix = ordering.drop(cachedPrefix.size)
-        val stepShas = mutableListOf<String>()
-        val branchRefs = mutableListOf<String>()
-        var failedAt: Int? = null
-        // Track the running (cumulative) prefix as we apply each suffix step,
-        // so cache writes are addressed correctly.
-        val currentPrefix = cachedPrefix.toMutableList()
+        typedSpecs: List<RefactoringSpec>,
+        worktree: Path,
+        worktreeGit: GitRunner,
+        prefixOutcomes: MutableMap<List<Int>, NodeResult>,
+        counters: DfsCounters,
+        log: (String) -> Unit,
+    ) {
+        var mySha: String = parentSha
 
-        // Pre-fill stepShas + branchRefs with the cached prefix's SHAs so
-        // the result is a complete `permutation.size`-long trajectory
-        // regardless of cache hits. Each ordering gets its own ref
-        // namespace; the same SHA may now be reachable from multiple refs
-        // (the original ordering's and this ordering's cache-hit prefix).
-        for (k in 1..cachedPrefix.size) {
-            val prefixSlice = cachedPrefix.subList(0, k)
-            val prefixSha = cache.shaFor(prefixSlice)
-                ?: error("prefix cache reported deepestHit length ${cachedPrefix.size} but $prefixSlice is missing")
-            val ref = "reorder/win$windowIdx/ord$orderIdx/step-${k - 1}"
-            shadowGit.branchForce(ref, prefixSha)
-            stepShas.add(prefixSha)
-            branchRefs.add(ref)
-        }
-
-        val worktree = pool.borrow(cachedPrefixSha)
-        try {
-            val worktreeGit = GitRunner(worktree)
-            worktreeGit.setLocalIdentity("alt@analysis.local", "Alternative Trajectory")
-
-            runInSession {
-                var aborted = false
-                for ((suffixIdx, specIdx) in suffix.withIndex()) {
-                    if (aborted) break
-                    val spec = typedSpecs[specIdx]
-                    val stepStart = System.currentTimeMillis()
-                    val outcome = applySpec(spec, worktree)
-                    if (outcome is SpecDispatcher.Result.Failed) {
-                        failedAt = cachedPrefix.size + suffixIdx
-                        aborted = true
-                        log(
-                            "    step ${cachedPrefix.size + suffixIdx + 1}/${ordering.size} " +
-                                "(specIdx=$specIdx ${specLabel(spec)}): FAILED — ${outcome.reason}",
-                        )
-                        continue
-                    }
-                    worktreeGit.addAll()
-                    if (!worktreeGit.hasStagedChanges()) {
-                        // Empty refactoring (no textual change). Treat as a
-                        // partial-failure: we can't address what we didn't
-                        // commit, and the caller's expectation is one
-                        // commit per applied step.
-                        failedAt = cachedPrefix.size + suffixIdx
-                        aborted = true
-                        log(
-                            "    step ${cachedPrefix.size + suffixIdx + 1}/${ordering.size} " +
-                                "(specIdx=$specIdx ${specLabel(spec)}): no textual change",
-                        )
-                        continue
-                    }
-                    val sha = worktreeGit.commit(
-                        "reorder win=$windowIdx ord=$orderIdx step=$specIdx",
-                    )
-                    val ref = "reorder/win$windowIdx/ord$orderIdx/step-${currentPrefix.size}"
-                    shadowGit.branchForce(ref, sha)
-                    currentPrefix.add(specIdx)
-                    cache.put(currentPrefix.toList(), sha)
-                    stepShas.add(sha)
-                    branchRefs.add(ref)
-                    val stepMs = System.currentTimeMillis() - stepStart
-                    log(
-                        "    step ${cachedPrefix.size + suffixIdx + 1}/${ordering.size} " +
-                            "(specIdx=$specIdx ${specLabel(spec)}): ok in ${stepMs}ms → ${shortSha(sha)}",
-                    )
+        if (prefix.isNotEmpty()) {
+            counters.applies++
+            val specIdx = prefix.last()
+            val spec = typedSpecs[specIdx]
+            val stepStart = System.currentTimeMillis()
+            val outcome = applySpec(spec, worktree)
+            val applyMs = System.currentTimeMillis() - stepStart
+            when (outcome) {
+                is SpecDispatcher.Result.Failed -> {
+                    val reason = "apply: ${outcome.reason}"
+                    prefixOutcomes[prefix] = NodeResult.Failed(reason)
+                    log("    [depth ${prefix.size} prefix=$prefix specIdx=$specIdx ${specLabel(spec)}]: FAILED in ${applyMs}ms — ${outcome.reason}")
+                    return
                 }
+                is SpecDispatcher.Result.Ok -> Unit
             }
-        } finally {
-            pool.release(worktree)
+            worktreeGit.addAll()
+            if (!worktreeGit.hasStagedChanges()) {
+                prefixOutcomes[prefix] = NodeResult.Failed("apply: no textual change")
+                log("    [depth ${prefix.size} prefix=$prefix specIdx=$specIdx ${specLabel(spec)}]: no textual change after ${applyMs}ms")
+                // Apply mutated some bundle-internal state but produced
+                // no diff. Force the worktree back to parent so the
+                // sibling apply starts from a known clean base.
+                worktreeGit.checkoutDetach(parentSha)
+                runCatching { refreshProject() }
+                return
+            }
+            val sha = worktreeGit.commit("reorder win=$windowIdx prefix=${encodePrefix(prefix)}")
+            val ref = "reorder/win$windowIdx/path/${encodePrefix(prefix)}"
+            shadowGit.branchForce(ref, sha)
+            prefixOutcomes[prefix] = NodeResult.Materialised(sha = sha, ref = ref)
+            log("    [depth ${prefix.size} prefix=$prefix specIdx=$specIdx ${specLabel(spec)}]: ok in ${applyMs}ms → ${shortSha(sha)}")
+            mySha = sha
         }
 
-        return ReorderOrdering(
-            orderIndex = orderIdx,
-            permutation = ordering,
-            permutationLabels = ordering.map { windowSpecLabels[it] },
-            stepShas = stepShas,
-            branchRefs = branchRefs,
-            terminalSuccess = failedAt == null,
-            failedAt = failedAt,
-        )
+        for ((_, childNode) in node.children) {
+            val childPrefix = prefix + (childNode.specIdx ?: error("non-root child must have specIdx"))
+            walkTrie(
+                node = childNode,
+                prefix = childPrefix,
+                parentSha = mySha,
+                windowIdx = windowIdx,
+                typedSpecs = typedSpecs,
+                worktree = worktree,
+                worktreeGit = worktreeGit,
+                prefixOutcomes = prefixOutcomes,
+                counters = counters,
+                log = log,
+            )
+        }
+
+        // Backtrack — only if this node materialised a commit (= mySha
+        // moved away from parentSha). Failed / no-change nodes already
+        // restored to parent inline above.
+        if (prefix.isNotEmpty() && mySha != parentSha) {
+            counters.backtracks++
+            val backStart = System.currentTimeMillis()
+            // checkoutDetach rewrites working-tree files AND moves
+            // HEAD; refreshProject then tells Eclipse to re-stat
+            // everything. Standard "files changed under us" pathway —
+            // JDT exercises this constantly for IDE users.
+            worktreeGit.checkoutDetach(parentSha)
+            runCatching { refreshProject() }
+            val backMs = System.currentTimeMillis() - backStart
+            log("    [depth ${prefix.size} prefix=$prefix]: backtrack to ${shortSha(parentSha)} in ${backMs}ms")
+        }
     }
 
     /**
      * Split [steps] on every step whose validation status is not
      * [RefactoringStepValidator.Status.VALID]. Steps missing from
-     * [validations] are conservatively treated as splitters with an
-     * `UNVALIDATED` reason. Verbatim copy of the same private fn on
-     * the deleted `ReorderWindowLogger`.
+     * [validations] are conservatively treated as splitters.
+     * Verbatim from the deleted `ReorderWindowLogger.splitOnInvalid`.
      */
     private fun splitOnInvalid(
         steps: List<RefactoringStep>,
@@ -326,7 +369,51 @@ class ReorderSynthesiser(
         return windows
     }
 
+    private fun buildOrdering(
+        ordIdx: Int,
+        ordering: List<Int>,
+        windowSpecLabels: List<String>,
+        prefixOutcomes: Map<List<Int>, NodeResult>,
+    ): ReorderOrdering {
+        val stepShas = mutableListOf<String>()
+        val branchRefs = mutableListOf<String>()
+        var failedAt: Int? = null
+        for (depth in 1..ordering.size) {
+            val prefix = ordering.subList(0, depth)
+            when (val r = prefixOutcomes[prefix]) {
+                is NodeResult.Materialised -> {
+                    stepShas.add(r.sha)
+                    branchRefs.add(r.ref)
+                }
+                is NodeResult.Failed -> {
+                    failedAt = depth - 1
+                    break
+                }
+                null -> {
+                    // Subtree skipped because an ancestor failed.
+                    failedAt = depth - 1
+                    break
+                }
+            }
+        }
+        return ReorderOrdering(
+            orderIndex = ordIdx,
+            permutation = ordering,
+            permutationLabels = ordering.map { windowSpecLabels[it] },
+            stepShas = stepShas,
+            branchRefs = branchRefs,
+            terminalSuccess = failedAt == null,
+            failedAt = failedAt,
+        )
+    }
+
     private fun shortSha(sha: String): String = if (sha.length <= 8) sha else sha.take(8)
+
+    /** Encode a prefix as a dash-joined string of spec indices for
+     *  ref naming. Empty prefix → "root" (only used for log lines;
+     *  the root itself never gets a ref). */
+    private fun encodePrefix(prefix: List<Int>): String =
+        if (prefix.isEmpty()) "root" else prefix.joinToString("-")
 
     /** One-word label for [spec], used in per-step progress lines. */
     private fun specLabel(spec: RefactoringSpec): String = spec::class.simpleName ?: "Spec"
