@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react"
 
 import type { AnalysisReport } from "@/generated/report-types"
-// import reportData from "./analysis-report.json"
+import reportData from "./analysis-report.json"
 
 declare global {
   interface Window {
@@ -22,7 +22,7 @@ const REPORT_EVENT = "refdash:report-loaded"
  * the `analysis-report.json` bundled next to this file.
  */
 export function useReport(): AnalysisReport | null {
-  // return reportData as AnalysisReport
+  return reportData as AnalysisReport
 
   // Initialiser reads `window.__REPORT__` synchronously, so a payload
   // already injected by the plugin before this hook mounts is captured

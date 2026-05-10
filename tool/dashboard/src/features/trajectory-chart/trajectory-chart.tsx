@@ -88,6 +88,48 @@ export function TrajectoryChart({ vm }: { vm: DashboardViewModel }) {
         <svg width={width} height={CHART_HEIGHT} className="block select-none">
           <g transform={`translate(${margin.left},${margin.top})`}>
             <ChartAxes vm={vm} primary={primary} scales={scales} />
+            {layers.buildIntervals ? (
+              <ChartIntervalRail
+                vm={vm}
+                scales={scales}
+                kind="build"
+                row={0}
+                onSelect={setSelection}
+              />
+            ) : null}
+            {layers.testIntervals ? (
+              <ChartIntervalRail
+                vm={vm}
+                scales={scales}
+                kind="tests"
+                row={layers.buildIntervals ? 1 : 0}
+                onSelect={setSelection}
+              />
+            ) : null}
+            {/* Hover capture rect first; alt paths above so their
+                fat-stroke hit areas claim clicks instead of the
+                rect's hover→select dispatch swallowing them. User
+                line / points / refactoring glyphs render on top of
+                the alt paths so the user's trajectory always paints
+                over alt branches when they overlap. The visible
+                tooltip layer (`ChartHoverVisuals`) is rendered last
+                so it paints over everything. */}
+            <ChartHoverOverlay
+              vm={vm}
+              primary={primary}
+              scales={scales}
+              hoverState={hoverState}
+              onSelect={setSelection}
+            />
+            {layers.alternativeTrajectories ? (
+              <ChartAlternativePaths
+                vm={vm}
+                primary={primary}
+                scales={scales}
+                selection={selection}
+                onSelect={setSelection}
+              />
+            ) : null}
             <ChartLines
               vm={vm}
               primary={primary}
@@ -109,45 +151,6 @@ export function TrajectoryChart({ vm }: { vm: DashboardViewModel }) {
               onSelect={setSelection}
             />
             <ChartRefactoringGlyphs vm={vm} primary={primary} scales={scales} />
-            {layers.buildIntervals ? (
-              <ChartIntervalRail
-                vm={vm}
-                scales={scales}
-                kind="build"
-                row={0}
-                onSelect={setSelection}
-              />
-            ) : null}
-            {layers.testIntervals ? (
-              <ChartIntervalRail
-                vm={vm}
-                scales={scales}
-                kind="tests"
-                row={layers.buildIntervals ? 1 : 0}
-                onSelect={setSelection}
-              />
-            ) : null}
-            {/* Hover capture rect first; alt paths above so their
-                fat-stroke hit areas claim clicks instead of the
-                rect's hover→select dispatch swallowing them. The
-                visible tooltip layer (`ChartHoverVisuals`) is rendered
-                last so it paints over the alt lines + label chips. */}
-            <ChartHoverOverlay
-              vm={vm}
-              primary={primary}
-              scales={scales}
-              hoverState={hoverState}
-              onSelect={setSelection}
-            />
-            {layers.alternativeTrajectories ? (
-              <ChartAlternativePaths
-                vm={vm}
-                primary={primary}
-                scales={scales}
-                selection={selection}
-                onSelect={setSelection}
-              />
-            ) : null}
             <ChartHoverVisuals
               vm={vm}
               primary={primary}
@@ -162,6 +165,7 @@ export function TrajectoryChart({ vm }: { vm: DashboardViewModel }) {
         primary={primary}
         secondaries={secondaries}
         showIntervals={railCount > 0}
+        showAlternatives={layers.alternativeTrajectories}
       />
     </div>
   )

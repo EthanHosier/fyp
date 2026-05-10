@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from "react"
+import { useState } from "react"
 
 import type {
   DashboardViewModel,
@@ -60,7 +60,13 @@ export function ChartAlternativePaths({
   // along the alt's actual application order.
   // RefactoringStepVM.index mirrors the server's stepIndex (chronological).
   const xPosByStepIndex = new Map<number, number>()
-  for (const s of vm.refactoringSteps) xPosByStepIndex.set(s.index, s.xPos)
+  // User's value on the active stat at the slot for each user step.
+  const userValByStepIndex = new Map<number, number>()
+  for (const s of vm.refactoringSteps) {
+    xPosByStepIndex.set(s.index, s.xPos)
+    const v = vm.checkpoints[s.checkpointIndex]?.values[primary.id]
+    if (typeof v === "number") userValByStepIndex.set(s.index, v)
+  }
 
   return (
     <g>
@@ -72,6 +78,37 @@ export function ChartAlternativePaths({
         const yFrom = fromCp.values[primary.id]
         const yTo = toCp.values[primary.id]
         if (typeof yFrom !== "number" || typeof yTo !== "number") return null
+
+        // Grey-out criterion: at every visual slot the alt sits at-or-
+        // worse than the user (polarity-aware), and dips strictly worse
+        // at at least one slot. The alt's k-th *applied* step is
+        // plotted at the user's k-th *chronological* window slot, so
+        // the comparison aligns alt-applied[k] against user-
+        // chronological[k] — not against the user step the alt happens
+        // to be doing at this position.
+        const sortedWindowStepIndexes = alt.steps
+          .map((s) => s.stepIndex)
+          .slice()
+          .sort((a, b) => a - b)
+        const altPerStep = alt.steps.map((s, k) => ({
+          alt: s.altValues[primary.id],
+          user: userValByStepIndex.get(sortedWindowStepIndexes[k]),
+        }))
+        const higher = primary.better === "higher"
+        const isWorse =
+          altPerStep.length > 0 &&
+          altPerStep.every(
+            ({ alt, user }) =>
+              typeof alt === "number" &&
+              typeof user === "number" &&
+              (higher ? alt <= user : alt >= user),
+          ) &&
+          altPerStep.some(
+            ({ alt, user }) =>
+              typeof alt === "number" &&
+              typeof user === "number" &&
+              (higher ? alt < user : alt > user),
+          )
 
         // Align alt's k-th applied step under the user's k-th window
         // step (chronological — sorted by stepIndex ascending). Y
@@ -101,10 +138,6 @@ export function ChartAlternativePaths({
 
         const xFrom = xs(fromCp.xPos)
         const xTo = xs(toCp.xPos)
-        // Label chip nudge — toward the "better" side of the metric so
-        // it doesn't overlap the user's line. Doesn't change any plot
-        // coordinates.
-        const offsetSign = primary.better === "higher" ? -1 : 1
 
         const polyPoints = [
           { x: xFrom, y: ys(yFrom) },
@@ -119,19 +152,14 @@ export function ChartAlternativePaths({
         // dispatch its own altInterval selection. Endpoints inset
         // toward the segment's midpoint so the fat clickable stroke
         // doesn't overlap the user's checkpoint dots / alt step dots.
-        const lastAlt = altPoints[altPoints.length - 1]
         const polyAll = [
           { x: xFrom, y: ys(yFrom), kind: "from" as const },
           ...altPoints.map((p, i) => ({ x: p.x, y: p.y, kind: "alt" as const, idx: i })),
           { x: xTo, y: ys(yTo), kind: "to" as const },
         ]
 
-        // Label sits above (or below) the alt's terminal mid-point —
-        // last applied step is the one the chip's text refers to.
-        const labelAnchor = lastAlt
-
         return (
-          <g key={alt.index} className={cn("text-brand")}>
+          <g key={alt.index} className={cn(isWorse ? "text-fg-4" : "text-brand")}>
             {/* Base dashed alt polyline — pointer events disabled so
                 the per-segment hit targets below own click + hover. */}
             <StubCircle x={xFrom} y={ys(yFrom)} selected={isAltSelected} />
@@ -267,74 +295,9 @@ export function ChartAlternativePaths({
               )
             })}
 
-            <LabelChip
-              x={labelAnchor.x}
-              y={labelAnchor.y + offsetSign * 15}
-              text={`Alternative: IDE ${alt.label}`}
-              active={isAltSelected}
-            />
           </g>
         )
       })}
-    </g>
-  )
-}
-
-/**
- * Renders a chip whose rect width snaps to the actual rendered text
- * extent. The reference dashboard hard-codes `label.length * 5.4 + 8`,
- * which assumes a monospace metric and stops being accurate the moment
- * the runtime falls back to a non-mono font (we hit this for
- * "Alternative: …" prefixes — descenders + colon misalign the box).
- * Measuring via `getBBox` after layout is the only way to be sure.
- */
-function LabelChip({
-  x,
-  y,
-  text,
-  active,
-}: {
-  x: number
-  y: number
-  text: string
-  active: boolean
-}) {
-  const textRef = useRef<SVGTextElement | null>(null)
-  const [width, setWidth] = useState<number | null>(null)
-
-  useLayoutEffect(() => {
-    if (textRef.current) {
-      const bb = textRef.current.getBBox()
-      // 8px horizontal padding, 4 each side — matches reference proportions.
-      setWidth(bb.width + 8)
-    }
-  }, [text])
-
-  return (
-    <g transform={`translate(${x},${y})`}>
-      <rect
-        x={-(width ?? 0) / 2}
-        y={-10}
-        width={width ?? 0}
-        height={14}
-        fill="var(--color-bg-1)"
-        stroke="currentColor"
-        strokeOpacity={active ? 0.95 * 0.7 : 0.55 * 0.7}
-        rx={3}
-        ry={3}
-      />
-      <text
-        ref={textRef}
-        x={0}
-        y={1}
-        textAnchor="middle"
-        fontSize={10.5}
-        fontFamily="var(--mono)"
-        fill="currentColor"
-        fillOpacity={active ? 0.95 : 0.55}
-      >
-        {text}
-      </text>
     </g>
   )
 }
