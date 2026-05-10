@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from "react"
+import { useState } from "react"
 
 import type {
   DashboardViewModel,
@@ -7,20 +7,6 @@ import type {
 } from "@/data/types"
 import type { ChartScales } from "@/features/trajectory-chart/use-chart-scales"
 import { cn } from "@/lib/utils"
-
-/**
- * Visual offset (px, in chart Y) applied to the alt mid-point and to
- * the bend in the dashed line. Pure cosmetic: separates the alt
- * marker from the user's actual line at the same X so they don't sit
- * on top of each other.
- *
- * Sign is flipped based on the primary metric's "better" direction so
- * the marker always nudges toward the *better* side: a lift (negative
- * px) for higher-is-better metrics, a drop (positive px) for
- * lower-is-better. Does NOT change `alt.altValues` — the detail panel
- * still reports the real measurement.
- */
-const ALT_MID_OFFSET_PX = 32
 
 /**
  * Distance (px) the hit-target fat stroke is pulled inward from each
@@ -60,7 +46,27 @@ export function ChartAlternativePaths({
   onSelect: (s: Selection) => void
 }) {
   const { xs, ys } = scales
-  const [hovered, setHovered] = useState<number | null>(null)
+  // Per-element hover so a single edge / dot lights up rather than the
+  // whole alt path going active together. `kind` distinguishes edge vs
+  // dot; `idx` is the segment / step index inside the alt.
+  type HoverTarget = { altIndex: number; kind: "edge" | "dot"; idx: number }
+  const [hovered, setHovered] = useState<HoverTarget | null>(null)
+
+  // Look up each user step's slot xPos by stepIndex so alt step k can
+  // align under the user's k-th step in the window (chronological
+  // order). For reorder alts whose permutation differs from the user's
+  // order, this still lays the alt's progression out left-to-right
+  // under the user's step slots — easier to read than backtracking
+  // along the alt's actual application order.
+  // RefactoringStepVM.index mirrors the server's stepIndex (chronological).
+  const xPosByStepIndex = new Map<number, number>()
+  // User's value on the active stat at the slot for each user step.
+  const userValByStepIndex = new Map<number, number>()
+  for (const s of vm.refactoringSteps) {
+    xPosByStepIndex.set(s.index, s.xPos)
+    const v = vm.checkpoints[s.checkpointIndex]?.values[primary.id]
+    if (typeof v === "number") userValByStepIndex.set(s.index, v)
+  }
 
   return (
     <g>
@@ -71,164 +77,227 @@ export function ChartAlternativePaths({
 
         const yFrom = fromCp.values[primary.id]
         const yTo = toCp.values[primary.id]
-        const yAlt = alt.altValues[primary.id]
-        if (
-          typeof yFrom !== "number" ||
-          typeof yTo !== "number" ||
-          typeof yAlt !== "number"
-        ) {
-          return null
+        if (typeof yFrom !== "number" || typeof yTo !== "number") return null
+
+        // Grey-out criterion: at every visual slot the alt sits at-or-
+        // worse than the user (polarity-aware), and dips strictly worse
+        // at at least one slot. The alt's k-th *applied* step is
+        // plotted at the user's k-th *chronological* window slot, so
+        // the comparison aligns alt-applied[k] against user-
+        // chronological[k] — not against the user step the alt happens
+        // to be doing at this position.
+        const sortedWindowStepIndexes = alt.steps
+          .map((s) => s.stepIndex)
+          .slice()
+          .sort((a, b) => a - b)
+        const altPerStep = alt.steps.map((s, k) => ({
+          alt: s.altValues[primary.id],
+          user: userValByStepIndex.get(sortedWindowStepIndexes[k]),
+        }))
+        const higher = primary.better === "higher"
+        const isWorse =
+          altPerStep.length > 0 &&
+          altPerStep.every(
+            ({ alt, user }) =>
+              typeof alt === "number" &&
+              typeof user === "number" &&
+              (higher ? alt <= user : alt >= user),
+          ) &&
+          altPerStep.some(
+            ({ alt, user }) =>
+              typeof alt === "number" &&
+              typeof user === "number" &&
+              (higher ? alt < user : alt > user),
+          )
+
+        // Align alt's k-th applied step under the user's k-th window
+        // step (chronological — sorted by stepIndex ascending). Y
+        // values come from the alt's altCheckpoints in alt-applied
+        // order, so the polyline reads as the alt's progression while
+        // the X axis stays anchored to the user's slots.
+        const userOrderXPositions = alt.steps
+          .map((s) => xPosByStepIndex.get(s.stepIndex))
+          .filter((x): x is number => typeof x === "number")
+          .slice()
+          .sort((a, b) => a - b)
+        const altPoints: { x: number; y: number; vm: typeof alt.steps[number] }[] = []
+        for (let k = 0; k < alt.steps.length; k++) {
+          const slotX = userOrderXPositions[k]
+          const stepVm = alt.steps[k]
+          const yVal = stepVm.altValues[primary.id]
+          if (slotX === undefined || typeof yVal !== "number") continue
+          altPoints.push({ x: xs(slotX), y: ys(yVal), vm: stepVm })
         }
+        if (altPoints.length === 0) return null
 
-        const isSelected =
+        // Whole-alt active state is only used for the explicit
+        // `alternative` selection (not driven by per-element hover any
+        // more). Per-element hover effects are scoped below.
+        const isAltSelected =
           selection?.kind === "alternative" && selection.index === alt.index
-        const isHovered = hovered === alt.index
-        const isActive = isSelected || isHovered
 
-        const xFrom = xs(fromCp.tMs)
-        const xTo = xs(toCp.tMs)
-        const xMid = (xFrom + xTo) / 2
-        // Lift (subtract) for higher-is-better, drop (add) for
-        // lower-is-better — px Y axis is inverted vs metric value.
-        const offsetSign = primary.better === "higher" ? -1 : 1
-        const yMidPx = ys(yAlt) + offsetSign * ALT_MID_OFFSET_PX
+        const xFrom = xs(fromCp.xPos)
+        const xTo = xs(toCp.xPos)
 
-        const points = [
+        const polyPoints = [
           { x: xFrom, y: ys(yFrom) },
-          { x: xMid, y: yMidPx },
+          ...altPoints.map((p) => ({ x: p.x, y: p.y })),
           { x: xTo, y: ys(yTo) },
         ]
-        const path = points
+        const path = polyPoints
           .map((p, i) => `${i === 0 ? "M" : "L"}${p.x.toFixed(1)},${p.y.toFixed(1)}`)
           .join(" ")
 
-        // Hit-target path: same shape, but each endpoint pulled 10px
-        // toward the mid-point so the fat clickable stroke doesn't
-        // overlap the user's checkpoint dot. Without this, the alt
-        // group's onClick swallows endpoint clicks that should select
-        // the checkpoint underneath.
-        const fromInset = insetToward(xFrom, ys(yFrom), xMid, yMidPx, ENDPOINT_HIT_INSET_PX)
-        const toInset = insetToward(xTo, ys(yTo), xMid, yMidPx, ENDPOINT_HIT_INSET_PX)
-        const hitPath = [
-          `M${fromInset.x.toFixed(1)},${fromInset.y.toFixed(1)}`,
-          `L${xMid.toFixed(1)},${yMidPx.toFixed(1)}`,
-          `L${toInset.x.toFixed(1)},${toInset.y.toFixed(1)}`,
-        ].join(" ")
+        // Per-segment hit targets so each edge of the alt path can
+        // dispatch its own altInterval selection. Endpoints inset
+        // toward the segment's midpoint so the fat clickable stroke
+        // doesn't overlap the user's checkpoint dots / alt step dots.
+        const polyAll = [
+          { x: xFrom, y: ys(yFrom), kind: "from" as const },
+          ...altPoints.map((p, i) => ({ x: p.x, y: p.y, kind: "alt" as const, idx: i })),
+          { x: xTo, y: ys(yTo), kind: "to" as const },
+        ]
 
         return (
-          <g
-            key={alt.index}
-            className={cn("text-brand cursor-pointer")}
-            onClick={() => onSelect({ kind: "alternative", index: alt.index })}
-            onMouseEnter={() => setHovered(alt.index)}
-            onMouseLeave={() => setHovered((h) => (h === alt.index ? null : h))}
-          >
-            {/* Invisible fat stroke = generous hit target. SVG hit
-                detection on a `fill="none"` path only triggers on the
-                visible stroke pixels; with a 1.4px dashed line that's
-                next to impossible to land on. The transparent 14px
-                stroke below catches clicks anywhere near the branch. */}
-            <path
-              d={hitPath}
-              fill="none"
-              stroke="transparent"
-              strokeWidth={14}
-              strokeLinecap="butt"
-              pointerEvents="stroke"
-            />
-
-            <StubCircle x={xFrom} y={ys(yFrom)} selected={isActive} />
-            <StubCircle x={xTo} y={ys(yTo)} selected={isActive} />
-
+          <g key={alt.index} className={cn(isWorse ? "text-fg-4" : "text-brand")}>
+            {/* Base dashed alt polyline — pointer events disabled so
+                the per-segment hit targets below own click + hover. */}
+            <StubCircle x={xFrom} y={ys(yFrom)} selected={isAltSelected} />
+            <StubCircle x={xTo} y={ys(yTo)} selected={isAltSelected} />
             <path
               d={path}
               fill="none"
               stroke="currentColor"
-              strokeWidth={isActive ? 2 : 1.4}
-              strokeOpacity={isActive ? 0.95 : 0.6}
+              strokeWidth={isAltSelected ? 2 : 1.4}
+              strokeOpacity={isAltSelected ? 0.95 : 0.6}
               strokeDasharray="4 3"
               strokeLinecap="round"
               pointerEvents="none"
             />
 
-            <circle
-              cx={xMid}
-              cy={yMidPx}
-              r={isActive ? 3 : 2.2}
-              fill="var(--color-bg-1)"
-              stroke="currentColor"
-              strokeOpacity={isActive ? 0.95 : 0.7}
-              strokeWidth={1}
-            />
+            {/* Per-segment hit targets + visible hover/selected
+                highlight. Each segment k dispatches `altInterval` for
+                segIdx = k. Hovering a segment thickens just that
+                segment's stroke instead of brightening the whole
+                path. */}
+            {polyAll.slice(0, -1).map((from, k) => {
+              const to = polyAll[k + 1]
+              const fromInset = insetToward(from.x, from.y, to.x, to.y, ENDPOINT_HIT_INSET_PX)
+              const toInset = insetToward(to.x, to.y, from.x, from.y, ENDPOINT_HIT_INSET_PX)
+              const segPath = `M${fromInset.x.toFixed(1)},${fromInset.y.toFixed(1)} L${toInset.x.toFixed(1)},${toInset.y.toFixed(1)}`
+              const segSelected =
+                selection?.kind === "altInterval" &&
+                selection.altIndex === alt.index &&
+                selection.segmentIndex === k
+              const segHovered =
+                hovered?.altIndex === alt.index &&
+                hovered.kind === "edge" &&
+                hovered.idx === k
+              const segActive = segSelected || segHovered
+              return (
+                <g key={`seg-${k}`}>
+                  {/* Visible accent rendered only on hover/selected so
+                      neighbouring segments stay at base opacity. */}
+                  {segActive ? (
+                    <path
+                      d={segPath}
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth={2.2}
+                      strokeOpacity={0.95}
+                      strokeDasharray="4 3"
+                      strokeLinecap="round"
+                      pointerEvents="none"
+                    />
+                  ) : null}
+                  <path
+                    d={segPath}
+                    fill="none"
+                    stroke="transparent"
+                    strokeWidth={14}
+                    strokeLinecap="butt"
+                    pointerEvents="stroke"
+                    className="cursor-pointer"
+                    onMouseEnter={() => setHovered({ altIndex: alt.index, kind: "edge", idx: k })}
+                    onMouseLeave={() =>
+                      setHovered((h) =>
+                        h && h.altIndex === alt.index && h.kind === "edge" && h.idx === k ? null : h,
+                      )
+                    }
+                    // Stop mousemove from reaching the capture rect
+                    // beneath — otherwise it computes a user-trajectory
+                    // hover (nearest checkpoint / interval) and the
+                    // overlay paints a second crosshair on top of the
+                    // alt segment we're already highlighting.
+                    onMouseMove={(e) => e.stopPropagation()}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onSelect({ kind: "altInterval", altIndex: alt.index, segmentIndex: k })
+                    }}
+                  />
+                </g>
+              )
+            })}
 
-            <LabelChip
-              x={xMid}
-              y={yMidPx + offsetSign * 15}
-              text={`Alternative: IDE ${alt.label}`}
-              active={isActive}
-            />
+            {/* Per-step dots — each clickable to open an
+                `altCheckpoint` selection. Hover expands just that dot
+                + adds a soft outer ring (matching the user-checkpoint
+                hover treatment). Fat invisible halo gives a forgiving
+                hit target without making the visible dot bigger. */}
+            {altPoints.map((p, i) => {
+              const stepSelected =
+                selection?.kind === "altCheckpoint" &&
+                selection.altIndex === alt.index &&
+                selection.stepIndex === i
+              const stepHovered =
+                hovered?.altIndex === alt.index &&
+                hovered.kind === "dot" &&
+                hovered.idx === i
+              const dotActive = stepSelected || stepHovered
+              return (
+                <g
+                  key={i}
+                  className="cursor-pointer"
+                  onMouseEnter={() => setHovered({ altIndex: alt.index, kind: "dot", idx: i })}
+                  onMouseLeave={() =>
+                    setHovered((h) =>
+                      h && h.altIndex === alt.index && h.kind === "dot" && h.idx === i ? null : h,
+                    )
+                  }
+                  onMouseMove={(e) => e.stopPropagation()}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onSelect({ kind: "altCheckpoint", altIndex: alt.index, stepIndex: i })
+                  }}
+                >
+                  <circle cx={p.x} cy={p.y} r={9} fill="transparent" />
+                  <circle
+                    cx={p.x}
+                    cy={p.y}
+                    r={dotActive ? 3.4 : 2.2}
+                    fill="var(--color-bg-1)"
+                    stroke="currentColor"
+                    strokeOpacity={dotActive ? 0.95 : 0.7}
+                    strokeWidth={1}
+                  />
+                  {dotActive ? (
+                    <circle
+                      cx={p.x}
+                      cy={p.y}
+                      r={6}
+                      fill="none"
+                      stroke="currentColor"
+                      strokeOpacity={0.55}
+                      strokeWidth={1.2}
+                    />
+                  ) : null}
+                </g>
+              )
+            })}
+
           </g>
         )
       })}
-    </g>
-  )
-}
-
-/**
- * Renders a chip whose rect width snaps to the actual rendered text
- * extent. The reference dashboard hard-codes `label.length * 5.4 + 8`,
- * which assumes a monospace metric and stops being accurate the moment
- * the runtime falls back to a non-mono font (we hit this for
- * "Alternative: …" prefixes — descenders + colon misalign the box).
- * Measuring via `getBBox` after layout is the only way to be sure.
- */
-function LabelChip({
-  x,
-  y,
-  text,
-  active,
-}: {
-  x: number
-  y: number
-  text: string
-  active: boolean
-}) {
-  const textRef = useRef<SVGTextElement | null>(null)
-  const [width, setWidth] = useState<number | null>(null)
-
-  useLayoutEffect(() => {
-    if (textRef.current) {
-      const bb = textRef.current.getBBox()
-      // 8px horizontal padding, 4 each side — matches reference proportions.
-      setWidth(bb.width + 8)
-    }
-  }, [text])
-
-  return (
-    <g transform={`translate(${x},${y})`}>
-      <rect
-        x={-(width ?? 0) / 2}
-        y={-10}
-        width={width ?? 0}
-        height={14}
-        fill="var(--color-bg-1)"
-        stroke="currentColor"
-        strokeOpacity={active ? 0.95 * 0.7 : 0.55 * 0.7}
-        rx={3}
-        ry={3}
-      />
-      <text
-        ref={textRef}
-        x={0}
-        y={1}
-        textAnchor="middle"
-        fontSize={10.5}
-        fontFamily="var(--mono)"
-        fill="currentColor"
-        fillOpacity={active ? 0.95 : 0.55}
-      >
-        {text}
-      </text>
     </g>
   )
 }

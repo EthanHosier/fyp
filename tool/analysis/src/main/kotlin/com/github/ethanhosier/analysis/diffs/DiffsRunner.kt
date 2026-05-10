@@ -1,6 +1,5 @@
 package com.github.ethanhosier.analysis.diffs
 
-import com.github.ethanhosier.analysis.alternative.AlternativeTrajectoryRunner
 import com.github.ethanhosier.analysis.miner.model.RefactoringLocation
 import com.github.ethanhosier.analysis.miner.model.RefactoringStep
 import com.github.ethanhosier.analysis.model.ReconstructionResult
@@ -36,18 +35,26 @@ class DiffsRunner(private val git: GitRunner) {
         // left no hunks (e.g. RM-only metadata detections with no textual
         // delta inside the declared ranges).
         val refactoringPatches: Map<Int, String>,
-        // Keyed by [RefactoringStep.stepIndex] of each synthesised
-        // alternative trajectory. Full unified diff `fromSha → altSha`
-        // — no hunk filtering, since the IDE-driven refactoring's
-        // textual change is the entire point of the comparison.
-        val alternativePatches: Map<Int, String> = emptyMap(),
+        // Keyed by `altSha` (= each alt step's synthesised SHA). Value
+        // is the full unified diff `fromSha → altSha` — no hunk
+        // filtering, since the alt refactoring's textual change is the
+        // entire point of the comparison. Multi-step alts contribute
+        // one entry per applied step.
+        val alternativePatches: Map<String, String> = emptyMap(),
     )
 
+    /**
+     * @param alternativePairs `(fromSha, altSha)` pairs to diff, one per
+     *   applied alt step. Single-step alts contribute one pair; multi-step
+     *   reorder orderings contribute N pairs (each step's `fromSha` is the
+     *   previous step's `altSha`, except the first which anchors at the
+     *   window's `windowFromSha`). Pairs are deduplicated by `altSha`
+     *   defensively.
+     */
     fun run(
         reconstruction: ReconstructionResult,
         steps: List<RefactoringStep>,
-        alternative: AlternativeTrajectoryRunner.Summary =
-            AlternativeTrajectoryRunner.Summary(0, emptyList(), emptyMap()),
+        alternativePairs: List<Pair<String, String>> = emptyList(),
     ): Summary {
         val orderedShas = reconstruction.eventCommits.mapping.values
             .toCollection(LinkedHashSet()).toList()
@@ -63,9 +70,10 @@ class DiffsRunner(private val git: GitRunner) {
             refactoringPatches[step.stepIndex] = refactoringPatch(step)
         }
 
-        val alternativePatches = LinkedHashMap<Int, String>()
-        for (alt in alternative.synthesised) {
-            alternativePatches[alt.stepIndex] = git.diffPatch(alt.fromSha, alt.altSha)
+        val alternativePatches = LinkedHashMap<String, String>()
+        for ((from, altSha) in alternativePairs) {
+            if (altSha in alternativePatches) continue
+            alternativePatches[altSha] = git.diffPatch(from, altSha)
         }
 
         return Summary(checkpointPatches, refactoringPatches, alternativePatches)

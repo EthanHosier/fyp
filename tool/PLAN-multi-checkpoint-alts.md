@@ -1,3 +1,12 @@
+--
+Ethan Notes:
+
+So assuming the ordering of refactorings to reach a state gives same AST, for n refactorings length there is 
+only 2^n max possible intermediate states (as each state is represented by the set of refactorings which have)
+been done up to this point out of the available ones -> for each refactoring, is either in set or isnt -> 2^n
+    -> But in practice will be fewer once dependencies cut by the DAG
+--
+
 # Multi-checkpoint alternative trajectories — thesis-worthy design options
 
 ## Context

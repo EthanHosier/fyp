@@ -56,11 +56,21 @@ class PmdTrackingRunner(private val git: GitRunner) {
 
         val altMetricsBySha = alternativeCheckpoints.associateBy { it.sha }
         val userMetricsBySha = orderedUserCheckpoints.associateBy { it.sha }
+        // Multi-step alts chain: pair k+1's `fromSha` is pair k's
+        // `altSha`. Look `from` up in both buckets and inherit the
+        // running tracking from whichever side it lives on.
+        val combinedMetricsBySha = userMetricsBySha + altMetricsBySha
+        val combinedTrackingBySha = LinkedHashMap<String, PmdTracking>().apply {
+            putAll(userTracking)
+        }
         val altTracking = LinkedHashMap<String, PmdTracking>()
         for ((fromSha, altSha) in alternativePairs) {
-            val from = userMetricsBySha[fromSha] ?: continue
+            val from = combinedMetricsBySha[fromSha] ?: continue
             val alt = altMetricsBySha[altSha] ?: continue
-            altTracking[altSha] = trackPair(from, alt, userTracking[fromSha] ?: PmdTracking.EMPTY)
+            val prevTracking = combinedTrackingBySha[fromSha] ?: PmdTracking.EMPTY
+            val tracking = trackPair(from, alt, prevTracking)
+            altTracking[altSha] = tracking
+            combinedTrackingBySha[altSha] = tracking
         }
 
         return Summary(userTracking, altTracking)

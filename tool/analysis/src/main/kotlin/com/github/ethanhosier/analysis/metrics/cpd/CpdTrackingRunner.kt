@@ -45,16 +45,26 @@ class CpdTrackingRunner {
 
         val altMetricsBySha = alternativeCheckpoints.associateBy { it.sha }
         val userMetricsBySha = orderedUserCheckpoints.associateBy { it.sha }
+        // Multi-step alts chain: pair k+1's `fromSha` is pair k's
+        // `altSha`. Look `from` up in both buckets and inherit the
+        // running tracking from whichever side it lives on.
+        val combinedMetricsBySha = userMetricsBySha + altMetricsBySha
+        val combinedTrackingBySha = LinkedHashMap<String, CpdTracking>().apply {
+            putAll(userTracking)
+        }
         val altTracking = LinkedHashMap<String, CpdTracking>()
         for ((fromSha, altSha) in alternativePairs) {
-            val from = userMetricsBySha[fromSha] ?: continue
+            val from = combinedMetricsBySha[fromSha] ?: continue
             val alt = altMetricsBySha[altSha] ?: continue
-            altTracking[altSha] = CpdDuplicationTracker.track(
+            val prevTracking = combinedTrackingBySha[fromSha] ?: CpdTracking.EMPTY
+            val tracking = CpdDuplicationTracker.track(
                 currSha = altSha,
                 prev = from.cpd,
                 curr = alt.cpd,
-                prevTracking = userTracking[fromSha] ?: CpdTracking.EMPTY,
+                prevTracking = prevTracking,
             )
+            altTracking[altSha] = tracking
+            combinedTrackingBySha[altSha] = tracking
         }
 
         return Summary(userTracking, altTracking)

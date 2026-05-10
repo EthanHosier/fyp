@@ -81,14 +81,4 @@ data class ReorderOrdering(
      *  synthesiser; this field is reserved for future diagnostic
      *  use and stays null on every kept entry. */
     val terminalDivergedFiles: List<String>? = null,
-    /** Per-step metrics, parallel to [stepShas]. Empty when
-     *  [terminalSuccess] is false (failed orderings aren't scored).
-     *  When non-empty, the last entry is aliased from the user's
-     *  `windowToSha` checkpoint — AST-equivalent terminal means
-     *  identical bytecode and identical build/test outcome, so no
-     *  rebuild is needed for the terminal step. Line-anchored
-     *  static metrics (PMD line numbers, etc.) reflect the user's
-     *  source order rather than the alt's; counts/categories
-     *  remain identical because PMD operates on the AST. */
-    val metrics: List<CheckpointMetrics> = emptyList(),
 )

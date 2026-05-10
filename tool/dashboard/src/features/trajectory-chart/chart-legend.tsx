@@ -14,10 +14,12 @@ export function ChartLegend({
   primary,
   secondaries,
   showIntervals,
+  showAlternatives,
 }: {
   primary: MetricVM
   secondaries: MetricVM[]
   showIntervals: boolean
+  showAlternatives: boolean
 }) {
   return (
     <div className="flex flex-wrap items-center gap-4 px-1 pt-[10px] pb-1">
@@ -29,6 +31,17 @@ export function ChartLegend({
           <DashedSwatch tone={TONE_BG[m.tone]} />
         </LegendSwatch>
       ))}
+      {showAlternatives ? (
+        <>
+          <Separator orientation="vertical" className="h-3.5" />
+          <LegendSwatch label="alternative">
+            <DashedSwatch tone="bg-brand" />
+          </LegendSwatch>
+          <LegendSwatch label="alternative · worse">
+            <DashedSwatch tone="bg-fg-4" />
+          </LegendSwatch>
+        </>
+      ) : null}
       {showIntervals ? (
         <>
           <Separator orientation="vertical" className="h-3.5" />

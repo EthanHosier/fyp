@@ -19,6 +19,7 @@ export type MetricTone =
   | "brand-6"
   | "brand-7"
   | "brand-8"
+  | "brand-9"
 
 export type MetricVM = {
   id: MetricId
@@ -39,8 +40,13 @@ export type CheckpointVM = {
   tLabel: string
   /** absolute timestamp (ms) */
   timestamp: number
-  /** relative ms since session start — used as the chart X coordinate */
+  /** relative ms since session start (kept for tooltips / time labels) */
   tMs: number
+  /** Chart X coordinate. Detected refactoring checkpoints (and the
+   *  start + end terminator) sit at integer positions 0..K; sub-edits
+   *  in between are interpolated by their `tMs` within the surrounding
+   *  anchor pair. See `vm.xAnchors` for the anchor metadata. */
+  xPos: number
   sha: string
   shortSha: string
   /** short human description — first event type or short sha */
@@ -234,8 +240,10 @@ export type RefactoringStepVM = {
    *  metric values come from (the window's toSha). */
   checkpointIndex: number
   timestamp: number
-  /** relative ms since session start — X coordinate on the chart */
+  /** relative ms since session start (kept for time labels) */
   tMs: number
+  /** Chart X coordinate (matches `vm.checkpoints[checkpointIndex].xPos`). */
+  xPos: number
   tLabel: string
   /** RefactoringMiner display name, e.g. "Extract Method" */
   refactoringType: string
@@ -291,6 +299,28 @@ export type AlternativeTrajectoryVM = {
   altChurn: number
   /** Unified-diff patch for `fromSha → altSha`. */
   patch: string
+  /** Per-applied-step view of the alt chain. Single-step alts have one
+   *  entry; multi-step reorder orderings have N. The terminal step
+   *  matches the scalar fields above (label/altSha/branchRef/...). */
+  steps: AlternativeStepVM[]
+}
+
+export type AlternativeStepVM = {
+  altSha: string
+  shortAltSha: string
+  stepIndex: number
+  label: string
+  branchRef: string
+  altValues: Partial<Record<MetricId, number>>
+  build: StatusTone
+  tests: StatusTone
+  altChurn: number
+  patch: string
+  /** CheckpointVM-shaped snapshot for this alt step — lets the detail
+   *  panel render the same metrics layout used for normal checkpoints
+   *  when the user clicks an alt dot. `index` is the sentinel `-1` so
+   *  joins-by-array-index silently skip it. */
+  cpVm: CheckpointVM
 }
 
 export type DashboardViewModel = {
@@ -301,6 +331,21 @@ export type DashboardViewModel = {
   refactoringSteps: RefactoringStepVM[]
   alternativeTrajectories: AlternativeTrajectoryVM[]
   trajectory: TrajectoryVM | undefined
+  /** Tick anchors for the chart's X axis. The chart's X coordinate is
+   *  "checkpoint number" — start, every detected refactoring checkpoint,
+   *  and the session-end terminator each sit at integer positions
+   *  0..K. Sub-edits between two anchors are interpolated by their
+   *  relative time. */
+  xAnchors: XAnchorVM[]
+}
+
+export type XAnchorVM = {
+  /** Integer 0..K. */
+  xPos: number
+  /** Index into `checkpoints[]`. */
+  checkpointIndex: number
+  /** Tick label rendered on the X axis. "Start" / "End" / "R<n>". */
+  label: string
 }
 
 export type Selection =
@@ -308,6 +353,15 @@ export type Selection =
   | { kind: "interval"; index: number }
   | { kind: "refactoring"; index: number }
   | { kind: "alternative"; index: number }
+  // Click on one alt path's per-step dot (the synthesised checkpoint
+  // for the k-th applied step). `altIndex` joins
+  // `vm.alternativeTrajectories[].index`; `stepIndex` is the index
+  // into that alt's `steps` array (NOT the user's stepIndex).
+  | { kind: "altCheckpoint"; altIndex: number; stepIndex: number }
+  // Click on a segment of an alt path. Segments index 0..N where 0 =
+  // user fromCp → alt[0], k = alt[k-1] → alt[k] for 1 <= k <= N-1, and
+  // N = alt[N-1] → user toCp.
+  | { kind: "altInterval"; altIndex: number; segmentIndex: number }
   // Click on the build / tests rail below the chart. `intervalIndex`
   // points at the first interval in a merged same-status run; the
   // detail panel walks forward to compute the run's total duration.

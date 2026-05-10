@@ -179,12 +179,12 @@ class DerivedMetricsRunnerTest {
         val b = checkpoint("b", ck = ckResult(ckClass(cbo = 1, tcc = 0.9f)))
         val altCheckpoint = checkpoint("alt", ck = ckResult(ckClass(cbo = 1, tcc = 0.9f)))
         val alt = AlternativeTrajectory(
-            stepIndex = 0,
+            stepIndexes = listOf(0),
             fromSha = "a",
             userToSha = "b",
-            branchRef = "refs/heads/alt",
-            spec = RefactoringSpec.Other,
-            altCheckpoint = altCheckpoint,
+            branchRefs = listOf("refs/heads/alt"),
+            specs = listOf(RefactoringSpec.Other),
+            altCheckpoints = listOf(altCheckpoint),
         )
 
         val result = DerivedMetricsRunner().run(listOf(a, b), listOf(alt), emptyList())
