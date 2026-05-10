@@ -50,14 +50,14 @@ import type {
 const METRICS: MetricVM[] = [
   // Tones bump forward across the lineup so the new gold (`brand-8`)
   // lands on cohesion (last). Process stays on prime mint.
-  { id: "process",     label: "Process Score",        unit: "/100",  better: "higher", group: "process", tone: "brand"   },
-  { id: "cleanliness", label: "Code Cleanliness",     unit: "/100",  better: "higher", group: "process", tone: "brand-2" },
-  { id: "cognitive",   label: "Cognitive Complexity", unit: "total", better: "lower",  group: "code",    tone: "brand-3" },
-  { id: "readability", label: "Readability",          unit: "/100",  better: "higher", group: "code",    tone: "brand-4" },
-  { id: "duplication", label: "Duplication",          unit: "%",     better: "lower",  group: "code",    tone: "brand-5" },
-  { id: "smells",      label: "Code Smells",          unit: "count", better: "lower",  group: "code",    tone: "brand-6" },
-  { id: "coupling",    label: "Coupling",             unit: "cbo",   better: "lower",  group: "code",    tone: "brand-7" },
-  { id: "cohesion",    label: "Cohesion",             unit: "tcc",   better: "higher", group: "code",    tone: "brand-8" },
+  { id: "process",     label: "Process Score",        unit: "/100",  better: "higher", group: "process", tone: "brand-2" },
+  { id: "cleanliness", label: "Code Cleanliness",     unit: "/100",  better: "higher", group: "process", tone: "brand-3" },
+  { id: "cognitive",   label: "Cognitive Complexity", unit: "total", better: "lower",  group: "code",    tone: "brand-4" },
+  { id: "readability", label: "Readability",          unit: "/100",  better: "higher", group: "code",    tone: "brand-5" },
+  { id: "duplication", label: "Duplication",          unit: "%",     better: "lower",  group: "code",    tone: "brand-6" },
+  { id: "smells",      label: "Code Smells",          unit: "count", better: "lower",  group: "code",    tone: "brand-7" },
+  { id: "coupling",    label: "Coupling",             unit: "cbo",   better: "lower",  group: "code",    tone: "brand-8" },
+  { id: "cohesion",    label: "Cohesion",             unit: "tcc",   better: "higher", group: "code",    tone: "brand-9" },
 ]
 
 /** Placeholder breakdown used during initial checkpoint construction; gets

@@ -19,6 +19,7 @@ export type MetricTone =
   | "brand-6"
   | "brand-7"
   | "brand-8"
+  | "brand-9"
 
 export type MetricVM = {
   id: MetricId
