@@ -161,10 +161,18 @@ class DerivedMetricsRunner {
         }
 
         val mainProcess = computeMainProcess(mainCheckpoints, mainCleanliness, refactoringSteps)
+        // Mirror the user's actual test-running habit: each alt step
+        // covers the user's `stepIndex` slot, so we credit (or charge)
+        // the alt step exactly the same way as the user's corresponding
+        // step in `computeMainProcess`. Falls back to `false` for any
+        // alt step whose stepIndex doesn't map back to a real user step.
+        val userRanTestsByStepIndex: Map<Int, Boolean> = refactoringSteps
+            .associate { it.stepIndex to stepUserRanTests(mainCheckpoints, it) }
         val altProcess: List<List<ProcessScore>> = computeAltProcess(
             alternatives = alternatives,
             altCleanliness = altCleanliness,
             mainSnapshots = mainProcess.snapshots,
+            userRanTestsByStepIndex = userRanTestsByStepIndex,
         )
 
         val mainOut = mainCheckpoints.mapIndexed { i, cp ->
@@ -507,6 +515,7 @@ class DerivedMetricsRunner {
         alternatives: List<AlternativeTrajectory>,
         altCleanliness: List<List<Cleanliness?>>,
         mainSnapshots: Map<String, ProcessSnapshot>,
+        userRanTestsByStepIndex: Map<Int, Boolean>,
     ): List<List<ProcessScore>> = alternatives.mapIndexed { i, alt ->
         // Snapshot at fromSha is "main pass after processing that
         // checkpoint" — the starting state for the alt's first synthetic
@@ -520,7 +529,20 @@ class DerivedMetricsRunner {
         var snap = anchor
         val perStep = mutableListOf<ProcessScore>()
         for (k in alt.altCheckpoints.indices) {
-            val (next, score) = advanceAltStep(snap, alt.altCheckpoints[k], altCleanliness[i][k]?.scalar)
+            // Mirror the user's actual test-running behaviour at the
+            // user step this alt step covers — fair comparison: the
+            // user's habit at stepIndex K is what they'd plausibly do
+            // had they taken the alt path instead.
+            val userStepIndex = alt.stepIndexes.getOrNull(k)
+            val userRanTests = userStepIndex
+                ?.let { userRanTestsByStepIndex[it] }
+                ?: false
+            val (next, score) = advanceAltStep(
+                snap = snap,
+                cp = alt.altCheckpoints[k],
+                cleanT = altCleanliness[i][k]?.scalar,
+                userRanTests = userRanTests,
+            )
             perStep += score
             snap = next
         }
@@ -530,13 +552,16 @@ class DerivedMetricsRunner {
     /** Walk one synthetic alt step forward from [snap] using [cp]'s
      *  metrics + smell delta + [cleanT]. Alt steps are definitionally
      *  IDE-driven (`wasPerformedByIde=true`, `ideRelevant=true`) and
-     *  carry no user events ⇒ tests skipped, never manual. Returns the
-     *  new running snapshot and the cumulative process score after this
-     *  step. */
+     *  never count as manual. [userRanTests] mirrors the user's actual
+     *  TEST_RUN_FINISHED behaviour at the user step this alt step
+     *  covers — credits the alt for tests the user would have run had
+     *  they taken this path. Returns the new running snapshot and the
+     *  cumulative process score after this step. */
     private fun advanceAltStep(
         snap: ProcessSnapshot,
         cp: CheckpointReport,
         cleanT: Double?,
+        userRanTests: Boolean,
     ): Pair<ProcessSnapshot, ProcessScore> {
         val build = cp.metrics.build.success
         val testsOk = cp.metrics.tests.success
@@ -551,8 +576,10 @@ class DerivedMetricsRunner {
         val totalSmellWeightSeen = snap.totalSmellWeightSeen + addedW
 
         val refactoringStepsCount = snap.refactoringStepsCount + 1
-        // No user events on a synthesised commit ⇒ tests not run.
-        val testsSkippedCount = snap.testsSkippedCount + 1
+        // Synthesised commits carry no user events, so we mirror what
+        // the user actually did at the matching stepIndex on their
+        // real path — fair comparison rather than a blanket penalty.
+        val testsSkippedCount = snap.testsSkippedCount + (if (userRanTests) 0 else 1)
         val ideRelevantCount = snap.ideRelevantCount + 1
         // Performed by IDE definitionally ⇒ doesn't count as manual.
         val manualWhenIdeCount = snap.manualWhenIdeCount
