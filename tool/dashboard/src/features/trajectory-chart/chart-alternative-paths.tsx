@@ -110,21 +110,16 @@ export function ChartAlternativePaths({
           .map((p, i) => `${i === 0 ? "M" : "L"}${p.x.toFixed(1)},${p.y.toFixed(1)}`)
           .join(" ")
 
-        // Hit-target path: same polyline shape, with the two endpoints
-        // pulled inward so the fat clickable stroke doesn't overlap
-        // the user's checkpoint dots underneath.
-        const firstAlt = altPoints[0]
+        // Per-segment hit targets so each edge of the alt path can
+        // dispatch its own altInterval selection. Endpoints inset
+        // toward the segment's midpoint so the fat clickable stroke
+        // doesn't overlap the user's checkpoint dots / alt step dots.
         const lastAlt = altPoints[altPoints.length - 1]
-        const fromInset = insetToward(xFrom, ys(yFrom), firstAlt.x, firstAlt.y, ENDPOINT_HIT_INSET_PX)
-        const toInset = insetToward(xTo, ys(yTo), lastAlt.x, lastAlt.y, ENDPOINT_HIT_INSET_PX)
-        const hitPoints = [
-          fromInset,
-          ...altPoints.map((p) => ({ x: p.x, y: p.y })),
-          toInset,
+        const polyAll = [
+          { x: xFrom, y: ys(yFrom), kind: "from" as const },
+          ...altPoints.map((p, i) => ({ x: p.x, y: p.y, kind: "alt" as const, idx: i })),
+          { x: xTo, y: ys(yTo), kind: "to" as const },
         ]
-        const hitPath = hitPoints
-          .map((p, i) => `${i === 0 ? "M" : "L"}${p.x.toFixed(1)},${p.y.toFixed(1)}`)
-          .join(" ")
 
         // Label sits above (or below) the alt's terminal mid-point —
         // last applied step is the one the chip's text refers to.
@@ -133,24 +128,34 @@ export function ChartAlternativePaths({
         return (
           <g
             key={alt.index}
-            className={cn("text-brand cursor-pointer")}
-            onClick={() => onSelect({ kind: "alternative", index: alt.index })}
+            className={cn("text-brand")}
             onMouseEnter={() => setHovered(alt.index)}
             onMouseLeave={() => setHovered((h) => (h === alt.index ? null : h))}
           >
-            {/* Invisible fat stroke = generous hit target. SVG hit
-                detection on a `fill="none"` path only triggers on the
-                visible stroke pixels; with a 1.4px dashed line that's
-                next to impossible to land on. The transparent 14px
-                stroke below catches clicks anywhere near the branch. */}
-            <path
-              d={hitPath}
-              fill="none"
-              stroke="transparent"
-              strokeWidth={14}
-              strokeLinecap="butt"
-              pointerEvents="stroke"
-            />
+            {/* Per-segment fat-stroke hit targets. Each segment k
+                dispatches `altInterval` for segIdx = k. */}
+            {polyAll.slice(0, -1).map((from, k) => {
+              const to = polyAll[k + 1]
+              const fromInset = insetToward(from.x, from.y, to.x, to.y, ENDPOINT_HIT_INSET_PX)
+              const toInset = insetToward(to.x, to.y, from.x, from.y, ENDPOINT_HIT_INSET_PX)
+              const segPath = `M${fromInset.x.toFixed(1)},${fromInset.y.toFixed(1)} L${toInset.x.toFixed(1)},${toInset.y.toFixed(1)}`
+              return (
+                <path
+                  key={`seg-${k}`}
+                  d={segPath}
+                  fill="none"
+                  stroke="transparent"
+                  strokeWidth={14}
+                  strokeLinecap="butt"
+                  pointerEvents="stroke"
+                  className="cursor-pointer"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onSelect({ kind: "altInterval", altIndex: alt.index, segmentIndex: k })
+                  }}
+                />
+              )
+            })}
 
             <StubCircle x={xFrom} y={ys(yFrom)} selected={isActive} />
             <StubCircle x={xTo} y={ys(yTo)} selected={isActive} />
@@ -166,18 +171,50 @@ export function ChartAlternativePaths({
               pointerEvents="none"
             />
 
-            {altPoints.map((p, i) => (
-              <circle
-                key={i}
-                cx={p.x}
-                cy={p.y}
-                r={isActive ? 3 : 2.2}
-                fill="var(--color-bg-1)"
-                stroke="currentColor"
-                strokeOpacity={isActive ? 0.95 : 0.7}
-                strokeWidth={1}
-              />
-            ))}
+            {/* Per-step dots — each clickable to open an
+                `altCheckpoint` selection (the synthesised CheckpointVM
+                snapshot for this alt step). Fat invisible halo gives a
+                forgiving hit target without making the visible dot
+                bigger. */}
+            {altPoints.map((p, i) => {
+              const stepSelected =
+                selection?.kind === "altCheckpoint" &&
+                selection.altIndex === alt.index &&
+                selection.stepIndex === i
+              const dotActive = isActive || stepSelected
+              return (
+                <g
+                  key={i}
+                  className="cursor-pointer"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onSelect({ kind: "altCheckpoint", altIndex: alt.index, stepIndex: i })
+                  }}
+                >
+                  <circle cx={p.x} cy={p.y} r={9} fill="transparent" />
+                  <circle
+                    cx={p.x}
+                    cy={p.y}
+                    r={dotActive ? 3 : 2.2}
+                    fill="var(--color-bg-1)"
+                    stroke="currentColor"
+                    strokeOpacity={dotActive ? 0.95 : 0.7}
+                    strokeWidth={1}
+                  />
+                  {stepSelected ? (
+                    <circle
+                      cx={p.x}
+                      cy={p.y}
+                      r={5}
+                      fill="none"
+                      stroke="currentColor"
+                      strokeOpacity={0.55}
+                      strokeWidth={1.2}
+                    />
+                  ) : null}
+                </g>
+              )
+            })}
 
             <LabelChip
               x={labelAnchor.x}

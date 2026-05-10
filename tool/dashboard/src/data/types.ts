@@ -315,6 +315,11 @@ export type AlternativeStepVM = {
   tests: StatusTone
   altChurn: number
   patch: string
+  /** CheckpointVM-shaped snapshot for this alt step — lets the detail
+   *  panel render the same metrics layout used for normal checkpoints
+   *  when the user clicks an alt dot. `index` is the sentinel `-1` so
+   *  joins-by-array-index silently skip it. */
+  cpVm: CheckpointVM
 }
 
 export type DashboardViewModel = {
@@ -347,6 +352,15 @@ export type Selection =
   | { kind: "interval"; index: number }
   | { kind: "refactoring"; index: number }
   | { kind: "alternative"; index: number }
+  // Click on one alt path's per-step dot (the synthesised checkpoint
+  // for the k-th applied step). `altIndex` joins
+  // `vm.alternativeTrajectories[].index`; `stepIndex` is the index
+  // into that alt's `steps` array (NOT the user's stepIndex).
+  | { kind: "altCheckpoint"; altIndex: number; stepIndex: number }
+  // Click on a segment of an alt path. Segments index 0..N where 0 =
+  // user fromCp → alt[0], k = alt[k-1] → alt[k] for 1 <= k <= N-1, and
+  // N = alt[N-1] → user toCp.
+  | { kind: "altInterval"; altIndex: number; segmentIndex: number }
   // Click on the build / tests rail below the chart. `intervalIndex`
   // points at the first interval in a merged same-status run; the
   // detail panel walks forward to compute the run's total duration.

@@ -587,18 +587,60 @@ export function toViewModel(report: AnalysisReport): DashboardViewModel {
         status: combineStatus(altBuild, altTests),
         altChurn: terminal.diff?.totalChurn ?? 0,
         patch: report.alternativePatches?.[terminal.sha] ?? "",
-        steps: alt.altCheckpoints.map((cp, i) => ({
-          altSha: cp.sha,
-          shortAltSha: shortSha(cp.sha),
-          stepIndex: alt.stepIndexes[i] ?? 0,
-          label: specLabel(alt.specs[i]),
-          branchRef: alt.branchRefs[i] ?? "",
-          altValues: checkpointValues(cp),
-          build: buildTone(cp.metrics.build.success),
-          tests: testsTone(cp.metrics.tests.success, cp.metrics.tests.wasSkipped),
-          altChurn: cp.diff?.totalChurn ?? 0,
-          patch: report.alternativePatches?.[cp.sha] ?? "",
-        })),
+        steps: alt.altCheckpoints.map((cp, i) => {
+          // Synthesise a CheckpointVM-shaped snapshot so the detail
+          // panel can reuse the regular CheckpointBody when the user
+          // clicks an alt step on the chart. Index = -1 sentinel: the
+          // step isn't in vm.checkpoints, so anything that joins by
+          // numeric index will silently no-op.
+          const altLabel = `${specLabel(alt.specs[i])} (alt #${alt.stepIndexes[i] ?? i})`
+          const prevReport = i === 0
+            ? (report.checkpoints[fromIdx] ?? null)
+            : alt.altCheckpoints[i - 1]
+          const altDerived = cp.derivedMetrics
+          const altProcessBreakdown = mapProcessBreakdown(altDerived?.process)
+          const altCleanlinessBreakdown = mapCleanlinessBreakdown(altDerived?.cleanliness)
+          const altBuildTone = buildTone(cp.metrics.build.success)
+          const altTestsTone = testsTone(cp.metrics.tests.success, cp.metrics.tests.wasSkipped)
+          const cpVm: CheckpointVM = {
+            index: -1,
+            label: altLabel,
+            tLabel: "alt",
+            timestamp: 0,
+            tMs: 0,
+            // Visual x-position: alt step's slot under the user's k-th
+            // window step, matching chart-alternative-paths.
+            xPos: 0,
+            sha: cp.sha,
+            shortSha: shortSha(cp.sha),
+            description: altLabel,
+            values: checkpointValues(cp),
+            build: altBuildTone,
+            tests: altTestsTone,
+            status: combineStatus(altBuildTone, altTestsTone),
+            churn: cp.diff?.totalChurn ?? 0,
+            patch: report.alternativePatches?.[cp.sha] ?? "",
+            smells: deriveSmells(cp, prevReport),
+            duplications: deriveDuplications(cp, prevReport),
+            processScore: altProcessBreakdown.total,
+            processBreakdown: altProcessBreakdown,
+            cleanlinessScore: altCleanlinessBreakdown?.total ?? null,
+            cleanlinessBreakdown: altCleanlinessBreakdown,
+          }
+          return {
+            altSha: cp.sha,
+            shortAltSha: shortSha(cp.sha),
+            stepIndex: alt.stepIndexes[i] ?? 0,
+            label: specLabel(alt.specs[i]),
+            branchRef: alt.branchRefs[i] ?? "",
+            altValues: checkpointValues(cp),
+            build: altBuildTone,
+            tests: altTestsTone,
+            altChurn: cp.diff?.totalChurn ?? 0,
+            patch: report.alternativePatches?.[cp.sha] ?? "",
+            cpVm,
+          }
+        }),
       },
     ]
   })
