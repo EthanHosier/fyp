@@ -55,9 +55,13 @@ export function useChartScales({
   const yPad = (yMax - yMin) * Y_PAD_FRAC || 1
   const yDomain: [number, number] = [yMin - yPad, yMax + yPad]
 
-  const lastCp = vm.checkpoints[vm.checkpoints.length - 1]
-  const tMax = Math.max(1, vm.session.durationMs, lastCp?.tMs ?? 0)
-  const xs = linearScale([0, tMax], [0, innerW])
+  // X axis is "checkpoint number": detected refactoring checkpoints +
+  // start + end terminator at integer positions, sub-edits interpolated
+  // by relative time between their surrounding anchors. Domain runs
+  // from 0 (start) to the last anchor's xPos (end).
+  const lastAnchor = vm.xAnchors[vm.xAnchors.length - 1]
+  const xMax = Math.max(1, lastAnchor?.xPos ?? 0)
+  const xs = linearScale([0, xMax], [0, innerW])
   const ys = linearScale(yDomain, [innerH, 0])
   const yTicks = linearTicks(yDomain, Y_TICK_COUNT)
 

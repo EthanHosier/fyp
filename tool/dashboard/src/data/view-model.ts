@@ -50,14 +50,14 @@ import type {
 const METRICS: MetricVM[] = [
   // Tones bump forward across the lineup so the new gold (`brand-8`)
   // lands on cohesion (last). Process stays on prime mint.
-  { id: "process",     label: "Process Score",        unit: "/100",  better: "higher", group: "process", tone: "brand"   },
-  { id: "cleanliness", label: "Code Cleanliness",     unit: "/100",  better: "higher", group: "process", tone: "brand-2" },
-  { id: "cognitive",   label: "Cognitive Complexity", unit: "total", better: "lower",  group: "code",    tone: "brand-3" },
-  { id: "readability", label: "Readability",          unit: "/100",  better: "higher", group: "code",    tone: "brand-4" },
-  { id: "duplication", label: "Duplication",          unit: "%",     better: "lower",  group: "code",    tone: "brand-5" },
-  { id: "smells",      label: "Code Smells",          unit: "count", better: "lower",  group: "code",    tone: "brand-6" },
-  { id: "coupling",    label: "Coupling",             unit: "cbo",   better: "lower",  group: "code",    tone: "brand-7" },
-  { id: "cohesion",    label: "Cohesion",             unit: "tcc",   better: "higher", group: "code",    tone: "brand-8" },
+  { id: "process",     label: "Process Score",        unit: "/100",  better: "higher", group: "process", tone: "brand-2" },
+  { id: "cleanliness", label: "Code Cleanliness",     unit: "/100",  better: "higher", group: "process", tone: "brand-3" },
+  { id: "cognitive",   label: "Cognitive Complexity", unit: "total", better: "lower",  group: "code",    tone: "brand-4" },
+  { id: "readability", label: "Readability",          unit: "/100",  better: "higher", group: "code",    tone: "brand-5" },
+  { id: "duplication", label: "Duplication",          unit: "%",     better: "lower",  group: "code",    tone: "brand-6" },
+  { id: "smells",      label: "Code Smells",          unit: "count", better: "lower",  group: "code",    tone: "brand-7" },
+  { id: "coupling",    label: "Coupling",             unit: "cbo",   better: "lower",  group: "code",    tone: "brand-8" },
+  { id: "cohesion",    label: "Cohesion",             unit: "tcc",   better: "higher", group: "code",    tone: "brand-9" },
 ]
 
 /** Placeholder breakdown used during initial checkpoint construction; gets
@@ -310,6 +310,7 @@ export function toViewModel(report: AnalysisReport): DashboardViewModel {
       tLabel: formatTLabel(ts - startedAt),
       timestamp: ts,
       tMs: Math.max(0, ts - startedAt),
+      xPos: 0, // populated by the anchor pass below.
       sha: c.sha,
       shortSha: shortSha(c.sha),
       description: describeCheckpoint(c),
@@ -374,6 +375,108 @@ export function toViewModel(report: AnalysisReport): DashboardViewModel {
     })
   }
 
+  // ---- chart X coordinate: per-refactoring-step slots ----
+  // Each detected refactoring step takes its own integer slot on the X
+  // axis, even when multiple steps land on the same checkpoint
+  // (RefactoringMiner sometimes detects N refactorings in a single
+  // user-edit transition). Slots are ordered by stepIndex (matches the
+  // backend's chronological + RM-detection order). Start and End
+  // bracket the slot sequence. Sub-edits between two slots are spaced
+  // linearly by their `tMs` within the surrounding slot interval so the
+  // rhythm of edits is preserved.
+  const reportSteps = (report.refactoringSteps ?? [])
+    .filter(
+      (s) =>
+        s.toCheckpointIndex >= 0 && s.toCheckpointIndex < checkpoints.length,
+    )
+    .slice()
+    .sort((a, b) => a.stepIndex - b.stepIndex)
+  type Slot = { xPos: number; cpIdx: number; label: string; stepIndex: number | null }
+  const slots: Slot[] = []
+  if (checkpoints.length > 0) {
+    slots.push({ xPos: 0, cpIdx: 0, label: "Start", stepIndex: null })
+  }
+  reportSteps.forEach((s, i) => {
+    slots.push({
+      xPos: slots.length,
+      cpIdx: s.toCheckpointIndex,
+      label: `R${i + 1}`,
+      stepIndex: s.stepIndex,
+    })
+  })
+  if (checkpoints.length > 0) {
+    const endIdx = checkpoints.length - 1
+    // Avoid a degenerate trailing slot when the last checkpoint is also
+    // the final step's landing — End sits one slot to the right anyway
+    // so the synthetic terminator gets its own visible tick.
+    slots.push({ xPos: slots.length, cpIdx: endIdx, label: "End", stepIndex: null })
+  }
+  // First-slot xPos per checkpoint (used as cp.xPos for cps that any
+  // slot points to). Multiple slots on the same cp → cp anchors at the
+  // leftmost slot in its cluster; chart-lines + step-dot rendering
+  // visit the other slots independently.
+  const firstSlotPosByCp = new Map<number, number>()
+  // Last-slot xPos per checkpoint — used to advance the interpolation
+  // pointer past a shared-cp cluster when computing non-slot cp xPos.
+  const lastSlotPosByCp = new Map<number, number>()
+  for (const sl of slots) {
+    if (!firstSlotPosByCp.has(sl.cpIdx)) firstSlotPosByCp.set(sl.cpIdx, sl.xPos)
+    lastSlotPosByCp.set(sl.cpIdx, sl.xPos)
+  }
+
+  // Assign xPos to every checkpoint.
+  for (let i = 0; i < checkpoints.length; i++) {
+    const cp = checkpoints[i]
+    const direct = firstSlotPosByCp.get(i)
+    if (direct !== undefined) {
+      cp.xPos = direct
+      continue
+    }
+    // Non-anchor checkpoint: interpolate by tMs in the cp-index interval
+    // between the surrounding slot-anchored cps. We need cp indices
+    // (not slot xPos) for interval bounds, then map to slot xPos via
+    // last-slot (left bound) and first-slot (right bound).
+    let lCpIdx = -1
+    let rCpIdx = -1
+    for (let j = i - 1; j >= 0; j--) {
+      if (firstSlotPosByCp.has(j)) {
+        lCpIdx = j
+        break
+      }
+    }
+    for (let j = i + 1; j < checkpoints.length; j++) {
+      if (firstSlotPosByCp.has(j)) {
+        rCpIdx = j
+        break
+      }
+    }
+    if (lCpIdx < 0 || rCpIdx < 0) {
+      cp.xPos = lCpIdx >= 0
+        ? lastSlotPosByCp.get(lCpIdx) ?? 0
+        : firstSlotPosByCp.get(rCpIdx) ?? 0
+      continue
+    }
+    const xL = lastSlotPosByCp.get(lCpIdx) ?? 0
+    const xR = firstSlotPosByCp.get(rCpIdx) ?? xL
+    const tL = checkpoints[lCpIdx].tMs
+    const tR = checkpoints[rCpIdx].tMs
+    const denom = tR - tL
+    const frac = denom > 0 ? (cp.tMs - tL) / denom : 0
+    cp.xPos = xL + Math.max(0, Math.min(1, frac)) * (xR - xL)
+  }
+
+  // Tick metadata for chart-axes.
+  const xAnchors = slots.map((sl) => ({
+    xPos: sl.xPos,
+    checkpointIndex: sl.cpIdx,
+    label: sl.label,
+  }))
+  // Per-step xPos, parallel to slots[1..R].
+  const stepXPosByStepIndex = new Map<number, number>()
+  for (const sl of slots) {
+    if (sl.stepIndex != null) stepXPosByStepIndex.set(sl.stepIndex, sl.xPos)
+  }
+
   const intervals: IntervalVM[] = checkpoints.slice(1).map((to, i) => {
     const from = checkpoints[i]
     // Edge colour mirrors the LEFT endpoint only — an interval is red
@@ -413,11 +516,19 @@ export function toViewModel(report: AnalysisReport): DashboardViewModel {
   const refactoringSteps: RefactoringStepVM[] = (report.refactoringSteps ?? []).map(
     (s: RefactoringStep, i) => {
       const toEvents = report.checkpoints[s.toCheckpointIndex]?.events ?? []
+      // Each step has its own slot xPos, even when multiple steps share a
+      // landing checkpoint (RefactoringMiner can detect N refactorings
+      // inside a single user-edit transition). Step dots render side by
+      // side at the same y (shared cp metrics) instead of overlapping.
+      const slotX = stepXPosByStepIndex.get(s.stepIndex)
+        ?? checkpoints[s.toCheckpointIndex]?.xPos
+        ?? 0
       return {
         index: i,
         checkpointIndex: s.toCheckpointIndex,
         timestamp: s.timestamp,
         tMs: Math.max(0, s.timestamp - startedAt),
+        xPos: slotX,
         tLabel: formatTLabel(s.timestamp - startedAt),
         refactoringType: s.refactoring.type,
         description: s.refactoring.description,
@@ -436,6 +547,7 @@ export function toViewModel(report: AnalysisReport): DashboardViewModel {
   const checkpointBySha = new Map<string, number>()
   report.checkpoints.forEach((c, i) => checkpointBySha.set(c.sha, i))
 
+  let altCounter = 0
   const alternativeTrajectories: AlternativeTrajectoryVM[] = (
     report.alternativeTrajectories ?? []
   ).flatMap((alt: AlternativeTrajectory) => {
@@ -444,26 +556,92 @@ export function toViewModel(report: AnalysisReport): DashboardViewModel {
     // Drop alts that don't anchor onto user-trace checkpoints — without
     // both endpoints there's nowhere to draw the branch.
     if (fromIdx === undefined || toIdx === undefined) return []
+    if (alt.altCheckpoints.length === 0) return []
 
-    const altC = alt.altCheckpoint
-    const altBuild = buildTone(altC.metrics.build.success)
-    const altTests = testsTone(altC.metrics.tests.success, altC.metrics.tests.wasSkipped)
+    // Terminal step's checkpoint is the alt's end-state — use it for
+    // the chart's apex value and the detail panel's status / patch.
+    // Multi-step alt structure (per-step labels, intermediate values)
+    // is exposed via the `steps` array for richer rendering later.
+    const terminal = alt.altCheckpoints[alt.altCheckpoints.length - 1]
+    const altBuild = buildTone(terminal.metrics.build.success)
+    const altTests = testsTone(terminal.metrics.tests.success, terminal.metrics.tests.wasSkipped)
+    const terminalSpec = alt.specs[alt.specs.length - 1]
+    const terminalBranchRef = alt.branchRefs[alt.branchRefs.length - 1] ?? ""
+    // Synthetic per-VM unique key. Must be unique across the whole VM
+    // because the chart's hover/select machinery joins by `index` —
+    // reorder alts that share the same first stepIndex would otherwise
+    // collide and hover-highlight together.
+    const idx = altCounter++
 
     return [
       {
-        index: alt.stepIndex,
+        index: idx,
         fromCheckpointIndex: fromIdx,
         toCheckpointIndex: toIdx,
-        label: specLabel(alt.spec),
-        altSha: altC.sha,
-        shortAltSha: shortSha(altC.sha),
-        branchRef: alt.branchRef,
-        altValues: checkpointValues(altC),
+        label: specLabel(terminalSpec),
+        altSha: terminal.sha,
+        shortAltSha: shortSha(terminal.sha),
+        branchRef: terminalBranchRef,
+        altValues: checkpointValues(terminal),
         build: altBuild,
         tests: altTests,
         status: combineStatus(altBuild, altTests),
-        altChurn: altC.diff?.totalChurn ?? 0,
-        patch: report.alternativePatches?.[alt.stepIndex] ?? "",
+        altChurn: terminal.diff?.totalChurn ?? 0,
+        patch: report.alternativePatches?.[terminal.sha] ?? "",
+        steps: alt.altCheckpoints.map((cp, i) => {
+          // Synthesise a CheckpointVM-shaped snapshot so the detail
+          // panel can reuse the regular CheckpointBody when the user
+          // clicks an alt step on the chart. Index = -1 sentinel: the
+          // step isn't in vm.checkpoints, so anything that joins by
+          // numeric index will silently no-op.
+          const altLabel = `${specLabel(alt.specs[i])} (alt #${alt.stepIndexes[i] ?? i})`
+          const prevReport = i === 0
+            ? (report.checkpoints[fromIdx] ?? null)
+            : alt.altCheckpoints[i - 1]
+          const altDerived = cp.derivedMetrics
+          const altProcessBreakdown = mapProcessBreakdown(altDerived?.process)
+          const altCleanlinessBreakdown = mapCleanlinessBreakdown(altDerived?.cleanliness)
+          const altBuildTone = buildTone(cp.metrics.build.success)
+          const altTestsTone = testsTone(cp.metrics.tests.success, cp.metrics.tests.wasSkipped)
+          const cpVm: CheckpointVM = {
+            index: -1,
+            label: altLabel,
+            tLabel: "alt",
+            timestamp: 0,
+            tMs: 0,
+            // Visual x-position: alt step's slot under the user's k-th
+            // window step, matching chart-alternative-paths.
+            xPos: 0,
+            sha: cp.sha,
+            shortSha: shortSha(cp.sha),
+            description: altLabel,
+            values: checkpointValues(cp),
+            build: altBuildTone,
+            tests: altTestsTone,
+            status: combineStatus(altBuildTone, altTestsTone),
+            churn: cp.diff?.totalChurn ?? 0,
+            patch: report.alternativePatches?.[cp.sha] ?? "",
+            smells: deriveSmells(cp, prevReport),
+            duplications: deriveDuplications(cp, prevReport),
+            processScore: altProcessBreakdown.total,
+            processBreakdown: altProcessBreakdown,
+            cleanlinessScore: altCleanlinessBreakdown?.total ?? null,
+            cleanlinessBreakdown: altCleanlinessBreakdown,
+          }
+          return {
+            altSha: cp.sha,
+            shortAltSha: shortSha(cp.sha),
+            stepIndex: alt.stepIndexes[i] ?? 0,
+            label: specLabel(alt.specs[i]),
+            branchRef: alt.branchRefs[i] ?? "",
+            altValues: checkpointValues(cp),
+            build: altBuildTone,
+            tests: altTestsTone,
+            altChurn: cp.diff?.totalChurn ?? 0,
+            patch: report.alternativePatches?.[cp.sha] ?? "",
+            cpVm,
+          }
+        }),
       },
     ]
   })
@@ -476,6 +654,7 @@ export function toViewModel(report: AnalysisReport): DashboardViewModel {
     refactoringSteps,
     alternativeTrajectories,
     trajectory,
+    xAnchors,
   }
 }
 

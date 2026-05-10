@@ -46,11 +46,14 @@ data class AnalysisReport(
     // injected (e.g. tests), or when synthesis was skipped for every
     // candidate.
     val alternativeTrajectories: List<AlternativeTrajectory> = emptyList(),
-    // Unified-diff patch text from `fromSha` → `altSha` for each
-    // synthesised trajectory, keyed by the same `stepIndex` used by
-    // [refactoringPatches]. Mirrors that map's shape so the frontend
-    // can render IDE-driven and manual diffs side-by-side.
-    val alternativePatches: Map<Int, String> = emptyMap(),
+    // Unified-diff patch text per applied alt step, keyed by the
+    // synthesised step's `altSha` (= `altCheckpoints[i].sha`). Each
+    // entry's text is the `fromSha → altSha` diff. Single-step alts
+    // contribute one entry; multi-step reorder orderings contribute
+    // one entry per applied step. Frontend looks up by altSha rather
+    // than stepIndex so multi-step alts (which span multiple user
+    // step indexes) round-trip cleanly.
+    val alternativePatches: Map<String, String> = emptyMap(),
     // Multi-step alt orderings synthesised by ReorderSynthesiser.
     // One entry per reorder window with ≥2 typed VALID specs;
     // each carries every alt ordering's commit chain (excluding

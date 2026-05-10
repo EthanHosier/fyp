@@ -38,9 +38,9 @@ export function ChartPoints({
             className="cursor-pointer"
             onClick={() => onSelect({ kind: "checkpoint", index: c.index })}
           >
-            <circle cx={xs(c.tMs)} cy={ys(v)} r={r + 6} fill="transparent" />
+            <circle cx={xs(c.xPos)} cy={ys(v)} r={r + 6} fill="transparent" />
             <circle
-              cx={xs(c.tMs)}
+              cx={xs(c.xPos)}
               cy={ys(v)}
               r={r}
               fill="currentColor"
@@ -48,7 +48,7 @@ export function ChartPoints({
             />
             {selected ? (
               <circle
-                cx={xs(c.tMs)}
+                cx={xs(c.xPos)}
                 cy={ys(v)}
                 r={r + 3}
                 fill="none"

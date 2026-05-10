@@ -5,6 +5,7 @@ import { Text } from "@/components/text"
 import { Button } from "@/components/ui/button"
 import type { CheckpointVM, DashboardViewModel, StatusTone } from "@/data/types"
 import { AlternativeBody } from "@/features/detail-panel/alternative-body"
+import { AltIntervalBody } from "@/features/detail-panel/alt-interval-body"
 import { CheckpointBody } from "@/features/detail-panel/checkpoint-body"
 import { IntervalBody } from "@/features/detail-panel/interval-body"
 import {
@@ -64,6 +65,53 @@ export function DetailPanel({ vm }: { vm: DashboardViewModel }) {
         patchEmptyMessage="No filtered diff for this refactoring."
       />
     )
+  } else if (selection.kind === "altCheckpoint") {
+    const alt = vm.alternativeTrajectories.find((a) => a.index === selection.altIndex)
+    const step = alt?.steps[selection.stepIndex]
+    if (!alt || !step) return null
+    title = step.label
+    subtitle = (
+      <span className="inline-flex items-center gap-1.5">
+        <Text variant="mono" tone="fg-3">
+          alt step {selection.stepIndex + 1}/{alt.steps.length}
+        </Text>
+        <Text variant="mono" tone="fg-4">
+          ·
+        </Text>
+        <Text variant="mono" tone="fg-3">
+          {step.shortAltSha}
+        </Text>
+      </span>
+    )
+    body = (
+      <CheckpointBody
+        vm={vm}
+        checkpoint={step.cpVm}
+        patch={step.patch}
+        patchCacheKey={`alt-step-${alt.index}-${selection.stepIndex}`}
+        patchEmptyMessage="No diff captured for this alt step."
+      />
+    )
+  } else if (selection.kind === "altInterval") {
+    const alt = vm.alternativeTrajectories.find((a) => a.index === selection.altIndex)
+    if (!alt) return null
+    const fromCp = vm.checkpoints[alt.fromCheckpointIndex]
+    const toCp = vm.checkpoints[alt.toCheckpointIndex]
+    const segIdx = selection.segmentIndex
+    const fromVm =
+      segIdx === 0 ? fromCp : alt.steps[segIdx - 1]?.cpVm
+    const toVm =
+      segIdx === alt.steps.length ? toCp : alt.steps[segIdx]?.cpVm
+    if (!fromVm || !toVm) return null
+    title = `${fromVm.label} → ${toVm.label}`
+    subtitle = (
+      <span className="inline-flex items-center gap-1.5">
+        <Text variant="mono" tone="fg-3">
+          alt segment {segIdx + 1}/{alt.steps.length + 1}
+        </Text>
+      </span>
+    )
+    body = <AltIntervalBody vm={vm} from={fromVm} to={toVm} />
   } else if (selection.kind === "alternative") {
     const alt = vm.alternativeTrajectories.find((a) => a.index === selection.index)
     if (!alt) return null

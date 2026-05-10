@@ -144,7 +144,11 @@ class DerivedMetricsRunner {
         refactoringSteps: List<RefactoringStep>,
     ): Result {
         val mainAgg = mainCheckpoints.map { aggregate(it) }
-        val altAgg = alternatives.map { aggregate(it.altCheckpoint) }
+        // List-of-lists: outer parallel to [alternatives], inner parallel
+        // to each alt's [altCheckpoints].
+        val altAgg: List<List<Aggregates>> = alternatives.map { alt ->
+            alt.altCheckpoints.map { aggregate(it) }
+        }
 
         // Ranges from the main trajectory only — alts get the same scale
         // (with clamp on out-of-range values) so a single extreme alt
@@ -152,14 +156,23 @@ class DerivedMetricsRunner {
         val ranges = computeRanges(mainAgg)
 
         val mainCleanliness = mainAgg.map { computeCleanliness(it, ranges, clamp = false) }
-        val altCleanliness = altAgg.map { computeCleanliness(it, ranges, clamp = true) }
+        val altCleanliness: List<List<Cleanliness?>> = altAgg.map { perAlt ->
+            perAlt.map { computeCleanliness(it, ranges, clamp = true) }
+        }
 
         val mainProcess = computeMainProcess(mainCheckpoints, mainCleanliness, refactoringSteps)
-        val altProcess = computeAltProcess(
-            mainCheckpoints = mainCheckpoints,
+        // Mirror the user's actual test-running habit: each alt step
+        // covers the user's `stepIndex` slot, so we credit (or charge)
+        // the alt step exactly the same way as the user's corresponding
+        // step in `computeMainProcess`. Falls back to `false` for any
+        // alt step whose stepIndex doesn't map back to a real user step.
+        val userRanTestsByStepIndex: Map<Int, Boolean> = refactoringSteps
+            .associate { it.stepIndex to stepUserRanTests(mainCheckpoints, it) }
+        val altProcess: List<List<ProcessScore>> = computeAltProcess(
             alternatives = alternatives,
             altCleanliness = altCleanliness,
             mainSnapshots = mainProcess.snapshots,
+            userRanTestsByStepIndex = userRanTestsByStepIndex,
         )
 
         val mainOut = mainCheckpoints.mapIndexed { i, cp ->
@@ -175,18 +188,23 @@ class DerivedMetricsRunner {
             )
         }.toMap()
 
-        val altOut = alternatives.mapIndexed { i, alt ->
-            alt.altCheckpoint.sha to DerivedMetrics(
-                coupling = altAgg[i].coupling,
-                cohesion = altAgg[i].cohesion,
-                duplication = altAgg[i].duplication,
-                readability = altAgg[i].readability,
-                cognitive = altAgg[i].cognitive,
-                smells = altAgg[i].smells,
-                cleanliness = altCleanliness[i],
-                process = altProcess[i],
-            )
-        }.toMap()
+        val altOut = LinkedHashMap<String, DerivedMetrics>()
+        for (i in alternatives.indices) {
+            val alt = alternatives[i]
+            for (k in alt.altCheckpoints.indices) {
+                val cp = alt.altCheckpoints[k]
+                altOut[cp.sha] = DerivedMetrics(
+                    coupling = altAgg[i][k].coupling,
+                    cohesion = altAgg[i][k].cohesion,
+                    duplication = altAgg[i][k].duplication,
+                    readability = altAgg[i][k].readability,
+                    cognitive = altAgg[i][k].cognitive,
+                    smells = altAgg[i][k].smells,
+                    cleanliness = altCleanliness[i][k],
+                    process = altProcess[i][k],
+                )
+            }
+        }
 
         return Result(main = mainOut, alt = altOut)
     }
@@ -494,40 +512,74 @@ class DerivedMetricsRunner {
     }
 
     private fun computeAltProcess(
-        mainCheckpoints: List<CheckpointReport>,
         alternatives: List<AlternativeTrajectory>,
-        altCleanliness: List<Cleanliness?>,
+        altCleanliness: List<List<Cleanliness?>>,
         mainSnapshots: Map<String, ProcessSnapshot>,
-    ): List<ProcessScore> = alternatives.mapIndexed { i, alt ->
+        userRanTestsByStepIndex: Map<Int, Boolean>,
+    ): List<List<ProcessScore>> = alternatives.mapIndexed { i, alt ->
         // Snapshot at fromSha is "main pass after processing that
-        // checkpoint" — exactly the starting state for the alt's one
-        // synthetic step. If main hasn't seen this sha (shouldn't happen,
-        // but guard anyway) anchor at baseline with no contributions.
-        val snap = mainSnapshots[alt.fromSha] ?: return@mapIndexed ProcessScore.EMPTY
-        val cleanT = altCleanliness[i]?.scalar
+        // checkpoint" — the starting state for the alt's first synthetic
+        // step. Each subsequent step advances the snapshot in place, so
+        // the chain accumulates penalties exactly like the main walk.
+        // Missing anchor (shouldn't happen, defensive): emit baselines
+        // for every step in the chain.
+        val anchor = mainSnapshots[alt.fromSha]
+            ?: return@mapIndexed alt.altCheckpoints.map { ProcessScore.EMPTY }
 
-        // Advance one synthetic step from the snapshot. Alt definitionally
-        // came from the IDE (`wasPerformedByIde=true`, `ideRelevant=true`)
-        // and did NOT have user-run tests after it (no events on a
-        // synthesised SHA). The alt's checkpoint also contributes its
-        // build/tests status (synthesised commits should compile but we
-        // don't gate on it), and its smell delta vs `fromSha`.
+        var snap = anchor
+        val perStep = mutableListOf<ProcessScore>()
+        for (k in alt.altCheckpoints.indices) {
+            // Mirror the user's actual test-running behaviour at the
+            // user step this alt step covers — fair comparison: the
+            // user's habit at stepIndex K is what they'd plausibly do
+            // had they taken the alt path instead.
+            val userStepIndex = alt.stepIndexes.getOrNull(k)
+            val userRanTests = userStepIndex
+                ?.let { userRanTestsByStepIndex[it] }
+                ?: false
+            val (next, score) = advanceAltStep(
+                snap = snap,
+                cp = alt.altCheckpoints[k],
+                cleanT = altCleanliness[i][k]?.scalar,
+                userRanTests = userRanTests,
+            )
+            perStep += score
+            snap = next
+        }
+        perStep
+    }
 
-        val build = alt.altCheckpoint.metrics.build.success
-        val testsOk = alt.altCheckpoint.metrics.tests.success
-        val testsSkipped = alt.altCheckpoint.metrics.tests.wasSkipped
+    /** Walk one synthetic alt step forward from [snap] using [cp]'s
+     *  metrics + smell delta + [cleanT]. Alt steps are definitionally
+     *  IDE-driven (`wasPerformedByIde=true`, `ideRelevant=true`) and
+     *  never count as manual. [userRanTests] mirrors the user's actual
+     *  TEST_RUN_FINISHED behaviour at the user step this alt step
+     *  covers — credits the alt for tests the user would have run had
+     *  they taken this path. Returns the new running snapshot and the
+     *  cumulative process score after this step. */
+    private fun advanceAltStep(
+        snap: ProcessSnapshot,
+        cp: CheckpointReport,
+        cleanT: Double?,
+        userRanTests: Boolean,
+    ): Pair<ProcessSnapshot, ProcessScore> {
+        val build = cp.metrics.build.success
+        val testsOk = cp.metrics.tests.success
+        val testsSkipped = cp.metrics.tests.wasSkipped
         val testsFailed = !testsOk && !testsSkipped
         val brokenInc = if (!build || testsFailed) 1 else 0
 
-        val (addedW, resolvedW) = smellWeightsForAlt(alt)
+        val (addedW, resolvedW) = smellWeightsForAltCp(cp)
         val brokenCount = snap.brokenCount + brokenInc
         val addedSmellWeight = snap.addedSmellWeight + addedW
         val resolvedSmellWeight = snap.resolvedSmellWeight + resolvedW
         val totalSmellWeightSeen = snap.totalSmellWeightSeen + addedW
 
         val refactoringStepsCount = snap.refactoringStepsCount + 1
-        // No user events on a synthesised commit ⇒ tests not run.
-        val testsSkippedCount = snap.testsSkippedCount + 1
+        // Synthesised commits carry no user events, so we mirror what
+        // the user actually did at the matching stepIndex on their
+        // real path — fair comparison rather than a blanket penalty.
+        val testsSkippedCount = snap.testsSkippedCount + (if (userRanTests) 0 else 1)
         val ideRelevantCount = snap.ideRelevantCount + 1
         // Performed by IDE definitionally ⇒ doesn't count as manual.
         val manualWhenIdeCount = snap.manualWhenIdeCount
@@ -554,7 +606,7 @@ class DerivedMetricsRunner {
         val cleanlinessGain = if (cleanT == null || snap.cleanliness0 == null) 0.0
             else cleanT - snap.cleanliness0
 
-        buildProcessScore(
+        val score = buildProcessScore(
             cleanlinessGain = cleanlinessGain,
             brokenFrac = brokenFrac,
             brokenCount = brokenCount,
@@ -572,6 +624,23 @@ class DerivedMetricsRunner {
             peakCleanliness = peakCleanliness,
             cleanT = cleanT,
         )
+
+        val next = ProcessSnapshot(
+            brokenCount = brokenCount,
+            addedSmellWeight = addedSmellWeight,
+            resolvedSmellWeight = resolvedSmellWeight,
+            totalSmellWeightSeen = totalSmellWeightSeen,
+            refactoringStepsCount = refactoringStepsCount,
+            testsSkippedCount = testsSkippedCount,
+            ideRelevantCount = ideRelevantCount,
+            manualWhenIdeCount = manualWhenIdeCount,
+            peakCleanliness = peakCleanliness,
+            dipIntegral = dipIntegral,
+            dipObservations = dipObservations,
+            cleanliness0 = snap.cleanliness0,
+            checkpointsSoFar = checkpointsSoFar,
+        )
+        return next to score
     }
 
     /**
@@ -601,8 +670,7 @@ class DerivedMetricsRunner {
     /** Same convention for an alt checkpoint — seed semantics don't apply
      *  (an alt is always a transition from `fromSha`), so any violation
      *  whose `firstSeenAtSha` is the alt sha counts as added. */
-    private fun smellWeightsForAlt(alt: AlternativeTrajectory): Pair<Int, Int> {
-        val cp = alt.altCheckpoint
+    private fun smellWeightsForAltCp(cp: CheckpointReport): Pair<Int, Int> {
         val violations = cp.metrics.pmd.violations
         val firstSeen = cp.pmdTracking.firstSeenAtSha
         var added = 0

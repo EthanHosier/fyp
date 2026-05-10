@@ -1,5 +1,4 @@
 import type {
-  CheckpointVM,
   DashboardViewModel,
   MetricVM,
 } from "@/data/types"
@@ -29,7 +28,10 @@ export function ChartLines({
   scales: ChartScales
 }) {
   const { xs, ys, innerH } = scales
-  const primaryPoints = checkpointPoints(vm.checkpoints, primary, xs, ys)
+  const primaryPoints = chartTimelinePoints(vm, primary).map((p) => ({
+    x: xs(p.t),
+    y: ys(p.v),
+  }))
 
   return (
     <>
@@ -63,9 +65,7 @@ function SecondaryLine({
   scales: ChartScales
   innerH: number
 }) {
-  const points = vm.checkpoints
-    .map((c) => ({ t: c.tMs, v: c.values[metric.id] }))
-    .filter((p): p is { t: number; v: number } => typeof p.v === "number")
+  const points = chartTimelinePoints(vm, metric)
   if (points.length < 2) return null
 
   const values = points.map((p) => p.v)
@@ -99,14 +99,27 @@ function SecondaryLine({
   )
 }
 
-function checkpointPoints(
-  checkpoints: CheckpointVM[],
+/**
+ * Build the line's vertex sequence by walking xAnchors (one entry per
+ * slot — Start, every refactoring step, End) and interleaving any
+ * non-anchor sub-edit checkpoints by their interpolated `xPos`. When
+ * multiple steps share a landing checkpoint, the line emits one vertex
+ * per slot at the same y, so the polyline stays flat across the
+ * shared-cp cluster instead of cutting back through the next cp's
+ * value. */
+function chartTimelinePoints(
+  vm: DashboardViewModel,
   metric: MetricVM,
-  xs: ChartScales["xs"],
-  ys: ChartScales["ys"],
-) {
-  return checkpoints
-    .map((c) => ({ t: c.tMs, v: c.values[metric.id] }))
+): { t: number; v: number }[] {
+  const slotCpIdxs = new Set(vm.xAnchors.map((a) => a.checkpointIndex))
+  const fromAnchors = vm.xAnchors.map((a) => ({
+    t: a.xPos,
+    v: vm.checkpoints[a.checkpointIndex]?.values[metric.id],
+  }))
+  const fromNonAnchors = vm.checkpoints
+    .filter((c) => !slotCpIdxs.has(c.index))
+    .map((c) => ({ t: c.xPos, v: c.values[metric.id] }))
+  return [...fromAnchors, ...fromNonAnchors]
     .filter((p): p is { t: number; v: number } => typeof p.v === "number")
-    .map((p) => ({ x: xs(p.t), y: ys(p.v) }))
+    .sort((a, b) => a.t - b.t)
 }

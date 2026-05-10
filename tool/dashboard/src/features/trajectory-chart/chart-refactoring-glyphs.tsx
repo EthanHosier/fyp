@@ -30,31 +30,27 @@ export function ChartRefactoringGlyphs({
 }) {
   const { xs, ys } = scales
 
-  // Index refactoring steps by checkpoint so the glyph can reflect every
-  // step landing on the same SHA (rare in practice but possible).
-  const stepsByCheckpoint = new Map<number, RefactoringStepVM[]>()
-  for (const s of vm.refactoringSteps) {
-    const arr = stepsByCheckpoint.get(s.checkpointIndex) ?? []
-    arr.push(s)
-    stepsByCheckpoint.set(s.checkpointIndex, arr)
-  }
-
+  // One glyph per refactoring step (at the step's own xPos). When
+  // multiple steps share a landing checkpoint they each take their own
+  // slot on the X axis, so we render one glyph per step rather than
+  // collapsing them into a single per-checkpoint marker.
   return (
     <g className="pointer-events-none">
-      {vm.checkpoints.map((c) => {
+      {vm.refactoringSteps.map((s) => {
+        const c = vm.checkpoints[s.checkpointIndex]
+        if (!c) return null
         const v = c.values[primary.id]
         if (typeof v !== "number") return null
 
-        const steps = stepsByCheckpoint.get(c.index) ?? []
-        const tone = signalTone(c, steps)
+        const tone = signalTone(c, [s])
         if (!tone) return null
 
-        const cx = xs(c.tMs)
+        const cx = xs(s.xPos)
         const cy = ys(v)
         const gy = cy - 17
 
         return (
-          <g key={c.index}>
+          <g key={s.index}>
             <line
               x1={cx}
               x2={cx}
@@ -68,7 +64,7 @@ export function ChartRefactoringGlyphs({
               x={cx}
               y={gy}
               tone={tone}
-              tooltip={signalTooltip(c, steps)}
+              tooltip={signalTooltip(c, [s])}
             />
           </g>
         )

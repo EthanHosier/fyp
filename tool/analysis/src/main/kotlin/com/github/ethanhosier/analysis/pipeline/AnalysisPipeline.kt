@@ -240,19 +240,56 @@ class AnalysisPipeline(
         val metricsDurationMs = System.currentTimeMillis() - metricsStart
         log("metrics: ${metrics.computed} computed, ${metrics.buildOk} build-ok, ${metrics.testsOk} tests-ok in ${metricsDurationMs}ms")
 
+        // Augment alt CheckpointMetrics with synthetic entries for kept
+        // reorder-ordering terminal SHAs. Terminals are AST-equivalent to
+        // windowToSha by construction (Slice 2b), so their metrics alias
+        // the user's windowToSha CheckpointMetrics — no rebuild. Pmd/Cpd
+        // tracking + DerivedMetricsRunner then have a CheckpointMetrics
+        // entry for every alt step SHA, terminals included.
+        val userMetricsBySha = metrics.checkpoints.associateBy { it.sha }
+        val altMetricsByShaMut = metrics.alternativeCheckpoints.associateBy { it.sha }.toMutableMap()
+        for (traj in reorderSynth.trajectories) {
+            for (ord in traj.orderings) {
+                if (!ord.terminalSuccess) continue
+                val terminalSha = ord.stepShas.lastOrNull() ?: continue
+                if (terminalSha in altMetricsByShaMut) continue
+                val terminalAlias = userMetricsBySha[traj.windowToSha] ?: continue
+                altMetricsByShaMut[terminalSha] = terminalAlias.copy(sha = terminalSha)
+            }
+        }
+        val augmentedAltCheckpoints = altMetricsByShaMut.values.toList()
+
+        // Per-step alt pairs feed Diffs / Pmd / Cpd tracking for every
+        // applied alt step. Single-step alts contribute one pair; reorder
+        // orderings contribute N pairs (chained: each step's `from` is
+        // the previous step's altSha, except step 0 which anchors at
+        // windowFromSha).
+        val singleAltPairs = alternative.synthesised.map { it.fromSha to it.altSha }
+        val reorderAltPairs = mutableListOf<Pair<String, String>>()
+        for (traj in reorderSynth.trajectories) {
+            for (ord in traj.orderings) {
+                if (!ord.terminalSuccess) continue
+                ord.stepShas.forEachIndexed { i, sha ->
+                    val from = if (i == 0) traj.windowFromSha else ord.stepShas[i - 1]
+                    reorderAltPairs += from to sha
+                }
+            }
+        }
+        val allAltPairs = singleAltPairs + reorderAltPairs
+
         val diffsStart = System.currentTimeMillis()
         log("diffs: starting")
-        val diffs = DiffsRunner(GitRunner(reconstruction.repoDir)).run(reconstruction, miner.steps, alternative)
+        val diffs = DiffsRunner(GitRunner(reconstruction.repoDir))
+            .run(reconstruction, miner.steps, allAltPairs)
         val diffsDurationMs = System.currentTimeMillis() - diffsStart
         log("diffs: ${diffs.checkpointPatches.size} checkpoint, ${diffs.refactoringPatches.size} refactoring, ${diffs.alternativePatches.size} alternative patch(es) in ${diffsDurationMs}ms")
 
         val pmdTrackingStart = System.currentTimeMillis()
         log("pmd-tracking: starting")
-        val altPairs = alternative.synthesised.map { it.fromSha to it.altSha }
         val pmdTracking = PmdTrackingRunner(GitRunner(reconstruction.repoDir)).run(
             orderedUserCheckpoints = metrics.checkpoints,
-            alternativePairs = altPairs,
-            alternativeCheckpoints = metrics.alternativeCheckpoints,
+            alternativePairs = allAltPairs,
+            alternativeCheckpoints = augmentedAltCheckpoints,
         )
         val pmdTrackingDurationMs = System.currentTimeMillis() - pmdTrackingStart
         log("pmd-tracking: ${pmdTracking.trackingBySha.size} user, ${pmdTracking.alternativeTrackingBySha.size} alt in ${pmdTrackingDurationMs}ms")
@@ -261,8 +298,8 @@ class AnalysisPipeline(
         log("cpd-tracking: starting")
         val cpdTracking = CpdTrackingRunner().run(
             orderedUserCheckpoints = metrics.checkpoints,
-            alternativePairs = altPairs,
-            alternativeCheckpoints = metrics.alternativeCheckpoints,
+            alternativePairs = allAltPairs,
+            alternativeCheckpoints = augmentedAltCheckpoints,
         )
         val cpdTrackingDurationMs = System.currentTimeMillis() - cpdTrackingStart
         log("cpd-tracking: ${cpdTracking.trackingBySha.size} user, ${cpdTracking.alternativeTrackingBySha.size} alt in ${cpdTrackingDurationMs}ms")
@@ -271,6 +308,7 @@ class AnalysisPipeline(
             trace = trace,
             reconstruction = reconstruction,
             metrics = metrics,
+            augmentedAltMetricsBySha = altMetricsByShaMut,
             miner = miner,
             alternative = alternative,
             diffs = diffs,
@@ -323,6 +361,11 @@ internal fun buildAnalysisReport(
     parallelism: Int,
     metricsDurationMs: Long,
     reorderTrajectories: List<com.github.ethanhosier.analysis.metrics.model.ReorderTrajectory> = emptyList(),
+    /** CheckpointMetrics keyed by altSha across single-step alts and
+     *  reorder per-step alts (terminals included via Slice 2b alias).
+     *  Defaults to `metrics.alternativeCheckpoints.associateBy { it.sha }`
+     *  for callers that don't synthesise terminal aliases (e.g. tests). */
+    augmentedAltMetricsBySha: Map<String, com.github.ethanhosier.analysis.metrics.model.CheckpointMetrics>? = null,
 ): AnalysisReport {
     // Preserve event order so each checkpoint's event list reads
     // chronologically — LinkedHashMap's insertion order is what we want.
@@ -365,29 +408,108 @@ internal fun buildAnalysisReport(
     }
 
     val stepsByIndex = miner.steps.associateBy { it.stepIndex }
-    val altMetricsBySha = metrics.alternativeCheckpoints.associateBy { it.sha }
-    val baseAlternatives = alternative.synthesised.mapNotNull { synth ->
-        val step = stepsByIndex[synth.stepIndex] ?: return@mapNotNull null
-        val spec = step.spec ?: return@mapNotNull null
-        val altMetrics = altMetricsBySha[synth.altSha] ?: return@mapNotNull null
-        AlternativeTrajectory(
-            stepIndex = synth.stepIndex,
-            fromSha = synth.fromSha,
-            userToSha = synth.userToSha,
-            branchRef = synth.branchRef,
-            spec = spec,
-            altCheckpoint = CheckpointReport(
-                sha = synth.altSha,
-                // Alt SHAs aren't landed on by user events.
-                events = emptyList(),
-                metrics = altMetrics,
-                diff = metrics.diffBySha[synth.altSha] ?: DiffStats.ZERO,
-                touchedMembers = emptyList(),
-                pmdTracking = pmdTracking.alternativeTrackingBySha[synth.altSha] ?: PmdTracking.EMPTY,
-                cpdTracking = cpdTracking.alternativeTrackingBySha[synth.altSha] ?: CpdTracking.EMPTY,
-            ),
+    val altMetricsBySha = augmentedAltMetricsBySha
+        ?: metrics.alternativeCheckpoints.associateBy { it.sha }
+
+    // Helper: build a CheckpointReport for one alt step SHA. Alt SHAs
+    // never carry user events / touched members; metrics + tracking come
+    // from the augmented alt-checkpoint map (which includes terminal
+    // aliases for reorder orderings).
+    fun altCheckpointFor(sha: String): CheckpointReport? {
+        val m = altMetricsBySha[sha] ?: return null
+        return CheckpointReport(
+            sha = sha,
+            events = emptyList(),
+            metrics = m,
+            diff = metrics.diffBySha[sha] ?: DiffStats.ZERO,
+            touchedMembers = emptyList(),
+            pmdTracking = pmdTracking.alternativeTrackingBySha[sha] ?: PmdTracking.EMPTY,
+            cpdTracking = cpdTracking.alternativeTrackingBySha[sha] ?: CpdTracking.EMPTY,
         )
     }
+
+    // Single-step alts wrap each scalar field in a 1-element list.
+    val singleStepAlts = alternative.synthesised.mapNotNull { synth ->
+        val step = stepsByIndex[synth.stepIndex] ?: return@mapNotNull null
+        val spec = step.spec ?: return@mapNotNull null
+        val altCp = altCheckpointFor(synth.altSha) ?: return@mapNotNull null
+        AlternativeTrajectory(
+            stepIndexes = listOf(synth.stepIndex),
+            fromSha = synth.fromSha,
+            userToSha = synth.userToSha,
+            branchRefs = listOf(synth.branchRef),
+            specs = listOf(spec),
+            altCheckpoints = listOf(altCp),
+        )
+    }
+
+    // Multi-step alts from kept reorder orderings. Each ordering becomes
+    // one AlternativeTrajectory entry covering N applied steps in the
+    // permutation order. Terminal step's CheckpointReport is built off
+    // the aliased CheckpointMetrics (Slice 2b) so its `metrics` field
+    // matches the user's windowToSha checkpoint for build/test/PMD —
+    // PMD/CPD tracking entries for the terminal sha were also computed
+    // upstream (inter-bracket pair `(prev_step, terminal_sha)` is in
+    // `allAltPairs`). Failed orderings emit no entry per Slice 2b scope.
+    val reorderAlts = reorderTrajectories.flatMap { traj ->
+        traj.orderings.mapNotNull { ord ->
+            if (!ord.terminalSuccess) return@mapNotNull null
+            if (ord.stepShas.size != ord.permutation.size) return@mapNotNull null
+            val orderedStepIndexes = ord.permutation.map { i -> traj.windowStepIndexes[i] }
+            val orderedSpecs = ord.permutation.mapNotNull { i ->
+                stepsByIndex[traj.windowStepIndexes[i]]?.spec
+            }
+            if (orderedSpecs.size != ord.permutation.size) return@mapNotNull null
+            val altCps = ord.stepShas.mapNotNull { altCheckpointFor(it) }
+            if (altCps.size != ord.stepShas.size) return@mapNotNull null
+
+            // Trim leading shared prefix: any contiguous run from the
+            // start where the alt's permutation matches the user's
+            // chronological order (window-local indices 0,1,2,...).
+            // Those steps produced state identical to the user's, so
+            // counting them as alt-side divergence inflates the alt's
+            // process-score penalties and clutters the chart with
+            // overlapping dots. Anchor the alt at the user's checkpoint
+            // *after* the shared prefix and drop the prefix entries.
+            //
+            // TODO(efficiency): the trimmed step SHAs are still listed
+            // in `reorderIntermediateShas` (collected in `run()`), so
+            // MetricsRunner builds + tests them and Pmd/Cpd tracking
+            // computes entries for them. None of that work surfaces in
+            // the report. A follow-up should also trim the
+            // `reorderIntermediateShas` collection in `run()` to skip
+            // those builds. Visually + score-wise, trimming here alone
+            // is correct.
+            var sharedPrefixLen = 0
+            while (sharedPrefixLen < ord.permutation.size &&
+                ord.permutation[sharedPrefixLen] == sharedPrefixLen
+            ) {
+                sharedPrefixLen++
+            }
+            // Defensive: an entirely-shared ordering would mean the alt
+            // == the user's order, which the synthesiser excludes —
+            // drop if it ever leaks through.
+            if (sharedPrefixLen >= ord.permutation.size) return@mapNotNull null
+
+            val anchorSha = if (sharedPrefixLen == 0) {
+                traj.windowFromSha
+            } else {
+                val lastSharedIdx = traj.windowStepIndexes[sharedPrefixLen - 1]
+                stepsByIndex[lastSharedIdx]?.toSha ?: traj.windowFromSha
+            }
+
+            AlternativeTrajectory(
+                stepIndexes = orderedStepIndexes.drop(sharedPrefixLen),
+                fromSha = anchorSha,
+                userToSha = traj.windowToSha,
+                branchRefs = ord.branchRefs.drop(sharedPrefixLen),
+                specs = orderedSpecs.drop(sharedPrefixLen),
+                altCheckpoints = altCps.drop(sharedPrefixLen),
+            )
+        }
+    }
+
+    val baseAlternatives = singleStepAlts + reorderAlts
 
     val derived = DerivedMetricsRunner().run(
         mainCheckpoints = baseCheckpoints,
@@ -398,24 +520,11 @@ internal fun buildAnalysisReport(
         cp.copy(derivedMetrics = derived.main[cp.sha] ?: DerivedMetrics.EMPTY)
     }
     val alternativeTrajectories = baseAlternatives.map { alt ->
-        alt.copy(altCheckpoint = alt.altCheckpoint.copy(
-            derivedMetrics = derived.alt[alt.altCheckpoint.sha] ?: DerivedMetrics.EMPTY,
-        ))
-    }
-
-    val userMetricsBySha = metrics.checkpoints.associateBy { it.sha }
-    val reorderTrajectoriesScored = reorderTrajectories.map { traj ->
-        val terminalAlias = userMetricsBySha[traj.windowToSha]
-        val orderings = traj.orderings.map { ord ->
-            if (!ord.terminalSuccess || terminalAlias == null) return@map ord
-            val intermediates = ord.stepShas.dropLast(1)
-            val perStep = intermediates.map { sha ->
-                altMetricsBySha[sha]
-                    ?: error("reorder intermediate $sha missing from alt checkpoints")
-            } + terminalAlias
-            ord.copy(metrics = perStep)
-        }
-        traj.copy(orderings = orderings)
+        alt.copy(
+            altCheckpoints = alt.altCheckpoints.map { cp ->
+                cp.copy(derivedMetrics = derived.alt[cp.sha] ?: DerivedMetrics.EMPTY)
+            },
+        )
     }
 
     return AnalysisReport(
@@ -432,6 +541,6 @@ internal fun buildAnalysisReport(
         refactoringPatches = diffs.refactoringPatches,
         alternativeTrajectories = alternativeTrajectories,
         alternativePatches = diffs.alternativePatches,
-        reorderTrajectories = reorderTrajectoriesScored,
+        reorderTrajectories = reorderTrajectories,
     )
 }
