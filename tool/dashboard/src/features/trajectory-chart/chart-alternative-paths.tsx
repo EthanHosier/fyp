@@ -46,7 +46,11 @@ export function ChartAlternativePaths({
   onSelect: (s: Selection) => void
 }) {
   const { xs, ys } = scales
-  const [hovered, setHovered] = useState<number | null>(null)
+  // Per-element hover so a single edge / dot lights up rather than the
+  // whole alt path going active together. `kind` distinguishes edge vs
+  // dot; `idx` is the segment / step index inside the alt.
+  type HoverTarget = { altIndex: number; kind: "edge" | "dot"; idx: number }
+  const [hovered, setHovered] = useState<HoverTarget | null>(null)
 
   // Look up each user step's slot xPos by stepIndex so alt step k can
   // align under the user's k-th step in the window (chronological
@@ -89,10 +93,11 @@ export function ChartAlternativePaths({
         }
         if (altPoints.length === 0) return null
 
-        const isSelected =
+        // Whole-alt active state is only used for the explicit
+        // `alternative` selection (not driven by per-element hover any
+        // more). Per-element hover effects are scoped below.
+        const isAltSelected =
           selection?.kind === "alternative" && selection.index === alt.index
-        const isHovered = hovered === alt.index
-        const isActive = isSelected || isHovered
 
         const xFrom = xs(fromCp.xPos)
         const xTo = xs(toCp.xPos)
@@ -126,66 +131,112 @@ export function ChartAlternativePaths({
         const labelAnchor = lastAlt
 
         return (
-          <g
-            key={alt.index}
-            className={cn("text-brand")}
-            onMouseEnter={() => setHovered(alt.index)}
-            onMouseLeave={() => setHovered((h) => (h === alt.index ? null : h))}
-          >
-            {/* Per-segment fat-stroke hit targets. Each segment k
-                dispatches `altInterval` for segIdx = k. */}
-            {polyAll.slice(0, -1).map((from, k) => {
-              const to = polyAll[k + 1]
-              const fromInset = insetToward(from.x, from.y, to.x, to.y, ENDPOINT_HIT_INSET_PX)
-              const toInset = insetToward(to.x, to.y, from.x, from.y, ENDPOINT_HIT_INSET_PX)
-              const segPath = `M${fromInset.x.toFixed(1)},${fromInset.y.toFixed(1)} L${toInset.x.toFixed(1)},${toInset.y.toFixed(1)}`
-              return (
-                <path
-                  key={`seg-${k}`}
-                  d={segPath}
-                  fill="none"
-                  stroke="transparent"
-                  strokeWidth={14}
-                  strokeLinecap="butt"
-                  pointerEvents="stroke"
-                  className="cursor-pointer"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    onSelect({ kind: "altInterval", altIndex: alt.index, segmentIndex: k })
-                  }}
-                />
-              )
-            })}
-
-            <StubCircle x={xFrom} y={ys(yFrom)} selected={isActive} />
-            <StubCircle x={xTo} y={ys(yTo)} selected={isActive} />
-
+          <g key={alt.index} className={cn("text-brand")}>
+            {/* Base dashed alt polyline — pointer events disabled so
+                the per-segment hit targets below own click + hover. */}
+            <StubCircle x={xFrom} y={ys(yFrom)} selected={isAltSelected} />
+            <StubCircle x={xTo} y={ys(yTo)} selected={isAltSelected} />
             <path
               d={path}
               fill="none"
               stroke="currentColor"
-              strokeWidth={isActive ? 2 : 1.4}
-              strokeOpacity={isActive ? 0.95 : 0.6}
+              strokeWidth={isAltSelected ? 2 : 1.4}
+              strokeOpacity={isAltSelected ? 0.95 : 0.6}
               strokeDasharray="4 3"
               strokeLinecap="round"
               pointerEvents="none"
             />
 
+            {/* Per-segment hit targets + visible hover/selected
+                highlight. Each segment k dispatches `altInterval` for
+                segIdx = k. Hovering a segment thickens just that
+                segment's stroke instead of brightening the whole
+                path. */}
+            {polyAll.slice(0, -1).map((from, k) => {
+              const to = polyAll[k + 1]
+              const fromInset = insetToward(from.x, from.y, to.x, to.y, ENDPOINT_HIT_INSET_PX)
+              const toInset = insetToward(to.x, to.y, from.x, from.y, ENDPOINT_HIT_INSET_PX)
+              const segPath = `M${fromInset.x.toFixed(1)},${fromInset.y.toFixed(1)} L${toInset.x.toFixed(1)},${toInset.y.toFixed(1)}`
+              const segSelected =
+                selection?.kind === "altInterval" &&
+                selection.altIndex === alt.index &&
+                selection.segmentIndex === k
+              const segHovered =
+                hovered?.altIndex === alt.index &&
+                hovered.kind === "edge" &&
+                hovered.idx === k
+              const segActive = segSelected || segHovered
+              return (
+                <g key={`seg-${k}`}>
+                  {/* Visible accent rendered only on hover/selected so
+                      neighbouring segments stay at base opacity. */}
+                  {segActive ? (
+                    <path
+                      d={segPath}
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth={2.2}
+                      strokeOpacity={0.95}
+                      strokeDasharray="4 3"
+                      strokeLinecap="round"
+                      pointerEvents="none"
+                    />
+                  ) : null}
+                  <path
+                    d={segPath}
+                    fill="none"
+                    stroke="transparent"
+                    strokeWidth={14}
+                    strokeLinecap="butt"
+                    pointerEvents="stroke"
+                    className="cursor-pointer"
+                    onMouseEnter={() => setHovered({ altIndex: alt.index, kind: "edge", idx: k })}
+                    onMouseLeave={() =>
+                      setHovered((h) =>
+                        h && h.altIndex === alt.index && h.kind === "edge" && h.idx === k ? null : h,
+                      )
+                    }
+                    // Stop mousemove from reaching the capture rect
+                    // beneath — otherwise it computes a user-trajectory
+                    // hover (nearest checkpoint / interval) and the
+                    // overlay paints a second crosshair on top of the
+                    // alt segment we're already highlighting.
+                    onMouseMove={(e) => e.stopPropagation()}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onSelect({ kind: "altInterval", altIndex: alt.index, segmentIndex: k })
+                    }}
+                  />
+                </g>
+              )
+            })}
+
             {/* Per-step dots — each clickable to open an
-                `altCheckpoint` selection (the synthesised CheckpointVM
-                snapshot for this alt step). Fat invisible halo gives a
-                forgiving hit target without making the visible dot
-                bigger. */}
+                `altCheckpoint` selection. Hover expands just that dot
+                + adds a soft outer ring (matching the user-checkpoint
+                hover treatment). Fat invisible halo gives a forgiving
+                hit target without making the visible dot bigger. */}
             {altPoints.map((p, i) => {
               const stepSelected =
                 selection?.kind === "altCheckpoint" &&
                 selection.altIndex === alt.index &&
                 selection.stepIndex === i
-              const dotActive = isActive || stepSelected
+              const stepHovered =
+                hovered?.altIndex === alt.index &&
+                hovered.kind === "dot" &&
+                hovered.idx === i
+              const dotActive = stepSelected || stepHovered
               return (
                 <g
                   key={i}
                   className="cursor-pointer"
+                  onMouseEnter={() => setHovered({ altIndex: alt.index, kind: "dot", idx: i })}
+                  onMouseLeave={() =>
+                    setHovered((h) =>
+                      h && h.altIndex === alt.index && h.kind === "dot" && h.idx === i ? null : h,
+                    )
+                  }
+                  onMouseMove={(e) => e.stopPropagation()}
                   onClick={(e) => {
                     e.stopPropagation()
                     onSelect({ kind: "altCheckpoint", altIndex: alt.index, stepIndex: i })
@@ -195,17 +246,17 @@ export function ChartAlternativePaths({
                   <circle
                     cx={p.x}
                     cy={p.y}
-                    r={dotActive ? 3 : 2.2}
+                    r={dotActive ? 3.4 : 2.2}
                     fill="var(--color-bg-1)"
                     stroke="currentColor"
                     strokeOpacity={dotActive ? 0.95 : 0.7}
                     strokeWidth={1}
                   />
-                  {stepSelected ? (
+                  {dotActive ? (
                     <circle
                       cx={p.x}
                       cy={p.y}
-                      r={5}
+                      r={6}
                       fill="none"
                       stroke="currentColor"
                       strokeOpacity={0.55}
@@ -220,7 +271,7 @@ export function ChartAlternativePaths({
               x={labelAnchor.x}
               y={labelAnchor.y + offsetSign * 15}
               text={`Alternative: IDE ${alt.label}`}
-              active={isActive}
+              active={isAltSelected}
             />
           </g>
         )

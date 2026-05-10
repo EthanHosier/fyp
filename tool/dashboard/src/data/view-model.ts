@@ -547,6 +547,7 @@ export function toViewModel(report: AnalysisReport): DashboardViewModel {
   const checkpointBySha = new Map<string, number>()
   report.checkpoints.forEach((c, i) => checkpointBySha.set(c.sha, i))
 
+  let altCounter = 0
   const alternativeTrajectories: AlternativeTrajectoryVM[] = (
     report.alternativeTrajectories ?? []
   ).flatMap((alt: AlternativeTrajectory) => {
@@ -566,11 +567,11 @@ export function toViewModel(report: AnalysisReport): DashboardViewModel {
     const altTests = testsTone(terminal.metrics.tests.success, terminal.metrics.tests.wasSkipped)
     const terminalSpec = alt.specs[alt.specs.length - 1]
     const terminalBranchRef = alt.branchRefs[alt.branchRefs.length - 1] ?? ""
-    // Index used as React key + cross-component join. First applied
-    // stepIndex is unique enough for single-step alts; multi-step
-    // reorder alts cover several stepIndexes but their first one is
-    // window-unique.
-    const idx = alt.stepIndexes[0] ?? 0
+    // Synthetic per-VM unique key. Must be unique across the whole VM
+    // because the chart's hover/select machinery joins by `index` —
+    // reorder alts that share the same first stepIndex would otherwise
+    // collide and hover-highlight together.
+    const idx = altCounter++
 
     return [
       {
