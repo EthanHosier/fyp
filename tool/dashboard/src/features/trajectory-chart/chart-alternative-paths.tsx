@@ -48,6 +48,16 @@ export function ChartAlternativePaths({
   const { xs, ys } = scales
   const [hovered, setHovered] = useState<number | null>(null)
 
+  // Look up each user step's slot xPos by stepIndex so alt step k can
+  // align under the user's k-th step in the window (chronological
+  // order). For reorder alts whose permutation differs from the user's
+  // order, this still lays the alt's progression out left-to-right
+  // under the user's step slots — easier to read than backtracking
+  // along the alt's actual application order.
+  // RefactoringStepVM.index mirrors the server's stepIndex (chronological).
+  const xPosByStepIndex = new Map<number, number>()
+  for (const s of vm.refactoringSteps) xPosByStepIndex.set(s.index, s.xPos)
+
   return (
     <g>
       {vm.alternativeTrajectories.map((alt) => {
@@ -57,14 +67,27 @@ export function ChartAlternativePaths({
 
         const yFrom = fromCp.values[primary.id]
         const yTo = toCp.values[primary.id]
-        const yAlt = alt.altValues[primary.id]
-        if (
-          typeof yFrom !== "number" ||
-          typeof yTo !== "number" ||
-          typeof yAlt !== "number"
-        ) {
-          return null
+        if (typeof yFrom !== "number" || typeof yTo !== "number") return null
+
+        // Align alt's k-th applied step under the user's k-th window
+        // step (chronological — sorted by stepIndex ascending). Y
+        // values come from the alt's altCheckpoints in alt-applied
+        // order, so the polyline reads as the alt's progression while
+        // the X axis stays anchored to the user's slots.
+        const userOrderXPositions = alt.steps
+          .map((s) => xPosByStepIndex.get(s.stepIndex))
+          .filter((x): x is number => typeof x === "number")
+          .slice()
+          .sort((a, b) => a - b)
+        const altPoints: { x: number; y: number; vm: typeof alt.steps[number] }[] = []
+        for (let k = 0; k < alt.steps.length; k++) {
+          const slotX = userOrderXPositions[k]
+          const stepVm = alt.steps[k]
+          const yVal = stepVm.altValues[primary.id]
+          if (slotX === undefined || typeof yVal !== "number") continue
+          altPoints.push({ x: xs(slotX), y: ys(yVal), vm: stepVm })
         }
+        if (altPoints.length === 0) return null
 
         const isSelected =
           selection?.kind === "alternative" && selection.index === alt.index
@@ -73,34 +96,39 @@ export function ChartAlternativePaths({
 
         const xFrom = xs(fromCp.xPos)
         const xTo = xs(toCp.xPos)
-        const xMid = (xFrom + xTo) / 2
-        // Mid-point sits at the alt's true measured value. Sign is kept
-        // for the label chip's offset only — pushes the chip toward the
-        // "better" side so it doesn't overlap the user's line.
+        // Label chip nudge — toward the "better" side of the metric so
+        // it doesn't overlap the user's line. Doesn't change any plot
+        // coordinates.
         const offsetSign = primary.better === "higher" ? -1 : 1
-        const yMidPx = ys(yAlt)
 
-        const points = [
+        const polyPoints = [
           { x: xFrom, y: ys(yFrom) },
-          { x: xMid, y: yMidPx },
+          ...altPoints.map((p) => ({ x: p.x, y: p.y })),
           { x: xTo, y: ys(yTo) },
         ]
-        const path = points
+        const path = polyPoints
           .map((p, i) => `${i === 0 ? "M" : "L"}${p.x.toFixed(1)},${p.y.toFixed(1)}`)
           .join(" ")
 
-        // Hit-target path: same shape, but each endpoint pulled 10px
-        // toward the mid-point so the fat clickable stroke doesn't
-        // overlap the user's checkpoint dot. Without this, the alt
-        // group's onClick swallows endpoint clicks that should select
-        // the checkpoint underneath.
-        const fromInset = insetToward(xFrom, ys(yFrom), xMid, yMidPx, ENDPOINT_HIT_INSET_PX)
-        const toInset = insetToward(xTo, ys(yTo), xMid, yMidPx, ENDPOINT_HIT_INSET_PX)
-        const hitPath = [
-          `M${fromInset.x.toFixed(1)},${fromInset.y.toFixed(1)}`,
-          `L${xMid.toFixed(1)},${yMidPx.toFixed(1)}`,
-          `L${toInset.x.toFixed(1)},${toInset.y.toFixed(1)}`,
-        ].join(" ")
+        // Hit-target path: same polyline shape, with the two endpoints
+        // pulled inward so the fat clickable stroke doesn't overlap
+        // the user's checkpoint dots underneath.
+        const firstAlt = altPoints[0]
+        const lastAlt = altPoints[altPoints.length - 1]
+        const fromInset = insetToward(xFrom, ys(yFrom), firstAlt.x, firstAlt.y, ENDPOINT_HIT_INSET_PX)
+        const toInset = insetToward(xTo, ys(yTo), lastAlt.x, lastAlt.y, ENDPOINT_HIT_INSET_PX)
+        const hitPoints = [
+          fromInset,
+          ...altPoints.map((p) => ({ x: p.x, y: p.y })),
+          toInset,
+        ]
+        const hitPath = hitPoints
+          .map((p, i) => `${i === 0 ? "M" : "L"}${p.x.toFixed(1)},${p.y.toFixed(1)}`)
+          .join(" ")
+
+        // Label sits above (or below) the alt's terminal mid-point —
+        // last applied step is the one the chip's text refers to.
+        const labelAnchor = lastAlt
 
         return (
           <g
@@ -138,19 +166,22 @@ export function ChartAlternativePaths({
               pointerEvents="none"
             />
 
-            <circle
-              cx={xMid}
-              cy={yMidPx}
-              r={isActive ? 3 : 2.2}
-              fill="var(--color-bg-1)"
-              stroke="currentColor"
-              strokeOpacity={isActive ? 0.95 : 0.7}
-              strokeWidth={1}
-            />
+            {altPoints.map((p, i) => (
+              <circle
+                key={i}
+                cx={p.x}
+                cy={p.y}
+                r={isActive ? 3 : 2.2}
+                fill="var(--color-bg-1)"
+                stroke="currentColor"
+                strokeOpacity={isActive ? 0.95 : 0.7}
+                strokeWidth={1}
+              />
+            ))}
 
             <LabelChip
-              x={xMid}
-              y={yMidPx + offsetSign * 15}
+              x={labelAnchor.x}
+              y={labelAnchor.y + offsetSign * 15}
               text={`Alternative: IDE ${alt.label}`}
               active={isActive}
             />
