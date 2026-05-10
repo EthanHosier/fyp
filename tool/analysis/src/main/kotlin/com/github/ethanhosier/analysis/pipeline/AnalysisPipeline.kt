@@ -462,13 +462,49 @@ internal fun buildAnalysisReport(
             if (orderedSpecs.size != ord.permutation.size) return@mapNotNull null
             val altCps = ord.stepShas.mapNotNull { altCheckpointFor(it) }
             if (altCps.size != ord.stepShas.size) return@mapNotNull null
+
+            // Trim leading shared prefix: any contiguous run from the
+            // start where the alt's permutation matches the user's
+            // chronological order (window-local indices 0,1,2,...).
+            // Those steps produced state identical to the user's, so
+            // counting them as alt-side divergence inflates the alt's
+            // process-score penalties and clutters the chart with
+            // overlapping dots. Anchor the alt at the user's checkpoint
+            // *after* the shared prefix and drop the prefix entries.
+            //
+            // TODO(efficiency): the trimmed step SHAs are still listed
+            // in `reorderIntermediateShas` (collected in `run()`), so
+            // MetricsRunner builds + tests them and Pmd/Cpd tracking
+            // computes entries for them. None of that work surfaces in
+            // the report. A follow-up should also trim the
+            // `reorderIntermediateShas` collection in `run()` to skip
+            // those builds. Visually + score-wise, trimming here alone
+            // is correct.
+            var sharedPrefixLen = 0
+            while (sharedPrefixLen < ord.permutation.size &&
+                ord.permutation[sharedPrefixLen] == sharedPrefixLen
+            ) {
+                sharedPrefixLen++
+            }
+            // Defensive: an entirely-shared ordering would mean the alt
+            // == the user's order, which the synthesiser excludes —
+            // drop if it ever leaks through.
+            if (sharedPrefixLen >= ord.permutation.size) return@mapNotNull null
+
+            val anchorSha = if (sharedPrefixLen == 0) {
+                traj.windowFromSha
+            } else {
+                val lastSharedIdx = traj.windowStepIndexes[sharedPrefixLen - 1]
+                stepsByIndex[lastSharedIdx]?.toSha ?: traj.windowFromSha
+            }
+
             AlternativeTrajectory(
-                stepIndexes = orderedStepIndexes,
-                fromSha = traj.windowFromSha,
+                stepIndexes = orderedStepIndexes.drop(sharedPrefixLen),
+                fromSha = anchorSha,
                 userToSha = traj.windowToSha,
-                branchRefs = ord.branchRefs,
-                specs = orderedSpecs,
-                altCheckpoints = altCps,
+                branchRefs = ord.branchRefs.drop(sharedPrefixLen),
+                specs = orderedSpecs.drop(sharedPrefixLen),
+                altCheckpoints = altCps.drop(sharedPrefixLen),
             )
         }
     }
