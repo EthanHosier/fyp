@@ -7,6 +7,9 @@ import com.github.ethanhosier.analysis.metrics.gradlebuild.BuildResult
 import com.github.ethanhosier.analysis.metrics.model.CheckpointMetrics
 import com.github.ethanhosier.analysis.metrics.model.ReorderOrdering
 import com.github.ethanhosier.analysis.metrics.model.ReorderTrajectory
+import com.github.ethanhosier.analysis.miner.model.DetectedRefactoring
+import com.github.ethanhosier.analysis.miner.model.RefactoringSpec
+import com.github.ethanhosier.analysis.miner.model.RefactoringStep
 import com.github.ethanhosier.analysis.metrics.pmd.PmdResult
 import com.github.ethanhosier.analysis.metrics.pmd.PmdTrackingRunner
 import com.github.ethanhosier.analysis.metrics.tests.TestResult
@@ -125,7 +128,7 @@ class AnalysisPipelineTest {
     }
 
     @Test
-    fun `successful reorder ordering aliases terminal step to windowToSha checkpoint`() {
+    fun `successful reorder ordering becomes a multi-step AlternativeTrajectory with aliased terminal`() {
         val trace = Trace(metadata = metadata("sess-r1"), events = emptyList())
         val reconstruction = ReconstructionResult(
             repoDir = Path.of("/tmp/fake"),
@@ -133,16 +136,24 @@ class AnalysisPipelineTest {
                 mapping = linkedMapOf("e1" to "from", "e2" to "to"),
             ),
         )
-        val fromCp = checkpoint("from")
-        val toCp = checkpoint("to")
-        val intermediateCp = checkpoint("ord-s0")
+        val fromMetrics = checkpoint("from")
+        val toMetrics = checkpoint("to")
+        val intermediateMetrics = checkpoint("ord-s0")
+        // Synthetic terminal alias — same content as `toMetrics` (slice 2b)
+        // but rebranded with the alt's terminal sha. In real pipelines this
+        // is built upstream; tests pass it via `augmentedAltMetricsBySha`.
+        val terminalAliasMetrics = toMetrics.copy(sha = "ord-s1-terminal")
         val metrics = MetricsRunner.Summary(
             totalShas = 2,
             computed = 3,
             buildOk = 3,
             testsOk = 3,
-            checkpoints = listOf(fromCp, toCp),
-            alternativeCheckpoints = listOf(intermediateCp),
+            checkpoints = listOf(fromMetrics, toMetrics),
+            alternativeCheckpoints = listOf(intermediateMetrics),
+        )
+        val augmentedAltMetricsBySha = mapOf(
+            "ord-s0" to intermediateMetrics,
+            "ord-s1-terminal" to terminalAliasMetrics,
         )
         val ord = ReorderOrdering(
             orderIndex = 0,
@@ -160,30 +171,42 @@ class AnalysisPipelineTest {
             windowSpecLabels = listOf("A", "B"),
             orderings = listOf(ord),
         )
+        // miner stub providing typed specs for both window step indexes.
+        val stepA = refactoringStep(stepIndex = 0)
+        val stepB = refactoringStep(stepIndex = 1)
+        val miner = RefactoringMinerRunner.Summary(checkpointsAnalysed = 2, steps = listOf(stepA, stepB))
 
         val report = buildAnalysisReport(
             trace = trace,
             reconstruction = reconstruction,
             metrics = metrics,
-            miner = emptyMinerSummary(),
+            miner = miner,
             alternative = emptyAlternativeSummary(),
             diffs = emptyDiffsSummary(),
             pmdTracking = emptyPmdTrackingSummary(),
             parallelism = 1,
             metricsDurationMs = 0,
             reorderTrajectories = listOf(traj),
+            augmentedAltMetricsBySha = augmentedAltMetricsBySha,
         )
 
-        val scoredOrd = report.reorderTrajectories.single().orderings.single()
-        assertEquals(2, scoredOrd.metrics.size)
-        // Intermediate step → alt checkpoint by SHA.
-        assertSame(intermediateCp, scoredOrd.metrics[0])
-        // Terminal step → user windowToSha checkpoint by reference (no rebuild).
-        assertSame(toCp, scoredOrd.metrics[1])
+        val alts = report.alternativeTrajectories
+        assertEquals(1, alts.size)
+        val alt = alts.single()
+        assertEquals(listOf(1, 0), alt.stepIndexes)         // permutation order
+        assertEquals("from", alt.fromSha)
+        assertEquals("to", alt.userToSha)
+        assertEquals(listOf("ord-s0", "ord-s1-terminal"), alt.altCheckpoints.map { it.sha })
+        // Terminal step's CheckpointMetrics aliases the user's windowToSha
+        // checkpoint metrics (Slice 2b). Same instance, just rebranded sha.
+        assertSame(terminalAliasMetrics, alt.altCheckpoints.last().metrics)
+        // ReorderOrdering itself no longer carries a `metrics` field
+        // (Slice 2c removed it); per-step data lives on AlternativeTrajectory.
+        assertEquals(1, report.reorderTrajectories.single().orderings.size)
     }
 
     @Test
-    fun `failed reorder ordering keeps empty metrics`() {
+    fun `failed reorder ordering emits no AlternativeTrajectory entry`() {
         val trace = Trace(metadata = metadata("sess-r2"), events = emptyList())
         val reconstruction = ReconstructionResult(
             repoDir = Path.of("/tmp/fake"),
@@ -220,7 +243,10 @@ class AnalysisPipelineTest {
             trace = trace,
             reconstruction = reconstruction,
             metrics = metrics,
-            miner = emptyMinerSummary(),
+            miner = RefactoringMinerRunner.Summary(
+                checkpointsAnalysed = 2,
+                steps = listOf(refactoringStep(0), refactoringStep(1)),
+            ),
             alternative = emptyAlternativeSummary(),
             diffs = emptyDiffsSummary(),
             pmdTracking = emptyPmdTrackingSummary(),
@@ -229,8 +255,10 @@ class AnalysisPipelineTest {
             reorderTrajectories = listOf(traj),
         )
 
-        val scoredOrd = report.reorderTrajectories.single().orderings.single()
-        assertTrue(scoredOrd.metrics.isEmpty())
+        // Failed orderings produce no AlternativeTrajectory entries — the
+        // reorder window data still appears for diagnostics.
+        assertTrue(report.alternativeTrajectories.isEmpty())
+        assertEquals(1, report.reorderTrajectories.single().orderings.size)
     }
 
     private fun emptyMinerSummary() = RefactoringMinerRunner.Summary(
@@ -270,6 +298,22 @@ class AnalysisPipelineTest {
         type = type,
         timestamp = timestamp,
         sessionId = "sess-1",
+    )
+
+    private fun refactoringStep(stepIndex: Int) = RefactoringStep(
+        stepIndex = stepIndex,
+        fromSha = "sha-from-$stepIndex",
+        toSha = "sha-to-$stepIndex",
+        toCheckpointIndex = stepIndex,
+        timestamp = 0L,
+        refactoring = DetectedRefactoring(
+            type = "Other",
+            description = "step #$stepIndex",
+            leftSideLocations = emptyList(),
+            rightSideLocations = emptyList(),
+            ideRelevant = false,
+        ),
+        spec = RefactoringSpec.Other,
     )
 
     private fun checkpoint(sha: String) = CheckpointMetrics(

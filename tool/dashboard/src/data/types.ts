@@ -291,6 +291,23 @@ export type AlternativeTrajectoryVM = {
   altChurn: number
   /** Unified-diff patch for `fromSha → altSha`. */
   patch: string
+  /** Per-applied-step view of the alt chain. Single-step alts have one
+   *  entry; multi-step reorder orderings have N. The terminal step
+   *  matches the scalar fields above (label/altSha/branchRef/...). */
+  steps: AlternativeStepVM[]
+}
+
+export type AlternativeStepVM = {
+  altSha: string
+  shortAltSha: string
+  stepIndex: number
+  label: string
+  branchRef: string
+  altValues: Partial<Record<MetricId, number>>
+  build: StatusTone
+  tests: StatusTone
+  altChurn: number
+  patch: string
 }
 
 export type DashboardViewModel = {

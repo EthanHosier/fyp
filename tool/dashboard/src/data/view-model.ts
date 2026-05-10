@@ -444,26 +444,50 @@ export function toViewModel(report: AnalysisReport): DashboardViewModel {
     // Drop alts that don't anchor onto user-trace checkpoints — without
     // both endpoints there's nowhere to draw the branch.
     if (fromIdx === undefined || toIdx === undefined) return []
+    if (alt.altCheckpoints.length === 0) return []
 
-    const altC = alt.altCheckpoint
-    const altBuild = buildTone(altC.metrics.build.success)
-    const altTests = testsTone(altC.metrics.tests.success, altC.metrics.tests.wasSkipped)
+    // Terminal step's checkpoint is the alt's end-state — use it for
+    // the chart's apex value and the detail panel's status / patch.
+    // Multi-step alt structure (per-step labels, intermediate values)
+    // is exposed via the `steps` array for richer rendering later.
+    const terminal = alt.altCheckpoints[alt.altCheckpoints.length - 1]
+    const altBuild = buildTone(terminal.metrics.build.success)
+    const altTests = testsTone(terminal.metrics.tests.success, terminal.metrics.tests.wasSkipped)
+    const terminalSpec = alt.specs[alt.specs.length - 1]
+    const terminalBranchRef = alt.branchRefs[alt.branchRefs.length - 1] ?? ""
+    // Index used as React key + cross-component join. First applied
+    // stepIndex is unique enough for single-step alts; multi-step
+    // reorder alts cover several stepIndexes but their first one is
+    // window-unique.
+    const idx = alt.stepIndexes[0] ?? 0
 
     return [
       {
-        index: alt.stepIndex,
+        index: idx,
         fromCheckpointIndex: fromIdx,
         toCheckpointIndex: toIdx,
-        label: specLabel(alt.spec),
-        altSha: altC.sha,
-        shortAltSha: shortSha(altC.sha),
-        branchRef: alt.branchRef,
-        altValues: checkpointValues(altC),
+        label: specLabel(terminalSpec),
+        altSha: terminal.sha,
+        shortAltSha: shortSha(terminal.sha),
+        branchRef: terminalBranchRef,
+        altValues: checkpointValues(terminal),
         build: altBuild,
         tests: altTests,
         status: combineStatus(altBuild, altTests),
-        altChurn: altC.diff?.totalChurn ?? 0,
-        patch: report.alternativePatches?.[alt.stepIndex] ?? "",
+        altChurn: terminal.diff?.totalChurn ?? 0,
+        patch: report.alternativePatches?.[terminal.sha] ?? "",
+        steps: alt.altCheckpoints.map((cp, i) => ({
+          altSha: cp.sha,
+          shortAltSha: shortSha(cp.sha),
+          stepIndex: alt.stepIndexes[i] ?? 0,
+          label: specLabel(alt.specs[i]),
+          branchRef: alt.branchRefs[i] ?? "",
+          altValues: checkpointValues(cp),
+          build: buildTone(cp.metrics.build.success),
+          tests: testsTone(cp.metrics.tests.success, cp.metrics.tests.wasSkipped),
+          altChurn: cp.diff?.totalChurn ?? 0,
+          patch: report.alternativePatches?.[cp.sha] ?? "",
+        })),
       },
     ]
   })
