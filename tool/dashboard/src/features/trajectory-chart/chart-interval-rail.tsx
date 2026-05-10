@@ -77,8 +77,8 @@ export function ChartIntervalRail({
       </text>
       {runs.map((run, runIndex) => {
         const unknown = run.status === "unknown"
-        const x0 = xs(vm.checkpoints[run.fromCheckpoint].tMs)
-        const x1 = xs(vm.checkpoints[run.toCheckpoint].tMs)
+        const x0 = xs(vm.checkpoints[run.fromCheckpoint].xPos)
+        const x1 = xs(vm.checkpoints[run.toCheckpoint].xPos)
         return (
           <rect
             key={run.firstIntervalIndex}

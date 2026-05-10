@@ -85,8 +85,8 @@ export function ChartAlternativePaths({
         const isHovered = hovered === alt.index
         const isActive = isSelected || isHovered
 
-        const xFrom = xs(fromCp.tMs)
-        const xTo = xs(toCp.tMs)
+        const xFrom = xs(fromCp.xPos)
+        const xTo = xs(toCp.xPos)
         const xMid = (xFrom + xTo) / 2
         // Lift (subtract) for higher-is-better, drop (add) for
         // lower-is-better — px Y axis is inverted vs metric value.

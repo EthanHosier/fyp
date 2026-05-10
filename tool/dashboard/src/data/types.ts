@@ -39,8 +39,13 @@ export type CheckpointVM = {
   tLabel: string
   /** absolute timestamp (ms) */
   timestamp: number
-  /** relative ms since session start — used as the chart X coordinate */
+  /** relative ms since session start (kept for tooltips / time labels) */
   tMs: number
+  /** Chart X coordinate. Detected refactoring checkpoints (and the
+   *  start + end terminator) sit at integer positions 0..K; sub-edits
+   *  in between are interpolated by their `tMs` within the surrounding
+   *  anchor pair. See `vm.xAnchors` for the anchor metadata. */
+  xPos: number
   sha: string
   shortSha: string
   /** short human description — first event type or short sha */
@@ -234,8 +239,10 @@ export type RefactoringStepVM = {
    *  metric values come from (the window's toSha). */
   checkpointIndex: number
   timestamp: number
-  /** relative ms since session start — X coordinate on the chart */
+  /** relative ms since session start (kept for time labels) */
   tMs: number
+  /** Chart X coordinate (matches `vm.checkpoints[checkpointIndex].xPos`). */
+  xPos: number
   tLabel: string
   /** RefactoringMiner display name, e.g. "Extract Method" */
   refactoringType: string
@@ -318,6 +325,21 @@ export type DashboardViewModel = {
   refactoringSteps: RefactoringStepVM[]
   alternativeTrajectories: AlternativeTrajectoryVM[]
   trajectory: TrajectoryVM | undefined
+  /** Tick anchors for the chart's X axis. The chart's X coordinate is
+   *  "checkpoint number" — start, every detected refactoring checkpoint,
+   *  and the session-end terminator each sit at integer positions
+   *  0..K. Sub-edits between two anchors are interpolated by their
+   *  relative time. */
+  xAnchors: XAnchorVM[]
+}
+
+export type XAnchorVM = {
+  /** Integer 0..K. */
+  xPos: number
+  /** Index into `checkpoints[]`. */
+  checkpointIndex: number
+  /** Tick label rendered on the X axis. "Start" / "End" / "R<n>". */
+  label: string
 }
 
 export type Selection =

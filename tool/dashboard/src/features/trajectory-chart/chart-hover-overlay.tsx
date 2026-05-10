@@ -161,34 +161,57 @@ function hoverAt(
   my: number,
 ): HoverKind | null {
   const { xs, ys } = scales
-  const tAtMouse = xs.invert(mx)
-  // Nearest checkpoint by time, not by index.
+  const xAtMouse = xs.invert(mx)
+
+  // Nearest refactoring step first — each step has its own xPos slot
+  // (so when multiple steps share a landing checkpoint, the second
+  // slot is independently clickable).
+  let nearestStep: RefactoringStepVM | null = null
+  let bestStepDx = Infinity
+  for (const s of vm.refactoringSteps) {
+    const d = Math.abs(s.xPos - xAtMouse)
+    if (d < bestStepDx) {
+      bestStepDx = d
+      nearestStep = s
+    }
+  }
+  if (nearestStep) {
+    const cp = vm.checkpoints[nearestStep.checkpointIndex]
+    const v = cp?.values[primary.id]
+    if (typeof v === "number") {
+      const dx = mx - xs(nearestStep.xPos)
+      const dy = my - ys(v)
+      if (Math.hypot(dx, dy) <= CHECKPOINT_HIT_PX) {
+        return { kind: "refactoring", index: nearestStep.index }
+      }
+    }
+  }
+
+  // Otherwise nearest checkpoint by chart x-position. Skip cps that are
+  // "shadowed" by a step at the same xPos — the step took the slot.
+  const stepXPositions = new Set(vm.refactoringSteps.map((s) => s.xPos))
   let nearest = 0
-  let bestDt = Infinity
+  let bestDx = Infinity
   for (const c of vm.checkpoints) {
-    const dt = Math.abs(c.tMs - tAtMouse)
-    if (dt < bestDt) {
-      bestDt = dt
+    if (stepXPositions.has(c.xPos)) continue
+    const d = Math.abs(c.xPos - xAtMouse)
+    if (d < bestDx) {
+      bestDx = d
       nearest = c.index
     }
   }
   const nearestCp = vm.checkpoints[nearest]
   const v = nearestCp?.values[primary.id]
   if (typeof v === "number") {
-    const dx = mx - xs(nearestCp.tMs)
+    const dx = mx - xs(nearestCp.xPos)
     const dy = my - ys(v)
     if (Math.hypot(dx, dy) <= CHECKPOINT_HIT_PX) {
-      // A checkpoint hit that coincides with a refactoring step is
-      // reported as the refactoring — the step is the primary dot,
-      // the checkpoint is the sub-point hidden beneath it.
-      const step = vm.refactoringSteps.find((s) => s.checkpointIndex === nearest)
-      if (step) return { kind: "refactoring", index: step.index }
       return { kind: "checkpoint", index: nearest }
     }
   }
-  // Enclosing interval: largest `from` whose tMs <= mouse time.
+  // Enclosing interval: largest `from` whose xPos <= mouse position.
   const iv = vm.intervals.findLast(
-    (x) => vm.checkpoints[x.from].tMs <= tAtMouse,
+    (x) => vm.checkpoints[x.from].xPos <= xAtMouse,
   )
   if (!iv) return { kind: "checkpoint", index: nearest }
   return { kind: "interval", index: iv.index }
@@ -212,7 +235,7 @@ function CheckpointCrosshair({
   const { xs, ys, innerW, innerH } = scales
   const v = checkpoint.values[primary.id]
   if (typeof v !== "number") return null
-  const tx = xs(checkpoint.tMs)
+  const tx = xs(checkpoint.xPos)
   const ty = ys(v)
   const { left, top } = tooltipPos(mouseX, mouseY, innerW, innerH)
 
@@ -264,8 +287,8 @@ function IntervalCrosshair({
   mouseY: number
 }) {
   const { xs, innerW, innerH } = scales
-  const x0 = xs(vm.checkpoints[interval.from].tMs)
-  const x1 = xs(vm.checkpoints[interval.to].tMs)
+  const x0 = xs(vm.checkpoints[interval.from].xPos)
+  const x1 = xs(vm.checkpoints[interval.to].xPos)
   const { left, top } = tooltipPos(mouseX, mouseY, innerW, innerH)
 
   return (
@@ -320,7 +343,7 @@ function RefactoringCrosshair({
   const cp = vm.checkpoints[step.checkpointIndex]
   const v = cp?.values[primary.id]
   if (typeof v !== "number") return null
-  const tx = xs(step.tMs)
+  const tx = xs(step.xPos)
   const ty = ys(v)
   const { left, top } = tooltipPos(mouseX, mouseY, innerW, innerH)
 
