@@ -9,20 +9,6 @@ import type { ChartScales } from "@/features/trajectory-chart/use-chart-scales"
 import { cn } from "@/lib/utils"
 
 /**
- * Visual offset (px, in chart Y) applied to the alt mid-point and to
- * the bend in the dashed line. Pure cosmetic: separates the alt
- * marker from the user's actual line at the same X so they don't sit
- * on top of each other.
- *
- * Sign is flipped based on the primary metric's "better" direction so
- * the marker always nudges toward the *better* side: a lift (negative
- * px) for higher-is-better metrics, a drop (positive px) for
- * lower-is-better. Does NOT change `alt.altValues` — the detail panel
- * still reports the real measurement.
- */
-const ALT_MID_OFFSET_PX = 32
-
-/**
  * Distance (px) the hit-target fat stroke is pulled inward from each
  * stub circle. Clicks within this end-zone fall through to the
  * underlying ChartPoints checkpoint dot, so picking the endpoint
@@ -88,10 +74,11 @@ export function ChartAlternativePaths({
         const xFrom = xs(fromCp.xPos)
         const xTo = xs(toCp.xPos)
         const xMid = (xFrom + xTo) / 2
-        // Lift (subtract) for higher-is-better, drop (add) for
-        // lower-is-better — px Y axis is inverted vs metric value.
+        // Mid-point sits at the alt's true measured value. Sign is kept
+        // for the label chip's offset only — pushes the chip toward the
+        // "better" side so it doesn't overlap the user's line.
         const offsetSign = primary.better === "higher" ? -1 : 1
-        const yMidPx = ys(yAlt) + offsetSign * ALT_MID_OFFSET_PX
+        const yMidPx = ys(yAlt)
 
         const points = [
           { x: xFrom, y: ys(yFrom) },
