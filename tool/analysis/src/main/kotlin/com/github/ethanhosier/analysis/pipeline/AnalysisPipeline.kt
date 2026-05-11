@@ -1,6 +1,7 @@
 
 package com.github.ethanhosier.analysis.pipeline
 
+import com.github.ethanhosier.analysis.advice.TrajectoryAdvisor
 import com.github.ethanhosier.analysis.alternative.AlternativeTrajectoryRunner
 import com.github.ethanhosier.analysis.alternative.synthesise.ReorderSynthesiser
 import com.github.ethanhosier.analysis.alternative.validate.RefactoringStepValidator
@@ -529,7 +530,7 @@ internal fun buildAnalysisReport(
         )
     }
 
-    return AnalysisReport(
+    val preAdviceReport = AnalysisReport(
         session = trace.metadata,
         run = RunInfo(
             parallelism = parallelism,
@@ -562,4 +563,5 @@ internal fun buildAnalysisReport(
             }
             .toList(),
     )
+    return preAdviceReport.copy(advice = TrajectoryAdvisor.advise(preAdviceReport))
 }

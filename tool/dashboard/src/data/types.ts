@@ -332,6 +332,10 @@ export type DashboardViewModel = {
   alternativeTrajectories: AlternativeTrajectoryVM[]
   /** Commits the user made on their working repo during the session. */
   commitMarkers: CommitMarkerVM[]
+  /** Trajectory-wide advice items produced by the backend's
+   *  TrajectoryAdvisor. Display-ready (title + body strings);
+   *  rendered in a panel below the chart. */
+  advice: AdviceItemVM[]
   trajectory: TrajectoryVM | undefined
   /** Tick anchors for the chart's X axis. The chart's X coordinate is
    *  "checkpoint number" — start, every detected refactoring checkpoint,
@@ -353,6 +357,16 @@ export type CommitMarkerVM = {
   timestamp: number
   /** Chart X coordinate, interpolated from checkpoint timestamps. */
   xPos: number
+}
+
+/** One trajectory-level observation surfaced to the user. Passthrough
+ *  of the backend's `AdviceItem` — frontend uses `kind` for icon and
+ *  `severity` for tone. */
+export type AdviceItemVM = {
+  kind: string
+  severity: 'INFO' | 'WARNING' | 'CRITICAL'
+  title: string
+  body: string
 }
 
 export type XAnchorVM = {
