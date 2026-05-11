@@ -125,7 +125,17 @@ class RefactoringMinerRunner(
                 val anchorWorktree = pool.borrow(tightestLSha)
                 try {
                     val anchors = SpecAnchorBuilder(anchorWorktree)
-                    for (d in detections) {
+                    // Resolve specs first, then reorder by host-method
+                    // dependencies — if any spec's host method is the
+                    // target of an InlineMethod in the same bracket, it
+                    // must apply before that inline. RM's enumeration
+                    // order is not applyable in general; the reorderer
+                    // converts it into a sequence the validator + reorder
+                    // synth + alt-traj runner can replay sequentially.
+                    val resolvedSpecs = detections.map { toSpec(it, anchors) }
+                    val permutation = BracketSpecReorderer.reorder(resolvedSpecs)
+                    for (idx in permutation) {
+                        val d = detections[idx]
                         steps.add(
                             RefactoringStep(
                                 stepIndex = steps.size,
@@ -135,7 +145,7 @@ class RefactoringMinerRunner(
                                 timestamp = timestamp,
                                 refactoring = toDetected(d),
                                 wasPerformedByIde = rSha in idePerformedShas,
-                                spec = toSpec(d, anchors),
+                                spec = resolvedSpecs[idx],
                             ),
                         )
                     }
@@ -335,25 +345,35 @@ class RefactoringMinerRunner(
         )
 
         is ExtractVariableRefactoring -> {
-            // leftSide() points at the original expression's location;
-            // its (line, col) range is what JDT's Extract Local
-            // Variable selects.
-            val left = r.leftSide().firstOrNull()
-            if (left == null) RefactoringSpec.Other
+            // `leftSide()` aggregates the whole containing method, every
+            // post-extract reference statement, and every block on the
+            // way — not the expression we need to feed to JDT's Extract
+            // Local Variable. The actual original sub-expression lives
+            // in `subExpressionMappings`: each LeafMapping is
+            // `original-expression → new-variable-initialiser`, so
+            // fragment1's codeRange is the pre-state expression range.
+            //
+            // CodeRange-from-fragment uses 1-based **exclusive** endColumn
+            // (the column one past the last char of the expression),
+            // unlike RM's `leftSide()` CodeRanges which are inclusive.
+            // `rangeAnchor` expects 1-based inclusive, so we subtract 1.
+            val expr = r.subExpressionMappings.firstOrNull()?.fragment1?.codeRange()
+            if (expr == null) RefactoringSpec.Other
             else {
+                val endColInclusive = (expr.endColumn - 1).coerceAtLeast(expr.startColumn)
                 val anchor = anchors.rangeAnchor(
-                    left.filePath, left.startLine, left.startColumn, left.endLine, left.endColumn,
+                    expr.filePath, expr.startLine, expr.startColumn, expr.endLine, endColInclusive,
                 )
                 if (anchor == null) RefactoringSpec.Other
                 else RefactoringSpec.ExtractVariable(
-                    relativeFilePath = left.filePath,
+                    relativeFilePath = expr.filePath,
                     declaringTypeFqn = anchor.declaringTypeFqn,
                     hostMethodName = anchor.hostMethodName,
                     hostMethodParamTypes = anchor.hostMethodParamTypes,
                     selectionSubtreeHash = anchor.selectionSubtreeHash,
                     selectionNodeCount = anchor.selectionNodeCount,
-                    originalLineHint = left.startLine,
-                    originalColumnHint = left.startColumn,
+                    originalLineHint = expr.startLine,
+                    originalColumnHint = expr.startColumn,
                     newName = r.variableDeclaration.variableName,
                 )
             }
