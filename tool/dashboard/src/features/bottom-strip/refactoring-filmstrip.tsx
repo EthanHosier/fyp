@@ -26,7 +26,7 @@ export function RefactoringFilmstrip({
       title={`Refactorings (${steps.length})`}
       className="flex h-full flex-col"
     >
-      <div className="flex gap-1.5 overflow-x-auto px-3 pb-1">
+      <div className="flex flex-1 items-start gap-1.5 overflow-x-auto px-3">
         {steps.length === 0 ? (
           <span className="text-fg-4 px-1 py-3 text-[11px] italic">
             No refactorings detected in this session.

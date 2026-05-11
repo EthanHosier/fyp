@@ -658,6 +658,13 @@ export function toViewModel(report: AnalysisReport): DashboardViewModel {
       xPos: interpolateXPosByTimestamp(c.timestamp, checkpoints),
     }))
 
+  const advice = (report.advice ?? []).map((a) => ({
+    kind: a.kind,
+    severity: a.severity,
+    title: a.title,
+    body: a.body,
+  }))
+
   return {
     session,
     metrics: METRICS,
@@ -666,6 +673,7 @@ export function toViewModel(report: AnalysisReport): DashboardViewModel {
     refactoringSteps,
     alternativeTrajectories,
     commitMarkers,
+    advice,
     trajectory,
     xAnchors,
   }
