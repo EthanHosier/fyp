@@ -67,6 +67,46 @@ data class AnalysisReport(
     // Pure overlay — does not influence metrics / checkpoints. Empty
     // when the session ran without any commits or in a non-git project.
     val userGitCommits: List<UserGitCommit> = emptyList(),
+    // Trajectory-wide observations produced by `TrajectoryAdvisor` —
+    // a fixed registry of pattern-match rules over this report. Each
+    // item is display-ready (title + body strings); the dashboard
+    // renders them in a panel below the chart. Empty when no rule
+    // fires (typical of very short or pristine sessions).
+    val advice: List<AdviceItem> = emptyList(),
+)
+
+/**
+ * Sealed set of advice rules that can fire over a session's trajectory.
+ * Each value identifies the *pattern* a rule matched — frontend uses
+ * the kind to choose icon / colour and to group related advice.
+ */
+@Serializable
+enum class AdviceKind {
+    BUILD_OFTEN_BROKEN,
+    TEST_REGRESSIONS,
+    LONG_STRETCH_WITHOUT_COMMIT,
+    REFACTORING_INTRODUCED_SMELLS,
+    SMELLS_ACCUMULATED_NET,
+    PROCESS_SCORE_DEGRADED,
+    REORDER_BEATS_USER,
+}
+
+@Serializable
+enum class AdviceSeverity { INFO, WARNING, CRITICAL }
+
+/**
+ * One observation surfaced to the user. `title` is a short headline
+ * suitable for a row header ("You broke the build often"); `body` is
+ * 1–3 sentences explaining what fired the rule and why it matters,
+ * with concrete numbers baked in. Both strings are produced backend-
+ * side so the frontend stays a passthrough.
+ */
+@Serializable
+data class AdviceItem(
+    val kind: AdviceKind,
+    val severity: AdviceSeverity,
+    val title: String,
+    val body: String,
 )
 
 /**

@@ -5,6 +5,7 @@ import { BottomStrip } from "@/features/bottom-strip/bottom-strip"
 import { DetailPanel } from "@/features/detail-panel/detail-panel"
 import { HeaderBar } from "@/features/header/header-bar"
 import { MetricRail } from "@/features/metric-rail/metric-rail"
+import { TrajectoryAdvicePanel } from "@/features/trajectory-advice/trajectory-advice-panel"
 import { TrajectoryChart } from "@/features/trajectory-chart/trajectory-chart"
 import { useReport } from "@/hooks/useReport"
 
@@ -32,8 +33,11 @@ export default function App() {
         <div className="relative flex min-h-0 flex-1">
           <MetricRail vm={vm} />
           <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
-            <section className="min-h-0 flex-1 overflow-auto pl-5 pt-[14px] pb-1">
-              <TrajectoryChart vm={vm} />
+            <section className="min-h-0 flex-1 overflow-auto pt-[14px] pb-1">
+              <div className="pl-5">
+                <TrajectoryChart vm={vm} />
+              </div>
+              <TrajectoryAdvicePanel vm={vm} />
             </section>
             <BottomStrip vm={vm} />
           </main>
