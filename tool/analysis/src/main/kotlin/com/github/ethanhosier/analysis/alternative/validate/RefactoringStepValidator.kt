@@ -201,7 +201,10 @@ class RefactoringStepValidator(
         val dumpDirName = if (group.size == 1) "step-${first.stepIndex}" else "bracket-${first.stepIndex}"
 
         // Apply every spec in stepIndex order. First failure
-        // short-circuits the whole bracket.
+        // short-circuits the whole bracket. The miner is responsible
+        // for ordering steps within a bracket so host-method
+        // dependencies (e.g. ExtractVariable inside a method that a
+        // sibling InlineMethod will delete) are already respected.
         for (s in group) {
             val outcome = applySpec(s.spec!!, worktree)
             if (outcome is SpecDispatcher.Result.Failed) {

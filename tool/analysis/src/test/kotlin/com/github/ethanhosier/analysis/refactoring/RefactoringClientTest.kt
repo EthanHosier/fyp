@@ -937,6 +937,160 @@ class RefactoringClientTest {
     }
 
     @Test
+    fun `extract variable on a bare parameter reference then inline the host method`(@TempDir worktree: Path) {
+        // Mirrors the user's real fixture: handleSilver's pre-state body
+        // begins `double t3 = t;` and RM detects an Extract Variable on
+        // the bare `t` (a single SimpleName) — fragment1 = the `t` on
+        // the RHS. This pins:
+        //  - JDT's Extract Local Variable can extract a bare parameter
+        //    reference (single SimpleName, not a compound expression).
+        //  - The column range matches a real expression node; an
+        //    off-by-one would land on `t;` and JDT would reject
+        //    "An expression must be selected".
+        //  - The downstream Inline Method then pulls the now-extracted
+        //    body into the caller, producing the user's actual end-state.
+        val src = worktree.resolve("src").also(Path::createDirectories)
+        val file = src.resolve("p/A.java")
+        file.parent.createDirectories()
+        file.writeText(
+            """
+            package p;
+
+            public class A {
+                public double price(double x) {
+                    return handleSilver(x);
+                }
+
+                private double handleSilver(double t) {
+                    double t3 = t;
+                    t = t3;
+                    return t;
+                }
+            }
+            """.trimIndent(),
+        )
+
+        // Extract the bare `t` on the RHS of `double t3 = t;` (line 9).
+        // After the package + class header + blank + method + opening
+        // brace, that's: 1 package, 2 blank, 3 class, 4 method, 5 return,
+        // 6 close, 7 blank, 8 method, 9 "double t3 = t;".
+        // Indent 8 → cols 1-8, `double` 9-14, ` ` 15, `t3` 16-17, ` ` 18,
+        // `=` 19, ` ` 20, `t` 21, `;` 22.
+        val extract = client.extractVariable(
+            extractVariableRequestAt(
+                projectRoot = worktree,
+                sourceFolders = listOf("src"),
+                classpathJars = emptyList(),
+                relativeFilePath = "src/p/A.java",
+                startLine = 9, startColumn = 21,
+                endLine = 9, endColumn = 21,
+                newName = "t4",
+            ),
+        )
+        assertIs<RefactoringOutcome.Success>(extract, "extract=$extract")
+
+        val inline = client.inlineMethod(
+            InlineMethodRequest(
+                projectRoot = worktree,
+                sourceFolders = listOf("src"),
+                classpathJars = emptyList(),
+                declaringTypeFqn = "p.A",
+                methodName = "handleSilver",
+            ),
+        )
+        assertIs<RefactoringOutcome.Success>(inline, "inline=$inline")
+
+        // JDT's Extract Local Variable is configured with
+        // `replaceAllOccurrences=true`, so every bare `t` in handleSilver
+        // becomes `t4`. The subsequent Inline Method substitutes the
+        // remaining parameter `t` with the call site's argument `x`,
+        // leaving the rewritten body inlined into priceOrder.
+        assertEquals(
+            """
+            package p;
+
+            public class A {
+                public double price(double x) {
+                    double t4 = x;
+                    double t3 = t4;
+                    t4 = x = t3;
+                    return t4;
+                }
+            }
+            """.trimIndent(),
+            Files.readString(file).trimEnd(),
+        )
+    }
+
+    @Test
+    fun `extract variable inside method then inline that method matches expected end-state`(@TempDir worktree: Path) {
+        // Locks in the desired post-apply file content for the
+        // BracketSpecReorderer scenario: RM reports
+        // [InlineMethod handle, ExtractVariable host=handle] in some
+        // order; the miner reorders so Extract Variable applies first
+        // (against handle, while it still exists), then Inline Method
+        // pulls the now-extracted body into the caller. This test
+        // exercises the reordered sequence end-to-end via the client.
+        val src = worktree.resolve("src").also(Path::createDirectories)
+        val file = src.resolve("p/A.java")
+        file.parent.createDirectories()
+        file.writeText(
+            """
+            package p;
+
+            public class A {
+                public double price(double x) {
+                    return handle(x);
+                }
+
+                private double handle(double t) {
+                    return t * 0.85;
+                }
+            }
+            """.trimIndent(),
+        )
+
+        val extract = client.extractVariable(
+            extractVariableRequestAt(
+                projectRoot = worktree,
+                sourceFolders = listOf("src"),
+                classpathJars = emptyList(),
+                relativeFilePath = "src/p/A.java",
+                // The expression `t * 0.85` on line 9 (cols 16..23).
+                startLine = 9, startColumn = 16,
+                endLine = 9, endColumn = 23,
+                newName = "rate",
+            ),
+        )
+        assertIs<RefactoringOutcome.Success>(extract, "extract=$extract")
+
+        val inline = client.inlineMethod(
+            InlineMethodRequest(
+                projectRoot = worktree,
+                sourceFolders = listOf("src"),
+                classpathJars = emptyList(),
+                declaringTypeFqn = "p.A",
+                methodName = "handle",
+            ),
+        )
+        assertIs<RefactoringOutcome.Success>(inline, "inline=$inline")
+
+        assertEquals(
+            """
+            package p;
+
+            public class A {
+                public double price(double x) {
+                    double rate = x * 0.85;
+                    return rate;
+                }
+            }
+            """.trimIndent(),
+            Files.readString(file).trimEnd(),
+        )
+    }
+
+    @Test
     fun `pull up moves method and field from subclass to superclass`(@TempDir worktree: Path) {
         val src = worktree.resolve("src").also(Path::createDirectories)
         val parent = src.resolve("com/example/Animal.java")
