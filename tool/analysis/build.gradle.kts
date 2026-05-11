@@ -106,7 +106,15 @@ dependencies {
 }
 
 tasks.test {
-    useJUnitPlatform()
+    // Slow tests (real Equinox-bundle boot, real worktree validation —
+    // see @Tag("slow") on `RefactoringClientTest`,
+    // `RefactoringClientBatchSessionTest`, `RefactoringStepValidatorTest`)
+    // are excluded by default. Re-enable with `-PrunSlow` to run the
+    // whole suite.
+    val runSlow = providers.gradleProperty("runSlow").isPresent
+    useJUnitPlatform {
+        if (!runSlow) excludeTags("slow")
+    }
     val bundleFiles: FileCollection = refactoringBundle
     inputs.files(bundleFiles)
     jvmArgumentProviders.add(

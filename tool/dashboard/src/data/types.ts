@@ -330,6 +330,8 @@ export type DashboardViewModel = {
   intervals: IntervalVM[]
   refactoringSteps: RefactoringStepVM[]
   alternativeTrajectories: AlternativeTrajectoryVM[]
+  /** Commits the user made on their working repo during the session. */
+  commitMarkers: CommitMarkerVM[]
   trajectory: TrajectoryVM | undefined
   /** Tick anchors for the chart's X axis. The chart's X coordinate is
    *  "checkpoint number" — start, every detected refactoring checkpoint,
@@ -337,6 +339,20 @@ export type DashboardViewModel = {
    *  0..K. Sub-edits between two anchors are interpolated by their
    *  relative time. */
   xAnchors: XAnchorVM[]
+}
+
+/** A commit landed on the user's working repo during the session. Plotted
+ *  as a vertical tick on the trajectory chart's x-axis at the time-
+ *  interpolated `xPos`; hovering reveals the short SHA and first line of
+ *  the commit message. Pure overlay — no selection / detail panel. */
+export type CommitMarkerVM = {
+  sha: string
+  shortSha: string
+  message: string
+  /** Author/committer time (ms since epoch) from the reflog line. */
+  timestamp: number
+  /** Chart X coordinate, interpolated from checkpoint timestamps. */
+  xPos: number
 }
 
 export type XAnchorVM = {
@@ -372,4 +388,5 @@ export type Layers = {
   buildIntervals: boolean
   testIntervals: boolean
   alternativeTrajectories: boolean
+  userCommits: boolean
 }

@@ -1,5 +1,5 @@
 import { LegendSwatch } from "@/components/legend-swatch"
-import { ToneChip } from "@/components/tone-chip"
+import { CommitChip, ToneChip } from "@/components/tone-chip"
 import { Separator } from "@/components/ui/separator"
 import type { MetricVM } from "@/data/types"
 import { TONE_BG } from "@/lib/metric-tone"
@@ -15,11 +15,13 @@ export function ChartLegend({
   secondaries,
   showIntervals,
   showAlternatives,
+  showCommits,
 }: {
   primary: MetricVM
   secondaries: MetricVM[]
   showIntervals: boolean
   showAlternatives: boolean
+  showCommits: boolean
 }) {
   return (
     <div className="flex flex-wrap items-center gap-4 px-1 pt-[10px] pb-1">
@@ -39,6 +41,14 @@ export function ChartLegend({
           </LegendSwatch>
           <LegendSwatch label="alternative · worse">
             <DashedSwatch tone="bg-fg-4" />
+          </LegendSwatch>
+        </>
+      ) : null}
+      {showCommits ? (
+        <>
+          <Separator orientation="vertical" className="h-3.5" />
+          <LegendSwatch label="commit">
+            <CommitChip size={12} />
           </LegendSwatch>
         </>
       ) : null}

@@ -69,6 +69,12 @@ class SessionService(private val project: Project) {
         project.service<StorageService>().init(sessionId, project.basePath ?: "")
         snapshotSource("initial-src")
         project.service<StorageService>().flushEvent(sessionStartedEvent)
+
+        // Start the git commit watcher after the session is fully recording
+        // so any commits made from this point land in the event stream.
+        // `now` here is the session-start timestamp passed to `git log
+        // --since=<unix>` to filter out pre-session commits.
+        project.basePath?.let { project.service<GitCommitWatcher>().start(java.io.File(it), now) }
     }
 
     /**
@@ -144,6 +150,9 @@ class SessionService(private val project: Project) {
         // post-session.
         project.service<RefactoringBurstCoordinator>().flushIfActive(outcome = "session_ended")
         project.service<EditBurstTracker>().flushAllPending()
+        // Drain any pending reflog lines (macOS WatchService polls at ~10s)
+        // before SESSION_ENDED so trailing commits aren't dropped.
+        project.service<GitCommitWatcher>().flushAndStop()
 
         val now = System.currentTimeMillis()
         metadata = meta.copy(endTime = now)

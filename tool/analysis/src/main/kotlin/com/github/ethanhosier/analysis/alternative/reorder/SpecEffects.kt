@@ -216,10 +216,16 @@ fun effectsOf(spec: RefactoringSpec): Effects = when (spec) {
     is RefactoringSpec.InlineMethod -> {
         val params = paramTypesOf(spec.paramTypeSignatures)
         val m = Entity.Method(spec.declaringTypeFqn, spec.methodName, params)
+        // Optimistic: deliberately no `writes = setOf(Entity.Type(...))` for
+        // call sites. Two inlines of distinct methods on the same class
+        // genuinely commute when neither inlined method calls the other;
+        // we can't tell that from spec fields alone, so we let them
+        // enumerate freely and rely on the terminal-AST equivalence check
+        // downstream to filter orderings whose call-site rewrites actually
+        // interfered. Mirrors the Extract* carve-out — see KDoc above.
         Effects(
             reads = setOf(m),
             consumes = setOf(m),
-            writes = setOf(Entity.Type(spec.declaringTypeFqn)), // coarse: every host calling it
         )
     }
 

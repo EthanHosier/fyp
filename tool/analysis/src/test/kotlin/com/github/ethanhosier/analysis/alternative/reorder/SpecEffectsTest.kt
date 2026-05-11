@@ -74,14 +74,19 @@ class SpecEffectsTest {
     }
 
     @Test
-    fun `InlineMethod coarsely writes declaring type`() {
+    fun `InlineMethod consumes named method without coarsely writing declaring type`() {
+        // Optimistic model (mirrors Extract* carve-out): two inlines of
+        // distinct methods on the same class commute unless one calls
+        // the other. We can't tell from spec fields, so we let them
+        // commute and rely on terminal-AST equivalence to filter bad
+        // orderings downstream.
         val s = RefactoringSpec.InlineMethod(
             declaringTypeFqn = "com.foo.Bar",
             methodName = "helper",
             paramTypeSignatures = emptyList(),
         )
         val e = effectsOf(s)
-        assertContains(e.writes, Entity.Type("com.foo.Bar"))
+        assertEquals(emptySet(), e.writes)
         assertContains(e.consumes, Entity.Method("com.foo.Bar", "helper", ParamTypes.Known(emptyList())))
     }
 

@@ -11,6 +11,10 @@ import type {
   Selection,
   StatusTone,
 } from "@/data/types"
+import {
+  anchoredCommitMarkers,
+  findCommitAt,
+} from "@/features/trajectory-chart/chart-commit-markers"
 import type { ChartScales } from "@/features/trajectory-chart/use-chart-scales"
 import { formatDurationShort } from "@/lib/format"
 import { TONE_BG, TONE_TEXT } from "@/lib/metric-tone"
@@ -26,6 +30,12 @@ type Hover =
   | { kind: "checkpoint"; index: number; mx: number; my: number }
   | { kind: "interval"; index: number; mx: number; my: number }
   | { kind: "refactoring"; index: number; mx: number; my: number }
+  // Cursor is inside a commit chip's hit-rect bounds. `ChartHoverVisuals`
+  // renders nothing for this kind — `ChartCommitMarkers` reads it to
+  // decide which commit's hovercard to show, and the interval / checkpoint
+  // hovercards are deliberately suppressed so the commit's card is the
+  // only one painted.
+  | { kind: "commit"; index: number; mx: number; my: number }
   | null
 
 /**
@@ -43,38 +53,29 @@ export function useChartHover() {
 export type ChartHoverState = ReturnType<typeof useChartHover>
 
 /**
- * Transparent hit-rect over the plot area. Mouse position picks the
- * nearest checkpoint (when close) or the enclosing interval; click
- * dispatches selection. Renders no visuals — those live in
- * [ChartHoverVisuals].
+ * Transparent hit-rect over the plot area. Click dispatches selection
+ * based on the current shared hover state.
+ *
+ * Mousemove tracking lives on a parent container (see
+ * [chartHoverMoveProps]) rather than on this rect, because the rect is
+ * a *sibling* of the checkpoint dots / alt paths / commit chips. Once
+ * the cursor moves over any of those (each with its own pointer-
+ * events footprint) the rect's `mouseLeave` fires and the hover state
+ * vanishes — taking the checkpoint hover ring with it. Lifting
+ * mousemove to a parent means it fires on every move inside the chart
+ * area, regardless of which child element happens to be on top.
  */
 export function ChartHoverOverlay({
-  vm,
-  primary,
   scales,
   hoverState,
   onSelect,
 }: {
-  vm: DashboardViewModel
-  primary: MetricVM
   scales: ChartScales
   hoverState: ChartHoverState
   onSelect: (s: Selection) => void
 }) {
-  const [hover, setHover] = hoverState
+  const [hover] = hoverState
   const { innerW, innerH } = scales
-
-  function handleMove(e: React.MouseEvent<SVGRectElement>) {
-    const rect = e.currentTarget.getBoundingClientRect()
-    const mx = e.clientX - rect.left
-    const my = e.clientY - rect.top
-    if (mx < -4 || mx > innerW + 4) {
-      setHover(null)
-      return
-    }
-    const base = hoverAt(vm, primary, scales, mx, my)
-    setHover(base ? { ...base, mx, my } : null)
-  }
 
   return (
     <rect
@@ -84,13 +85,69 @@ export function ChartHoverOverlay({
       height={innerH}
       fill="transparent"
       className="cursor-pointer"
-      onMouseMove={handleMove}
-      onMouseLeave={() => setHover(null)}
       onClick={() => {
-        if (hover) onSelect(hover)
+        if (!hover) return
+        // `commit` is a hover-only state — chips don't dispatch a
+        // selection on click (the detail panel stays on whatever's
+        // currently selected).
+        if (hover.kind === "commit") return
+        onSelect(hover)
       }}
     />
   )
+}
+
+/**
+ * Returns props for the chart's outer `<svg>` (or inner `<g>`) that
+ * track the cursor and update the shared hover state. Attach at a
+ * level that *contains* every child element you want the hover to
+ * survive over — typically the outer `<svg>`. Coords are converted
+ * into chart-inner space using the supplied `scales.margin`.
+ */
+export function chartHoverMoveProps({
+  vm,
+  primary,
+  scales,
+  hoverState,
+}: {
+  vm: DashboardViewModel
+  primary: MetricVM
+  scales: ChartScales
+  hoverState: ChartHoverState
+}): {
+  onMouseMove: (e: React.MouseEvent<SVGElement>) => void
+  onMouseLeave: () => void
+} {
+  const [, setHover] = hoverState
+  const { margin, innerW, innerH } = scales
+  return {
+    onMouseMove: (e) => {
+      const svg = e.currentTarget.ownerSVGElement ?? e.currentTarget
+      const bbox = (svg as SVGGraphicsElement).getBoundingClientRect()
+      const mx = e.clientX - bbox.left - margin.left
+      const my = e.clientY - bbox.top - margin.top
+      if (mx < -4 || mx > innerW + 4 || my < -4 || my > innerH + 4) {
+        setHover(null)
+        return
+      }
+      // Commit chips take priority over the underlying interval /
+      // checkpoint hovers: when the cursor is inside a chip's hit
+      // rect, emit a "commit" hover so `ChartHoverVisuals` skips the
+      // interval crosshair and only the chip's own hovercard paints.
+      const commitIdx = findCommitAt(
+        anchoredCommitMarkers(vm, primary, scales),
+        mx,
+        my,
+      )
+      if (commitIdx !== null) {
+        setHover({ kind: "commit", index: commitIdx, mx, my })
+        return
+      }
+      const base = hoverAt(vm, primary, scales, mx, my)
+      setHover(base ? { ...base, mx, my } : null)
+    },
+    onMouseLeave: () => setHover(null),
+  }
 }
 
 /**
@@ -153,7 +210,7 @@ type HoverKind =
   | { kind: "interval"; index: number }
   | { kind: "refactoring"; index: number }
 
-function hoverAt(
+export function hoverAt(
   vm: DashboardViewModel,
   primary: MetricVM,
   scales: ChartScales,
