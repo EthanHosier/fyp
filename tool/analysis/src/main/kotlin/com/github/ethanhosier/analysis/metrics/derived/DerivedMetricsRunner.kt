@@ -376,6 +376,14 @@ class DerivedMetricsRunner {
         val addedSmellWeight: Int,
         val resolvedSmellWeight: Int,
         val totalSmellWeightSeen: Int,
+        // Time integral of running open-smell weight: sum_t (added_t -
+        // resolved_t) sampled after each checkpoint. Divided by
+        // checkpointsSoFar this gives the average open-smell load over
+        // the trajectory — the basis for the `netSmell` penalty.
+        // Churn-invariant: a path that adds 5 smells then resolves all
+        // contributes the same to this integral as a path that adds 5
+        // and leaves them open (over the same number of steps).
+        val openSmellWeightIntegral: Int,
         val refactoringStepsCount: Int,
         val testsSkippedCount: Int,
         val ideRelevantCount: Int,
@@ -415,6 +423,7 @@ class DerivedMetricsRunner {
         var addedSmellWeight = 0
         var resolvedSmellWeight = 0
         var totalSmellWeightSeen = 0
+        var openSmellWeightIntegral = 0
         var refactoringStepsCount = 0
         var testsSkippedCount = 0
         var ideRelevantCount = 0
@@ -442,6 +451,11 @@ class DerivedMetricsRunner {
             addedSmellWeight += added
             resolvedSmellWeight += resolved
             totalSmellWeightSeen += added
+            // Sample running open weight AFTER this checkpoint's adds /
+            // resolves are applied. Floor at 0 because a path that's
+            // resolved more than it added shouldn't count as negative
+            // smell load.
+            openSmellWeightIntegral += max(0, addedSmellWeight - resolvedSmellWeight)
 
             for (s in stepsByIndex[t].orEmpty()) {
                 refactoringStepsCount += 1
@@ -462,8 +476,7 @@ class DerivedMetricsRunner {
             }
             val degradationFrac = if (dipObservations == 0) 0.0 else dipIntegral / dipObservations
             val brokenFrac = brokenCount.toDouble() / (t + 1).toDouble()
-            val netSmell = if (totalSmellWeightSeen == 0) 0.0
-                else max(0, addedSmellWeight - resolvedSmellWeight).toDouble() / totalSmellWeightSeen.toDouble()
+            val netSmell = computeNetSmell(openSmellWeightIntegral, t + 1)
             // Laplace smoothing only kicks in when at least one bad step
             // has happened; a perfect record (0 of N) returns 0 penalty.
             val skipFrac = if (refactoringStepsCount == 0 || testsSkippedCount == 0) 0.0
@@ -477,6 +490,7 @@ class DerivedMetricsRunner {
                 brokenCount = brokenCount,
                 checkpointsSoFar = t + 1,
                 netSmell = netSmell,
+                openSmellWeightIntegral = openSmellWeightIntegral,
                 addedSmellWeight = addedSmellWeight,
                 resolvedSmellWeight = resolvedSmellWeight,
                 skipFrac = skipFrac,
@@ -496,6 +510,7 @@ class DerivedMetricsRunner {
                 addedSmellWeight = addedSmellWeight,
                 resolvedSmellWeight = resolvedSmellWeight,
                 totalSmellWeightSeen = totalSmellWeightSeen,
+                openSmellWeightIntegral = openSmellWeightIntegral,
                 refactoringStepsCount = refactoringStepsCount,
                 testsSkippedCount = testsSkippedCount,
                 ideRelevantCount = ideRelevantCount,
@@ -574,6 +589,8 @@ class DerivedMetricsRunner {
         val addedSmellWeight = snap.addedSmellWeight + addedW
         val resolvedSmellWeight = snap.resolvedSmellWeight + resolvedW
         val totalSmellWeightSeen = snap.totalSmellWeightSeen + addedW
+        val openSmellWeightIntegral = snap.openSmellWeightIntegral +
+            max(0, addedSmellWeight - resolvedSmellWeight)
 
         val refactoringStepsCount = snap.refactoringStepsCount + 1
         // Synthesised commits carry no user events, so we mirror what
@@ -596,8 +613,7 @@ class DerivedMetricsRunner {
 
         val checkpointsSoFar = snap.checkpointsSoFar + 1
         val brokenFrac = brokenCount.toDouble() / checkpointsSoFar.toDouble()
-        val netSmell = if (totalSmellWeightSeen == 0) 0.0
-            else max(0, addedSmellWeight - resolvedSmellWeight).toDouble() / totalSmellWeightSeen.toDouble()
+        val netSmell = computeNetSmell(openSmellWeightIntegral, checkpointsSoFar)
         val skipFrac = if (testsSkippedCount == 0) 0.0
             else (testsSkippedCount + 1).toDouble() / (refactoringStepsCount + 2).toDouble()
         val manualFrac = if (manualWhenIdeCount == 0) 0.0
@@ -612,6 +628,7 @@ class DerivedMetricsRunner {
             brokenCount = brokenCount,
             checkpointsSoFar = checkpointsSoFar,
             netSmell = netSmell,
+            openSmellWeightIntegral = openSmellWeightIntegral,
             addedSmellWeight = addedSmellWeight,
             resolvedSmellWeight = resolvedSmellWeight,
             skipFrac = skipFrac,
@@ -630,6 +647,7 @@ class DerivedMetricsRunner {
             addedSmellWeight = addedSmellWeight,
             resolvedSmellWeight = resolvedSmellWeight,
             totalSmellWeightSeen = totalSmellWeightSeen,
+            openSmellWeightIntegral = openSmellWeightIntegral,
             refactoringStepsCount = refactoringStepsCount,
             testsSkippedCount = testsSkippedCount,
             ideRelevantCount = ideRelevantCount,
@@ -701,6 +719,7 @@ class DerivedMetricsRunner {
         brokenCount: Int,
         checkpointsSoFar: Int,
         netSmell: Double,
+        openSmellWeightIntegral: Int,
         addedSmellWeight: Int,
         resolvedSmellWeight: Int,
         skipFrac: Double,
@@ -741,9 +760,14 @@ class DerivedMetricsRunner {
             ),
             ProcessContribution(
                 id = "smells",
-                label = "Smells introduced (net)",
+                label = "Smell load (time-average)",
                 points = smellPoints,
-                detail = formatSmellDetail(addedSmellWeight, resolvedSmellWeight),
+                detail = formatSmellDetail(
+                    openSmellWeightIntegral = openSmellWeightIntegral,
+                    checkpointsSoFar = checkpointsSoFar,
+                    addedSmellWeight = addedSmellWeight,
+                    resolvedSmellWeight = resolvedSmellWeight,
+                ),
             ),
             ProcessContribution(
                 id = "skipTests",
@@ -787,11 +811,35 @@ class DerivedMetricsRunner {
         return "$dir ${"%.2f".format(kotlin.math.abs(gain))} from c0 baseline"
     }
 
-    private fun formatSmellDetail(added: Int, resolved: Int): String {
-        if (added == 0 && resolved == 0) return "no smells touched"
-        if (added == 0) return "$resolved weight resolved, none introduced"
-        if (resolved == 0) return "$added weight introduced, none resolved"
-        return "$added weight introduced, $resolved resolved (net ${added - resolved})"
+    /**
+     * Time-integral smell penalty: `min(1, avgOpenWeight / SATURATION)`.
+     * avgOpenWeight = integral of (added - resolved) sampled after each
+     * checkpoint, divided by checkpoints seen. Churn-invariant: two paths
+     * with the same final unresolved smell count get the same score even
+     * if one passed through messier intermediates. Saturates at
+     * [SMELL_SATURATION_WEIGHT] open weight (∼ "consistently this much
+     * unresolved smell" maxes the penalty).
+     */
+    private fun computeNetSmell(openSmellWeightIntegral: Int, checkpointsSoFar: Int): Double {
+        if (checkpointsSoFar <= 0) return 0.0
+        val avg = openSmellWeightIntegral.toDouble() / checkpointsSoFar.toDouble()
+        return min(1.0, avg / SMELL_SATURATION_WEIGHT)
+    }
+
+    private fun formatSmellDetail(
+        openSmellWeightIntegral: Int,
+        checkpointsSoFar: Int,
+        addedSmellWeight: Int,
+        resolvedSmellWeight: Int,
+    ): String {
+        if (openSmellWeightIntegral == 0 && addedSmellWeight == 0 && resolvedSmellWeight == 0) {
+            return "no smells touched"
+        }
+        val avg = if (checkpointsSoFar <= 0) 0.0
+        else openSmellWeightIntegral.toDouble() / checkpointsSoFar.toDouble()
+        val openNow = max(0, addedSmellWeight - resolvedSmellWeight)
+        return "avg ${"%.1f".format(avg)} open weight per checkpoint (currently $openNow open; " +
+            "$addedSmellWeight introduced, $resolvedSmellWeight resolved cumulatively)"
     }
 
     private fun pct(x: Double): String = "${(x * 100.0).roundToInt()}%"
@@ -837,5 +885,11 @@ class DerivedMetricsRunner {
         private const val W_SKIP_TESTS = 14.0
         private const val W_MANUAL_IDE = 11.0
         private const val BASELINE = 50
+
+        // Average open-smell weight at which the smells penalty saturates
+        // (netSmell = 1.0). Weights are priority-derived (6 − priority,
+        // clamped ≥ 0), so 10 ≈ "consistently five priority-1 violations
+        // open" or "ten priority-5 violations open" across the trajectory.
+        private const val SMELL_SATURATION_WEIGHT = 10.0
     }
 }
