@@ -58,7 +58,7 @@ data class Effects(
  * To revisit: storing the full Merkle (set of all subtree hashes
  * inside the selection) on each range-based spec lets us detect
  * overlap by hash-set intersection — see "Future refinements" in
- * `tool/PLAN-reorder-enumerator.md`.
+ * `tool/plans/PLAN-reorder-enumerator.md`.
  */
 @Suppress("LongMethod", "CyclomaticComplexMethod")
 fun effectsOf(spec: RefactoringSpec): Effects = when (spec) {

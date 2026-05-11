@@ -107,7 +107,7 @@ class AnalysisPipeline(
         // the user's `toSha`. Only steps that reproduce the user's
         // end-state are eligible to participate in a reorder window;
         // anything else (apply failed, AST diverged, untyped) becomes
-        // a window splitter. See `tool/PLAN-step-validator.md`.
+        // a window splitter. See `tool/plans/PLAN-step-validator.md`.
         val validatorStart = System.currentTimeMillis()
         val shadowGitForValidator = GitRunner(reconstruction.repoDir)
         val validatorPool = WorktreePool(
@@ -157,7 +157,7 @@ class AnalysisPipeline(
         // commits. Replaces the previous inspection-only
         // ReorderWindowLogger — same window-splitting + summary
         // counts, plus the synthesis loop. See
-        // `tool/PLAN-reorder-synthesis.md`.
+        // `tool/plans/PLAN-reorder-synthesis.md`.
         val reorderStart = System.currentTimeMillis()
         val reorderShadowGit = GitRunner(reconstruction.repoDir)
         val reorderPool = WorktreePool(
