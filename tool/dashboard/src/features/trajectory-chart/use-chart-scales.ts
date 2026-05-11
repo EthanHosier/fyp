@@ -36,22 +36,38 @@ export function useChartScales({
   width,
   height,
   margin = DEFAULT_MARGIN,
+  includeAlternatives = false,
 }: {
   vm: DashboardViewModel
   primary: MetricId
   width: number
   height: number
   margin?: ChartMargin
+  /** Extend the y-domain to cover every alt-trajectory step's value at
+   *  the primary metric. Off by default so toggling the alt layer is
+   *  what rescales the axis — keeps the user trajectory's y range
+   *  stable when alts are hidden. */
+  includeAlternatives?: boolean
 }): ChartScales {
   const innerW = Math.max(200, width - margin.left - margin.right)
   const innerH = Math.max(120, height - margin.top - margin.bottom)
 
-  const primaryValues = vm.checkpoints
-    .map((c) => c.values[primary])
-    .filter((v): v is number => typeof v === "number")
+  const ys_values: number[] = []
+  for (const c of vm.checkpoints) {
+    const v = c.values[primary]
+    if (typeof v === "number") ys_values.push(v)
+  }
+  if (includeAlternatives) {
+    for (const alt of vm.alternativeTrajectories) {
+      for (const step of alt.steps) {
+        const v = step.altValues[primary]
+        if (typeof v === "number") ys_values.push(v)
+      }
+    }
+  }
 
-  const yMin = primaryValues.length ? Math.min(...primaryValues) : 0
-  const yMax = primaryValues.length ? Math.max(...primaryValues) : 1
+  const yMin = ys_values.length ? Math.min(...ys_values) : 0
+  const yMax = ys_values.length ? Math.max(...ys_values) : 1
   const yPad = (yMax - yMin) * Y_PAD_FRAC || 1
   const yDomain: [number, number] = [yMin - yPad, yMax + yPad]
 

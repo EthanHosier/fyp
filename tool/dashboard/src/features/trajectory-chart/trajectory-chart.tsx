@@ -76,6 +76,7 @@ export function TrajectoryChart({ vm }: { vm: DashboardViewModel }) {
       bottom: BASE_BOTTOM + railExtra(railCount),
       left: 58,
     },
+    includeAlternatives: layers.alternativeTrajectories,
   })
   const { margin } = scales
   const hoverState = useChartHover()
