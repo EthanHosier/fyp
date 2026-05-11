@@ -39,6 +39,7 @@ export const useDashboardStore = create<DashboardStore>((set) => ({
     buildIntervals: true,
     testIntervals: true,
     alternativeTrajectories: true,
+    userCommits: true,
   },
 
   setSelection: (selection) => set({ selection }),

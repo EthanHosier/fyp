@@ -96,7 +96,12 @@ class SpecDependencyAnalyzerTest {
     }
 
     @Test
-    fun `inline method blocks later rename method on the same class`() {
+    fun `inline method of one method commutes with rename of unrelated method on same class`() {
+        // Optimistic InlineMethod model (see SpecEffects KDoc): the inline
+        // no longer writes the declaring Type coarsely for call sites,
+        // so an inline of `h` and a rename of unrelated `other` on the
+        // same class commute. Terminal-AST equivalence filters orderings
+        // where the rewrites actually interfere.
         val inline = RefactoringSpec.InlineMethod(
             declaringTypeFqn = "com.Foo",
             methodName = "h",
@@ -109,7 +114,7 @@ class SpecDependencyAnalyzerTest {
             paramTypeSignatures = emptyList(),
         )
         val dag = SpecDependencyAnalyzer.analyze(listOf(inline, rename))
-        assertContains(dag.successors(0), 1)
+        assertEquals(emptyMap(), dag.edges)
     }
 
     @Test

@@ -66,6 +66,7 @@ import com.github.ethanhosier.analysis.refactoring.ops.renamePackage
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Nested
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.io.TempDir
@@ -89,6 +90,7 @@ import kotlin.test.assertTrue
  * lives right next to the other.
  */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@Tag("slow")
 class RefactoringClientTest {
 
     private lateinit var client: RefactoringClient
