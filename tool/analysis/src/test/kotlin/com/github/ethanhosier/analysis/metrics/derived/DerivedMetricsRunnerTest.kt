@@ -198,6 +198,62 @@ class DerivedMetricsRunnerTest {
     }
 
     @Test
+    fun `smell load is time-integral and churn-invariant on identical end state`() {
+        // Two trajectories, three checkpoints each, identical pmd at the
+        // terminus (one priority-3 violation open = weight 3). Path A is
+        // monotone: introduces it at c1, leaves it. Path B churns: adds
+        // 5 new violations at c1 (4 extra noise + the keeper) then resolves
+        // 4 of them at c2 leaving the same single violation. Under the
+        // old fraction-based formula B scored better (smaller open/seen
+        // ratio); under the time-integral formula B must score WORSE (it
+        // briefly carried a heavier smell load).
+        val seed = checkpoint(
+            "seed0",
+            pmd = pmdResult(),
+            pmdTracking = PmdTracking.EMPTY,
+        )
+
+        // ---- path A: introduce the single keeper at c1, carry it.
+        val keeperA = violation(priority = 3)
+        val a1 = checkpoint(
+            "a1",
+            pmd = pmdResult(violations = listOf(keeperA)),
+            pmdTracking = PmdTracking(firstSeenAtSha = listOf("a1")),
+        )
+        val a2 = checkpoint(
+            "a2",
+            pmd = pmdResult(violations = listOf(keeperA)),
+            pmdTracking = PmdTracking(firstSeenAtSha = listOf("a1")),
+        )
+        val aRes = DerivedMetricsRunner().run(listOf(seed, a1, a2), emptyList(), emptyList())
+        val aSmells = aRes.main.getValue("a2").process.contributions.single { it.id == "smells" }
+
+        // ---- path B: introduce keeper + 4 noise at c1, resolve noise at c2.
+        val keeperB = violation(priority = 3)
+        val noiseB = List(4) { violation(priority = 3) }
+        val b1 = checkpoint(
+            "b1",
+            pmd = pmdResult(violations = noiseB + keeperB),
+            pmdTracking = PmdTracking(firstSeenAtSha = List(5) { "b1" }),
+        )
+        val b2 = checkpoint(
+            "b2",
+            // Only keeperB carries forward; 4 noise resolved.
+            pmd = pmdResult(violations = listOf(keeperB)),
+            pmdTracking = PmdTracking(firstSeenAtSha = listOf("b1")),
+        )
+        val bRes = DerivedMetricsRunner().run(listOf(seed, b1, b2), emptyList(), emptyList())
+        val bSmells = bRes.main.getValue("b2").process.contributions.single { it.id == "smells" }
+
+        // Churn should be punished, not rewarded: B's intermediate dip is
+        // genuine smell load that the user lived through.
+        assertTrue(
+            bSmells.points < aSmells.points,
+            "churn-heavy path B should score worse than monotone A: A=${aSmells.points} B=${bSmells.points}",
+        )
+    }
+
+    @Test
     fun `seed-checkpoint preexisting violations are not counted as added`() {
         // Seed has 2 violations both stamped at its own sha; with the
         // frontend bucketing rule those count as carried, not added — so

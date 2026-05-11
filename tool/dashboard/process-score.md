@@ -24,7 +24,7 @@ The score is computed entirely dashboard-side from data already on the VM. No an
 
 5. **No time term.** Per user constraint: thinking is not a process failure. The "stayed broken" intuition is captured by the count of broken checkpoints, not their duration.
 
-6. **Net smells, no separate carry penalty.** A `carried` smell is already on the cumulative ledger from when it was `added`; adding a carry drag would double-count.
+6. **Smells: time-integral of open-weight, not a running fraction.** The earlier `max(0, added − resolved) / totalEverSeen` formulation rewarded churn — a path that introduced 10 smells and resolved 9 scored better than one that introduced 1 and resolved 0, despite ending with the same outstanding count. The current formula integrates the running open-weight across checkpoints (sampled *after* each step's adds / resolves) and divides by step count, then saturates at `SMELL_SATURATION_WEIGHT = 10`. Identical final states with identical per-step averages score identically; paths that briefly carried a heavier smell load pay for the dip. Still no separate carry penalty — carried weight is what the integral counts.
 
 7. **Intermediate degradation — running-peak dip integral.** Cleanliness gain is point-in-time so a trajectory that dips and recovers to baseline used to score identically to one that stayed clean — the score forgot the dip. The intermediate-degradation term remembers it: track the running max of cleanliness, sum `max(0, peak − clean(i))` across the prefix, and normalise by checkpoint count to keep the term in [0, 1]. Penalises both the depth of the dip and how long the trajectory stayed below its prior best. Picked running-peak over endpoint-floor because the latter lets a clever path hide a dip by ending where it started; running-peak captures "you got the code clean once, you don't get to forget that you broke it."
 
@@ -100,9 +100,18 @@ brokenFraction(t)
   / (t + 1)
 
 netSmellFraction(t)
-  = max(0, addedWeight(0..t) − resolvedWeight(0..t))
-  / max(1, totalWeightEverSeen(0..t))
-where weight(smell) = 6 − smell.priority
+  = min(1, avgOpenWeight(0..t) / SMELL_SATURATION_WEIGHT)
+where
+  openWeightAt(i)   = max(0, cumulativeAddedWeight(0..i) − cumulativeResolvedWeight(0..i))
+  avgOpenWeight(t)  = (Σ_{i ≤ t} openWeightAt(i)) / (t + 1)
+  weight(smell)     = 6 − smell.priority
+  SMELL_SATURATION_WEIGHT = 10
+// Time-integral of running open-smell weight, normalised by step count
+// and a saturation threshold. Churn-invariant: two paths with the same
+// final unresolved smells score identically when their per-step open-
+// weight averages match. A path that briefly inflates intermediate smell
+// load (adds many smells, resolves them later) pays for the dip rather
+// than getting credit for the resolve.
 
 intermediateDegradation(t)
   = (Σ_{i ≤ t} max(0, peak(i) − clean(i))) / observations

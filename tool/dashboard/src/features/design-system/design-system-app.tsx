@@ -61,9 +61,9 @@ const SAMPLE_PROCESS_BREAKDOWN: ProcessScoreBreakdown = {
     },
     {
       id: "smells",
-      label: "Smells introduced (net)",
+      label: "Smell load (time-average)",
       points: -1.2,
-      detail: "8 weight introduced, 4 resolved (net 4)",
+      detail: "avg 0.6 open weight per checkpoint (currently 4 open; 8 introduced, 4 resolved cumulatively)",
     },
     {
       id: "skipTests",
