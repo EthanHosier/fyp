@@ -2,7 +2,7 @@
 
 Single PR delivering robustness substrate for Approach A
 (topologically-constrained reordering) from
-`tool/PLAN-multi-checkpoint-alts.md`. Migrates 10 position-based
+`tool/plans/PLAN-multi-checkpoint-alts.md`. Migrates 10 position-based
 `RefactoringSpec` subtypes from line/column addressing to
 content-addressable AST-subtree-hash anchors, so the apply path can
 re-resolve them against a live AST whose line numbers may have

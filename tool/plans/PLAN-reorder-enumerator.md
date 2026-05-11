@@ -8,7 +8,7 @@ of valid orderings — so the logic can be inspected and signed off
 before any wiring.
 
 This is the first slice of Approach A from
-`tool/PLAN-multi-checkpoint-alts.md` (topologically-constrained step
+`tool/plans/PLAN-multi-checkpoint-alts.md` (topologically-constrained step
 reordering). Subsequent PRs will: (a) wire in multi-step synthesis,
 (b) add end-state equivalence check, (c) extend `DerivedMetricsRunner`
 to score `J(τ_alt)`, (d) update `AlternativeTrajectory` schema +

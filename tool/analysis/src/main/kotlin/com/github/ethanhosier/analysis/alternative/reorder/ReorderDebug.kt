@@ -7,7 +7,7 @@ import com.github.ethanhosier.analysis.miner.model.RefactoringSpec
  * enumerated orderings. Test-only; not surfaced in production reports.
  *
  * Used during the manual-inspection workflow described in
- * `tool/PLAN-reorder-enumerator.md` — paste the output, eyeball
+ * `tool/plans/PLAN-reorder-enumerator.md` — paste the output, eyeball
  * whether the entity touches and edge reasons match intuition before
  * wiring synthesis.
  */
