@@ -62,6 +62,31 @@ data class AnalysisReport(
     // a future slice. Empty default keeps older cached reports
     // deserialisable.
     val reorderTrajectories: List<ReorderTrajectory> = emptyList(),
+    // Commits the user made on their working repo during the session,
+    // captured by the IDE plugin's reflog watcher. Chronological order.
+    // Pure overlay — does not influence metrics / checkpoints. Empty
+    // when the session ran without any commits or in a non-git project.
+    val userGitCommits: List<UserGitCommit> = emptyList(),
+)
+
+/**
+ * A commit landed on the user's working repo during the session. SHA +
+ * parent + commit time come straight from the `.git/logs/HEAD` reflog
+ * line; [message] is the full commit body fetched via `git log`. [action]
+ * preserves the reflog action prefix so consumers can distinguish e.g.
+ * `commit` from `commit (amend)` / `commit (merge)`.
+ *
+ * Used by the dashboard to render commit-cadence markers on the trajectory
+ * chart and to support derived "refactorings between commits" analyses.
+ */
+@Serializable
+data class UserGitCommit(
+    val sha: String,
+    val parentSha: String? = null,
+    /** Reflog author/committer time in **milliseconds** since epoch. */
+    val timestamp: Long,
+    val message: String,
+    val action: String,
 )
 
 /**

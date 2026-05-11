@@ -32,4 +32,7 @@ enum class EventType {
     // Session lifecycle
     SESSION_STARTED,
     SESSION_ENDED,
+
+    // VCS
+    GIT_COMMIT,
 }

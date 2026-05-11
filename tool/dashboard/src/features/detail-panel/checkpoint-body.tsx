@@ -14,6 +14,10 @@ import type {
   MetricId,
 } from "@/data/types"
 import { CodeSmellsSection } from "@/features/detail-panel/code-smells-section"
+import {
+  CommitSignals,
+  hasCommitSignals,
+} from "@/features/detail-panel/commit-signals"
 import { DuplicationsSection } from "@/features/detail-panel/duplications-section"
 import { DiffSection } from "@/features/detail-panel/diff-section"
 import { SmellSignals } from "@/features/detail-panel/smell-signals"
@@ -84,13 +88,16 @@ export function CheckpointBody({
         <StatusRow build={checkpoint.build} tests={checkpoint.tests} />
       </section>
 
-      {pitfalls || hasSmellSignals(checkpoint) ? (
+      {pitfalls ||
+      hasSmellSignals(checkpoint) ||
+      hasCommitSignals(vm, checkpoint.index) ? (
         <section className="flex flex-col gap-2">
           <Text as="h3" variant="eyebrow" tone="fg-4">
             Process Signals
           </Text>
           {pitfalls}
           <SmellSignals smells={checkpoint.smells} />
+          <CommitSignals vm={vm} checkpoint={checkpoint} />
         </section>
       ) : null}
 

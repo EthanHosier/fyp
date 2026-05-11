@@ -6,6 +6,7 @@ import com.github.ethanhosier.analysis.refactoring.ops.extractMethod
 import com.github.ethanhosier.analysis.refactoring.ops.renameMethod
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.io.TempDir
@@ -31,6 +32,7 @@ import kotlin.test.fail
  * `IJavaProject`. Regression here would silently re-index per call.
  */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@Tag("slow")
 class RefactoringClientBatchSessionTest {
 
     private lateinit var client: RefactoringClient

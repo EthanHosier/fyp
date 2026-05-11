@@ -33,6 +33,7 @@ import type {
   CleanlinessBreakdown,
   CodeSmellVM,
   CodeSmellsVM,
+  CommitMarkerVM,
   DashboardViewModel,
   DuplicationGroupVM,
   DuplicationOccurrenceVM,
@@ -646,6 +647,17 @@ export function toViewModel(report: AnalysisReport): DashboardViewModel {
     ]
   })
 
+  const commitMarkers: CommitMarkerVM[] = (report.userGitCommits ?? [])
+    .slice()
+    .sort((a, b) => a.timestamp - b.timestamp)
+    .map((c) => ({
+      sha: c.sha,
+      shortSha: shortSha(c.sha),
+      message: c.message,
+      timestamp: c.timestamp,
+      xPos: interpolateXPosByTimestamp(c.timestamp, checkpoints),
+    }))
+
   return {
     session,
     metrics: METRICS,
@@ -653,9 +665,36 @@ export function toViewModel(report: AnalysisReport): DashboardViewModel {
     intervals,
     refactoringSteps,
     alternativeTrajectories,
+    commitMarkers,
     trajectory,
     xAnchors,
   }
+}
+
+/**
+ * Place a commit on the chart by linearly interpolating its timestamp
+ * between the surrounding checkpoint timestamps. Falls back to the
+ * left / right endpoint when the commit lands before the first or after
+ * the last checkpoint.
+ */
+function interpolateXPosByTimestamp(
+  ts: number,
+  checkpoints: CheckpointVM[],
+): number {
+  if (checkpoints.length === 0) return 0
+  if (ts <= checkpoints[0].timestamp) return checkpoints[0].xPos
+  const last = checkpoints[checkpoints.length - 1]
+  if (ts >= last.timestamp) return last.xPos
+  for (let i = 1; i < checkpoints.length; i++) {
+    const l = checkpoints[i - 1]
+    const r = checkpoints[i]
+    if (ts >= l.timestamp && ts <= r.timestamp) {
+      const denom = r.timestamp - l.timestamp
+      const frac = denom > 0 ? (ts - l.timestamp) / denom : 0
+      return l.xPos + frac * (r.xPos - l.xPos)
+    }
+  }
+  return last.xPos
 }
 
 /** Human-readable label for the chart's branch chip. The polymorphic

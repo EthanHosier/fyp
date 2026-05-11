@@ -1,4 +1,5 @@
 import { ChevronDownIcon, ChevronUpIcon } from "lucide-react"
+import type { ReactNode } from "react"
 import { useState } from "react"
 
 import { Text } from "@/components/text"
@@ -26,6 +27,10 @@ type PitfallCalloutProps = {
   description: string
   defaultOpen?: boolean
   className?: string
+  /** Override the default ToneChip glyph (e.g. a `CommitChip` for
+   *  commit-related signals). Tone-tinted surround + title colour still
+   *  follow [tone]. */
+  chip?: ReactNode
 }
 
 const TONE_SURFACE: Record<PitfallTone, string> = {
@@ -47,6 +52,7 @@ export function PitfallCallout({
   description,
   defaultOpen = false,
   className,
+  chip,
 }: PitfallCalloutProps) {
   const [open, setOpen] = useState(defaultOpen)
   const Chevron = open ? ChevronUpIcon : ChevronDownIcon
@@ -65,7 +71,7 @@ export function PitfallCallout({
         aria-expanded={open}
         className="flex w-full items-center gap-2.5 px-2.5 py-2 text-left"
       >
-        <ToneChip tone={tone} className="shrink-0" />
+        {chip ?? <ToneChip tone={tone} className="shrink-0" />}
         <Text
           as="span"
           variant="body"

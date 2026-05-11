@@ -6,6 +6,7 @@ import com.github.ethanhosier.analysis.miner.model.DetectedRefactoring
 import com.github.ethanhosier.analysis.miner.model.RefactoringSpec
 import com.github.ethanhosier.analysis.miner.model.RefactoringStep
 import com.github.ethanhosier.analysis.reconstruct.GitRunner
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 import java.nio.file.Files
@@ -21,6 +22,7 @@ import kotlin.test.assertTrue
  * JDT — it only orchestrates apply + git diff + AST hash + compare,
  * so a fake apply that mutates files lets us exercise every branch.
  */
+@Tag("slow")
 class RefactoringStepValidatorTest {
 
     @Test

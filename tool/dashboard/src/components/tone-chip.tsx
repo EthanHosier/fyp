@@ -10,7 +10,14 @@
  * chart overlay) without any per-call wrapper plumbing. Ink follows the
  * tone token via inline `style.color` + `currentColor` paint, so a
  * caller wrapping in a coloured ancestor doesn't override it.
+ *
+ * `CommitChip` (below) shares the same circular-chip chrome but inlines
+ * lucide's `GitMerge` glyph and is hard-painted in `--good` green so it
+ * reads as a Git commit token at any size.
  */
+
+import { GitMerge } from "lucide-react"
+import {cn} from "@/lib/utils.ts";
 
 type Tone = "bad" | "warn" | "good"
 
@@ -74,6 +81,55 @@ function CircleChip({ tone }: { tone: "bad" | "good" }) {
         />
       )}
     </>
+  )
+}
+
+/**
+ * Same circular chip as `ToneChip` "good" — tinted background +
+ * outline — with lucide's `GitMerge` glyph centred inside. Hard-painted
+ * in `--good` green so callers don't have to manage the tone. Sized via
+ * the `size` prop; defaults match `ToneChip`.
+ */
+export function CommitChip({
+  size = 18,
+  className,
+}: {
+  size?: number
+  className?: string
+}) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 18 18"
+      style={{ color: PAINT.good }}
+      className={cn(className)}
+      aria-hidden
+    >
+      <circle
+        cx={9}
+        cy={9}
+        r={8.5}
+        fill="currentColor"
+        fillOpacity={0.2}
+        stroke="currentColor"
+        strokeWidth={1}
+      />
+      {/* Lucide `GitMerge` ships for a 24×24 viewBox. Render it
+          slightly larger than half-size (14×14 inside the 18×18 chip)
+          so the glyph's optical weight matches the X / check chips —
+          lucide's icons leave ~2px internal padding which would
+          otherwise read as too small at scale 0.5. */}
+      <g transform="translate(4 2.5) scale(0.583)">
+        <GitMerge
+          width={20}
+          height={20}
+          strokeWidth={2}
+          stroke="currentColor"
+          fill="none"
+        />
+      </g>
+    </svg>
   )
 }
 

@@ -77,6 +77,12 @@ export function MetricRail({ vm }: { vm: DashboardViewModel }) {
             checked={layers.alternativeTrajectories}
             onChange={(v) => setLayer("alternativeTrajectories", v)}
           />
+          <LayerToggle
+            id="layer-user-commits"
+            label="Git commits"
+            checked={layers.userCommits}
+            onChange={(v) => setLayer("userCommits", v)}
+          />
         </RailSection>
       </div>
     </aside>

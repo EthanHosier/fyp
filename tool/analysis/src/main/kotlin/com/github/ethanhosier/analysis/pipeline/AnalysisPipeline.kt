@@ -19,6 +19,7 @@ import com.github.ethanhosier.analysis.metrics.model.DerivedMetrics
 import com.github.ethanhosier.analysis.metrics.model.EventSummary
 import com.github.ethanhosier.analysis.metrics.model.PmdTracking
 import com.github.ethanhosier.analysis.metrics.model.RunInfo
+import com.github.ethanhosier.analysis.metrics.model.UserGitCommit
 import com.github.ethanhosier.analysis.metrics.pmd.PmdTrackingRunner
 import com.github.ethanhosier.analysis.miner.RefactoringMinerRunner
 import com.github.ethanhosier.analysis.model.ReconstructionResult
@@ -27,6 +28,7 @@ import com.github.ethanhosier.analysis.normalize.TraceNormalizer
 import com.github.ethanhosier.analysis.reconstruct.GitRunner
 import com.github.ethanhosier.analysis.reconstruct.ShadowRepoBuilder
 import com.github.ethanhosier.analysis.refactoring.RefactoringClient
+import com.github.ethanhosier.ideplugin.model.EventType
 import com.github.ethanhosier.ideplugin.model.TouchedMember
 import java.nio.file.Path
 
@@ -542,5 +544,22 @@ internal fun buildAnalysisReport(
         alternativeTrajectories = alternativeTrajectories,
         alternativePatches = diffs.alternativePatches,
         reorderTrajectories = reorderTrajectories,
+        userGitCommits = trace.events.asSequence()
+            .filter { it.type == EventType.GIT_COMMIT }
+            .mapNotNull { e ->
+                val sha = e.payload["sha"] ?: return@mapNotNull null
+                UserGitCommit(
+                    sha = sha,
+                    parentSha = e.payload["parentSha"],
+                    // Prefer the reflog's author/commit timestamp (carried
+                    // on the event payload) over `event.timestamp` so the
+                    // SHA's own commit time is what surfaces, even if the
+                    // listener wrote the event a moment later.
+                    timestamp = e.payload["authorTimestamp"]?.toLongOrNull() ?: e.timestamp,
+                    message = e.payload["message"].orEmpty(),
+                    action = e.payload["action"] ?: "commit",
+                )
+            }
+            .toList(),
     )
 }

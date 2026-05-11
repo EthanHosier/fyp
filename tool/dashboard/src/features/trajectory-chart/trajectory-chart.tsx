@@ -3,7 +3,9 @@ import { useEffect, useRef, useState } from "react"
 import type { DashboardViewModel, MetricVM } from "@/data/types"
 import { ChartAlternativePaths } from "@/features/trajectory-chart/chart-alternative-paths"
 import { ChartAxes } from "@/features/trajectory-chart/chart-axes"
+import { ChartCommitMarkers } from "@/features/trajectory-chart/chart-commit-markers"
 import {
+  chartHoverMoveProps,
   ChartHoverOverlay,
   ChartHoverVisuals,
   useChartHover,
@@ -85,7 +87,12 @@ export function TrajectoryChart({ vm }: { vm: DashboardViewModel }) {
         ref={hostRef}
         className="border-border bg-bg-1 relative rounded-md border px-[10px] pt-[6px] pb-2"
       >
-        <svg width={width} height={CHART_HEIGHT} className="block select-none">
+        <svg
+          width={width}
+          height={CHART_HEIGHT}
+          className="block select-none"
+          {...chartHoverMoveProps({ vm, primary, scales, hoverState })}
+        >
           <g transform={`translate(${margin.left},${margin.top})`}>
             <ChartAxes vm={vm} primary={primary} scales={scales} />
             {layers.buildIntervals ? (
@@ -115,8 +122,6 @@ export function TrajectoryChart({ vm }: { vm: DashboardViewModel }) {
                 tooltip layer (`ChartHoverVisuals`) is rendered last
                 so it paints over everything. */}
             <ChartHoverOverlay
-              vm={vm}
-              primary={primary}
               scales={scales}
               hoverState={hoverState}
               onSelect={setSelection}
@@ -151,6 +156,18 @@ export function TrajectoryChart({ vm }: { vm: DashboardViewModel }) {
               onSelect={setSelection}
             />
             <ChartRefactoringGlyphs vm={vm} primary={primary} scales={scales} />
+            {/* Commit markers rendered AFTER the hover overlay so their
+                hit rects claim mouse events instead of falling through
+                to the overlay (which would paint a user-trajectory
+                hovercard at the same coords). */}
+            {layers.userCommits ? (
+              <ChartCommitMarkers
+                vm={vm}
+                primary={primary}
+                scales={scales}
+                hoverState={hoverState}
+              />
+            ) : null}
             <ChartHoverVisuals
               vm={vm}
               primary={primary}
@@ -166,6 +183,7 @@ export function TrajectoryChart({ vm }: { vm: DashboardViewModel }) {
         secondaries={secondaries}
         showIntervals={railCount > 0}
         showAlternatives={layers.alternativeTrajectories}
+        showCommits={layers.userCommits && vm.commitMarkers.length > 0}
       />
     </div>
   )
