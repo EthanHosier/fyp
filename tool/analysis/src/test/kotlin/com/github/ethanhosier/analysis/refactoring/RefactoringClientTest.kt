@@ -267,6 +267,195 @@ class RefactoringClientTest {
     }
 
     @Test
+    fun `extract method promotes void to return when outer-scoped var is mutated then read after`(@TempDir worktree: Path) {
+        // Replicates the user-IDE scenario JDT's ExtractMethodAnalyzer
+        // fumbles: selection sits inside a conditional branch, mutates an
+        // outer-scoped local (`t`) as its last statement, and that local is
+        // read after the enclosing if-else. JDT alone produces
+        // `void handleGold(double t)` + `handleGold(t);`; IntelliJ
+        // (and our post-extract rewrite) yields a returning method with
+        // an assignment at the call site.
+        val src = worktree.resolve("src").also(Path::createDirectories)
+        val file = src.resolve("org/example/OrderPricingService.java")
+        file.parent.createDirectories()
+        file.writeText(
+            """
+            package org.example;
+
+            public class OrderPricingService {
+                public double price(String tier) {
+                    double t = 100;
+                    if (tier.equals("GOLD")) {
+                        double t1 = t;
+                        t1 = t1 * 0.85;
+                        t = t1;
+                    }
+                    return t + 1;
+                }
+            }
+            """.trimIndent(),
+        )
+
+        val outcome = client.extractMethod(
+            extractMethodRequestAt(
+                projectRoot = worktree,
+                sourceFolders = listOf("src"),
+                classpathJars = emptyList(),
+                relativeFilePath = "src/org/example/OrderPricingService.java",
+                // The three statements inside the GOLD branch.
+                startLine = 7, startColumn = 13,
+                endLine = 9, endColumn = Int.MAX_VALUE,
+                newMethodName = "handleGold",
+            ),
+        )
+
+        assertIs<RefactoringOutcome.Success>(outcome, "outcome=$outcome")
+
+        assertEquals(
+            """
+            package org.example;
+
+            public class OrderPricingService {
+                public double price(String tier) {
+                    double t = 100;
+                    if (tier.equals("GOLD")) {
+                        t = handleGold(t);
+                    }
+                    return t + 1;
+                }
+
+                private double handleGold(double t) {
+                    double t1 = t;
+                    t1 = t1 * 0.85;
+                    t = t1;
+                    return t;
+                }
+            }
+            """.trimIndent(),
+            Files.readString(file).trimEnd(),
+        )
+    }
+
+    @Test
+    fun `extract method splits inlined-return call site when selection ended with return localVar`(@TempDir worktree: Path) {
+        // Companion to the void→return promotion: when the original
+        // selection ended with `return <localVar>;` and <localVar> was
+        // mutated earlier in the selection, JDT extracts a returning
+        // method (good) but inlines the call into `return f(args);`,
+        // discarding the caller's variable. IntelliJ keeps
+        // `<localVar> = f(args); return <localVar>;`. We split the
+        // ReturnStatement back into the assignment + return pair.
+        val src = worktree.resolve("src").also(Path::createDirectories)
+        val file = src.resolve("org/example/Clamp.java")
+        file.parent.createDirectories()
+        file.writeText(
+            """
+            package org.example;
+
+            public class Clamp {
+                public double clamp(double total) {
+                    double t = total;
+                    if (t < 0) t = 0;
+                    return t;
+                }
+            }
+            """.trimIndent(),
+        )
+
+        val outcome = client.extractMethod(
+            extractMethodRequestAt(
+                projectRoot = worktree,
+                sourceFolders = listOf("src"),
+                classpathJars = emptyList(),
+                relativeFilePath = "src/org/example/Clamp.java",
+                // The `if (t < 0) t = 0; return t;` pair.
+                startLine = 6, startColumn = 9,
+                endLine = 7, endColumn = Int.MAX_VALUE,
+                newMethodName = "clampNonNegative",
+            ),
+        )
+
+        assertIs<RefactoringOutcome.Success>(outcome, "outcome=$outcome")
+
+        assertEquals(
+            """
+            package org.example;
+
+            public class Clamp {
+                public double clamp(double total) {
+                    double t = total;
+                    t = clampNonNegative(t);
+                    return t;
+                }
+
+                private double clampNonNegative(double t) {
+                    if (t < 0) t = 0;
+                    return t;
+                }
+            }
+            """.trimIndent(),
+            Files.readString(file).trimEnd(),
+        )
+    }
+
+    @Test
+    fun `extract method leaves void method alone when no outer-scoped var is mutated`(@TempDir worktree: Path) {
+        // Negative case: the promotion should NOT fire when the last
+        // statement isn't an assignment to a parameter of the new method.
+        // Here the selection prints and computes a local — no outer var
+        // flows out, so JDT correctly picks void and we should leave it.
+        val src = worktree.resolve("src").also(Path::createDirectories)
+        val file = src.resolve("org/example/Demo.java")
+        file.parent.createDirectories()
+        file.writeText(
+            """
+            package org.example;
+
+            public class Demo {
+                public void run() {
+                    int a = 1;
+                    int b = a + 2;
+                    System.out.println(b);
+                }
+            }
+            """.trimIndent(),
+        )
+
+        val outcome = client.extractMethod(
+            extractMethodRequestAt(
+                projectRoot = worktree,
+                sourceFolders = listOf("src"),
+                classpathJars = emptyList(),
+                relativeFilePath = "src/org/example/Demo.java",
+                startLine = 6, startColumn = 9,
+                endLine = 7, endColumn = Int.MAX_VALUE,
+                newMethodName = "report",
+            ),
+        )
+
+        assertIs<RefactoringOutcome.Success>(outcome, "outcome=$outcome")
+
+        assertEquals(
+            """
+            package org.example;
+
+            public class Demo {
+                public void run() {
+                    int a = 1;
+                    report(a);
+                }
+
+                private void report(int a) {
+                    int b = a + 2;
+                    System.out.println(b);
+                }
+            }
+            """.trimIndent(),
+            Files.readString(file).trimEnd(),
+        )
+    }
+
+    @Test
     fun `rename method updates call sites across files`(@TempDir worktree: Path) {
         val src = worktree.resolve("src").also(Path::createDirectories)
         val greeter = src.resolve("com/example/Greeter.java")
