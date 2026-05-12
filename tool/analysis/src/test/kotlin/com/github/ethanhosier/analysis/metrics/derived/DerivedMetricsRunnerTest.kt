@@ -270,6 +270,118 @@ class DerivedMetricsRunnerTest {
         assertEquals(0.0, smells.points.absoluteValue)
     }
 
+    @Test
+    fun `alt continuation extends through remaining user checkpoints`() {
+        // 3 user checkpoints: a → b → c. User does a manual-when-IDE
+        // refactoring at b (incurs a manual penalty in the main walk).
+        // An alt covers a → b (IDE version, no manual penalty), then
+        // merges at b. After the merge, c is a quiet checkpoint with
+        // no further refactoring.
+        //
+        // Expectation: the continuation runs the alt's terminal
+        // snapshot forward through c, and produces a continuation
+        // entry for c whose process total is strictly greater than
+        // the user's process total at c — because the alt avoided
+        // the manual-when-IDE penalty that the user's main walk
+        // accumulated at b.
+        val a = checkpoint("a")
+        val b = checkpoint(
+            "b",
+            events = listOf(EventSummary(id = "e", type = EventType.TEST_RUN_FINISHED, timestamp = 0L)),
+        )
+        val c = checkpoint("c")
+        val step = RefactoringStep(
+            stepIndex = 0,
+            fromSha = "a",
+            toSha = "b",
+            toCheckpointIndex = 1,
+            timestamp = 0L,
+            refactoring = detected("Extract Method", ideRelevant = true),
+            wasPerformedByIde = false,
+        )
+        val altCp = checkpoint("alt-b")
+        val alt = AlternativeTrajectory(
+            stepIndexes = listOf(0),
+            fromSha = "a",
+            userToSha = "b",
+            branchRefs = listOf("refs/heads/alt"),
+            specs = listOf(RefactoringSpec.Other),
+            altCheckpoints = listOf(altCp),
+        )
+
+        val result = DerivedMetricsRunner().run(listOf(a, b, c), listOf(alt), listOf(step))
+
+        // One continuation entry — c only (b is the merge point).
+        val cont = result.continuations.single()
+        assertEquals(listOf("c"), cont.checkpointShas)
+        assertEquals(1, cont.processScores.size)
+
+        // Alt avoided the manual penalty; the user's main walk
+        // accumulated it. Continuation at c should beat user at c.
+        val userAtC = result.main.getValue("c").process
+        val altContAtC = cont.processScores.single()
+        assertTrue(
+            altContAtC.total > userAtC.total,
+            "alt continuation at c (=${altContAtC.total}) should beat user at c (=${userAtC.total})",
+        )
+    }
+
+    @Test
+    fun `alt that merges at trace end has empty continuation`() {
+        val a = checkpoint("a")
+        val b = checkpoint("b")
+        val altCp = checkpoint("alt-b")
+        val alt = AlternativeTrajectory(
+            stepIndexes = listOf(0),
+            fromSha = "a",
+            userToSha = "b",
+            branchRefs = listOf("refs/heads/alt"),
+            specs = listOf(RefactoringSpec.Other),
+            altCheckpoints = listOf(altCp),
+        )
+
+        val result = DerivedMetricsRunner().run(listOf(a, b), listOf(alt), emptyList())
+
+        val cont = result.continuations.single()
+        assertTrue(cont.checkpointShas.isEmpty())
+        assertTrue(cont.processScores.isEmpty())
+    }
+
+    @Test
+    fun `alt continuation applies main-walk manual penalty for post-merge user steps`() {
+        // Alt covers a → b. After the merge, the user does another
+        // manual-when-IDE refactoring at c. The continuation walk uses
+        // advanceMainStep (not advanceAltStep), so the manualIde
+        // penalty MUST fire on the continuation score at c.
+        val a = checkpoint("a")
+        val b = checkpoint("b")
+        val c = checkpoint("c")
+        val altCp = checkpoint("alt-b")
+        val alt = AlternativeTrajectory(
+            stepIndexes = listOf(0),
+            fromSha = "a",
+            userToSha = "b",
+            branchRefs = listOf("refs/heads/alt"),
+            specs = listOf(RefactoringSpec.Other),
+            altCheckpoints = listOf(altCp),
+        )
+        val postMergeStep = RefactoringStep(
+            stepIndex = 1,
+            fromSha = "b",
+            toSha = "c",
+            toCheckpointIndex = 2,
+            timestamp = 0L,
+            refactoring = detected("Extract Method", ideRelevant = true),
+            wasPerformedByIde = false,
+        )
+
+        val result = DerivedMetricsRunner().run(listOf(a, b, c), listOf(alt), listOf(postMergeStep))
+
+        val contAtC = result.continuations.single().processScores.single()
+        val manual = contAtC.contributions.single { it.id == "manualIde" }
+        assertTrue(manual.points < 0.0, "manualIde penalty must fire for post-merge user step")
+    }
+
     // ---- fixtures ----
 
     private fun checkpoint(
