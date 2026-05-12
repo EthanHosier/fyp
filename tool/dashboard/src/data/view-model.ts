@@ -562,11 +562,23 @@ export function toViewModel(report: AnalysisReport): DashboardViewModel {
     // Terminal step's checkpoint is the alt's end-state — use it for
     // the chart's apex value and the detail panel's status / patch.
     // Multi-step alt structure (per-step labels, intermediate values)
-    // is exposed via the `steps` array for richer rendering later.
+    // is exposed via the `steps` array.
     const terminal = alt.altCheckpoints[alt.altCheckpoints.length - 1]
     const altBuild = buildTone(terminal.metrics.build.success)
     const altTests = testsTone(terminal.metrics.tests.success, terminal.metrics.tests.wasSkipped)
-    const terminalSpec = alt.specs[alt.specs.length - 1]
+    // IDE-driven alts now expand each refactoring into its own
+    // altCheckpoint, with an optional trailing residual step when the
+    // user made unrelated edits in the same window that 3-way-merged
+    // cleanly on top. So `altCheckpoints.length` ≥ `specs.length`;
+    // when it's one longer, the trailing entry is the residual.
+    const hasResidualStep = alt.altCheckpoints.length === alt.specs.length + 1
+    const residual = alt.residual ?? null
+    const residualLabel = residual
+      ? `Manual cleanup (+${residual.addedLines} / −${residual.deletedLines})`
+      : "Manual cleanup"
+    const apexLabel = hasResidualStep
+      ? residualLabel
+      : specLabel(alt.specs[alt.specs.length - 1])
     const terminalBranchRef = alt.branchRefs[alt.branchRefs.length - 1] ?? ""
     // Synthetic per-VM unique key. Must be unique across the whole VM
     // because the chart's hover/select machinery joins by `index` —
@@ -579,7 +591,7 @@ export function toViewModel(report: AnalysisReport): DashboardViewModel {
         index: idx,
         fromCheckpointIndex: fromIdx,
         toCheckpointIndex: toIdx,
-        label: specLabel(terminalSpec),
+        label: apexLabel,
         altSha: terminal.sha,
         shortAltSha: shortSha(terminal.sha),
         branchRef: terminalBranchRef,
@@ -595,7 +607,14 @@ export function toViewModel(report: AnalysisReport): DashboardViewModel {
           // clicks an alt step on the chart. Index = -1 sentinel: the
           // step isn't in vm.checkpoints, so anything that joins by
           // numeric index will silently no-op.
-          const altLabel = `${specLabel(alt.specs[i])} (alt #${alt.stepIndexes[i] ?? i})`
+          //
+          // For i < specs.length: this is the i-th refactoring in the
+          // group, label with the spec. Trailing step (when present)
+          // is the residual cleanup — label it as such.
+          const isResidualStep = hasResidualStep && i === alt.specs.length
+          const altLabel = isResidualStep
+            ? residualLabel
+            : `${specLabel(alt.specs[i])} (alt #${alt.stepIndexes[i] ?? i})`
           const prevReport = i === 0
             ? (report.checkpoints[fromIdx] ?? null)
             : alt.altCheckpoints[i - 1]
@@ -632,8 +651,14 @@ export function toViewModel(report: AnalysisReport): DashboardViewModel {
           return {
             altSha: cp.sha,
             shortAltSha: shortSha(cp.sha),
-            stepIndex: alt.stepIndexes[i] ?? 0,
-            label: specLabel(alt.specs[i]),
+            // Residual step has no corresponding user stepIndex —
+            // anchor it to the group's last refactoring index so the
+            // chart's join-by-stepIndex falls onto the same window.
+            stepIndex:
+              alt.stepIndexes[i] ??
+              alt.stepIndexes[alt.stepIndexes.length - 1] ??
+              0,
+            label: isResidualStep ? residualLabel : specLabel(alt.specs[i]),
             branchRef: alt.branchRefs[i] ?? "",
             altValues: checkpointValues(cp),
             build: altBuildTone,

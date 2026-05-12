@@ -17,6 +17,7 @@ import { FileDiff } from "@pierre/diffs/react"
 import { Text } from "@/components/text"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import type { DuplicationGroupVM, DuplicationOccurrenceVM } from "@/data/types"
+import { DIFF_SHADOW_CSS } from "@/lib/diff-shadow-css"
 import { cn } from "@/lib/utils"
 
 type ThemeOption = string | { dark: string; light: string }
@@ -170,6 +171,7 @@ function OccurrenceBody({
               hunkSeparators: "simple",
               disableFileHeader: true,
               enableLineSelection: true,
+              unsafeCSS: DIFF_SHADOW_CSS,
             }}
           />
         </div>
