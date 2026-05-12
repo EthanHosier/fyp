@@ -250,6 +250,12 @@ function CheckpointSubtitle({
   return (
     <span className="inline-flex items-center gap-1.5">
       <Text variant="mono" tone="fg-3">
+        {checkpoint.shortSha}
+      </Text>
+      <Text variant="mono" tone="fg-4">
+        ·
+      </Text>
+      <Text variant="mono" tone="fg-3">
         {tLabel ?? checkpoint.tLabel}
       </Text>
       <Text variant="mono" tone="fg-4">
