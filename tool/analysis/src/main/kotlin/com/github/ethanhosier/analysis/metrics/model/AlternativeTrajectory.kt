@@ -37,22 +37,57 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class AlternativeTrajectory(
     /** User stepIndexes covered by this alt, in the order applied
-     *  by the alt. Single-step alts: 1 element. Reorder orderings:
-     *  the window's stepIndexes permuted. */
+     *  by the alt. IDE-driven alts: 1+ elements (one per refactoring
+     *  in the (fromSha, toSha) group). Reorder orderings: the
+     *  window's stepIndexes permuted. */
     val stepIndexes: List<Int>,
     /** Anchor SHA — the user-trajectory state this alt branches from. */
     val fromSha: String,
     /** User-trajectory end-state for the covered range. For reorder
-     *  orderings this is `windowToSha`; for single-step alts it's
-     *  the user's post-step SHA. */
+     *  orderings this is `windowToSha`; for IDE-driven alts it's
+     *  the user's post-step SHA at the group's `toSha`. */
     val userToSha: String,
-    /** Shadow-repo refs, one per applied step, parallel to
-     *  [altCheckpoints]. */
+    /** Shadow-repo refs. For IDE-driven alts: one entry (the group's
+     *  squashed alt-SHA). For reorder orderings: one per applied step,
+     *  parallel to [altCheckpoints]. */
     val branchRefs: List<String>,
-    /** Specs applied, parallel to [altCheckpoints] and [stepIndexes]. */
+    /** Specs applied, in the order applied by the alt. Parallel to
+     *  [stepIndexes]. For IDE-driven groups this has size N matching
+     *  the number of refactorings in the group; [altCheckpoints] still
+     *  has size 1 (one squashed endpoint, not per-step states). */
     val specs: List<RefactoringSpec>,
-    /** Synthesised checkpoints, one per applied step. `events` and
-     *  `touchedMembers` are always empty — alt SHAs aren't landed on by
-     *  user events. */
+    /** Synthesised checkpoints. IDE-driven alts: 1 element (the
+     *  group's endpoint after all specs + residual merge). Reorder
+     *  orderings: one per applied step. `events` and `touchedMembers`
+     *  are always empty — alt SHAs aren't landed on by user events. */
     val altCheckpoints: List<CheckpointReport>,
+    /** Residual 3-way merge result. Null for reorder alts (no residual
+     *  concept — terminals AST-alias the user's `windowToSha`).
+     *  For IDE-driven alts: present whenever residual was attempted.
+     *  `applied=true` means the alt-SHA carries the user's leftover
+     *  edits (the IDE-vs-manual delta is now the only difference vs
+     *  `userToSha`). `applied=false` means 3-way merge conflicted and
+     *  the alt-SHA is refactoring-only. */
+    val residual: ResidualSummary? = null,
+)
+
+/**
+ * Result of applying the user's residual edits (`diff(refactoring-only,
+ * userToSha)`) on top of a group's synthesised refactoring output.
+ */
+@Serializable
+data class ResidualSummary(
+    /** True iff the residual patch applied (cleanly or via 3-way
+     *  merge resolution). False means the apply conflicted and the
+     *  alt-SHA was reset to refactoring-only state. */
+    val applied: Boolean,
+    /** Lines added on top of the refactoring-only state. Zero when
+     *  the user did nothing outside the refactoring (or when the
+     *  apply was rejected wholesale). */
+    val addedLines: Int,
+    /** Lines deleted relative to the refactoring-only state. */
+    val deletedLines: Int,
+    /** Files whose hunks `git apply --3way` couldn't merge. Empty
+     *  when [applied] is true. */
+    val rejectedFiles: List<String>,
 )

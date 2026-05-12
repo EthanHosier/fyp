@@ -16,6 +16,7 @@ import { FileDiff } from "@pierre/diffs/react"
 import type { FileDiffMetadata } from "@pierre/diffs"
 import { Text } from "@/components/text"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { DIFF_SHADOW_CSS } from "@/lib/diff-shadow-css"
 import { cn } from "@/lib/utils"
 
 type Kind = "new" | "deleted" | "renamed" | "modified"
@@ -134,6 +135,7 @@ export function FileDiffCard({
               diffStyle: "unified",
               hunkSeparators: "line-info-basic",
               disableFileHeader: true,
+              unsafeCSS: DIFF_SHADOW_CSS,
             }}
           />
         </div>
