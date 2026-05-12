@@ -303,6 +303,30 @@ export type AlternativeTrajectoryVM = {
    *  entry; multi-step reorder orderings have N. The terminal step
    *  matches the scalar fields above (label/altSha/branchRef/...). */
   steps: AlternativeStepVM[]
+  /** Per-continuation-point snapshot for the user-trajectory
+   *  positions the alt's process-score line passes through *after*
+   *  merging back at `toCheckpointIndex`. Each entry's `cpVm` carries
+   *  the user's checkpoint state (build/tests, all static metrics) at
+   *  that sha with the alt's recomputed `processScore` /
+   *  `processBreakdown` overlaid — same shape as a regular
+   *  CheckpointVM so the detail panel can reuse `CheckpointBody`.
+   *  Empty when the alt merges at the trace end. Chart consumes these
+   *  only when the primary metric is "process". */
+  continuationSteps: AltContinuationStepVM[]
+}
+
+export type AltContinuationStepVM = {
+  /** Index into `checkpoints[]` — the user-trajectory checkpoint
+   *  this continuation point aliases. */
+  checkpointIndex: number
+  /** The alt's recomputed process score total at this checkpoint.
+   *  Exposed separately for chart Y-positioning; same value lives
+   *  inside `cpVm.processScore`. */
+  processScore: number
+  /** CheckpointVM with the alt's recomputed process score swapped in
+   *  for the user's. All other fields mirror the user's checkpoint
+   *  state at the same sha. */
+  cpVm: CheckpointVM
 }
 
 export type AlternativeStepVM = {
@@ -392,6 +416,11 @@ export type Selection =
   // user fromCp → alt[0], k = alt[k-1] → alt[k] for 1 <= k <= N-1, and
   // N = alt[N-1] → user toCp.
   | { kind: "altInterval"; altIndex: number; segmentIndex: number }
+  // Click on a continuation dot — the alt's process-score line past
+  // its merge-back. `altIndex` joins `vm.alternativeTrajectories[].index`;
+  // `continuationIndex` is the index into that alt's
+  // `continuationSteps` array.
+  | { kind: "altContinuation"; altIndex: number; continuationIndex: number }
   // Click on the build / tests rail below the chart. `intervalIndex`
   // points at the first interval in a merged same-status run; the
   // detail panel walks forward to compute the run's total duration.
