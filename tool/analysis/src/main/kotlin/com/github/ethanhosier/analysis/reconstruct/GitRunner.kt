@@ -110,6 +110,97 @@ class GitRunner(private val workDir: Path) {
     }
 
     /**
+     * `git reset --soft <sha>` — moves HEAD without touching worktree
+     * or index. Used to squash a chain of synthesised commits into a
+     * single alt-SHA: reset to the anchor with everything still staged,
+     * then [commit] once.
+     */
+    fun resetSoft(sha: String) {
+        run("reset", "--soft", sha)
+    }
+
+    /**
+     * Result of `git apply --3way --index`. [Ok] means every hunk landed
+     * (cleanly or via 3-way merge resolution) and the changes are
+     * staged. [Conflict] means at least one hunk could not be merged;
+     * the caller is responsible for [resetHard]-ing back to a clean
+     * baseline, no auto-rollback here.
+     */
+    sealed interface ApplyResult {
+        data class Ok(val added: Int, val deleted: Int) : ApplyResult
+        data class Conflict(
+            val rejectedFiles: List<String>,
+            val added: Int,
+            val deleted: Int,
+            val reason: String,
+        ) : ApplyResult
+    }
+
+    /**
+     * `git apply --3way --index <patchFile>`. Stages successfully
+     * merged hunks; conflicts surface in stderr as
+     * `error: <path>: patch does not apply` lines which we pull into
+     * [ApplyResult.Conflict.rejectedFiles]. Line counts come from
+     * `git diff --numstat --cached` so the caller can record how much
+     * landed (or how much was dropped on conflict).
+     */
+    fun applyThreeWay(patchFile: Path): ApplyResult {
+        val result = exec(
+            listOf("apply", "--3way", "--index", patchFile.toString()),
+            allowNonZero = true,
+        )
+        val numstat = exec(listOf("diff", "--numstat", "--cached"), allowNonZero = false).stdout
+        val (added, deleted) = sumNumstat(numstat)
+        if (result.exitCode == 0) {
+            return ApplyResult.Ok(added = added, deleted = deleted)
+        }
+        val rejected = parseRejectedFiles(result.stderr)
+        val reason = result.stderr.lineSequence()
+            .map { it.trim() }
+            .firstOrNull { it.isNotEmpty() }
+            ?: "git apply --3way exited ${result.exitCode}"
+        return ApplyResult.Conflict(
+            rejectedFiles = rejected,
+            added = added,
+            deleted = deleted,
+            reason = reason,
+        )
+    }
+
+    private fun sumNumstat(numstat: String): Pair<Int, Int> {
+        var added = 0
+        var deleted = 0
+        for (raw in numstat.lineSequence()) {
+            val line = raw.trimEnd('\r')
+            if (line.isBlank()) continue
+            val parts = line.split('\t')
+            if (parts.size < 2) continue
+            // Binary files come through as "-\t-\t<path>" — count as 0/0.
+            added += parts[0].toIntOrNull() ?: 0
+            deleted += parts[1].toIntOrNull() ?: 0
+        }
+        return added to deleted
+    }
+
+    private fun parseRejectedFiles(stderr: String): List<String> {
+        val out = LinkedHashSet<String>()
+        // git apply --3way stderr commonly contains lines like
+        //   "error: <path>: patch does not apply"
+        //   "error: <path>: does not match index"
+        // Either way the path is the chunk between "error: " and the
+        // first ":" that follows.
+        for (raw in stderr.lineSequence()) {
+            val line = raw.trimEnd('\r').trim()
+            if (!line.startsWith("error: ")) continue
+            val rest = line.removePrefix("error: ")
+            val colon = rest.indexOf(':')
+            if (colon <= 0) continue
+            out += rest.substring(0, colon).trim()
+        }
+        return out.toList()
+    }
+
+    /**
      * Raw lines from `git diff --numstat -M <from> <to>`. Each line is
      * `added\tdeleted\tpath` where `added` / `deleted` are `-` for binary
      * files. Rename entries use the `{from => to}` path syntax.

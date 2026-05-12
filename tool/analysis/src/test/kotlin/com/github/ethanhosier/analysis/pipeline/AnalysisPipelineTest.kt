@@ -7,6 +7,7 @@ import com.github.ethanhosier.analysis.metrics.gradlebuild.BuildResult
 import com.github.ethanhosier.analysis.metrics.model.CheckpointMetrics
 import com.github.ethanhosier.analysis.metrics.model.ReorderOrdering
 import com.github.ethanhosier.analysis.metrics.model.ReorderTrajectory
+import com.github.ethanhosier.analysis.metrics.model.ResidualSummary
 import com.github.ethanhosier.analysis.miner.model.DetectedRefactoring
 import com.github.ethanhosier.analysis.miner.model.RefactoringSpec
 import com.github.ethanhosier.analysis.miner.model.RefactoringStep
@@ -203,6 +204,97 @@ class AnalysisPipelineTest {
         // ReorderOrdering itself no longer carries a `metrics` field
         // (Slice 2c removed it); per-step data lives on AlternativeTrajectory.
         assertEquals(1, report.reorderTrajectories.single().orderings.size)
+    }
+
+    @Test
+    fun `synthesised group expands per-refactoring + residual into AlternativeTrajectory chain`() {
+        // Two refactorings on the same (fromSha, toSha) window with a
+        // residual that landed cleanly should produce one
+        // AlternativeTrajectory whose altCheckpoints chain is
+        // [refactor1, refactor2, residual] — specs.size == 2 and
+        // altCheckpoints.size == specs.size + 1 to indicate the trailing
+        // residual step.
+        val trace = Trace(metadata = metadata("sess-g1"), events = emptyList())
+        val reconstruction = ReconstructionResult(
+            repoDir = Path.of("/tmp/fake"),
+            eventCommits = EventCommitMap(
+                mapping = linkedMapOf("e1" to "from", "e2" to "to"),
+            ),
+        )
+        val metrics = MetricsRunner.Summary(
+            totalShas = 2,
+            computed = 2,
+            buildOk = 2,
+            testsOk = 2,
+            checkpoints = listOf(checkpoint("from"), checkpoint("to")),
+        )
+        val refactor1Metrics = checkpoint("group-step-0")
+        val refactor2Metrics = checkpoint("group-step-1")
+        val residualMetrics = checkpoint("group-residual")
+        val augmented = mapOf(
+            "group-step-0" to refactor1Metrics,
+            "group-step-1" to refactor2Metrics,
+            "group-residual" to residualMetrics,
+        )
+
+        // Both steps share fromSha + toSha — co-located refactoring group.
+        val stepA = refactoringStep(stepIndex = 0).copy(fromSha = "from", toSha = "to")
+        val stepB = refactoringStep(stepIndex = 1).copy(fromSha = "from", toSha = "to")
+        val miner = RefactoringMinerRunner.Summary(
+            checkpointsAnalysed = 2,
+            steps = listOf(stepA, stepB),
+        )
+        val residual = ResidualSummary(
+            applied = true,
+            addedLines = 3,
+            deletedLines = 1,
+            rejectedFiles = emptyList(),
+        )
+        val alternative = AlternativeTrajectoryRunner.Summary(
+            candidates = 1,
+            synthesised = listOf(
+                AlternativeTrajectoryRunner.SynthesisedGroup(
+                    stepIndexes = listOf(0, 1),
+                    fromSha = "from",
+                    userToSha = "to",
+                    altShas = listOf("group-step-0", "group-step-1", "group-residual"),
+                    branchRefs = listOf(
+                        "alt/group-0/0",
+                        "alt/group-0/1",
+                        "alt/group-0/residual",
+                    ),
+                    residual = residual,
+                ),
+            ),
+            skipped = emptyMap(),
+        )
+
+        val report = buildAnalysisReport(
+            trace = trace,
+            reconstruction = reconstruction,
+            metrics = metrics,
+            miner = miner,
+            alternative = alternative,
+            diffs = emptyDiffsSummary(),
+            pmdTracking = emptyPmdTrackingSummary(),
+            parallelism = 1,
+            metricsDurationMs = 0,
+            augmentedAltMetricsBySha = augmented,
+        )
+
+        val alts = report.alternativeTrajectories
+        assertEquals(1, alts.size)
+        val alt = alts.single()
+        assertEquals(listOf(0, 1), alt.stepIndexes)
+        assertEquals("from", alt.fromSha)
+        assertEquals("to", alt.userToSha)
+        assertEquals(2, alt.specs.size)
+        // altCheckpoints chain: two refactorings + residual cleanup.
+        assertEquals(
+            listOf("group-step-0", "group-step-1", "group-residual"),
+            alt.altCheckpoints.map { it.sha },
+        )
+        assertEquals(residual, alt.residual)
     }
 
     @Test
