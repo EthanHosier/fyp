@@ -98,6 +98,34 @@
   --diffs-font-family: 'JetBrains Mono Variable', ui-monospace, SFMono-Regular, Menlo, monospace;
   --diffs-font-size: 12.5px;
   --diffs-font-features: "liga" 1, "calt" 1;
+
+  /* @pierre/diffs background overrides — explicit colours so they
+     render in JCEF. The library's defaults compute these via
+     `color-mix(in lab, ...)` + `light-dark(...)`, both of which fail
+     silently on the older Chromium JCEF ships, leaving +/- lines
+     untinted and hunk separators (the "N unmodified lines" rows)
+     invisible. Hex values below approximate what color-mix would
+     produce against our --bg-3 (#18191c) substrate. */
+  /* Base accent colours. The library normally derives these via
+     `light-dark(...)` from the per-mode pair, which fails to parse in
+     JCEF and leaves the indicator stripes (the 4px deletion/addition
+     bar in the gutter) unset. Pin to the library's dark-mode defaults
+     so the variables always resolve. */
+  --diffs-deletion-color-override: #ff6762;
+  --diffs-addition-color-override: #5ecc71;
+  --diffs-modified-color-override: #69b1ff;
+  --diffs-bg-buffer-override: #2a2b2e;
+  --diffs-bg-context-override: #292a2d;
+  --diffs-bg-context-number-override: #222326;
+  --diffs-bg-separator-override: #3b3c3e;
+  --diffs-bg-addition-override: #1e2723;
+  --diffs-bg-addition-number-override: #233429;
+  --diffs-bg-addition-hover-override: #21302a;
+  --diffs-bg-addition-emphasis-override: #2b4a33;
+  --diffs-bg-deletion-override: #2a1f21;
+  --diffs-bg-deletion-number-override: #3b2527;
+  --diffs-bg-deletion-hover-override: #311e22;
+  --diffs-bg-deletion-emphasis-override: #43292d;
 }
 
 @custom-variant dark (&:is(.dark *));
