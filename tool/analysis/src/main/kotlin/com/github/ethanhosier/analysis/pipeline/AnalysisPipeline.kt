@@ -197,14 +197,24 @@ class AnalysisPipeline(
         log("alt-traj: starting (refactoringClient=ready)")
         val alternative = AlternativeTrajectoryRunner(
             refactoringClient = refactoringClient,
-            parallelism = parallelism,
         ).run(reconstruction, miner.steps, sessionDir)
         val alternativeDurationMs = System.currentTimeMillis() - alternativeStart
         log("alt-traj: ${alternative.synthesised.size}/${alternative.candidates} synthesised, ${alternative.skipped.size} skipped in ${alternativeDurationMs}ms")
 
         val metricsStart = System.currentTimeMillis()
-        val altShas = alternative.synthesised.map { it.altSha }
-        val altFromShas = alternative.synthesised.map { it.fromSha }
+        // Per-group SHA chain: each group contributes one entry per
+        // applied refactoring + an optional trailing residual SHA. The
+        // chain is parented sequentially so each SHA's `from` is the
+        // previous SHA in the same group (or `fromSha` for the first).
+        val altShas = mutableListOf<String>()
+        val altFromShas = mutableListOf<String>()
+        for (synth in alternative.synthesised) {
+            synth.altShas.forEachIndexed { i, sha ->
+                val from = if (i == 0) synth.fromSha else synth.altShas[i - 1]
+                altShas += sha
+                altFromShas += from
+            }
+        }
         // Reorder intermediates piggy-back on the alt-shas bucket so
         // MetricsRunner's existing dedup + sequential-walk path covers
         // them. Terminal stepShas of successful orderings are excluded:
@@ -267,7 +277,13 @@ class AnalysisPipeline(
         // orderings contribute N pairs (chained: each step's `from` is
         // the previous step's altSha, except step 0 which anchors at
         // windowFromSha).
-        val singleAltPairs = alternative.synthesised.map { it.fromSha to it.altSha }
+        val singleAltPairs = mutableListOf<Pair<String, String>>()
+        for (synth in alternative.synthesised) {
+            synth.altShas.forEachIndexed { i, sha ->
+                val from = if (i == 0) synth.fromSha else synth.altShas[i - 1]
+                singleAltPairs += from to sha
+            }
+        }
         val reorderAltPairs = mutableListOf<Pair<String, String>>()
         for (traj in reorderSynth.trajectories) {
             for (ord in traj.orderings) {
@@ -431,18 +447,26 @@ internal fun buildAnalysisReport(
         )
     }
 
-    // Single-step alts wrap each scalar field in a 1-element list.
+    // IDE-driven alts: one entry per synthesised group. `altCheckpoints`
+    // is the per-step chain (one per applied refactoring + optional
+    // trailing residual SHA). `specs` and `stepIndexes` are parallel to
+    // *each other* (length N) and cover only the refactoring portion;
+    // `altCheckpoints` is length N or N+1 depending on whether the
+    // residual landed as its own step. When `altCheckpoints.size ==
+    // specs.size + 1`, the trailing entry is the residual cleanup.
     val singleStepAlts = alternative.synthesised.mapNotNull { synth ->
-        val step = stepsByIndex[synth.stepIndex] ?: return@mapNotNull null
-        val spec = step.spec ?: return@mapNotNull null
-        val altCp = altCheckpointFor(synth.altSha) ?: return@mapNotNull null
+        val specs = synth.stepIndexes.map { idx ->
+            stepsByIndex[idx]?.spec ?: return@mapNotNull null
+        }
+        val altCps = synth.altShas.map { altCheckpointFor(it) ?: return@mapNotNull null }
         AlternativeTrajectory(
-            stepIndexes = listOf(synth.stepIndex),
+            stepIndexes = synth.stepIndexes,
             fromSha = synth.fromSha,
             userToSha = synth.userToSha,
-            branchRefs = listOf(synth.branchRef),
-            specs = listOf(spec),
-            altCheckpoints = listOf(altCp),
+            branchRefs = synth.branchRefs,
+            specs = specs,
+            altCheckpoints = altCps,
+            residual = synth.residual,
         )
     }
 
