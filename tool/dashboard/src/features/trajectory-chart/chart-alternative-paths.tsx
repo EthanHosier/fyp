@@ -109,11 +109,26 @@ export function ChartAlternativePaths({
         // values come from the alt's altCheckpoints in alt-applied
         // order, so the polyline reads as the alt's progression while
         // the X axis stays anchored to the user's slots.
-        const userOrderXPositions = alt.steps
+        //
+        // Rework alts have no miner stepIndex mapping (they replay
+        // raw user commits, not miner-typed refactorings). For those,
+        // distribute the alt's K steps evenly along the
+        // [fromCp.xPos, toCp.xPos] range so the polyline still spans
+        // the alt's range instead of collapsing onto step 0.
+        const stepIndexXPositions = alt.steps
           .map((s) => xPosByStepIndex.get(s.stepIndex))
           .filter((x): x is number => typeof x === "number")
           .slice()
           .sort((a, b) => a - b)
+        const hasStepIndexAnchors = stepIndexXPositions.length === alt.steps.length
+        const userOrderXPositions: number[] = hasStepIndexAnchors
+          ? stepIndexXPositions
+          : (() => {
+              const n = alt.steps.length
+              if (n === 1) return [fromCp.xPos]
+              const span = toCp.xPos - fromCp.xPos
+              return Array.from({ length: n }, (_, i) => fromCp.xPos + (span * (i + 1)) / n)
+            })()
         const altPoints: { x: number; y: number; vm: typeof alt.steps[number] }[] = []
         for (let k = 0; k < alt.steps.length; k++) {
           const slotX = userOrderXPositions[k]

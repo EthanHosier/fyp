@@ -167,6 +167,48 @@ class GitRunner(private val workDir: Path) {
         )
     }
 
+    /**
+     * Plain `git apply --index --whitespace=nowarn <patchFile>` — no
+     * 3-way merge fallback. Used by the rework alt-builder where the
+     * caller has already line-renumbered the patch into the
+     * synthetic-tree's coord system, so the literal hunk is expected
+     * to apply against the index. `--3way` would consult the patch's
+     * pre-blob OIDs (which point at the user's tree) for merge base
+     * — exactly the divergent state surgery is meant to avoid —
+     * producing spurious conflicts.
+     *
+     * `--whitespace=nowarn` suppresses benign trailing-whitespace
+     * warnings that would otherwise clutter the stderr "reason"
+     * surfaced on real failures.
+     */
+    fun applyDirect(patchFile: Path): ApplyResult {
+        val result = exec(
+            // --unidiff-zero is required: the rework alt-builder produces
+            // patches with no context lines (`-U0`). Without this flag,
+            // git apply falls back to fuzzy context matching and silently
+            // misplaces pure-insertion hunks (typically dumping them at
+            // end-of-file instead of the literal hunk position).
+            listOf("apply", "--index", "--unidiff-zero", "--whitespace=nowarn", patchFile.toString()),
+            allowNonZero = true,
+        )
+        val numstat = exec(listOf("diff", "--numstat", "--cached"), allowNonZero = false).stdout
+        val (added, deleted) = sumNumstat(numstat)
+        if (result.exitCode == 0) {
+            return ApplyResult.Ok(added = added, deleted = deleted)
+        }
+        val rejected = parseRejectedFiles(result.stderr)
+        val reason = result.stderr.lineSequence()
+            .map { it.trim() }
+            .firstOrNull { it.isNotEmpty() }
+            ?: "git apply exited ${result.exitCode}"
+        return ApplyResult.Conflict(
+            rejectedFiles = rejected,
+            added = added,
+            deleted = deleted,
+            reason = reason,
+        )
+    }
+
     private fun sumNumstat(numstat: String): Pair<Int, Int> {
         var added = 0
         var deleted = 0

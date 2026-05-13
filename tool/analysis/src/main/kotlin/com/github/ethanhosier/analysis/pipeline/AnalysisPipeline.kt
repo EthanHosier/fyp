@@ -4,6 +4,7 @@ package com.github.ethanhosier.analysis.pipeline
 import com.github.ethanhosier.analysis.advice.TrajectoryAdvisor
 import com.github.ethanhosier.analysis.alternative.AlternativeTrajectoryRunner
 import com.github.ethanhosier.analysis.alternative.synthesise.ReorderSynthesiser
+import com.github.ethanhosier.analysis.alternative.rework.ReworkSynthesiser
 import com.github.ethanhosier.analysis.alternative.validate.RefactoringStepValidator
 import com.github.ethanhosier.analysis.metrics.WorktreePool
 import com.github.ethanhosier.analysis.diffs.DiffsRunner
@@ -201,6 +202,17 @@ class AnalysisPipeline(
         val alternativeDurationMs = System.currentTimeMillis() - alternativeStart
         log("alt-traj: ${alternative.synthesised.size}/${alternative.candidates} synthesised, ${alternative.skipped.size} skipped in ${alternativeDurationMs}ms")
 
+        // Rework alt synthesis: detect chunk-level rework (user added
+        // then removed the same content, or vice versa) and surgically
+        // replay the trajectory with the round-trip removed. Produces
+        // alt SHAs that feed into the same metrics + diff + tracking
+        // pipeline as the other alts.
+        val reworkStart = System.currentTimeMillis()
+        log("rework: starting")
+        val reworkSummary = ReworkSynthesiser().run(reconstruction, sessionDir)
+        val reworkDurationMs = System.currentTimeMillis() - reworkStart
+        log("rework: ${reworkSummary.synthesised.size}/${reworkSummary.candidates} synthesised, ${reworkSummary.failed.size} failed in ${reworkDurationMs}ms")
+
         val metricsStart = System.currentTimeMillis()
         // Per-group SHA chain: each group contributes one entry per
         // applied refactoring + an optional trailing residual SHA. The
@@ -237,12 +249,25 @@ class AnalysisPipeline(
                 }
             }
         }
-        val mergedAltShas = altShas + reorderIntermediateShas
-        val mergedAltFromShas = altFromShas + reorderIntermediateFromShas
+        // Rework alt SHAs: same chain pattern as the IDE-driven alts —
+        // each step's parent is the previous step's altSha, except the
+        // first step which parents at the rework's fromSha.
+        val reworkShas = mutableListOf<String>()
+        val reworkFromShas = mutableListOf<String>()
+        for (rw in reworkSummary.synthesised) {
+            rw.altShas.forEachIndexed { i, sha ->
+                val from = if (i == 0) rw.fromSha else rw.altShas[i - 1]
+                reworkShas += sha
+                reworkFromShas += from
+            }
+        }
+        val mergedAltShas = altShas + reorderIntermediateShas + reworkShas
+        val mergedAltFromShas = altFromShas + reorderIntermediateFromShas + reworkFromShas
         val totalShas = reconstruction.eventCommits.mapping.values.toSet().size + mergedAltShas.size
         log(
             "metrics: starting on $totalShas SHA(s) (${altShas.size} alt-single, " +
-                "${reorderIntermediateShas.size} reorder-intermediate) at parallelism=$parallelism",
+                "${reorderIntermediateShas.size} reorder-intermediate, " +
+                "${reworkShas.size} rework) at parallelism=$parallelism",
         )
         val metrics = MetricsRunner(parallelism = parallelism).run(
             reconstruction = reconstruction,
@@ -270,6 +295,18 @@ class AnalysisPipeline(
                 altMetricsByShaMut[terminalSha] = terminalAlias.copy(sha = terminalSha)
             }
         }
+        // No-op rework alts (user added then removed the same content,
+        // or vice versa, with no other code change) anchor their single
+        // "alt checkpoint" at the same SHA as the user's pre-rework
+        // state — no new commit, same tree. Alias the user's metrics
+        // for that SHA so altCheckpointFor can build a CheckpointReport.
+        for (rw in reworkSummary.synthesised) {
+            for (sha in rw.altShas) {
+                if (sha in altMetricsByShaMut) continue
+                val alias = userMetricsBySha[sha] ?: continue
+                altMetricsByShaMut[sha] = alias
+            }
+        }
         val augmentedAltCheckpoints = altMetricsByShaMut.values.toList()
 
         // Per-step alt pairs feed Diffs / Pmd / Cpd tracking for every
@@ -294,7 +331,14 @@ class AnalysisPipeline(
                 }
             }
         }
-        val allAltPairs = singleAltPairs + reorderAltPairs
+        val reworkAltPairs = mutableListOf<Pair<String, String>>()
+        for (rw in reworkSummary.synthesised) {
+            rw.altShas.forEachIndexed { i, sha ->
+                val from = if (i == 0) rw.fromSha else rw.altShas[i - 1]
+                reworkAltPairs += from to sha
+            }
+        }
+        val allAltPairs = singleAltPairs + reorderAltPairs + reworkAltPairs
 
         val diffsStart = System.currentTimeMillis()
         log("diffs: starting")
@@ -336,6 +380,7 @@ class AnalysisPipeline(
             parallelism = parallelism,
             metricsDurationMs = metricsDurationMs,
             reorderTrajectories = reorderSynth.trajectories,
+            reworkSummary = reworkSummary,
         )
 
         return Result(
@@ -385,6 +430,7 @@ internal fun buildAnalysisReport(
      *  Defaults to `metrics.alternativeCheckpoints.associateBy { it.sha }`
      *  for callers that don't synthesise terminal aliases (e.g. tests). */
     augmentedAltMetricsBySha: Map<String, com.github.ethanhosier.analysis.metrics.model.CheckpointMetrics>? = null,
+    reworkSummary: ReworkSynthesiser.Summary? = null,
 ): AnalysisReport {
     // Preserve event order so each checkpoint's event list reads
     // chronologically — LinkedHashMap's insertion order is what we want.
@@ -536,7 +582,39 @@ internal fun buildAnalysisReport(
         }
     }
 
-    val baseAlternatives = singleStepAlts + reorderAlts
+    // Rework alts: one entry per synthesised rework. `specs` /
+    // `stepIndexes` are empty because rework replays raw user commits
+    // rather than miner-typed refactoring steps; the chart and
+    // continuation walk only consume `altCheckpoints` + from/userToSha
+    // anchors, which the rest of the alt-trajectory plumbing handles
+    // uniformly.
+    // Rework alts whose `altShas[i]` aliases a user SHA (the no-op
+    // case — delete-then-undelete cancels out, alt branches at fromSha
+    // and never moves) must NOT inherit the user's main-walk diff at
+    // that SHA. The user's diffBySha[fromSha] reflects fromSha's churn
+    // from its parent — i.e. the code that was already there before
+    // the rework — which has nothing to do with the alt. Attributing
+    // it to the alt's first step inflates the alt's churn / smells
+    // delta and depresses the process score artificially. Zero out
+    // the diff for any alt checkpoint whose SHA collides with a user
+    // checkpoint.
+    val userShaSet = baseCheckpoints.map { it.sha }.toSet()
+    val reworkAlts = reworkSummary?.synthesised.orEmpty().mapNotNull { rw ->
+        val altCps = rw.altShas.map { sha ->
+            val cp = altCheckpointFor(sha) ?: return@mapNotNull null
+            if (sha in userShaSet) cp.copy(diff = DiffStats.ZERO) else cp
+        }
+        AlternativeTrajectory(
+            stepIndexes = emptyList(),
+            fromSha = rw.fromSha,
+            userToSha = rw.userToSha,
+            branchRefs = rw.branchRefs,
+            specs = emptyList(),
+            altCheckpoints = altCps,
+        )
+    }
+
+    val baseAlternatives = singleStepAlts + reorderAlts + reworkAlts
 
     val derived = DerivedMetricsRunner().run(
         mainCheckpoints = baseCheckpoints,
