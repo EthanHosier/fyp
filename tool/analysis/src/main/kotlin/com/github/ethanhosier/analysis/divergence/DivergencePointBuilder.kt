@@ -42,10 +42,21 @@ object DivergencePointBuilder {
         val direction: String,
     )
 
+    /** Per-alt metadata for a HYGIENE divergence — threaded in from
+     *  [com.github.ethanhosier.analysis.divergence.HygieneDetector]. */
+    data class HygieneInfo(
+        val anchorIndex: Int,
+        /** Matches `HygieneDetector.SubKind.name`. */
+        val subKind: String,
+        /** COMMIT_GAP only: checkpoints since the previous commit. */
+        val gapLength: Int? = null,
+    )
+
     fun build(
         alts: List<AlternativeTrajectory>,
         userCheckpoints: List<CheckpointReport>,
         reworkInfoByAltIndex: Map<Int, ReworkInfo> = emptyMap(),
+        hygieneInfoByAltIndex: Map<Int, HygieneInfo> = emptyMap(),
     ): List<DivergencePoint> {
         val userProcessBySha: Map<String, Int> = userCheckpoints
             .associate { it.sha to it.derivedMetrics.process.total }
@@ -56,6 +67,7 @@ object DivergencePointBuilder {
         out += buildIdeReplay(alts, userProcessBySha)
         out += buildOrdering(alts, userProcessBySha, userStepIndexBySha)
         out += buildRework(alts, reworkInfoByAltIndex)
+        out += buildHygiene(alts, userCheckpoints, hygieneInfoByAltIndex)
         return out
     }
 
@@ -169,6 +181,61 @@ object DivergencePointBuilder {
                 originatingPatch = info.originatingPatch,
                 terminalPatch = info.terminalPatch,
                 reworkDirection = info.direction,
+            )
+        }
+        return out
+    }
+
+    /**
+     * Emit a HYGIENE DP per hygiene alt. Magnitude is `altProcess -
+     * userProcess` measured at the alt's terminal (= the user's anchor
+     * checkpoint after the flip is applied). TESTS_SKIPPED applies the
+     * shared [MIN_PROCESS_DELTA] floor; COMMIT_GAP emits regardless of
+     * magnitude (today it's structurally zero since commit cadence
+     * isn't in the score formula — the DP surfaces the gap and the
+     * magnitude will become meaningful once cadence joins the score).
+     */
+    private fun buildHygiene(
+        alts: List<AlternativeTrajectory>,
+        userCheckpoints: List<CheckpointReport>,
+        hygieneInfoByAltIndex: Map<Int, HygieneInfo>,
+    ): List<DivergencePoint> {
+        val out = mutableListOf<DivergencePoint>()
+        for ((i, alt) in alts.withIndex()) {
+            if (alt.kind != DivergenceKind.HYGIENE) continue
+            val info = hygieneInfoByAltIndex[i] ?: continue
+            val anchorCp = userCheckpoints.getOrNull(info.anchorIndex) ?: continue
+            val altProcess = alt.altCheckpoints.lastOrNull()
+                ?.derivedMetrics?.process?.total ?: continue
+            val userProcess = anchorCp.derivedMetrics.process.total
+            val delta = (altProcess - userProcess).toDouble()
+
+            val (title, explanation) = when (info.subKind) {
+                "TESTS_SKIPPED" -> {
+                    if (delta < MIN_PROCESS_DELTA) continue
+                    "Tests skipped here — running them would have scored +${formatDelta(delta)}" to
+                        ("You skipped tests at this checkpoint. Running them and " +
+                            "treating them as passing would have lifted process score " +
+                            "$userProcess → $altProcess (+${formatDelta(delta)}).")
+                }
+                "COMMIT_GAP" -> {
+                    val gap = info.gapLength ?: 0
+                    "No commit for $gap checkpoints — frequent commits give you cheap restore points" to
+                        ("You went $gap checkpoints without committing here. Frequent commits " +
+                            "give you cheap restore points and keep PR diffs reviewable.")
+                }
+                else -> continue
+            }
+
+            out += DivergencePoint(
+                stepIndex = info.anchorIndex,
+                kind = DivergenceKind.HYGIENE,
+                magnitude = delta,
+                title = title,
+                explanation = explanation,
+                altTrajectoryIndexes = listOf(i),
+                hygieneSubKind = info.subKind,
+                hygieneStretchLength = info.gapLength,
             )
         }
         return out
