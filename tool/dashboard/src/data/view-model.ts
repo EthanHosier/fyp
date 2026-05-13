@@ -35,6 +35,7 @@ import type {
   CodeSmellsVM,
   CommitMarkerVM,
   DashboardViewModel,
+  DivergencePointVM,
   DuplicationGroupVM,
   DuplicationOccurrenceVM,
   DuplicationsVM,
@@ -571,14 +572,24 @@ export function toViewModel(report: AnalysisReport): DashboardViewModel {
     // user made unrelated edits in the same window that 3-way-merged
     // cleanly on top. So `altCheckpoints.length` ≥ `specs.length`;
     // when it's one longer, the trailing entry is the residual.
-    const hasResidualStep = alt.altCheckpoints.length === alt.specs.length + 1
+    //
+    // Important: rework alts have empty `specs` but typically one
+    // altCheckpoint, which would otherwise match the residual heuristic
+    // (`altCheckpoints.length === specs.length + 1`) and mislabel them
+    // as "Manual cleanup". Gate on `kind` so REWORK alts get a Rework
+    // label regardless of the per-step list-length coincidence.
+    const isReworkAlt = alt.kind === "REWORK"
+    const hasResidualStep =
+      !isReworkAlt && alt.altCheckpoints.length === alt.specs.length + 1
     const residual = alt.residual ?? null
     const residualLabel = residual
       ? `Manual cleanup (+${residual.addedLines} / −${residual.deletedLines})`
       : "Manual cleanup"
-    const apexLabel = hasResidualStep
-      ? residualLabel
-      : specLabel(alt.specs[alt.specs.length - 1])
+    const apexLabel = isReworkAlt
+      ? "Rework"
+      : hasResidualStep
+        ? residualLabel
+        : specLabel(alt.specs[alt.specs.length - 1])
     const terminalBranchRef = alt.branchRefs[alt.branchRefs.length - 1] ?? ""
     // Synthetic per-VM unique key. Must be unique across the whole VM
     // because the chart's hover/select machinery joins by `index` —
@@ -661,6 +672,7 @@ export function toViewModel(report: AnalysisReport): DashboardViewModel {
 
     return [
       {
+        kind: (alt.kind ?? "ORDERING") as DivergencePointVM["kind"],
         index: idx,
         fromCheckpointIndex: fromIdx,
         toCheckpointIndex: toIdx,
@@ -770,6 +782,31 @@ export function toViewModel(report: AnalysisReport): DashboardViewModel {
     body: a.body,
   }))
 
+  const divergencePoints: DivergencePointVM[] = (
+    report.divergencePoints ?? []
+  ).map((dp, i) => ({
+    id: `dp-${i}`,
+    stepIndex: dp.stepIndex,
+    kind: dp.kind as DivergencePointVM["kind"],
+    magnitude: dp.magnitude,
+    title: dp.title,
+    explanation: dp.explanation,
+    altIndexes: dp.altTrajectoryIndexes,
+    orderingWindowSteps: dp.orderingWindowSteps ?? undefined,
+    originatingStepIndex: dp.originatingStepIndex ?? undefined,
+    file: dp.file ?? undefined,
+    scopeLabel: dp.scopeLabel ?? undefined,
+    reworkLineCount: dp.reworkLineCount ?? undefined,
+    replacedRefactoringId: dp.replacedRefactoringId ?? undefined,
+    originatingPatch: dp.originatingPatch ?? undefined,
+    terminalPatch: dp.terminalPatch ?? undefined,
+    reworkDirection:
+      dp.reworkDirection === "ADD_THEN_REMOVE" ||
+      dp.reworkDirection === "REMOVE_THEN_ADD"
+        ? dp.reworkDirection
+        : undefined,
+  }))
+
   return {
     session,
     metrics: METRICS,
@@ -777,6 +814,7 @@ export function toViewModel(report: AnalysisReport): DashboardViewModel {
     intervals,
     refactoringSteps,
     alternativeTrajectories,
+    divergencePoints,
     commitMarkers,
     advice,
     trajectory,

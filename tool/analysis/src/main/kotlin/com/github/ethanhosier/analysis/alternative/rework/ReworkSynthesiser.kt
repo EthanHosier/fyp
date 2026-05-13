@@ -43,6 +43,14 @@ class ReworkSynthesiser {
         val direction: ReworkDetector.Direction,
         val rawLineCount: Int,
         val contentSummary: String,
+        /** Focused unified-diff patch for the originating step,
+         *  containing only the matched chunk's hunk. Pure insertion
+         *  for `ADD_THEN_REMOVE`; pure removal for `REMOVE_THEN_ADD`.
+         *  Pre-built backend-side so the dashboard renders it as-is. */
+        val originatingPatch: String,
+        /** Focused unified-diff patch for the terminal step — the
+         *  inverse of [originatingPatch]. */
+        val terminalPatch: String,
     )
 
     fun run(
@@ -120,6 +128,7 @@ class ReworkSynthesiser {
                 val effectiveAltShas = if (outcome.shas.isEmpty()) listOf(userToSha) else outcome.shas
                 val effectiveBranchRefs = if (outcome.shas.isEmpty()) emptyList() else outcome.branchRefs
 
+                val (originatingPatch, terminalPatch) = buildFocusedPatches(pair)
                 synthesised += SynthesisedRework(
                     fromSha = fromSha,
                     userToSha = userToSha,
@@ -132,6 +141,8 @@ class ReworkSynthesiser {
                     direction = pair.direction,
                     rawLineCount = pair.rawLineCount,
                     contentSummary = pair.contentSummary,
+                    originatingPatch = originatingPatch,
+                    terminalPatch = terminalPatch,
                 )
                 val sizeLabel = if (outcome.shas.isEmpty()) "0 (no-op alt, anchored at fromSha)" else outcome.shas.size.toString()
                 log("$key: synthesised $sizeLabel checkpoint(s)")
@@ -190,6 +201,59 @@ class ReworkSynthesiser {
             terminalRunStartLine = pair.terminalRunStartLine,
             rawLineCount = pair.rawLineCount,
         )
+
+    /**
+     * Synthesises two focused unified-diff patches for a [ChunkPair]:
+     * the originating step's add (or remove) and the terminal step's
+     * inverse. Each patch contains a single hunk with the chunk's lines
+     * prefixed `+`/`-` as appropriate, plus the standard `--- a/file`
+     * / `+++ b/file` header pair so the dashboard's diff renderer can
+     * consume them like any other unified-diff string.
+     *
+     * Pure-insertion / pure-removal hunk header convention:
+     *  - Insertion of N lines at new-side line L:
+     *    `@@ -<L-1>,0 +<L>,<N> @@`
+     *  - Removal of N lines at old-side line L:
+     *    `@@ -<L>,<N> +<L-1>,0 @@`
+     */
+    private fun buildFocusedPatches(pair: ReworkDetector.ChunkPair): Pair<String, String> {
+        // `split` on a trailing newline yields an extra empty element
+        // — strip it so the hunk's line count matches the body length
+        // and the diff renderer doesn't fabricate a phantom blank line.
+        val chunkLines = pair.chunkSourceText
+            .split("\n")
+            .let { if (it.isNotEmpty() && it.last().isEmpty()) it.dropLast(1) else it }
+        val addedBody = chunkLines.joinToString("") { "+$it\n" }
+        val removedBody = chunkLines.joinToString("") { "-$it\n" }
+        val n = chunkLines.size
+
+        fun additionPatch(startLine: Int): String {
+            val before = (startLine - 1).coerceAtLeast(0)
+            return "diff --git a/${pair.file} b/${pair.file}\n" +
+                "--- a/${pair.file}\n" +
+                "+++ b/${pair.file}\n" +
+                "@@ -$before,0 +$startLine,$n @@\n" +
+                addedBody
+        }
+
+        fun removalPatch(startLine: Int): String {
+            val after = (startLine - 1).coerceAtLeast(0)
+            return "diff --git a/${pair.file} b/${pair.file}\n" +
+                "--- a/${pair.file}\n" +
+                "+++ b/${pair.file}\n" +
+                "@@ -$startLine,$n +$after,0 @@\n" +
+                removedBody
+        }
+
+        return when (pair.direction) {
+            ReworkDetector.Direction.ADD_THEN_REMOVE ->
+                additionPatch(pair.originatingRunStartLine) to
+                    removalPatch(pair.terminalRunStartLine)
+            ReworkDetector.Direction.REMOVE_THEN_ADD ->
+                removalPatch(pair.originatingRunStartLine) to
+                    additionPatch(pair.terminalRunStartLine)
+        }
+    }
 
     private data class ApplyOutcome(val shas: List<String>, val branchRefs: List<String>)
 

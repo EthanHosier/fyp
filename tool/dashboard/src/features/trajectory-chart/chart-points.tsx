@@ -1,6 +1,7 @@
 import type { DashboardViewModel, MetricVM, Selection } from "@/data/types"
 import type { ChartScales } from "@/features/trajectory-chart/use-chart-scales"
 import { TONE_TEXT } from "@/lib/metric-tone"
+import { useDashboardStore } from "@/stores/dashboard-store"
 import { cn } from "@/lib/utils"
 
 /**
@@ -23,6 +24,9 @@ export function ChartPoints({
   onSelect: (s: Selection) => void
 }) {
   const { xs, ys } = scales
+  const highlightedCheckpointIndex = useDashboardStore(
+    (s) => s.highlightedCheckpointIndex,
+  )
 
   return (
     <g className={cn(TONE_TEXT[primary.tone])}>
@@ -31,6 +35,7 @@ export function ChartPoints({
         if (typeof v !== "number") return null
         const selected =
           selection?.kind === "checkpoint" && selection.index === c.index
+        const highlighted = highlightedCheckpointIndex === c.index
         const r = selected ? 3 : 2
         return (
           <g
@@ -56,6 +61,29 @@ export function ChartPoints({
                 strokeOpacity={0.35}
                 strokeWidth={1}
               />
+            ) : null}
+            {highlighted ? (
+              <circle
+                cx={xs(c.xPos)}
+                cy={ys(v)}
+                r={r + 6}
+                className="fill-none stroke-brand-2"
+                strokeWidth={2}
+                strokeOpacity={0.9}
+              >
+                <animate
+                  attributeName="r"
+                  values={`${r + 4};${r + 9};${r + 4}`}
+                  dur="1.6s"
+                  repeatCount="indefinite"
+                />
+                <animate
+                  attributeName="stroke-opacity"
+                  values="0.9;0.3;0.9"
+                  dur="1.6s"
+                  repeatCount="indefinite"
+                />
+              </circle>
             ) : null}
           </g>
         )

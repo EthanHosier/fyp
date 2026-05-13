@@ -36,6 +36,14 @@ import kotlinx.serialization.Serializable
  */
 @Serializable
 data class AlternativeTrajectory(
+    /** Discriminates the alt's origin / divergence kind: ORDERING
+     *  (reorder synth), IDE_REPLAY (single-step IDE-driven), or
+     *  REWORK (surgical replay). Set at creation by the respective
+     *  producer; downstream consumers switch on this rather than
+     *  inferring from [specs] / [stepIndexes] shape. Default is
+     *  ORDERING so older cached reports deserialise without surprise
+     *  (the historical un-tagged shape was reorder alts). */
+    val kind: DivergenceKind = DivergenceKind.ORDERING,
     /** User stepIndexes covered by this alt, in the order applied
      *  by the alt. IDE-driven alts: 1+ elements (one per refactoring
      *  in the (fromSha, toSha) group). Reorder orderings: the

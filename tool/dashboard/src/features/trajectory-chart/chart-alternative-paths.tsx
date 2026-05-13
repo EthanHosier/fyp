@@ -75,6 +75,18 @@ export function ChartAlternativePaths({
   const userFinalProcess =
     vm.checkpoints[vm.checkpoints.length - 1]?.processScore
 
+  // When a divergence-point marker is selected, dim every alt that
+  // isn't owned by that DP. Alts owned by the selected DP render at
+  // full opacity (and remain interactive); others fade so the chart
+  // makes it visually obvious which alts demonstrate the picked DP.
+  const selectedDp =
+    selection?.kind === "divergencePoint"
+      ? vm.divergencePoints.find((dp) => dp.id === selection.dpId)
+      : undefined
+  const dpHighlightedAlts: Set<number> | null = selectedDp
+    ? new Set(selectedDp.altIndexes)
+    : null
+
   return (
     <g>
       {vm.alternativeTrajectories.map((alt) => {
@@ -124,8 +136,15 @@ export function ChartAlternativePaths({
         const userOrderXPositions: number[] = hasStepIndexAnchors
           ? stepIndexXPositions
           : (() => {
+              // Rework alts (no miner stepIndex anchors): land the
+              // checkpoint(s) such that the terminal step aligns with
+              // the user's toSha xPos. For a single-step rework that
+              // means placing it directly at `toCp.xPos`; for multi-
+              // step reworks distribute evenly across the
+              // `[fromCp.xPos, toCp.xPos]` range, the last entry being
+              // at `toCp.xPos`.
               const n = alt.steps.length
-              if (n === 1) return [fromCp.xPos]
+              if (n === 1) return [toCp.xPos]
               const span = toCp.xPos - fromCp.xPos
               return Array.from({ length: n }, (_, i) => fromCp.xPos + (span * (i + 1)) / n)
             })()
@@ -215,8 +234,15 @@ export function ChartAlternativePaths({
               { x: xTo, y: ys(yTo), kind: "to" as const },
             ]
 
+        const isDimmedByDp =
+          dpHighlightedAlts !== null && !dpHighlightedAlts.has(alt.index)
+
         return (
-          <g key={alt.index} className={cn(isWorse ? "text-fg-4" : "text-brand")}>
+          <g
+            key={alt.index}
+            className={cn(isWorse ? "text-fg-4" : "text-brand")}
+            style={isDimmedByDp ? { opacity: 0.2 } : undefined}
+          >
             {/* Base dashed alt polyline — pointer events disabled so
                 the per-segment hit targets below own click + hover.
                 In process mode the alt diverges forever; the stub at

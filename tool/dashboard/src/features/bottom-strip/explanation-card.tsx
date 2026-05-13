@@ -190,6 +190,7 @@ function deltasFor(vm: DashboardViewModel, selection: Selection): Delta[] {
     if (!from || !to) return []
     return computeDeltas(vm, from, to)
   }
+  if (selection.kind !== "interval" && selection.kind !== "alternative") return []
   const iv = vm.intervals[selection.index]
   if (!iv) return []
   return computeDeltas(vm, vm.checkpoints[iv.from], vm.checkpoints[iv.to])

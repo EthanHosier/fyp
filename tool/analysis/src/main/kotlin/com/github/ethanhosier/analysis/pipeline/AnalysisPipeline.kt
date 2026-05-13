@@ -18,6 +18,8 @@ import com.github.ethanhosier.analysis.metrics.model.AnalysisReport
 import com.github.ethanhosier.analysis.metrics.model.CheckpointReport
 import com.github.ethanhosier.analysis.metrics.model.CpdTracking
 import com.github.ethanhosier.analysis.metrics.model.DerivedMetrics
+import com.github.ethanhosier.analysis.divergence.DivergencePointBuilder
+import com.github.ethanhosier.analysis.metrics.model.DivergenceKind
 import com.github.ethanhosier.analysis.metrics.model.EventSummary
 import com.github.ethanhosier.analysis.metrics.model.PmdTracking
 import com.github.ethanhosier.analysis.metrics.model.RunInfo
@@ -506,6 +508,7 @@ internal fun buildAnalysisReport(
         }
         val altCps = synth.altShas.map { altCheckpointFor(it) ?: return@mapNotNull null }
         AlternativeTrajectory(
+            kind = DivergenceKind.IDE_REPLAY,
             stepIndexes = synth.stepIndexes,
             fromSha = synth.fromSha,
             userToSha = synth.userToSha,
@@ -572,6 +575,7 @@ internal fun buildAnalysisReport(
             }
 
             AlternativeTrajectory(
+                kind = DivergenceKind.ORDERING,
                 stepIndexes = orderedStepIndexes.drop(sharedPrefixLen),
                 fromSha = anchorSha,
                 userToSha = traj.windowToSha,
@@ -599,22 +603,29 @@ internal fun buildAnalysisReport(
     // the diff for any alt checkpoint whose SHA collides with a user
     // checkpoint.
     val userShaSet = baseCheckpoints.map { it.sha }.toSet()
-    val reworkAlts = reworkSummary?.synthesised.orEmpty().mapNotNull { rw ->
-        val altCps = rw.altShas.map { sha ->
-            val cp = altCheckpointFor(sha) ?: return@mapNotNull null
-            if (sha in userShaSet) cp.copy(diff = DiffStats.ZERO) else cp
+    // Build rework alts alongside their originating SynthesisedRework so
+    // the divergence-point builder can attach file/scope/lineCount/step
+    // metadata without re-running detection.
+    val reworkAltsWithInfo: List<Pair<AlternativeTrajectory, ReworkSynthesiser.SynthesisedRework>> =
+        reworkSummary?.synthesised.orEmpty().mapNotNull { rw ->
+            val altCps = rw.altShas.map { sha ->
+                val cp = altCheckpointFor(sha) ?: return@mapNotNull null
+                if (sha in userShaSet) cp.copy(diff = DiffStats.ZERO) else cp
+            }
+            AlternativeTrajectory(
+                kind = DivergenceKind.REWORK,
+                stepIndexes = emptyList(),
+                fromSha = rw.fromSha,
+                userToSha = rw.userToSha,
+                branchRefs = rw.branchRefs,
+                specs = emptyList(),
+                altCheckpoints = altCps,
+            ) to rw
         }
-        AlternativeTrajectory(
-            stepIndexes = emptyList(),
-            fromSha = rw.fromSha,
-            userToSha = rw.userToSha,
-            branchRefs = rw.branchRefs,
-            specs = emptyList(),
-            altCheckpoints = altCps,
-        )
-    }
+    val reworkAlts = reworkAltsWithInfo.map { it.first }
 
     val baseAlternatives = singleStepAlts + reorderAlts + reworkAlts
+    val reworkBaseOffset = singleStepAlts.size + reorderAlts.size
 
     val derived = DerivedMetricsRunner().run(
         mainCheckpoints = baseCheckpoints,
@@ -649,6 +660,35 @@ internal fun buildAnalysisReport(
         )
     }
 
+    // Build divergence points after `alternativeTrajectories` (and thus
+    // their indexes) are stable. Rework metadata is threaded through by
+    // alt-index keyed map; the builder doesn't see the synthesiser
+    // record directly.
+    val stepIndexBySha: Map<String, Int> =
+        checkpoints.withIndex().associate { (i, cp) -> cp.sha to i }
+    val reworkInfoByAltIndex: Map<Int, DivergencePointBuilder.ReworkInfo> =
+        reworkAltsWithInfo.withIndex().mapNotNull { (offset, pair) ->
+            val (_, rw) = pair
+            val orig = stepIndexBySha[rw.fromSha]
+            val term = stepIndexBySha[rw.userToSha]
+            if (orig == null || term == null) return@mapNotNull null
+            (reworkBaseOffset + offset) to DivergencePointBuilder.ReworkInfo(
+                originatingStepIndex = orig,
+                terminalStepIndex = term,
+                file = rw.file,
+                scopeLabel = rw.scopeId,
+                lineCount = rw.rawLineCount,
+                originatingPatch = rw.originatingPatch,
+                terminalPatch = rw.terminalPatch,
+                direction = rw.direction.name,
+            )
+        }.toMap()
+    val divergencePoints = DivergencePointBuilder.build(
+        alts = alternativeTrajectories,
+        userCheckpoints = checkpoints,
+        reworkInfoByAltIndex = reworkInfoByAltIndex,
+    )
+
     val preAdviceReport = AnalysisReport(
         session = trace.metadata,
         run = RunInfo(
@@ -664,6 +704,7 @@ internal fun buildAnalysisReport(
         alternativeTrajectories = alternativeTrajectories,
         alternativePatches = diffs.alternativePatches,
         reorderTrajectories = reorderTrajectories,
+        divergencePoints = divergencePoints,
         userGitCommits = trace.events.asSequence()
             .filter { it.type == EventType.GIT_COMMIT }
             .mapNotNull { e ->

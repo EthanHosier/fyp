@@ -1,7 +1,10 @@
+import { useEffect } from "react"
+
 import { StatusRow } from "@/components/status-row"
 import { Text } from "@/components/text"
 import type { AlternativeTrajectoryVM, DashboardViewModel } from "@/data/types"
 import { DiffSection } from "@/features/detail-panel/diff-section"
+import { useDashboardStore } from "@/stores/dashboard-store"
 import { cn } from "@/lib/utils"
 
 type Outcome = "better" | "worse" | "neutral" | "failed"
@@ -57,11 +60,29 @@ export function AlternativeBody({
           Comparison
         </Text>
         <Text variant="body" tone="fg-2" className="text-[12px] leading-relaxed">
-          Using the automated <strong>{alt.label}</strong> would have completed
-          this refactoring in{" "}
-          <SavingsValue n={stepsSaved} unit={stepsSaved === 1 ? "step" : "steps"} />{" "}
-          and{" "}
-          <SavingsValue n={churnSaved} unit="LOC" /> of churn.
+          {alt.kind === "REWORK" ? (
+            <>
+              Skipping this rework round-trip would have avoided{" "}
+              <SavingsValue n={stepsSaved} unit={stepsSaved === 1 ? "step" : "steps"} />{" "}
+              and{" "}
+              <SavingsValue n={churnSaved} unit="LOC" /> of wasted churn.
+            </>
+          ) : alt.kind === "ORDERING" ? (
+            <>
+              Reordering these steps would have completed the same window in{" "}
+              <SavingsValue n={stepsSaved} unit={stepsSaved === 1 ? "step" : "steps"} />{" "}
+              and{" "}
+              <SavingsValue n={churnSaved} unit="LOC" /> of churn.
+            </>
+          ) : (
+            <>
+              Using the automated <strong>{alt.label}</strong> would have completed
+              this refactoring in{" "}
+              <SavingsValue n={stepsSaved} unit={stepsSaved === 1 ? "step" : "steps"} />{" "}
+              and{" "}
+              <SavingsValue n={churnSaved} unit="LOC" /> of churn.
+            </>
+          )}
         </Text>
         <div className="grid grid-cols-[1fr_auto_auto] gap-x-3 gap-y-1 pt-1">
           <Text variant="bodySm" tone="fg-4">
@@ -71,7 +92,11 @@ export function AlternativeBody({
             User
           </Text>
           <Text variant="monoTiny" tone="fg-4" className="text-right">
-            Automated
+            {alt.kind === "REWORK"
+              ? "No rework"
+              : alt.kind === "ORDERING"
+                ? "Reordered"
+                : "Automated"}
           </Text>
           <Text variant="bodySm" tone="fg-2">
             Steps
@@ -101,13 +126,134 @@ export function AlternativeBody({
         <StatusRow build={alt.build} tests={alt.tests} />
       </section>
 
-      <DiffSection
-        title="Diff"
-        patch={alt.patch}
-        cacheKey={`alternative-${alt.index}`}
-        emptyMessage="No diff captured for this alternative."
-      />
+      {alt.kind === "REWORK" ? (
+        <ReworkRoundTripDiffs vm={vm} alt={alt} />
+      ) : (
+        <DiffSection
+          title="Diff"
+          patch={alt.patch}
+          cacheKey={`alternative-${alt.index}`}
+          emptyMessage="No diff captured for this alternative."
+        />
+      )}
     </div>
+  )
+}
+
+/**
+ * REWORK-specific diff pair: the user's transition diff entering the
+ * originating step (where the round-tripped code was added) and the
+ * transition diff entering the terminal step (where it was removed).
+ * Each section's header is a clickable button — clicking it selects
+ * the corresponding user checkpoint on the chart so the graph point
+ * lights up alongside.
+ */
+function ReworkRoundTripDiffs({
+  vm,
+  alt,
+}: {
+  vm: DashboardViewModel
+  alt: AlternativeTrajectoryVM
+}) {
+  const setHighlightedCheckpointIndex = useDashboardStore(
+    (s) => s.setHighlightedCheckpointIndex,
+  )
+  // Clear the chart-side halo when this body unmounts (the user
+  // navigated away from the alt panel) so it doesn't linger on
+  // unrelated subsequent views.
+  useEffect(() => {
+    return () => setHighlightedCheckpointIndex(null)
+  }, [setHighlightedCheckpointIndex])
+  // The DP owns the focused unified-diff patches — backend-built,
+  // already narrowed to just the matched rework chunks. Match by
+  // altIndexes containing this alt's synthetic index.
+  const dp = vm.divergencePoints.find((d) => d.altIndexes.includes(alt.index))
+  // The alt's `fromCheckpointIndex` is the originating step's *parent*
+  // checkpoint; the originating edit *lands* at the next checkpoint
+  // (the step's resulting tree). Reference the resulting checkpoint
+  // when describing where code was added/removed so it matches the
+  // checkpoint where the indicator was clicked.
+  const originatingCp = vm.checkpoints[alt.fromCheckpointIndex + 1]
+  const terminalCp = vm.checkpoints[alt.toCheckpointIndex]
+  // Direction governs which side of the round trip is the add vs the
+  // remove. Default to ADD_THEN_REMOVE if the DP doesn't carry the
+  // field (older reports pre-plumbing).
+  const direction = dp?.reworkDirection ?? "ADD_THEN_REMOVE"
+  const originatingVerb = direction === "ADD_THEN_REMOVE" ? "added" : "removed"
+  const terminalVerb = direction === "ADD_THEN_REMOVE" ? "removed" : "added"
+
+  return (
+    <div className="flex flex-col gap-3">
+      {originatingCp ? (
+        <div className="flex flex-col gap-1">
+          <Text variant="body" tone="fg-2" className="text-[11px] leading-tight">
+            Code {originatingVerb} at{" "}
+            <CheckpointHighlightLink
+              label={`${originatingCp.label} (${originatingCp.shortSha})`}
+              checkpointIndex={originatingCp.index}
+              onHighlight={setHighlightedCheckpointIndex}
+            />
+          </Text>
+          <DiffSection
+            title="Originating diff"
+            patch={dp?.originatingPatch ?? ""}
+            cacheKey={`rework-from-${alt.index}`}
+            emptyMessage="No diff captured at the originating step."
+          />
+        </div>
+      ) : null}
+      {terminalCp ? (
+        <div className="flex flex-col gap-1">
+          <Text variant="body" tone="fg-2" className="text-[11px] leading-tight">
+            Code {terminalVerb} at{" "}
+            <CheckpointHighlightLink
+              label={`${terminalCp.label} (${terminalCp.shortSha})`}
+              checkpointIndex={terminalCp.index}
+              onHighlight={setHighlightedCheckpointIndex}
+            />
+          </Text>
+          <DiffSection
+            title="Terminal diff"
+            patch={dp?.terminalPatch ?? ""}
+            cacheKey={`rework-to-${alt.index}`}
+            emptyMessage="No diff captured at the terminal step."
+          />
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
+/**
+ * Inline anchor-style button that flags a checkpoint for visual
+ * emphasis on the chart without opening the detail panel for it. Clear
+ * underline + accent colour signals affordance; toggles off on a
+ * second click.
+ */
+function CheckpointHighlightLink({
+  label,
+  checkpointIndex,
+  onHighlight,
+}: {
+  label: string
+  checkpointIndex: number
+  onHighlight: (idx: number | null) => void
+}) {
+  const highlightedCheckpointIndex = useDashboardStore(
+    (s) => s.highlightedCheckpointIndex,
+  )
+  const active = highlightedCheckpointIndex === checkpointIndex
+  return (
+    <button
+      type="button"
+      onClick={() => onHighlight(active ? null : checkpointIndex)}
+      className={cn(
+        "text-brand-2 hover:text-brand cursor-pointer font-mono underline decoration-dotted underline-offset-2",
+        active && "text-brand decoration-solid",
+      )}
+    >
+      {label}
+    </button>
   )
 }
 

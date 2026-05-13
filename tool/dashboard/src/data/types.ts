@@ -272,7 +272,51 @@ export type RefactoringStepVM = {
  * passing through the synthesised alt checkpoint's metric value, and
  * rejoining at [toCheckpointIndex].
  */
+export type DivergenceKindVM = "ORDERING" | "IDE_REPLAY" | "REWORK" | "HYGIENE"
+
+/**
+ * A per-step divergence point projected from
+ * `AnalysisReport.divergencePoints`. Each DP anchors at one user step
+ * and owns one-or-more alternative trajectories that demonstrate the
+ * counterfactual. Rendered as a kind-glyph marker on the chart above
+ * the user's line; clicking selects + highlights its alts.
+ */
+export type DivergencePointVM = {
+  /** Synthetic stable key — index into the dp list. */
+  id: string
+  /** Index into `checkpoints[]` — where the marker is anchored. */
+  stepIndex: number
+  kind: DivergenceKindVM
+  magnitude: number
+  title: string
+  explanation: string
+  /** Indexes into `alternativeTrajectories[]` — alts demonstrating this DP. */
+  altIndexes: number[]
+  /** ORDERING: user step indexes covered by the reorder window. */
+  orderingWindowSteps?: number[]
+  /** REWORK: step where the reverted code first appeared. */
+  originatingStepIndex?: number
+  /** REWORK: file containing the reworked region. */
+  file?: string
+  /** REWORK: enclosing-member identifier. */
+  scopeLabel?: string
+  /** REWORK: total reverted lines. */
+  reworkLineCount?: number
+  /** IDE_REPLAY: the IntelliJ refactoringId of the replaced step. */
+  replacedRefactoringId?: string
+  /** REWORK: focused unified-diff patch for the originating step,
+   *  containing only the matched chunk's hunk. Backend pre-built —
+   *  the dashboard renders as-is. */
+  originatingPatch?: string
+  /** REWORK: focused unified-diff patch for the terminal step. */
+  terminalPatch?: string
+  /** REWORK: which side of the round trip was the originating edit. */
+  reworkDirection?: "ADD_THEN_REMOVE" | "REMOVE_THEN_ADD"
+}
+
 export type AlternativeTrajectoryVM = {
+  /** Discriminates the alt's origin / divergence kind. */
+  kind: DivergenceKindVM
   /** Server stepIndex — the underlying RefactoringStep this alternative
    *  was synthesised for. Doubles as the join key into the patches map. */
   index: number
@@ -354,6 +398,10 @@ export type DashboardViewModel = {
   intervals: IntervalVM[]
   refactoringSteps: RefactoringStepVM[]
   alternativeTrajectories: AlternativeTrajectoryVM[]
+  /** Per-step divergence points; each owns one-or-more alts that
+   *  demonstrate the counterfactual. Rendered as kind-glyph markers
+   *  above the user's chart line. */
+  divergencePoints: DivergencePointVM[]
   /** Commits the user made on their working repo during the session. */
   commitMarkers: CommitMarkerVM[]
   /** Trajectory-wide advice items produced by the backend's
@@ -421,6 +469,11 @@ export type Selection =
   // `continuationIndex` is the index into that alt's
   // `continuationSteps` array.
   | { kind: "altContinuation"; altIndex: number; continuationIndex: number }
+  // Click on a divergence-point marker above the user's line. `dpId`
+  // joins `vm.divergencePoints[].id`; the detail panel renders the
+  // kind-aware card and the chart highlights every alt in the DP's
+  // `altIndexes`.
+  | { kind: "divergencePoint"; dpId: string }
   // Click on the build / tests rail below the chart. `intervalIndex`
   // points at the first interval in a merged same-status run; the
   // detail panel walks forward to compute the run's total duration.
