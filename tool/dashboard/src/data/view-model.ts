@@ -685,9 +685,15 @@ export function toViewModel(report: AnalysisReport): DashboardViewModel {
           // group, label with the spec. Trailing step (when present)
           // is the residual cleanup — label it as such.
           const isResidualStep = hasResidualStep && i === alt.specs.length
+          const labelBase = specLabel(alt.specs[i])
+          const altStepRef = alt.stepIndexes[i]
+          // Rework alts have empty stepIndexes — omit the "(alt #N)"
+          // suffix when there's nothing meaningful to reference.
           const altLabel = isResidualStep
             ? residualLabel
-            : `${specLabel(alt.specs[i])} (alt #${alt.stepIndexes[i] ?? i})`
+            : altStepRef !== undefined
+              ? `${labelBase} (alt #${altStepRef})`
+              : `${labelBase} step ${i + 1}`
           const prevReport = i === 0
             ? (report.checkpoints[fromIdx] ?? null)
             : alt.altCheckpoints[i - 1]
@@ -808,10 +814,14 @@ function interpolateXPosByTimestamp(
  *  RefactoringSpec discriminator is "type" (kotlinx default) — fall back
  *  to a generic label for unknown variants so a schema bump doesn't blow
  *  up the chart. */
-function specLabel(spec: RefactoringSpec): string {
+function specLabel(spec: RefactoringSpec | undefined): string {
   // The codegen doesn't expose a typed discriminator field; the runtime
   // shape is `{ type: "ExtractMethod", ... }`. Cast through unknown to
   // read it without dragging the whole sealed-shape mirror in here.
+  // Rework alts pass undefined here (their specs list is empty by
+  // construction — they replay raw user commits, not miner-typed
+  // refactorings); render a generic label.
+  if (!spec) return "Rework"
   const kind = (spec as unknown as { type?: string }).type
   switch (kind) {
     case "ExtractMethod":
