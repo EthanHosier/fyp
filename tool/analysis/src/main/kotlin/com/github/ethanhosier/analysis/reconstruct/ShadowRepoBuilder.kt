@@ -69,6 +69,17 @@ class ShadowRepoBuilder(
                 continue
             }
 
+            // Drop edits whose only effect is adding blank/whitespace-
+            // only lines — they don't materially change the code and
+            // would otherwise pollute the checkpoint stream with no-op
+            // commits. We roll the working tree + index back to HEAD so
+            // subsequent events apply on top of the pre-blank state.
+            if (isBlankLineOnlyDiff(git.stagedDiff())) {
+                git.resetHard()
+                mapping[event.id] = previousSha
+                continue
+            }
+
             git.commit("${event.type} ${event.id} @ ${event.timestamp}")
             val sha = git.head()
             mapping[event.id] = sha
@@ -118,6 +129,34 @@ class ShadowRepoBuilder(
             "resolved path escapes repo root: $resolved"
         }
         return resolved
+    }
+
+    /**
+     * Returns `true` when every modifying line in [patch] is a
+     * whitespace-only addition or removal — i.e. the event's only
+     * effect was reshuffling blank lines. File-header lines
+     * (`diff --git`, `index ...`, `--- a/...`, `+++ b/...`,
+     * `@@ ... @@`) are ignored; any `+` or `-` line carrying
+     * non-whitespace content fails the check. An empty patch
+     * (defensive — caller already gated on `hasStagedChanges`)
+     * returns `false` so we don't accidentally skip something we
+     * couldn't read.
+     */
+    private fun isBlankLineOnlyDiff(patch: String): Boolean {
+        if (patch.isBlank()) return false
+        var sawModification = false
+        for (line in patch.lineSequence()) {
+            when {
+                line.startsWith("+++") || line.startsWith("---") -> continue
+                line.startsWith("diff --git") || line.startsWith("index ") -> continue
+                line.startsWith("@@") -> continue
+                line.startsWith("+") || line.startsWith("-") -> {
+                    if (line.substring(1).isNotBlank()) return false
+                    sawModification = true
+                }
+            }
+        }
+        return sawModification
     }
 
     private fun copyTree(source: Path, target: Path) {
