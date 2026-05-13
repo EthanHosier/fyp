@@ -73,6 +73,86 @@ data class AnalysisReport(
     // renders them in a panel below the chart. Empty when no rule
     // fires (typical of very short or pristine sessions).
     val advice: List<AdviceItem> = emptyList(),
+    // Per-step divergence points. Each entry pinpoints a moment in the
+    // user's trajectory where a better process was available, grouping
+    // one-or-more alternative trajectories (by index into
+    // `alternativeTrajectories`) that demonstrate the counterfactual.
+    // Kinds: ORDERING (reorder window), IDE_REPLAY (manual edit the
+    // IDE could have done in one step), REWORK (add-then-undo round
+    // trip). HYGIENE is reserved but not yet emitted.
+    val divergencePoints: List<DivergencePoint> = emptyList(),
+)
+
+/**
+ * Categorises a divergence point by the kind of counterfactual it
+ * surfaces. Maps 1:1 to the producer that emitted the backing
+ * alt trajectory.
+ */
+@Serializable
+enum class DivergenceKind {
+    ORDERING,
+    IDE_REPLAY,
+    REWORK,
+    HYGIENE,
+}
+
+/**
+ * One named moment in the user's trajectory where a better process was
+ * available. Anchored at [stepIndex] (the user step where the divergence
+ * resolves) and pointing at one-or-more [altTrajectoryIndexes] into
+ * [AnalysisReport.alternativeTrajectories] that demonstrate the
+ * counterfactual.
+ *
+ * Per-kind extras are nullable and populated only when meaningful for
+ * that kind — the frontend switches on [kind] to render them.
+ */
+@Serializable
+data class DivergencePoint(
+    /** Anchor step on the user trajectory — for ORDERING this is the
+     *  window's terminal user step, for IDE_REPLAY the single step
+     *  replayed, for REWORK the **originating** step (where the
+     *  reverted code first appeared) so the indicator surfaces on the
+     *  user's fromSha rather than the toSha that cancels it out. */
+    val stepIndex: Int,
+    val kind: DivergenceKind,
+    /** Magnitude for ranking / threshold filtering. Process-score
+     *  delta (alt − user) for ORDERING / IDE_REPLAY; reverted line
+     *  count for REWORK. Always non-negative; sign is implied by kind. */
+    val magnitude: Double,
+    /** Short headline (≤80 chars). */
+    val title: String,
+    /** 1–3 sentence body. Backend-templated, no LLM. */
+    val explanation: String,
+    /** Indexes into [AnalysisReport.alternativeTrajectories]. Most kinds
+     *  carry exactly one; ORDERING may carry multiple permutations of
+     *  the same window. */
+    val altTrajectoryIndexes: List<Int>,
+    /** ORDERING: the user step indexes covered by the reorder window. */
+    val orderingWindowSteps: List<Int>? = null,
+    /** REWORK: step where the reverted code first appeared. */
+    val originatingStepIndex: Int? = null,
+    /** REWORK: file containing the reworked region. */
+    val file: String? = null,
+    /** REWORK: enclosing-member identifier, e.g. `Foo#bar(int)`. */
+    val scopeLabel: String? = null,
+    /** REWORK: total reverted lines (sum across paired chunks). */
+    val reworkLineCount: Int? = null,
+    /** IDE_REPLAY: the IntelliJ refactoringId of the replaced step. */
+    val replacedRefactoringId: String? = null,
+    /** REWORK: focused unified-diff patch for the originating step,
+     *  containing only the matched chunk's hunk (pure insertion for
+     *  add-then-remove, pure removal for remove-then-add). The
+     *  dashboard renders this directly — no client-side filtering. */
+    val originatingPatch: String? = null,
+    /** REWORK: focused unified-diff patch for the terminal step — the
+     *  inverse of [originatingPatch]. */
+    val terminalPatch: String? = null,
+    /** REWORK: which side of the round trip was the originating edit.
+     *  `"ADD_THEN_REMOVE"` means the user added the chunk at the
+     *  originating step and removed it at the terminal step;
+     *  `"REMOVE_THEN_ADD"` is the inverse. Used by the dashboard to
+     *  pick correct "code added/removed" copy per side. */
+    val reworkDirection: String? = null,
 )
 
 /**

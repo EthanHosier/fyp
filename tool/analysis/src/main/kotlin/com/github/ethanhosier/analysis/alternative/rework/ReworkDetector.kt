@@ -96,6 +96,10 @@ object ReworkDetector {
          *  `lineCount` for display. */
         val normalizedLineCount: Int,
         val contentSummary: String,
+        /** Full chunk body — the raw lines joined by `\n`, *without*
+         *  the `+`/`-` diff prefix. Used to synthesise focused
+         *  originating / terminal unified-diff patches for display. */
+        val chunkSourceText: String,
     )
 
     /**
@@ -140,6 +144,7 @@ object ReworkDetector {
                 rawLineCount = earlier.rawLineCount,
                 normalizedLineCount = earlier.lineCount,
                 contentSummary = earlier.sourceText.take(80),
+                chunkSourceText = earlier.sourceText,
             )
         }.sortedWith(compareBy({ it.terminalStep }, { it.originatingStep }, { it.file }))
 

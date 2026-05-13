@@ -36,6 +36,14 @@ import kotlinx.serialization.Serializable
  */
 @Serializable
 data class AlternativeTrajectory(
+    /** Discriminates the alt's origin / divergence kind: ORDERING
+     *  (reorder synth), IDE_REPLAY (single-step IDE-driven), or
+     *  REWORK (surgical replay). Set at creation by the respective
+     *  producer; downstream consumers switch on this rather than
+     *  inferring from [specs] / [stepIndexes] shape. Default is
+     *  ORDERING so older cached reports deserialise without surprise
+     *  (the historical un-tagged shape was reorder alts). */
+    val kind: DivergenceKind = DivergenceKind.ORDERING,
     /** User stepIndexes covered by this alt, in the order applied
      *  by the alt. IDE-driven alts: 1+ elements (one per refactoring
      *  in the (fromSha, toSha) group). Reorder orderings: the
@@ -88,6 +96,16 @@ data class AlternativeTrajectory(
      *  Empty when [userToSha] is the last main checkpoint or the
      *  alt's anchor snapshot was missing. */
     val continuationCheckpoints: List<CheckpointReport> = emptyList(),
+    /** REWORK only: user-checkpoint index that each entry in
+     *  [altCheckpoints] semantically corresponds to. After
+     *  whitespace-only intermediates are absorbed, the kept alt
+     *  checkpoints no longer map 1-to-1 onto consecutive user steps;
+     *  the dashboard uses this list to anchor each alt step at the
+     *  matching user checkpoint's `xPos` on the chart instead of
+     *  collapsing onto the compressed `[fromCp.xPos, toCp.xPos]`
+     *  window. Empty for non-REWORK kinds and for no-op rework alts
+     *  (which alias `userToSha` directly). */
+    val altCheckpointUserIndexes: List<Int> = emptyList(),
 )
 
 /**

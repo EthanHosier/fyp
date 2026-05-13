@@ -58,6 +58,16 @@ class GitRunner(private val workDir: Path) {
 
     fun head(): String = run("rev-parse", "HEAD").trim()
 
+    /** Unified-diff text of staged changes (`git diff --cached`). */
+    fun stagedDiff(): String = run("diff", "--cached")
+
+    /** Discards both index and working-tree changes, returning the
+     *  repo to a clean HEAD. Used to roll back a staged event whose
+     *  only effect was whitespace-only churn. */
+    fun resetHard() {
+        run("reset", "--hard", "HEAD")
+    }
+
     /** Resolve [ref] (a branch name, tag, or shorthand SHA) to a full
      *  40-char SHA. Errors if the ref doesn't resolve. */
     fun revParse(ref: String): String = run("rev-parse", ref).trim()

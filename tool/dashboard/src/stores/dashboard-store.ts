@@ -25,10 +25,16 @@ type DashboardStore = {
   primary: MetricId
   secondaries: MetricId[]
   layers: Layers
+  /** Checkpoint index flagged for visual emphasis on the chart without
+   *  opening the detail panel. Set by e.g. clicking a rework alt's
+   *  "Code added at <ckpt>" link — chart-point gains a halo while the
+   *  side panel stays anchored on the alt. */
+  highlightedCheckpointIndex: number | null
   setSelection: (s: Selection) => void
   setPrimary: (m: MetricId) => void
   toggleSecondary: (m: MetricId) => void
   setLayer: <K extends keyof Layers>(key: K, value: Layers[K]) => void
+  setHighlightedCheckpointIndex: (idx: number | null) => void
 }
 
 export const useDashboardStore = create<DashboardStore>((set) => ({
@@ -41,8 +47,12 @@ export const useDashboardStore = create<DashboardStore>((set) => ({
     alternativeTrajectories: true,
     userCommits: true,
   },
+  highlightedCheckpointIndex: null,
 
   setSelection: (selection) => set({ selection }),
+
+  setHighlightedCheckpointIndex: (highlightedCheckpointIndex) =>
+    set({ highlightedCheckpointIndex }),
 
   setPrimary: (primary) =>
     set((state) => ({

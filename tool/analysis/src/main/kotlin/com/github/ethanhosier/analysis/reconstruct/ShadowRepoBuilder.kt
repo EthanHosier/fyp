@@ -1,5 +1,6 @@
 package com.github.ethanhosier.analysis.reconstruct
 
+import com.github.ethanhosier.analysis.diffs.DiffAnalysis
 import com.github.ethanhosier.analysis.model.ReconstructionResult
 import com.github.ethanhosier.analysis.model.Trace
 import com.github.ethanhosier.ideplugin.model.FileChangeType
@@ -69,6 +70,17 @@ class ShadowRepoBuilder(
                 continue
             }
 
+            // Drop edits whose only effect is adding blank/whitespace-
+            // only lines — they don't materially change the code and
+            // would otherwise pollute the checkpoint stream with no-op
+            // commits. We roll the working tree + index back to HEAD so
+            // subsequent events apply on top of the pre-blank state.
+            if (isBlankLineOnlyDiff(git.stagedDiff())) {
+                git.resetHard()
+                mapping[event.id] = previousSha
+                continue
+            }
+
             git.commit("${event.type} ${event.id} @ ${event.timestamp}")
             val sha = git.head()
             mapping[event.id] = sha
@@ -119,6 +131,9 @@ class ShadowRepoBuilder(
         }
         return resolved
     }
+
+    private fun isBlankLineOnlyDiff(patch: String): Boolean =
+        DiffAnalysis.isWhitespaceOnly(patch)
 
     private fun copyTree(source: Path, target: Path) {
         Files.walk(source).use { paths ->

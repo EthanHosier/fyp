@@ -75,6 +75,18 @@ export function ChartAlternativePaths({
   const userFinalProcess =
     vm.checkpoints[vm.checkpoints.length - 1]?.processScore
 
+  // When a divergence-point marker is selected, dim every alt that
+  // isn't owned by that DP. Alts owned by the selected DP render at
+  // full opacity (and remain interactive); others fade so the chart
+  // makes it visually obvious which alts demonstrate the picked DP.
+  const selectedDp =
+    selection?.kind === "divergencePoint"
+      ? vm.divergencePoints.find((dp) => dp.id === selection.dpId)
+      : undefined
+  const dpHighlightedAlts: Set<number> | null = selectedDp
+    ? new Set(selectedDp.altIndexes)
+    : null
+
   return (
     <g>
       {vm.alternativeTrajectories.map((alt) => {
@@ -121,14 +133,49 @@ export function ChartAlternativePaths({
           .slice()
           .sort((a, b) => a - b)
         const hasStepIndexAnchors = stepIndexXPositions.length === alt.steps.length
-        const userOrderXPositions: number[] = hasStepIndexAnchors
-          ? stepIndexXPositions
-          : (() => {
-              const n = alt.steps.length
-              if (n === 1) return [fromCp.xPos]
-              const span = toCp.xPos - fromCp.xPos
-              return Array.from({ length: n }, (_, i) => fromCp.xPos + (span * (i + 1)) / n)
-            })()
+        // Even-distribution fallback used for any alt where collapsing
+        // onto user stepIndex xPositions would stack multiple alt
+        // checkpoints at the same coordinate. IDE_REPLAY alts that
+        // replace a single user step with N specs are the main case:
+        // every spec resolves to the same user stepIndex (and thus the
+        // same toSha xPos), so the polyline degenerates into a vertical
+        // stack at toSha. Spreading the N alt checkpoints evenly across
+        // `[fromCp.xPos, toCp.xPos]` makes the progression legible.
+        const distributedXPositions = (() => {
+          const n = alt.steps.length
+          if (n === 1) return [toCp.xPos]
+          const span = toCp.xPos - fromCp.xPos
+          return Array.from({ length: n }, (_, i) => fromCp.xPos + (span * (i + 1)) / n)
+        })()
+        // REWORK alts: anchor each surviving alt checkpoint at the
+        // user checkpoint it semantically lands at, looked up via the
+        // backend-provided `altCheckpointUserIndexes` map. This still
+        // works after whitespace-only intermediates have been absorbed
+        // — the kept alt checkpoints may no longer be 1-to-1 with the
+        // user steps in `[fromCheckpointIndex..toCheckpointIndex]`, but
+        // the map still pins each survivor to the right user xPos.
+        // Falls back to `null` (→ even distribution) for the no-op
+        // cancel-out case where the backend leaves the list empty.
+        const userCheckpointAlignedXPositions = (() => {
+          if (alt.kind !== "REWORK") return null
+          if (alt.altCheckpointUserIndexes.length !== alt.steps.length) return null
+          const xs: number[] = []
+          for (const userIdx of alt.altCheckpointUserIndexes) {
+            const cp = vm.checkpoints[userIdx]
+            if (!cp) return null
+            xs.push(cp.xPos)
+          }
+          return xs
+        })()
+        const ideStackCollapses =
+          alt.kind === "IDE_REPLAY" &&
+          hasStepIndexAnchors &&
+          new Set(stepIndexXPositions).size < stepIndexXPositions.length
+        const userOrderXPositions: number[] =
+          userCheckpointAlignedXPositions ??
+          (ideStackCollapses || !hasStepIndexAnchors
+            ? distributedXPositions
+            : stepIndexXPositions)
         const altPoints: { x: number; y: number; vm: typeof alt.steps[number] }[] = []
         for (let k = 0; k < alt.steps.length; k++) {
           const slotX = userOrderXPositions[k]
@@ -215,8 +262,15 @@ export function ChartAlternativePaths({
               { x: xTo, y: ys(yTo), kind: "to" as const },
             ]
 
+        const isDimmedByDp =
+          dpHighlightedAlts !== null && !dpHighlightedAlts.has(alt.index)
+
         return (
-          <g key={alt.index} className={cn(isWorse ? "text-fg-4" : "text-brand")}>
+          <g
+            key={alt.index}
+            className={cn(isWorse ? "text-fg-4" : "text-brand")}
+            style={isDimmedByDp ? { opacity: 0.2 } : undefined}
+          >
             {/* Base dashed alt polyline — pointer events disabled so
                 the per-segment hit targets below own click + hover.
                 In process mode the alt diverges forever; the stub at

@@ -3,6 +3,8 @@ import { useEffect, useState } from "react"
 import type { AnalysisReport } from "@/generated/report-types"
 import reportData from "./analysis-report.json"
 
+const USE_HARDCODED_REPORT = true
+
 declare global {
   interface Window {
     __REPORT__?: AnalysisReport
@@ -22,8 +24,6 @@ const REPORT_EVENT = "refdash:report-loaded"
  * the `analysis-report.json` bundled next to this file.
  */
 export function useReport(): AnalysisReport | null {
-  return reportData as AnalysisReport
-
   // Initialiser reads `window.__REPORT__` synchronously, so a payload
   // already injected by the plugin before this hook mounts is captured
   // here and the effect below never has to run.
@@ -40,5 +40,5 @@ export function useReport(): AnalysisReport | null {
     return () => window.removeEventListener(REPORT_EVENT, handler)
   }, [report])
 
-  return report
+  return USE_HARDCODED_REPORT ? (reportData as AnalysisReport) : report
 }
