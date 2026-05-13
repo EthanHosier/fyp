@@ -3,9 +3,9 @@ package com.github.ethanhosier.analysis.divergence
 import com.github.ethanhosier.analysis.metrics.derived.DerivedMetricsRunner
 import com.github.ethanhosier.analysis.metrics.model.AlternativeTrajectory
 import com.github.ethanhosier.analysis.metrics.model.CheckpointReport
-import com.github.ethanhosier.analysis.metrics.model.DerivedMetrics
 import com.github.ethanhosier.analysis.metrics.model.DivergenceKind
 import com.github.ethanhosier.analysis.metrics.model.EventSummary
+import com.github.ethanhosier.analysis.metrics.model.ProcessScore
 import com.github.ethanhosier.analysis.miner.model.RefactoringStep
 import com.github.ethanhosier.ideplugin.model.EventType
 
@@ -162,9 +162,23 @@ object HygieneDetector {
         // tracking maps simply won't have entries under this SHA, and
         // every downstream consumer falls back to EMPTY defaults.
         val synthSha = "hygiene-${f.subKind.name.lowercase()}-${anchorCp.sha}"
+        // The whole point of a HYGIENE counterfactual is "same code,
+        // different process decision" — so static cleanliness, smells,
+        // duplication, etc. MUST match the user's displayed values.
+        // Only the process score changes (W_SKIP_TESTS lifts, or
+        // future commit-cadence term). We inherit the user anchor's
+        // derivedMetrics wholesale and overlay the recomputed process
+        // score. Without this, the alt would show the *raw* aggregate
+        // at the anchor SHA (because flipping tests.success makes the
+        // anchor trustworthy in the mutated run), while the user side
+        // carries forward from the last green checkpoint — producing
+        // two different cleanliness values for identical code.
+        val recomputedProcess = recomputed.main[anchorCp.sha]?.process ?: ProcessScore.EMPTY
         val altCp = mutated[f.anchorIndex].copy(
             sha = synthSha,
-            derivedMetrics = recomputed.main[anchorCp.sha] ?: DerivedMetrics.EMPTY,
+            derivedMetrics = anchorCp.derivedMetrics.copy(process = recomputedProcess),
+            metricsTrustworthy = anchorCp.metricsTrustworthy,
+            metricsCarryForwardSource = anchorCp.metricsCarryForwardSource,
         )
 
         // Continuation: recomputed scores for every user checkpoint

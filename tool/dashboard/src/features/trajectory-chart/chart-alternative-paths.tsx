@@ -155,11 +155,22 @@ export function ChartAlternativePaths({
         // same toSha xPos), so the polyline degenerates into a vertical
         // stack at toSha. Spreading the N alt checkpoints evenly across
         // `[fromCp.xPos, toCp.xPos]` makes the progression legible.
+        //
+        // Distribution: `(i + 1) / (n + 1)` places steps strictly
+        // *between* fromCp and toCp — neither endpoint is reused as a
+        // slot. With `(i + 1) / n` the last alt step would land at
+        // toCp.xPos, which for non-process metrics overlaps the
+        // polyline's explicit merge-back vertex at `(xTo, ys(yTo))`
+        // and creates a visual stack of the alt's "manual cleanup"
+        // dot directly underneath the user's toSha marker.
+        // Single-step alts are special-cased to toCp.xPos — those
+        // semantically *are* the toSha state (no manual cleanup) so
+        // they belong at the toSha xPos.
         const distributedXPositions = (() => {
           const n = alt.steps.length
           if (n === 1) return [toCp.xPos]
           const span = toCp.xPos - fromCp.xPos
-          return Array.from({ length: n }, (_, i) => fromCp.xPos + (span * (i + 1)) / n)
+          return Array.from({ length: n }, (_, i) => fromCp.xPos + (span * (i + 1)) / (n + 1))
         })()
         // REWORK / HYGIENE alts: anchor each surviving alt checkpoint
         // at the user checkpoint it semantically lands at, looked up
