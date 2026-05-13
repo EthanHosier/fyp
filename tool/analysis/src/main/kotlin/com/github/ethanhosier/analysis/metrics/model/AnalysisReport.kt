@@ -393,6 +393,21 @@ data class CheckpointReport(
     // when commit cadence joins the score, HYGIENE COMMIT_GAP alts that
     // already flip this bit immediately produce a real magnitude.
     val isUserCommit: Boolean = false,
+    // True iff this checkpoint's cleanliness aggregates were derived
+    // from the analysers' own output at this SHA. False iff build or
+    // tests were broken here and the aggregates were carried forward
+    // (from a prior trustworthy checkpoint or, if none exists yet, set
+    // to the session midpoint). Raw `metrics` block is unchanged
+    // either way — only the derived cleanliness layer is affected.
+    val metricsTrustworthy: Boolean = true,
+    // When [metricsTrustworthy] is false, identifies the fallback used:
+    //  - "PRIOR"    → aggregates carried from the previous trustworthy
+    //                 checkpoint.
+    //  - "MIDPOINT" → no prior trustworthy checkpoint existed yet;
+    //                 aggregates were filled with the session midpoint
+    //                 of each sub-signal's range.
+    // Null when [metricsTrustworthy] is true.
+    val metricsCarryForwardSource: String? = null,
     // Diff against the previous checkpoint (or the seed commit for the first).
     // Sibling of `metrics` — `metrics` describes this checkpoint's state,
     // `diff` describes the transition into it.

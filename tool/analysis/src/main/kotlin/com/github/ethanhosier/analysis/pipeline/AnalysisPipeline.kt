@@ -659,7 +659,12 @@ internal fun buildAnalysisReport(
         refactoringSteps = miner.steps,
     )
     val checkpoints = baseCheckpoints.map { cp ->
-        cp.copy(derivedMetrics = derived.main[cp.sha] ?: DerivedMetrics.EMPTY)
+        val trust = derived.mainTrust[cp.sha]
+        cp.copy(
+            derivedMetrics = derived.main[cp.sha] ?: DerivedMetrics.EMPTY,
+            metricsTrustworthy = trust?.trustworthy ?: true,
+            metricsCarryForwardSource = trust?.source,
+        )
     }
 
     // Hygiene alts: scan the (now derived-metrics-bearing) user
@@ -695,7 +700,12 @@ internal fun buildAnalysisReport(
         }
         alt.copy(
             altCheckpoints = alt.altCheckpoints.map { cp ->
-                cp.copy(derivedMetrics = derived.alt[cp.sha] ?: DerivedMetrics.EMPTY)
+                val altTrust = derived.altTrust[cp.sha]
+                cp.copy(
+                    derivedMetrics = derived.alt[cp.sha] ?: DerivedMetrics.EMPTY,
+                    metricsTrustworthy = altTrust?.trustworthy ?: true,
+                    metricsCarryForwardSource = altTrust?.source,
+                )
             },
             continuationCheckpoints = continuationCheckpoints,
         )

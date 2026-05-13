@@ -111,6 +111,91 @@ class DerivedMetricsRunnerTest {
     }
 
     @Test
+    fun `build-broken middle checkpoint carries forward cleanliness from prior trustworthy`() {
+        // a + c are clean & trustworthy; b has build broken with sparse
+        // PMD/CK that would otherwise look "cleaner" than its neighbours
+        // and pull the normalisation floor down. Carry-forward should
+        // hold b's aggregates equal to a's, so cleanliness is flat
+        // across a → b and the recovery a → b → c shows no fake gain.
+        val a = checkpoint("a", ck = ckResult(ckClass(cbo = 1, tcc = 0.9f)))
+        val b = checkpoint(
+            "b",
+            ck = ckResult(),  // empty perClass — coupling would degenerate
+            pmd = pmdResult(),
+            cpd = CpdResult.EMPTY,
+            readability = ReadabilityResult.EMPTY,
+            build = passingBuild().copy(success = false),
+            tests = TestResult.skipped("build failed"),
+        )
+        val c = checkpoint("c", ck = ckResult(ckClass(cbo = 1, tcc = 0.9f)))
+
+        val result = DerivedMetricsRunner().run(listOf(a, b, c), emptyList(), emptyList())
+
+        val aClean = result.main.getValue("a").cleanliness
+        val bClean = result.main.getValue("b").cleanliness
+        assertEquals(aClean, bClean, "broken b carries forward a's cleanliness")
+
+        val bTrust = result.mainTrust.getValue("b")
+        assertEquals(false, bTrust.trustworthy)
+        assertEquals("PRIOR", bTrust.source)
+        assertEquals(true, result.mainTrust.getValue("a").trustworthy)
+        assertEquals(true, result.mainTrust.getValue("c").trustworthy)
+
+        // W_BROKEN still fires on b — the trust signal doesn't suppress
+        // the existing broken-checkpoint penalty.
+        val bBroken = result.main.getValue("b").process.contributions
+            .single { it.id == "broken" }
+        assertTrue(bBroken.points < 0.0, "broken term still penalises b")
+    }
+
+    @Test
+    fun `tests-broken middle checkpoint also carries forward (blocks gaming)`() {
+        // Build green, tests ran and failed — the gaming case where a
+        // user breaks tests to game a cleanliness win. Carry-forward
+        // should still trigger off the test-failure path.
+        val a = checkpoint("a")
+        val b = checkpoint(
+            "b",
+            ck = ckResult(),
+            tests = passingTests().copy(success = false, failed = 1, total = 1),
+        )
+        val c = checkpoint("c")
+
+        val result = DerivedMetricsRunner().run(listOf(a, b, c), emptyList(), emptyList())
+        val bTrust = result.mainTrust.getValue("b")
+        assertEquals(false, bTrust.trustworthy)
+        assertEquals("PRIOR", bTrust.source)
+        assertEquals(
+            result.main.getValue("a").cleanliness,
+            result.main.getValue("b").cleanliness,
+            "tests-failed b carries forward a's cleanliness",
+        )
+    }
+
+    @Test
+    fun `leading untrustworthy gap is filled with session midpoint`() {
+        // Session starts with build broken — no prior trustworthy to
+        // carry from. Expect MIDPOINT source on the first checkpoint,
+        // recovering to trustworthy at b.
+        val a = checkpoint(
+            "a",
+            ck = ckResult(),
+            build = passingBuild().copy(success = false),
+            tests = TestResult.skipped("build failed"),
+        )
+        val b = checkpoint("b", ck = ckResult(ckClass(cbo = 1, tcc = 0.9f)))
+        val c = checkpoint("c", ck = ckResult(ckClass(cbo = 5, tcc = 0.5f)))
+
+        val result = DerivedMetricsRunner().run(listOf(a, b, c), emptyList(), emptyList())
+
+        val aTrust = result.mainTrust.getValue("a")
+        assertEquals(false, aTrust.trustworthy)
+        assertEquals("MIDPOINT", aTrust.source)
+        assertEquals(true, result.mainTrust.getValue("b").trustworthy)
+        assertEquals(true, result.mainTrust.getValue("c").trustworthy)
+    }
+
+    @Test
     fun `manual-when-IDE penalty fires when an IDE-relevant step was performed manually`() {
         val a = checkpoint("a")
         val b = checkpoint("b")
