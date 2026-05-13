@@ -27,6 +27,14 @@ export function AlternativeBody({
   vm: DashboardViewModel
   alt: AlternativeTrajectoryVM
 }) {
+  // HYGIENE alts have no "steps saved" / "churn saved" story — the code
+  // is identical; only a process decision differs. Render a different
+  // body shape (DP-driven copy + status row, no diff section) and
+  // short-circuit the rest of the layout.
+  if (alt.kind === "HYGIENE") {
+    return <HygieneBody vm={vm} alt={alt} />
+  }
+
   // User path: every checkpoint between (from, to] is one manual step.
   const userSteps = Math.max(0, alt.toCheckpointIndex - alt.fromCheckpointIndex)
   const userChurn = vm.checkpoints
@@ -144,6 +152,69 @@ export function AlternativeBody({
           emptyMessage="No diff captured for this alternative."
         />
       )}
+    </div>
+  )
+}
+
+/**
+ * HYGIENE body — TESTS_SKIPPED or COMMIT_GAP. No diff (code is the same
+ * between user and alt), no steps/churn comparison. Pulls copy from the
+ * owning DP so the sidebar reads consistently with the indicator card.
+ */
+function HygieneBody({
+  vm,
+  alt,
+}: {
+  vm: DashboardViewModel
+  alt: AlternativeTrajectoryVM
+}) {
+  const dp = vm.divergencePoints.find((d) => d.altIndexes.includes(alt.index))
+  const anchorCp = vm.checkpoints[alt.toCheckpointIndex]
+  const userProcess = anchorCp?.values.process
+  const altProcess = alt.altValues.process
+
+  const subKind = dp?.hygieneSubKind
+  const heading =
+    subKind === "TESTS_SKIPPED"
+      ? "If you'd run the tests"
+      : subKind === "COMMIT_GAP"
+        ? "If you'd committed here"
+        : "Alternative process decision"
+  return (
+    <div className="flex flex-col gap-4">
+      <section className="flex flex-col gap-2">
+        <Text as="h3" variant="eyebrow" tone="fg-4">
+          {heading}
+        </Text>
+        <Text variant="body" tone="fg-2" className="text-[12px] leading-relaxed">
+          {dp?.explanation ??
+            "An alternative process decision at this checkpoint would have given a cleaner trajectory."}
+        </Text>
+      </section>
+
+      <section className="flex flex-col gap-2">
+        <Text as="h3" variant="eyebrow" tone="fg-4">
+          Process score at this checkpoint
+        </Text>
+        <div className="grid grid-cols-[1fr_auto_auto] gap-x-3 gap-y-1 pt-1">
+          <Text variant="bodySm" tone="fg-4">&nbsp;</Text>
+          <Text variant="monoTiny" tone="fg-4" className="text-right">
+            User
+          </Text>
+          <Text variant="monoTiny" tone="fg-4" className="text-right">
+            Alt
+          </Text>
+          <Text variant="bodySm" tone="fg-2">
+            Process
+          </Text>
+          <Text variant="mono" tone="fg" className="text-right">
+            {typeof userProcess === "number" ? userProcess.toFixed(0) : "—"}
+          </Text>
+          <Text variant="mono" tone="fg" className="text-right">
+            {typeof altProcess === "number" ? altProcess.toFixed(0) : "—"}
+          </Text>
+        </div>
+      </section>
     </div>
   )
 }

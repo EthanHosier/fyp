@@ -19,6 +19,7 @@ import com.github.ethanhosier.analysis.metrics.model.CheckpointReport
 import com.github.ethanhosier.analysis.metrics.model.CpdTracking
 import com.github.ethanhosier.analysis.metrics.model.DerivedMetrics
 import com.github.ethanhosier.analysis.divergence.DivergencePointBuilder
+import com.github.ethanhosier.analysis.divergence.HygieneDetector
 import com.github.ethanhosier.analysis.metrics.model.DivergenceKind
 import com.github.ethanhosier.analysis.metrics.model.EventSummary
 import com.github.ethanhosier.analysis.metrics.model.PmdTracking
@@ -457,6 +458,16 @@ internal fun buildAnalysisReport(
         membersBySha.getOrPut(sha) { LinkedHashSet() }.addAll(eventMembers)
     }
 
+    // SHAs the user actually committed during the session, derived from
+    // the GIT_COMMIT events. Used to tag CheckpointReports so the
+    // process-score walker can see commits as a property of the data —
+    // future commit-cadence penalty will consume this, and HYGIENE
+    // COMMIT_GAP alts already flip it.
+    val userCommitShas = trace.events.asSequence()
+        .filter { it.type == EventType.GIT_COMMIT }
+        .mapNotNull { it.payload["sha"] }
+        .toSet()
+
     // First pass: assemble checkpoints + alts WITHOUT derived metrics, so
     // `DerivedMetricsRunner` can read their already-stitched-in events,
     // pmdTracking, and metrics blocks. Second pass below splices the
@@ -467,6 +478,7 @@ internal fun buildAnalysisReport(
             sha = m.sha,
             events = events,
             metrics = m,
+            isUserCommit = m.sha in userCommitShas,
             diff = metrics.diffBySha[m.sha] ?: DiffStats.ZERO,
             touchedMembers = membersBySha[m.sha]?.toList().orEmpty(),
             pmdTracking = pmdTracking.trackingBySha[m.sha] ?: PmdTracking.EMPTY,
@@ -649,8 +661,23 @@ internal fun buildAnalysisReport(
     val checkpoints = baseCheckpoints.map { cp ->
         cp.copy(derivedMetrics = derived.main[cp.sha] ?: DerivedMetrics.EMPTY)
     }
+
+    // Hygiene alts: scan the (now derived-metrics-bearing) user
+    // checkpoints for skipped tests / commit gaps, then synthesise one
+    // alt per finding by flipping the anchor checkpoint's status and
+    // re-running the process-score walk over the mutated trajectory.
+    // Done after the main derived run so the user's own derivedMetrics
+    // are stable; the hygiene alts pre-bake their own derivedMetrics
+    // so they don't need to pass through DerivedMetricsRunner again.
+    val hygieneFindings = HygieneDetector.detect(checkpoints, miner.steps)
+    val hygieneAlts = HygieneDetector.buildAlts(
+        findings = hygieneFindings,
+        checkpoints = checkpoints,
+        refactoringSteps = miner.steps,
+    )
+
     val userCpBySha = checkpoints.associateBy { it.sha }
-    val alternativeTrajectories = baseAlternatives.mapIndexed { i, alt ->
+    val alternativeTrajectoriesNoHygiene = baseAlternatives.mapIndexed { i, alt ->
         val cont = derived.continuations.getOrNull(i)
             ?: DerivedMetricsRunner.AltProcessContinuation.EMPTY
         // Each continuation checkpoint clones the user's post-merge
@@ -673,6 +700,12 @@ internal fun buildAnalysisReport(
             continuationCheckpoints = continuationCheckpoints,
         )
     }
+    // Hygiene alts already carry pre-baked derivedMetrics on their
+    // altCheckpoints + continuationCheckpoints (no second pass through
+    // DerivedMetricsRunner needed). Appended after the IDE / reorder /
+    // rework alts so their indexes are stable for the DP builder.
+    val alternativeTrajectories = alternativeTrajectoriesNoHygiene + hygieneAlts
+    val hygieneBaseOffset = alternativeTrajectoriesNoHygiene.size
 
     // Build divergence points after `alternativeTrajectories` (and thus
     // their indexes) are stable. Rework metadata is threaded through by
@@ -697,10 +730,19 @@ internal fun buildAnalysisReport(
                 direction = rw.direction.name,
             )
         }.toMap()
+    val hygieneInfoByAltIndex: Map<Int, DivergencePointBuilder.HygieneInfo> =
+        hygieneFindings.withIndex().associate { (offset, f) ->
+            (hygieneBaseOffset + offset) to DivergencePointBuilder.HygieneInfo(
+                anchorIndex = f.anchorIndex,
+                subKind = f.subKind.name,
+                gapLength = f.gapLength,
+            )
+        }
     val divergencePoints = DivergencePointBuilder.build(
         alts = alternativeTrajectories,
         userCheckpoints = checkpoints,
         reworkInfoByAltIndex = reworkInfoByAltIndex,
+        hygieneInfoByAltIndex = hygieneInfoByAltIndex,
     )
 
     val preAdviceReport = AnalysisReport(

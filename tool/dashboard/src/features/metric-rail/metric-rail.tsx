@@ -72,17 +72,25 @@ export function MetricRail({ vm }: { vm: DashboardViewModel }) {
             onChange={(v) => setLayer("testIntervals", v)}
           />
           <LayerToggle
-            id="layer-alt-trajectories"
-            label="Alternative paths"
-            checked={layers.alternativeTrajectories}
-            onChange={(v) => setLayer("alternativeTrajectories", v)}
-          />
-          <LayerToggle
             id="layer-user-commits"
             label="Git commits"
             checked={layers.userCommits}
             onChange={(v) => setLayer("userCommits", v)}
           />
+          <LayerToggle
+            id="layer-alt-trajectories"
+            label="Alternative paths"
+            checked={layers.alternativeTrajectories}
+            onChange={(v) => setLayer("alternativeTrajectories", v)}
+          />
+          {layers.alternativeTrajectories ? (
+            <LayerToggle
+              id="layer-alt-worse"
+              label="Show worse alternatives"
+              checked={layers.showWorseAlternatives}
+              onChange={(v) => setLayer("showWorseAlternatives", v)}
+            />
+          ) : null}
         </RailSection>
       </div>
     </aside>

@@ -5,6 +5,7 @@ import com.github.ethanhosier.analysis.metrics.MetricsRunner
 import com.github.ethanhosier.analysis.metrics.ck.CkResult
 import com.github.ethanhosier.analysis.metrics.gradlebuild.BuildResult
 import com.github.ethanhosier.analysis.metrics.model.CheckpointMetrics
+import com.github.ethanhosier.analysis.metrics.model.DivergenceKind
 import com.github.ethanhosier.analysis.metrics.model.ReorderOrdering
 import com.github.ethanhosier.analysis.metrics.model.ReorderTrajectory
 import com.github.ethanhosier.analysis.metrics.model.ResidualSummary
@@ -192,6 +193,7 @@ class AnalysisPipelineTest {
         )
 
         val alts = report.alternativeTrajectories
+            .filter { it.kind != DivergenceKind.HYGIENE }
         assertEquals(1, alts.size)
         val alt = alts.single()
         assertEquals(listOf(1, 0), alt.stepIndexes)         // permutation order
@@ -283,6 +285,7 @@ class AnalysisPipelineTest {
         )
 
         val alts = report.alternativeTrajectories
+            .filter { it.kind != DivergenceKind.HYGIENE }
         assertEquals(1, alts.size)
         val alt = alts.single()
         assertEquals(listOf(0, 1), alt.stepIndexes)
@@ -353,7 +356,8 @@ class AnalysisPipelineTest {
             augmentedAltMetricsBySha = augmented,
         )
 
-        val alt = report.alternativeTrajectories.single()
+        val alt = report.alternativeTrajectories
+            .single { it.kind != DivergenceKind.HYGIENE }
         assertEquals(listOf("end"), alt.continuationCheckpoints.map { it.sha })
         // Static metrics carry forward from the user's checkpoint; the
         // overlay swaps in the alt's recomputed process score, so each
@@ -411,9 +415,12 @@ class AnalysisPipelineTest {
             reorderTrajectories = listOf(traj),
         )
 
-        // Failed orderings produce no AlternativeTrajectory entries — the
-        // reorder window data still appears for diagnostics.
-        assertTrue(report.alternativeTrajectories.isEmpty())
+        // Failed orderings produce no reorder AlternativeTrajectory entries — the
+        // reorder window data still appears for diagnostics. (HYGIENE alts
+        // may fire on the synthetic fixture but they're a separate kind.)
+        assertTrue(
+            report.alternativeTrajectories.none { it.kind != DivergenceKind.HYGIENE },
+        )
         assertEquals(1, report.reorderTrajectories.single().orderings.size)
     }
 

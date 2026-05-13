@@ -153,6 +153,12 @@ data class DivergencePoint(
      *  `"REMOVE_THEN_ADD"` is the inverse. Used by the dashboard to
      *  pick correct "code added/removed" copy per side. */
     val reworkDirection: String? = null,
+    /** HYGIENE: discriminates the hygiene sub-pattern for UI copy.
+     *  Currently `"TESTS_SKIPPED"` or `"COMMIT_GAP"`. */
+    val hygieneSubKind: String? = null,
+    /** HYGIENE: contextual length (e.g. commit-gap length in checkpoints)
+     *  surfaced in the explanation template. */
+    val hygieneStretchLength: Int? = null,
 )
 
 /**
@@ -380,6 +386,13 @@ data class CheckpointReport(
     val sha: String,
     val events: List<EventSummary>,
     val metrics: CheckpointMetrics,
+    // True when this checkpoint's SHA matches one of the user's commits
+    // (`AnalysisReport.userGitCommits`). Defaulted false so the process-
+    // score walker can read it uniformly without breaking older reports.
+    // V1: read-only — no penalty term consumes this yet. Wired so that
+    // when commit cadence joins the score, HYGIENE COMMIT_GAP alts that
+    // already flip this bit immediately produce a real magnitude.
+    val isUserCommit: Boolean = false,
     // Diff against the previous checkpoint (or the seed commit for the first).
     // Sibling of `metrics` — `metrics` describes this checkpoint's state,
     // `diff` describes the transition into it.
