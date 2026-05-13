@@ -806,6 +806,12 @@ export function toViewModel(report: AnalysisReport): DashboardViewModel {
       dp.reworkDirection === "REMOVE_THEN_ADD"
         ? dp.reworkDirection
         : undefined,
+    hygieneSubKind:
+      dp.hygieneSubKind === "TESTS_SKIPPED" ||
+      dp.hygieneSubKind === "COMMIT_GAP"
+        ? dp.hygieneSubKind
+        : undefined,
+    hygieneStretchLength: dp.hygieneStretchLength ?? undefined,
   }))
 
   return {

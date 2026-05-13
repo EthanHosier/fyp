@@ -15,12 +15,14 @@ export function ChartLegend({
   secondaries,
   showIntervals,
   showAlternatives,
+  showWorseAlternatives,
   showCommits,
 }: {
   primary: MetricVM
   secondaries: MetricVM[]
   showIntervals: boolean
   showAlternatives: boolean
+  showWorseAlternatives: boolean
   showCommits: boolean
 }) {
   return (
@@ -39,9 +41,11 @@ export function ChartLegend({
           <LegendSwatch label="alternative">
             <DashedSwatch tone="bg-brand" />
           </LegendSwatch>
-          <LegendSwatch label="alternative · worse">
-            <DashedSwatch tone="bg-fg-4" />
-          </LegendSwatch>
+          {showWorseAlternatives ? (
+            <LegendSwatch label="alternative · worse">
+              <DashedSwatch tone="bg-fg-4" />
+            </LegendSwatch>
+          ) : null}
         </>
       ) : null}
       {showCommits ? (

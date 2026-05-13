@@ -6,6 +6,7 @@ import type {
   Selection,
 } from "@/data/types"
 import type { ChartScales } from "@/features/trajectory-chart/use-chart-scales"
+import { useDashboardStore } from "@/stores/dashboard-store"
 import { cn } from "@/lib/utils"
 
 /**
@@ -56,6 +57,15 @@ export function ChartAlternativePaths({
     idx: number
   }
   const [hovered, setHovered] = useState<HoverTarget | null>(null)
+
+  // Whether to render alts whose final process score is below the user's
+  // — gated by a layer toggle in the metric rail. Off by default to
+  // keep the chart focused on counterfactuals the user could actually
+  // benefit from; flipped on for "show me every alt the engine
+  // considered" diagnostic mode.
+  const showWorseAlternatives = useDashboardStore(
+    (s) => s.layers.showWorseAlternatives,
+  )
 
   // Look up each user step's slot xPos by stepIndex so alt step k can
   // align under the user's k-th step in the window (chronological
@@ -115,6 +125,10 @@ export function ChartAlternativePaths({
           typeof userFinalProcess === "number" &&
           altFinalProcess >= userFinalProcess
         const isWorse = !altWins
+        // Skip worse alts unless the diagnostic toggle is on. They
+        // clutter the chart with counterfactuals the user can't act
+        // on (the alternative scored lower than their actual path).
+        if (isWorse && !showWorseAlternatives) return null
 
         // Align alt's k-th applied step under the user's k-th window
         // step (chronological — sorted by stepIndex ascending). Y
@@ -147,17 +161,16 @@ export function ChartAlternativePaths({
           const span = toCp.xPos - fromCp.xPos
           return Array.from({ length: n }, (_, i) => fromCp.xPos + (span * (i + 1)) / n)
         })()
-        // REWORK alts: anchor each surviving alt checkpoint at the
-        // user checkpoint it semantically lands at, looked up via the
-        // backend-provided `altCheckpointUserIndexes` map. This still
-        // works after whitespace-only intermediates have been absorbed
-        // — the kept alt checkpoints may no longer be 1-to-1 with the
-        // user steps in `[fromCheckpointIndex..toCheckpointIndex]`, but
-        // the map still pins each survivor to the right user xPos.
-        // Falls back to `null` (→ even distribution) for the no-op
-        // cancel-out case where the backend leaves the list empty.
+        // REWORK / HYGIENE alts: anchor each surviving alt checkpoint
+        // at the user checkpoint it semantically lands at, looked up
+        // via the backend-provided `altCheckpointUserIndexes` map.
+        // REWORK uses this after whitespace-only intermediates have
+        // been absorbed; HYGIENE alts have empty `stepIndexes` (no
+        // miner step) so step-index anchoring doesn't apply either.
+        // Falls back to `null` (→ even distribution) when the backend
+        // leaves the list empty.
         const userCheckpointAlignedXPositions = (() => {
-          if (alt.kind !== "REWORK") return null
+          if (alt.kind !== "REWORK" && alt.kind !== "HYGIENE") return null
           if (alt.altCheckpointUserIndexes.length !== alt.steps.length) return null
           const xs: number[] = []
           for (const userIdx of alt.altCheckpointUserIndexes) {

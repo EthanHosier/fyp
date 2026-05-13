@@ -312,6 +312,11 @@ export type DivergencePointVM = {
   terminalPatch?: string
   /** REWORK: which side of the round trip was the originating edit. */
   reworkDirection?: "ADD_THEN_REMOVE" | "REMOVE_THEN_ADD"
+  /** HYGIENE: discriminates the sub-pattern for UI copy. */
+  hygieneSubKind?: "TESTS_SKIPPED" | "COMMIT_GAP"
+  /** HYGIENE: contextual length (COMMIT_GAP: checkpoints since the
+   *  previous commit). */
+  hygieneStretchLength?: number
 }
 
 export type AlternativeTrajectoryVM = {
@@ -492,5 +497,10 @@ export type Layers = {
   buildIntervals: boolean
   testIntervals: boolean
   alternativeTrajectories: boolean
+  /** When false (default), alternative trajectories whose final process
+   *  score is below the user's are hidden from the chart. Only the
+   *  "worse" alts are gated — the better ones are always visible when
+   *  [alternativeTrajectories] is on. */
+  showWorseAlternatives: boolean
   userCommits: boolean
 }

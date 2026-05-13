@@ -45,6 +45,7 @@ export const useDashboardStore = create<DashboardStore>((set) => ({
     buildIntervals: true,
     testIntervals: true,
     alternativeTrajectories: true,
+    showWorseAlternatives: false,
     userCommits: true,
   },
   highlightedCheckpointIndex: null,
