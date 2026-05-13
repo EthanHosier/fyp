@@ -133,21 +133,53 @@ export function ChartAlternativePaths({
           .slice()
           .sort((a, b) => a - b)
         const hasStepIndexAnchors = stepIndexXPositions.length === alt.steps.length
-        const userOrderXPositions: number[] = hasStepIndexAnchors
-          ? stepIndexXPositions
-          : (() => {
-              // Rework alts (no miner stepIndex anchors): land the
-              // checkpoint(s) such that the terminal step aligns with
-              // the user's toSha xPos. For a single-step rework that
-              // means placing it directly at `toCp.xPos`; for multi-
-              // step reworks distribute evenly across the
-              // `[fromCp.xPos, toCp.xPos]` range, the last entry being
-              // at `toCp.xPos`.
-              const n = alt.steps.length
-              if (n === 1) return [toCp.xPos]
-              const span = toCp.xPos - fromCp.xPos
-              return Array.from({ length: n }, (_, i) => fromCp.xPos + (span * (i + 1)) / n)
-            })()
+        // Even-distribution fallback used for any alt where collapsing
+        // onto user stepIndex xPositions would stack multiple alt
+        // checkpoints at the same coordinate. IDE_REPLAY alts that
+        // replace a single user step with N specs are the main case:
+        // every spec resolves to the same user stepIndex (and thus the
+        // same toSha xPos), so the polyline degenerates into a vertical
+        // stack at toSha. Spreading the N alt checkpoints evenly across
+        // `[fromCp.xPos, toCp.xPos]` makes the progression legible.
+        const distributedXPositions = (() => {
+          const n = alt.steps.length
+          if (n === 1) return [toCp.xPos]
+          const span = toCp.xPos - fromCp.xPos
+          return Array.from({ length: n }, (_, i) => fromCp.xPos + (span * (i + 1)) / n)
+        })()
+        // REWORK alts have no miner stepIndex anchors and their N
+        // altCheckpoints correspond one-to-one with the cherry-picked
+        // user steps in the rework window. Anchor each alt checkpoint
+        // directly at the matching *user* checkpoint's xPos so the
+        // polyline tracks the user's tMs-interpolated layout rather
+        // than collapsing into the tight `[fromCp.xPos, toCp.xPos]`
+        // window — which is otherwise compressed by the chart's
+        // step-only slot layout. Falls back to even distribution when
+        // the rework has fewer alt checkpoints than user steps in the
+        // window (the no-op cancel-out case).
+        const userCheckpointAlignedXPositions = (() => {
+          if (alt.kind !== "REWORK") return null
+          const fromIdx = alt.fromCheckpointIndex
+          const toIdx = alt.toCheckpointIndex
+          const userStepCount = toIdx - fromIdx
+          if (alt.steps.length !== userStepCount) return null
+          const xs: number[] = []
+          for (let i = 0; i < alt.steps.length; i++) {
+            const cp = vm.checkpoints[fromIdx + 1 + i]
+            if (!cp) return null
+            xs.push(cp.xPos)
+          }
+          return xs
+        })()
+        const ideStackCollapses =
+          alt.kind === "IDE_REPLAY" &&
+          hasStepIndexAnchors &&
+          new Set(stepIndexXPositions).size < stepIndexXPositions.length
+        const userOrderXPositions: number[] =
+          userCheckpointAlignedXPositions ??
+          (ideStackCollapses || !hasStepIndexAnchors
+            ? distributedXPositions
+            : stepIndexXPositions)
         const altPoints: { x: number; y: number; vm: typeof alt.steps[number] }[] = []
         for (let k = 0; k < alt.steps.length; k++) {
           const slotX = userOrderXPositions[k]
