@@ -74,6 +74,17 @@ export type CheckpointVM = {
   cleanlinessScore: number | null
   /** Per-sub-metric decomposition of the cleanliness composite. */
   cleanlinessBreakdown: CleanlinessBreakdown | null
+  /** False when this checkpoint's static cleanliness aggregates
+   *  (CK / PMD / CPD / readability) couldn't be trusted because build
+   *  or tests were broken here. The displayed values are carried
+   *  forward from the last green checkpoint (or, if none yet, set to
+   *  the session midpoint). The raw `metrics` block still reflects
+   *  what the runners produced. */
+  metricsTrustworthy: boolean
+  /** When [metricsTrustworthy] is false, identifies the fallback:
+   *   - "PRIOR"    → carried forward from the last green checkpoint.
+   *   - "MIDPOINT" → session midpoint (no prior green checkpoint). */
+  metricsCarryForwardSource?: "PRIOR" | "MIDPOINT"
 }
 
 export type ProcessScoreContribution = {

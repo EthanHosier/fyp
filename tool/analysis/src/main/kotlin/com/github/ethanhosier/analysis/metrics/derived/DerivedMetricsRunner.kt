@@ -134,6 +134,27 @@ class DerivedMetricsRunner {
          *  cumulative state. Empty list when the alt merges at the
          *  trace end or its anchor snapshot was missing. */
         val continuations: List<AltProcessContinuation> = emptyList(),
+        /** Per main-checkpoint trust info, keyed by sha. `Trustworthy`
+         *  iff `build.success && tests.success` at that checkpoint
+         *  (i.e. the static aggregates came from this checkpoint's
+         *  own worktree). Otherwise [TrustInfo.source] flags whether
+         *  aggregates were carried from a prior trustworthy checkpoint
+         *  ("PRIOR") or filled with the session midpoint when no
+         *  prior trustworthy checkpoint existed ("MIDPOINT").
+         *  Empty when [run] was called with empty mainCheckpoints. */
+        val mainTrust: Map<String, TrustInfo> = emptyMap(),
+        /** Per alt-checkpoint trust info, keyed by alt sha. Same shape
+         *  and semantics as [mainTrust] — set when an alt checkpoint's
+         *  aggregates were carried (because build/tests were broken on
+         *  the synthesised tree). */
+        val altTrust: Map<String, TrustInfo> = emptyMap(),
+    )
+
+    /** Per-checkpoint trust descriptor surfaced on [Result.mainTrust]. */
+    data class TrustInfo(
+        val trustworthy: Boolean,
+        /** Null when trustworthy; "PRIOR" or "MIDPOINT" otherwise. */
+        val source: String?,
     )
 
     /**
@@ -150,17 +171,82 @@ class DerivedMetricsRunner {
         alternatives: List<AlternativeTrajectory>,
         refactoringSteps: List<RefactoringStep>,
     ): Result {
-        val mainAgg = mainCheckpoints.map { aggregate(it) }
-        // List-of-lists: outer parallel to [alternatives], inner parallel
-        // to each alt's [altCheckpoints].
-        val altAgg: List<List<Aggregates>> = alternatives.map { alt ->
-            alt.altCheckpoints.map { aggregate(it) }
+        // Raw per-checkpoint aggregates — what CK/PMD/CPD actually
+        // produced at this SHA. Used as the input to range computation
+        // (filtered to trustworthy only) and as the carry-forward
+        // source for the trustworthy slots below.
+        val mainRawAgg = mainCheckpoints.map { aggregate(it) }
+
+        // Pass 1: forward carry-forward. Untrustworthy slots inherit
+        // the previous trustworthy aggregate. Slots with no prior
+        // trustworthy aggregate are left null for pass 2 to fill.
+        val mainEffectiveAgg = MutableList<Aggregates?>(mainCheckpoints.size) { null }
+        val mainTrustInfo = MutableList(mainCheckpoints.size) { TrustInfo(true, null) }
+        run {
+            var lastGood: Aggregates? = null
+            for (i in mainCheckpoints.indices) {
+                if (isTrustworthy(mainCheckpoints[i])) {
+                    mainEffectiveAgg[i] = mainRawAgg[i]
+                    lastGood = mainRawAgg[i]
+                    // mainTrustInfo[i] already set to trustworthy.
+                } else if (lastGood != null) {
+                    mainEffectiveAgg[i] = lastGood
+                    mainTrustInfo[i] = TrustInfo(false, "PRIOR")
+                } // else: leave null — pass 2 fills with midpoint.
+            }
         }
 
-        // Ranges from the main trajectory only — alts get the same scale
-        // (with clamp on out-of-range values) so a single extreme alt
-        // can't move main's normalisation.
-        val ranges = computeRanges(mainAgg)
+        // Ranges from trustworthy main checkpoints only — keeps
+        // sparse-PMD/CK output from depressing the `lo` floor.
+        val ranges = computeRanges(
+            mainCheckpoints.indices
+                .filter { isTrustworthy(mainCheckpoints[it]) }
+                .map { mainRawAgg[it] },
+        )
+
+        // Pass 2: fill any remaining null slots (leading untrustworthy
+        // gap) with the session midpoint per sub-signal.
+        val midpoint = midpointAggregates(ranges)
+        for (i in mainEffectiveAgg.indices) {
+            if (mainEffectiveAgg[i] == null) {
+                mainEffectiveAgg[i] = midpoint
+                mainTrustInfo[i] = TrustInfo(false, "MIDPOINT")
+            }
+        }
+        @Suppress("UNCHECKED_CAST")
+        val mainAgg = (mainEffectiveAgg as List<Aggregates>)
+
+        // Alt-side two-pass — same shape, per-alt midpoint uses main's
+        // range (alts already get clamped normalisation against main's
+        // ranges; the midpoint placeholder uses the main ranges too so
+        // the alt slot is comparable). Per-alt trust info collected
+        // alongside so the pipeline can splice it onto alt CheckpointReports.
+        val altAgg = mutableListOf<List<Aggregates>>()
+        val altTrustInfo = mutableListOf<List<TrustInfo>>()
+        for (alt in alternatives) {
+            val rawAgg = alt.altCheckpoints.map { aggregate(it) }
+            val effective = MutableList<Aggregates?>(alt.altCheckpoints.size) { null }
+            val trust = MutableList(alt.altCheckpoints.size) { TrustInfo(true, null) }
+            var lastGood: Aggregates? = null
+            for (i in alt.altCheckpoints.indices) {
+                if (isTrustworthy(alt.altCheckpoints[i])) {
+                    effective[i] = rawAgg[i]
+                    lastGood = rawAgg[i]
+                } else if (lastGood != null) {
+                    effective[i] = lastGood
+                    trust[i] = TrustInfo(false, "PRIOR")
+                }
+            }
+            for (i in effective.indices) {
+                if (effective[i] == null) {
+                    effective[i] = midpoint
+                    trust[i] = TrustInfo(false, "MIDPOINT")
+                }
+            }
+            @Suppress("UNCHECKED_CAST")
+            altAgg += effective as List<Aggregates>
+            altTrustInfo += trust
+        }
 
         val mainCleanliness = mainAgg.map { computeCleanliness(it, ranges, clamp = false) }
         val altCleanliness: List<List<Cleanliness?>> = altAgg.map { perAlt ->
@@ -220,7 +306,51 @@ class DerivedMetricsRunner {
             }
         }
 
-        return Result(main = mainOut, alt = altOut, continuations = continuations)
+        val mainTrust = mainCheckpoints.mapIndexed { i, cp -> cp.sha to mainTrustInfo[i] }.toMap()
+        val altTrust = LinkedHashMap<String, TrustInfo>()
+        for (i in alternatives.indices) {
+            val alt = alternatives[i]
+            for (k in alt.altCheckpoints.indices) {
+                altTrust[alt.altCheckpoints[k].sha] = altTrustInfo[i][k]
+            }
+        }
+        return Result(
+            main = mainOut,
+            alt = altOut,
+            continuations = continuations,
+            mainTrust = mainTrust,
+            altTrust = altTrust,
+        )
+    }
+
+    /** A checkpoint's cleanliness aggregates can be trusted iff the
+     *  code was demonstrably working there — build green AND tests
+     *  green. `TestResult.skipped(...)` writes `success = false` (the
+     *  pipeline only skips tests when the build already failed), so
+     *  this single check covers both "build broke" and "tests broke /
+     *  weren't run because build broke". */
+    private fun isTrustworthy(cp: CheckpointReport): Boolean =
+        cp.metrics.build.success && cp.metrics.tests.success
+
+    /** Midpoint aggregate `(lo + hi) / 2` per sub-signal — used as a
+     *  fallback for untrustworthy checkpoints with no prior trustworthy
+     *  baseline to carry forward (build/tests broken from session
+     *  start). Degenerate-range cases (no trustworthy checkpoints, or
+     *  a single one) collapse to a sensible constant via the existing
+     *  range-degenerate handling in [computeCleanliness]. */
+    private fun midpointAggregates(ranges: Map<SubMetric, Range>): Aggregates {
+        fun mid(m: SubMetric): Double = ranges[m]?.let { (it.lo + it.hi) / 2.0 } ?: 0.0
+        return Aggregates(
+            coupling = mid(SubMetric.COUPLING),
+            // Cohesion is the only sub-metric that's legitimately null
+            // when missing — if no trustworthy checkpoint produced a
+            // TCC, leave it null (matches today's "no signal" path).
+            cohesion = ranges[SubMetric.COHESION]?.let { (it.lo + it.hi) / 2.0 },
+            duplication = mid(SubMetric.DUPLICATION),
+            readability = mid(SubMetric.READABILITY),
+            cognitive = mid(SubMetric.COGNITIVE).toInt(),
+            smells = mid(SubMetric.SMELLS).toInt(),
+        )
     }
 
     // ---- aggregators ----
@@ -507,7 +637,13 @@ class DerivedMetricsRunner {
 
         // Smell ledger is priority-weighted ((6 - priority), clamped ≥ 0).
         // Same convention as the frontend `process-score.ts` smell weight.
-        val (added, resolved) = smellsForCheckpoint(checkpoints, cpIndex)
+        // Skip the ledger update entirely when this checkpoint isn't
+        // trustworthy — broken build/tests typically means sparse PMD
+        // output, which would otherwise look like "every prior smell
+        // was resolved here", artificially deflating the smell load.
+        val (added, resolved) =
+            if (isTrustworthy(cp)) smellsForCheckpoint(checkpoints, cpIndex)
+            else 0 to 0
         val addedSmellWeight = snap.addedSmellWeight + added
         val resolvedSmellWeight = snap.resolvedSmellWeight + resolved
         val totalSmellWeightSeen = snap.totalSmellWeightSeen + added
@@ -742,7 +878,11 @@ class DerivedMetricsRunner {
         val testsFailed = !testsOk && !testsSkipped
         val brokenInc = if (!build || testsFailed) 1 else 0
 
-        val (addedW, resolvedW) = smellWeightsForAltCp(cp)
+        // Skip the alt smell-ledger update on untrustworthy alt
+        // checkpoints — same rationale as the main walk.
+        val (addedW, resolvedW) =
+            if (isTrustworthy(cp)) smellWeightsForAltCp(cp)
+            else 0 to 0
         val brokenCount = snap.brokenCount + brokenInc
         val addedSmellWeight = snap.addedSmellWeight + addedW
         val resolvedSmellWeight = snap.resolvedSmellWeight + resolvedW

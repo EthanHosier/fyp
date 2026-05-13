@@ -328,6 +328,12 @@ export function toViewModel(report: AnalysisReport): DashboardViewModel {
       processBreakdown,
       cleanlinessScore: cleanlinessBreakdown?.total ?? null,
       cleanlinessBreakdown,
+      metricsTrustworthy: c.metricsTrustworthy ?? true,
+      metricsCarryForwardSource:
+        c.metricsCarryForwardSource === "PRIOR" ||
+        c.metricsCarryForwardSource === "MIDPOINT"
+          ? c.metricsCarryForwardSource
+          : undefined,
     }
   })
 
@@ -374,6 +380,8 @@ export function toViewModel(report: AnalysisReport): DashboardViewModel {
       processBreakdown: lastReal.processBreakdown,
       cleanlinessScore: lastReal.cleanlinessScore,
       cleanlinessBreakdown: lastReal.cleanlinessBreakdown,
+      metricsTrustworthy: lastReal.metricsTrustworthy,
+      metricsCarryForwardSource: lastReal.metricsCarryForwardSource,
     })
   }
 

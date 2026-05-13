@@ -1,4 +1,5 @@
 import { parsePatchFiles } from "@pierre/diffs"
+import { AlertTriangleIcon } from "lucide-react"
 import type { ReactNode } from "react"
 
 import type { Annotation } from "@/components/annotation-item"
@@ -8,6 +9,11 @@ import { CleanlinessBreakdownContent } from "@/components/cleanliness-breakdown"
 import { ProcessScoreBreakdownContent } from "@/components/process-score-breakdown"
 import { StatusRow } from "@/components/status-row"
 import { Text } from "@/components/text"
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "@/components/ui/hover-card"
 import type {
   CheckpointVM,
   DashboardViewModel,
@@ -57,9 +63,12 @@ export function CheckpointBody({
   return (
     <div className="flex flex-col gap-4">
       <section className="flex flex-col gap-2">
-        <Text as="h3" variant="eyebrow" tone="fg-4">
-          Metrics at {checkpoint.label}
-        </Text>
+        <div className="flex items-center justify-between gap-2">
+          <Text as="h3" variant="eyebrow" tone="fg-4">
+            Metrics at {checkpoint.label}
+          </Text>
+          <CarryForwardBadge checkpoint={checkpoint} />
+        </div>
         <div className="grid grid-cols-2 gap-2">
           {vm.metrics.map((m) => {
             const v = checkpoint.values[m.id]
@@ -131,6 +140,44 @@ export function CheckpointBody({
 
 function hasSmellSignals(checkpoint: CheckpointVM): boolean {
   return checkpoint.smells.added.length > 0 || checkpoint.smells.resolved.length > 0
+}
+
+/** Inline pill rendered next to the "Metrics at <label>" header when
+ *  this checkpoint's static cleanliness aggregates were carried
+ *  forward (build or tests broken). Hovering shows the explanation;
+ *  the tile values themselves stay clean. Renders nothing when the
+ *  checkpoint is trustworthy. */
+function CarryForwardBadge({ checkpoint }: { checkpoint: CheckpointVM }) {
+  if (checkpoint.metricsTrustworthy) return null
+  const isMidpoint = checkpoint.metricsCarryForwardSource === "MIDPOINT"
+  return (
+    <HoverCard openDelay={120} closeDelay={80}>
+      <HoverCardTrigger asChild>
+        <button
+          type="button"
+          aria-label="Carried forward from last green checkpoint"
+          className="text-warn hover:text-warn/80 inline-flex cursor-help items-center gap-1"
+        >
+          <AlertTriangleIcon className="size-3" />
+          <Text as="span" variant="caption" tone="inherit" className="text-[10px]">
+            carried forward
+          </Text>
+        </button>
+      </HoverCardTrigger>
+      <HoverCardContent className="w-72">
+        <div className="flex flex-col gap-1.5">
+          <Text variant="eyebrow" tone="fg-4">
+            Carried forward
+          </Text>
+          <Text variant="body" tone="fg-2" className="text-[12px] leading-relaxed">
+            {isMidpoint
+              ? "Build or tests were broken from the start of this session — cleanliness signals use the session midpoint as a placeholder."
+              : "Build or tests were broken at this checkpoint, so static cleanliness signals can't be trusted. The values shown are carried forward from the last checkpoint where the build and tests both passed."}
+          </Text>
+        </div>
+      </HoverCardContent>
+    </HoverCard>
+  )
 }
 
 /** Per-metric hover-card content. Process and cleanliness expose their
