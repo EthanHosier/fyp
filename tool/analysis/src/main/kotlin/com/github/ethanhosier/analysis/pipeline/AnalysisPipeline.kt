@@ -669,7 +669,7 @@ internal fun buildAnalysisReport(
     // Done after the main derived run so the user's own derivedMetrics
     // are stable; the hygiene alts pre-bake their own derivedMetrics
     // so they don't need to pass through DerivedMetricsRunner again.
-    val hygieneFindings = HygieneDetector.detect(checkpoints)
+    val hygieneFindings = HygieneDetector.detect(checkpoints, miner.steps)
     val hygieneAlts = HygieneDetector.buildAlts(
         findings = hygieneFindings,
         checkpoints = checkpoints,

@@ -184,6 +184,9 @@ export function TrajectoryChart({ vm }: { vm: DashboardViewModel }) {
         secondaries={secondaries}
         showIntervals={railCount > 0}
         showAlternatives={layers.alternativeTrajectories}
+        showWorseAlternatives={
+          layers.alternativeTrajectories && layers.showWorseAlternatives
+        }
         showCommits={layers.userCommits && vm.commitMarkers.length > 0}
       />
     </div>

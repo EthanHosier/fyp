@@ -5,7 +5,9 @@ import com.github.ethanhosier.analysis.metrics.model.AlternativeTrajectory
 import com.github.ethanhosier.analysis.metrics.model.CheckpointReport
 import com.github.ethanhosier.analysis.metrics.model.DerivedMetrics
 import com.github.ethanhosier.analysis.metrics.model.DivergenceKind
+import com.github.ethanhosier.analysis.metrics.model.EventSummary
 import com.github.ethanhosier.analysis.miner.model.RefactoringStep
+import com.github.ethanhosier.ideplugin.model.EventType
 
 /**
  * Detects hygiene-flavoured divergences — moments where the user made a
@@ -40,10 +42,13 @@ import com.github.ethanhosier.analysis.miner.model.RefactoringStep
  */
 object HygieneDetector {
 
-    /** Anchor checkpoint count past the previous user commit at which
-     *  COMMIT_GAP fires. Matches [com.github.ethanhosier.analysis.advice.TrajectoryAdvisor]'s
-     *  trajectory-wide INFO threshold so the per-step localisation
-     *  agrees with the trajectory-wide rule. */
+    /** Number of *green refactor checkpoints* (a refactoring step landed
+     *  there AND build + tests both passed) accumulated since the
+     *  previous commit at which COMMIT_GAP fires. The count is
+     *  cumulative — non-green or non-refactor checkpoints don't break
+     *  the run, they just don't contribute. So `1 green → 1 red → 5
+     *  greens` fires (6 cumulative greens) where a strict consecutive
+     *  counter wouldn't. */
     const val MIN_COMMIT_GAP: Int = 6
 
     enum class SubKind { TESTS_SKIPPED, COMMIT_GAP }
@@ -61,36 +66,60 @@ object HygieneDetector {
     /**
      * Run the predicates and return findings. Pure — no I/O.
      */
-    fun detect(checkpoints: List<CheckpointReport>): List<Finding> {
+    fun detect(
+        checkpoints: List<CheckpointReport>,
+        refactoringSteps: List<RefactoringStep> = emptyList(),
+    ): List<Finding> {
         if (checkpoints.isEmpty()) return emptyList()
         val out = mutableListOf<Finding>()
 
-        // TESTS_SKIPPED — every checkpoint that recorded a skipped test
-        // result. Doesn't require the checkpoint to be a refactoring
-        // step's post-state; any skip is a real penalty in the score
-        // formula. The W_SKIP_TESTS penalty is rate-based so even a
-        // single skip moves the terminal process score.
-        for (i in checkpoints.indices) {
-            if (checkpoints[i].metrics.tests.wasSkipped) {
-                out += Finding(SubKind.TESTS_SKIPPED, anchorIndex = i)
+        // TESTS_SKIPPED — fires only at refactoring-step post-checkpoints
+        // that carry no `TEST_RUN_FINISHED` event. This is what the
+        // process-score formula penalises (W_SKIP_TESTS in
+        // `DerivedMetricsRunner.advanceMainStep`): `testsSkippedCount`
+        // only increments at refactoring steps, and the test indicator
+        // it reads is the IDE event stream rather than `tests.wasSkipped`
+        // (which tracks gradle test runs, a different signal). Anchoring
+        // at non-refactoring checkpoints would emit DPs that don't move
+        // the recomputed score.
+        for (step in refactoringSteps) {
+            val cp = checkpoints.getOrNull(step.toCheckpointIndex) ?: continue
+            val userRanTests = cp.events.any { it.type == EventType.TEST_RUN_FINISHED }
+            if (!userRanTests) {
+                out += Finding(SubKind.TESTS_SKIPPED, anchorIndex = step.toCheckpointIndex)
             }
         }
 
-        // COMMIT_GAP — walk emitting one finding per MIN_COMMIT_GAP run
-        // since the previous (real or synthetic) commit. Treating each
-        // emitted finding as if the user had committed means a long gap
-        // yields multiple distinct DPs (one per recommended commit
-        // point) instead of one giant DP.
-        var lastCommitIdx = -1
+        // COMMIT_GAP — walk counting *green refactor checkpoints* since
+        // the previous (real or synthetic) commit. A checkpoint counts
+        // iff a refactoring step landed there AND build+tests both
+        // passed. Non-green or non-refactor checkpoints don't contribute
+        // (and don't break the run). Fires once the cumulative count
+        // hits MIN_COMMIT_GAP, then resets — treating the finding as
+        // if the user had committed there, so long stretches emit one
+        // DP per recommended commit point instead of one giant DP.
+        val refactorLandingIdx = refactoringSteps.mapTo(HashSet()) { it.toCheckpointIndex }
+        var greenSinceLastCommit = 0
         for (i in checkpoints.indices) {
-            if (checkpoints[i].isUserCommit) {
-                lastCommitIdx = i
+            val cp = checkpoints[i]
+            if (cp.isUserCommit) {
+                greenSinceLastCommit = 0
                 continue
             }
-            val gap = i - lastCommitIdx
-            if (gap >= MIN_COMMIT_GAP) {
-                out += Finding(SubKind.COMMIT_GAP, anchorIndex = i, gapLength = gap)
-                lastCommitIdx = i
+            val landsRefactor = i in refactorLandingIdx
+            val green = cp.metrics.build.success &&
+                cp.metrics.tests.success &&
+                !cp.metrics.tests.wasSkipped
+            if (landsRefactor && green) {
+                greenSinceLastCommit += 1
+                if (greenSinceLastCommit >= MIN_COMMIT_GAP) {
+                    out += Finding(
+                        SubKind.COMMIT_GAP,
+                        anchorIndex = i,
+                        gapLength = greenSinceLastCommit,
+                    )
+                    greenSinceLastCommit = 0
+                }
             }
         }
 
@@ -151,19 +180,19 @@ object HygieneDetector {
             )
         }
 
-        val fromSha = if (f.anchorIndex == 0) {
-            anchorCp.sha
-        } else {
-            checkpoints[f.anchorIndex - 1].sha
-        }
-
         AlternativeTrajectory(
             kind = DivergenceKind.HYGIENE,
             // Empty stepIndexes — HYGIENE alts don't correspond to a
             // refactoring step. The DP carries the anchor checkpoint
             // index directly. Same shape as REWORK alts.
             stepIndexes = emptyList(),
-            fromSha = fromSha,
+            // Anchor the divergence at the user checkpoint where the
+            // hygiene predicate fires — fromSha == userToSha == anchor.
+            // The "decision" (skip tests / not commit) is recorded at
+            // this checkpoint, so the alt branches *from* it rather
+            // than from the preceding step. Visually the alt polyline
+            // starts at the anchor's xPos.
+            fromSha = anchorCp.sha,
             userToSha = anchorCp.sha,
             branchRefs = emptyList(),
             specs = emptyList(),
@@ -177,7 +206,17 @@ object HygieneDetector {
     }
 
     private fun applyFlip(cp: CheckpointReport, subKind: SubKind): CheckpointReport = when (subKind) {
+        // Inject a synthetic TEST_RUN_FINISHED event — that's the
+        // signal `DerivedMetricsRunner.stepUserRanTests` reads to gate
+        // the W_SKIP_TESTS penalty. Also flip the gradle metric flags
+        // for UI consistency (the StatusRow renders them) — though
+        // those flags don't affect the score directly.
         SubKind.TESTS_SKIPPED -> cp.copy(
+            events = cp.events + EventSummary(
+                id = "hygiene-synthetic-test-run-${cp.sha}",
+                type = EventType.TEST_RUN_FINISHED,
+                timestamp = 0L,
+            ),
             metrics = cp.metrics.copy(
                 tests = cp.metrics.tests.copy(success = true, wasSkipped = false),
             ),

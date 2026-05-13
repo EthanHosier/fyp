@@ -497,5 +497,10 @@ export type Layers = {
   buildIntervals: boolean
   testIntervals: boolean
   alternativeTrajectories: boolean
+  /** When false (default), alternative trajectories whose final process
+   *  score is below the user's are hidden from the chart. Only the
+   *  "worse" alts are gated — the better ones are always visible when
+   *  [alternativeTrajectories] is on. */
+  showWorseAlternatives: boolean
   userCommits: boolean
 }

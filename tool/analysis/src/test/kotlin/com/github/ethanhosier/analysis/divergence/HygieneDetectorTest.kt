@@ -5,8 +5,12 @@ import com.github.ethanhosier.analysis.metrics.gitdiff.DiffStats
 import com.github.ethanhosier.analysis.metrics.gradlebuild.BuildResult
 import com.github.ethanhosier.analysis.metrics.model.CheckpointMetrics
 import com.github.ethanhosier.analysis.metrics.model.CheckpointReport
+import com.github.ethanhosier.analysis.metrics.model.EventSummary
 import com.github.ethanhosier.analysis.metrics.pmd.PmdResult
 import com.github.ethanhosier.analysis.metrics.tests.TestResult
+import com.github.ethanhosier.analysis.miner.model.DetectedRefactoring
+import com.github.ethanhosier.analysis.miner.model.RefactoringStep
+import com.github.ethanhosier.ideplugin.model.EventType
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -17,16 +21,21 @@ class HygieneDetectorTest {
         sha: String,
         testsSkipped: Boolean = false,
         isCommit: Boolean = false,
+        ranTests: Boolean = false,
+        buildOk: Boolean = true,
+        testsOk: Boolean = true,
     ): CheckpointReport = CheckpointReport(
         sha = sha,
-        events = emptyList(),
+        events = if (ranTests) listOf(
+            EventSummary(id = "$sha-test", type = EventType.TEST_RUN_FINISHED, timestamp = 0L),
+        ) else emptyList(),
         metrics = CheckpointMetrics(
             sha = sha,
             ck = CkResult(perClass = emptyList()),
             pmd = PmdResult(violations = emptyList()),
-            build = BuildResult(success = true, exitCode = 0, durationMs = 0, timedOut = false, stderrTail = ""),
+            build = BuildResult(success = buildOk, exitCode = 0, durationMs = 0, timedOut = false, stderrTail = ""),
             tests = TestResult(
-                success = !testsSkipped,
+                success = testsOk && !testsSkipped,
                 exitCode = 0,
                 durationMs = 0,
                 timedOut = false,
@@ -39,23 +48,43 @@ class HygieneDetectorTest {
         diff = DiffStats.ZERO,
     )
 
+    private fun step(toIdx: Int) = RefactoringStep(
+        stepIndex = toIdx,
+        fromSha = "u${toIdx - 1}",
+        toSha = "u$toIdx",
+        toCheckpointIndex = toIdx,
+        timestamp = 0L,
+        refactoring = DetectedRefactoring(
+            type = "Extract Method",
+            description = "stub",
+            leftSideLocations = emptyList(),
+            rightSideLocations = emptyList(),
+            ideRelevant = true,
+        ),
+        wasPerformedByIde = false,
+    )
+
     @Test
-    fun `TESTS_SKIPPED fires once per skipped-test checkpoint`() {
+    fun `TESTS_SKIPPED fires at refactoring steps whose checkpoint has no TEST_RUN_FINISHED`() {
         val checkpoints = listOf(
             cp("u0"),
-            cp("u1", testsSkipped = true),
-            cp("u2"),
+            cp("u1"),                 // refactoring lands here, no test event
+            cp("u2", ranTests = true), // refactoring lands here, test event present
         )
-        val findings = HygieneDetector.detect(checkpoints)
+        val findings = HygieneDetector.detect(checkpoints, listOf(step(1), step(2)))
         assertEquals(1, findings.size)
         assertEquals(HygieneDetector.SubKind.TESTS_SKIPPED, findings[0].subKind)
         assertEquals(1, findings[0].anchorIndex)
     }
 
     @Test
-    fun `TESTS_SKIPPED silent when every checkpoint ran tests`() {
-        val checkpoints = listOf(cp("u0"), cp("u1"), cp("u2"))
-        val findings = HygieneDetector.detect(checkpoints)
+    fun `TESTS_SKIPPED silent when every refactoring step ran tests`() {
+        val checkpoints = listOf(
+            cp("u0"),
+            cp("u1", ranTests = true),
+            cp("u2", ranTests = true),
+        )
+        val findings = HygieneDetector.detect(checkpoints, listOf(step(1), step(2)))
         assertTrue(
             findings.none { it.subKind == HygieneDetector.SubKind.TESTS_SKIPPED },
             "expected no TESTS_SKIPPED findings, got $findings",
@@ -63,14 +92,14 @@ class HygieneDetectorTest {
     }
 
     @Test
-    fun `COMMIT_GAP fires every MIN_COMMIT_GAP checkpoints with no commits`() {
-        // 14 checkpoints, zero commits. With MIN_COMMIT_GAP=6 and
-        // lastCommitIdx=-1, the first fire happens at i=5 (gap=6), then
-        // the walker treats that as a synthetic commit and fires again
-        // at i=11 (gap=6).
+    fun `COMMIT_GAP fires every MIN_COMMIT_GAP green refactor checkpoints`() {
+        // 14 checkpoints, every one a green refactor landing, zero
+        // commits. Fires at i=5 (6th green refactor), counter resets,
+        // fires again at i=11.
         val checkpoints = (0 until 14).map { cp("u$it") }
+        val refactors = (0 until 14).map { step(it) }
         val findings = HygieneDetector
-            .detect(checkpoints)
+            .detect(checkpoints, refactors)
             .filter { it.subKind == HygieneDetector.SubKind.COMMIT_GAP }
         assertEquals(2, findings.size)
         assertEquals(listOf(5, 11), findings.map { it.anchorIndex })
@@ -78,22 +107,41 @@ class HygieneDetectorTest {
     }
 
     @Test
-    fun `COMMIT_GAP silent on short trajectories with no commits`() {
+    fun `COMMIT_GAP ignores non-refactor and non-green checkpoints`() {
+        // 14 checkpoints, all but i=2 (no refactor lands here) and i=5
+        // (build broken) are green refactor landings. Green refactors
+        // run 0,1,3,4,6,7,8,9,10,11,12,13 → the 6th lands at i=7 (fire,
+        // reset), the next 6 land 8..13 → second fire at i=13.
+        val checkpoints = (0 until 14).map { idx ->
+            cp("u$idx", buildOk = idx != 5)
+        }
+        val refactors = (0 until 14).filter { it != 2 }.map { step(it) }
+        val findings = HygieneDetector
+            .detect(checkpoints, refactors)
+            .filter { it.subKind == HygieneDetector.SubKind.COMMIT_GAP }
+        assertEquals(2, findings.size)
+        assertEquals(listOf(7, 13), findings.map { it.anchorIndex })
+    }
+
+    @Test
+    fun `COMMIT_GAP silent below threshold`() {
+        // 5 green refactor checkpoints — short of the 6-step threshold.
         val checkpoints = (0 until 5).map { cp("u$it") }
         val findings = HygieneDetector
-            .detect(checkpoints)
+            .detect(checkpoints, (0 until 5).map { step(it) })
             .filter { it.subKind == HygieneDetector.SubKind.COMMIT_GAP }
         assertTrue(findings.isEmpty(), "expected no COMMIT_GAP findings, got $findings")
     }
 
     @Test
     fun `COMMIT_GAP clock resets at a real user commit`() {
-        // 12 checkpoints, one real commit at i=4. Gap from -1 to 4 is 5
-        // (< MIN_COMMIT_GAP); after the commit the next fire is at i=10
-        // (gap=6 from i=4).
+        // 12 green refactor checkpoints, real commit at i=4. Greens
+        // before commit: 4 (< 6). After commit (i=5..11): 7 greens →
+        // fires at the 6th post-commit green = i=10.
         val checkpoints = (0 until 12).map { idx -> cp("u$idx", isCommit = idx == 4) }
+        val refactors = (0 until 12).map { step(it) }
         val findings = HygieneDetector
-            .detect(checkpoints)
+            .detect(checkpoints, refactors)
             .filter { it.subKind == HygieneDetector.SubKind.COMMIT_GAP }
         assertEquals(1, findings.size)
         assertEquals(10, findings[0].anchorIndex)
