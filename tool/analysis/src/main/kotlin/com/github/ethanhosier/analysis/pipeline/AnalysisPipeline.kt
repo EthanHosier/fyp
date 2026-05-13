@@ -546,11 +546,28 @@ internal fun buildAnalysisReport(
     val checkpoints = baseCheckpoints.map { cp ->
         cp.copy(derivedMetrics = derived.main[cp.sha] ?: DerivedMetrics.EMPTY)
     }
-    val alternativeTrajectories = baseAlternatives.map { alt ->
+    val userCpBySha = checkpoints.associateBy { it.sha }
+    val alternativeTrajectories = baseAlternatives.mapIndexed { i, alt ->
+        val cont = derived.continuations.getOrNull(i)
+            ?: DerivedMetricsRunner.AltProcessContinuation.EMPTY
+        // Each continuation checkpoint clones the user's post-merge
+        // checkpoint (same code state ⇒ same static metrics, build,
+        // tests, smells, cleanliness, diff, events) and overlays the
+        // alt's recomputed process score. The user's checkpoint
+        // already carries `derivedMetrics` from the main walk above;
+        // we just swap `process`.
+        val continuationCheckpoints = cont.checkpointShas.mapIndexedNotNull { ci, sha ->
+            val userCp = userCpBySha[sha] ?: return@mapIndexedNotNull null
+            val score = cont.processScores.getOrNull(ci) ?: return@mapIndexedNotNull null
+            userCp.copy(
+                derivedMetrics = userCp.derivedMetrics.copy(process = score),
+            )
+        }
         alt.copy(
             altCheckpoints = alt.altCheckpoints.map { cp ->
                 cp.copy(derivedMetrics = derived.alt[cp.sha] ?: DerivedMetrics.EMPTY)
             },
+            continuationCheckpoints = continuationCheckpoints,
         )
     }
 

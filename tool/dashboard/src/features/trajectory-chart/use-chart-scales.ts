@@ -63,6 +63,17 @@ export function useChartScales({
         const v = step.altValues[primary]
         if (typeof v === "number") ys_values.push(v)
       }
+      // Process metric only: the alt's continuation extends past the
+      // merge point, so its score values need to be in the Y-domain
+      // calculation too — otherwise a continuation that drifts above
+      // (or below) the user's range gets clipped against the chart
+      // edge. For non-process metrics the continuation steps are
+      // unused, so skipping this branch keeps the Y-domain unchanged.
+      if (primary === "process") {
+        for (const step of alt.continuationSteps) {
+          if (typeof step.processScore === "number") ys_values.push(step.processScore)
+        }
+      }
     }
   }
 
