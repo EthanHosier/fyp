@@ -760,6 +760,7 @@ export function toViewModel(report: AnalysisReport): DashboardViewModel {
           }
         }),
         continuationSteps,
+        altCheckpointUserIndexes: alt.altCheckpointUserIndexes ?? [],
       },
     ]
   })

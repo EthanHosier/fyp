@@ -96,6 +96,16 @@ data class AlternativeTrajectory(
      *  Empty when [userToSha] is the last main checkpoint or the
      *  alt's anchor snapshot was missing. */
     val continuationCheckpoints: List<CheckpointReport> = emptyList(),
+    /** REWORK only: user-checkpoint index that each entry in
+     *  [altCheckpoints] semantically corresponds to. After
+     *  whitespace-only intermediates are absorbed, the kept alt
+     *  checkpoints no longer map 1-to-1 onto consecutive user steps;
+     *  the dashboard uses this list to anchor each alt step at the
+     *  matching user checkpoint's `xPos` on the chart instead of
+     *  collapsing onto the compressed `[fromCp.xPos, toCp.xPos]`
+     *  window. Empty for non-REWORK kinds and for no-op rework alts
+     *  (which alias `userToSha` directly). */
+    val altCheckpointUserIndexes: List<Int> = emptyList(),
 )
 
 /**

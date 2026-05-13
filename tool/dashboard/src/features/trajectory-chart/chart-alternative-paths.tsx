@@ -147,25 +147,21 @@ export function ChartAlternativePaths({
           const span = toCp.xPos - fromCp.xPos
           return Array.from({ length: n }, (_, i) => fromCp.xPos + (span * (i + 1)) / n)
         })()
-        // REWORK alts have no miner stepIndex anchors and their N
-        // altCheckpoints correspond one-to-one with the cherry-picked
-        // user steps in the rework window. Anchor each alt checkpoint
-        // directly at the matching *user* checkpoint's xPos so the
-        // polyline tracks the user's tMs-interpolated layout rather
-        // than collapsing into the tight `[fromCp.xPos, toCp.xPos]`
-        // window — which is otherwise compressed by the chart's
-        // step-only slot layout. Falls back to even distribution when
-        // the rework has fewer alt checkpoints than user steps in the
-        // window (the no-op cancel-out case).
+        // REWORK alts: anchor each surviving alt checkpoint at the
+        // user checkpoint it semantically lands at, looked up via the
+        // backend-provided `altCheckpointUserIndexes` map. This still
+        // works after whitespace-only intermediates have been absorbed
+        // — the kept alt checkpoints may no longer be 1-to-1 with the
+        // user steps in `[fromCheckpointIndex..toCheckpointIndex]`, but
+        // the map still pins each survivor to the right user xPos.
+        // Falls back to `null` (→ even distribution) for the no-op
+        // cancel-out case where the backend leaves the list empty.
         const userCheckpointAlignedXPositions = (() => {
           if (alt.kind !== "REWORK") return null
-          const fromIdx = alt.fromCheckpointIndex
-          const toIdx = alt.toCheckpointIndex
-          const userStepCount = toIdx - fromIdx
-          if (alt.steps.length !== userStepCount) return null
+          if (alt.altCheckpointUserIndexes.length !== alt.steps.length) return null
           const xs: number[] = []
-          for (let i = 0; i < alt.steps.length; i++) {
-            const cp = vm.checkpoints[fromIdx + 1 + i]
+          for (const userIdx of alt.altCheckpointUserIndexes) {
+            const cp = vm.checkpoints[userIdx]
             if (!cp) return null
             xs.push(cp.xPos)
           }

@@ -32,8 +32,16 @@ export function AlternativeBody({
   const userChurn = vm.checkpoints
     .slice(alt.fromCheckpointIndex + 1, alt.toCheckpointIndex + 1)
     .reduce((sum, cp) => sum + cp.churn, 0)
-  // The alt is one IDE action regardless of how many user steps it replaces.
-  const altSteps = 1
+  // Alt step count depends on the divergence kind:
+  //  - IDE_REPLAY: one IDE action regardless of how many user steps it
+  //    replaces — the comparison is "one automated invocation vs N
+  //    manual edits". Hardcoded 1.
+  //  - REWORK: the surviving alt checkpoints after whitespace-only
+  //    intermediates are absorbed — `alt.steps.length` already reflects
+  //    that filter.
+  //  - ORDERING: alt has the same step count as the user (different
+  //    order), so the steps-saved comparison naturally evaluates to 0.
+  const altSteps = alt.kind === "IDE_REPLAY" ? 1 : alt.steps.length
   const altChurn = alt.altChurn
 
   const stepsSaved = userSteps - altSteps

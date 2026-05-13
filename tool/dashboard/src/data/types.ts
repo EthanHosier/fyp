@@ -357,6 +357,14 @@ export type AlternativeTrajectoryVM = {
    *  Empty when the alt merges at the trace end. Chart consumes these
    *  only when the primary metric is "process". */
   continuationSteps: AltContinuationStepVM[]
+  /** REWORK only: indices into `checkpoints[]` of the user checkpoints
+   *  each entry in `steps` semantically lands at. After whitespace-only
+   *  intermediates have been absorbed, the surviving alt checkpoints
+   *  no longer correspond 1-to-1 with `[fromCheckpointIndex+1
+   *  ..toCheckpointIndex]`; the chart uses this list to anchor each
+   *  alt step at the matching user checkpoint's `xPos`. Empty for
+   *  non-REWORK kinds and for no-op rework alts. */
+  altCheckpointUserIndexes: number[]
 }
 
 export type AltContinuationStepVM = {

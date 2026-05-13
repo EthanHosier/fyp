@@ -1,5 +1,6 @@
 package com.github.ethanhosier.analysis.alternative.rework
 
+import com.github.ethanhosier.analysis.diffs.DiffAnalysis
 import com.github.ethanhosier.analysis.metrics.WorktreePool
 import com.github.ethanhosier.analysis.model.ReconstructionResult
 import com.github.ethanhosier.analysis.reconstruct.GitRunner
@@ -51,6 +52,15 @@ class ReworkSynthesiser {
         /** Focused unified-diff patch for the terminal step — the
          *  inverse of [originatingPatch]. */
         val terminalPatch: String,
+        /** For each kept entry in [altShas], the 0-based position of
+         *  the underlying [ReworkAlternativeBuilder.PlanStep] within
+         *  the rework plan. Whitespace-only intermediates are dropped
+         *  from this list (and from [altShas]), so a kept index `k`
+         *  tells the dashboard which user step in the rework window
+         *  this checkpoint actually represents — needed for chart
+         *  xPos alignment against the user trajectory. Empty for the
+         *  no-op cancel-out case where [altShas] aliases `userToSha`. */
+        val planStepPositions: List<Int>,
     )
 
     fun run(
@@ -127,6 +137,10 @@ class ReworkSynthesiser {
                 // the user's churn at that SHA.
                 val effectiveAltShas = if (outcome.shas.isEmpty()) listOf(userToSha) else outcome.shas
                 val effectiveBranchRefs = if (outcome.shas.isEmpty()) emptyList() else outcome.branchRefs
+                // Plan positions are meaningless for the no-op cancel-out
+                // case (the alt aliases `userToSha` directly with no
+                // cherry-picks of its own) — leave empty.
+                val effectivePlanPositions = if (outcome.shas.isEmpty()) emptyList() else outcome.planPositions
 
                 val (originatingPatch, terminalPatch) = buildFocusedPatches(pair)
                 synthesised += SynthesisedRework(
@@ -143,6 +157,7 @@ class ReworkSynthesiser {
                     contentSummary = pair.contentSummary,
                     originatingPatch = originatingPatch,
                     terminalPatch = terminalPatch,
+                    planStepPositions = effectivePlanPositions,
                 )
                 val sizeLabel = if (outcome.shas.isEmpty()) "0 (no-op alt, anchored at fromSha)" else outcome.shas.size.toString()
                 log("$key: synthesised $sizeLabel checkpoint(s)")
@@ -255,7 +270,15 @@ class ReworkSynthesiser {
         }
     }
 
-    private data class ApplyOutcome(val shas: List<String>, val branchRefs: List<String>)
+    private data class ApplyOutcome(
+        val shas: List<String>,
+        val branchRefs: List<String>,
+        /** Parallel to [shas]: plan-step position (0-based index into
+         *  the rework plan's `steps` list) for each surviving entry.
+         *  Used downstream to anchor each alt checkpoint at the
+         *  matching user checkpoint's xPos on the chart. */
+        val planPositions: List<Int>,
+    )
 
     private fun applyPlan(
         pool: WorktreePool,
@@ -268,9 +291,26 @@ class ReworkSynthesiser {
         try {
             val worktreeGit = GitRunner(worktree)
             worktreeGit.setLocalIdentity("rework@analysis.local", "Rework Alt")
-            val shas = mutableListOf<String>()
-            val branchRefs = mutableListOf<String>()
-            for (ps in plan.steps) {
+            // Stage every committed step alongside a `whitespaceOnly`
+            // flag. After surgery strips the rework chunks some steps
+            // can devolve into whitespace-only deltas (blank-line
+            // shuffles, trailing-whitespace edits) that aren't worth
+            // surfacing as their own alt checkpoint. We still COMMIT
+            // them so the next cherry-pick applies against the
+            // expected tree, but post-loop we filter out the
+            // whitespace-only entries — except for the final entry,
+            // which is always kept (it's the alt's apex and there's
+            // nothing after it to absorb the diff into).
+            data class Committed(
+                val sha: String,
+                val branch: String,
+                val planPosition: Int,
+                val whitespaceOnly: Boolean,
+            )
+
+            val committed = mutableListOf<Committed>()
+            var parentSha = fromSha
+            for ((planPos, ps) in plan.steps.withIndex()) {
                 if (ps.patch.isEmpty()) continue
                 val patchFile = Files.createTempFile("rework-$idx-step${ps.stepIndex}-", ".patch")
                 try {
@@ -284,15 +324,31 @@ class ReworkSynthesiser {
                     }
                     if (!worktreeGit.hasStagedChanges()) continue
                     val sha = worktreeGit.commit("rework-$idx: step ${ps.stepIndex}")
-                    val branch = "rework-alt/$idx/${shas.size}"
+                    val branch = "rework-alt/$idx/${committed.size}"
                     shadowGit.branchForce(branch, sha)
-                    shas += sha
-                    branchRefs += branch
+                    val diff = worktreeGit.diffPatch(parentSha, sha)
+                    committed += Committed(
+                        sha = sha,
+                        branch = branch,
+                        planPosition = planPos,
+                        whitespaceOnly = DiffAnalysis.isWhitespaceOnly(diff),
+                    )
+                    parentSha = sha
                 } finally {
                     Files.deleteIfExists(patchFile)
                 }
             }
-            return ApplyOutcome(shas, branchRefs)
+            val lastIdx = committed.lastIndex
+            val kept = committed.filterIndexed { i, c -> i == lastIdx || !c.whitespaceOnly }
+            val dropped = committed.size - kept.size
+            if (dropped > 0) {
+                log("rework-$idx: absorbed $dropped whitespace-only step(s) into the next alt checkpoint")
+            }
+            return ApplyOutcome(
+                shas = kept.map { it.sha },
+                branchRefs = kept.map { it.branch },
+                planPositions = kept.map { it.planPosition },
+            )
         } finally {
             pool.release(worktree)
         }

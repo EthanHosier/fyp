@@ -606,11 +606,24 @@ internal fun buildAnalysisReport(
     // Build rework alts alongside their originating SynthesisedRework so
     // the divergence-point builder can attach file/scope/lineCount/step
     // metadata without re-running detection.
+    val userIdxBySha = baseCheckpoints.withIndex().associate { (i, cp) -> cp.sha to i }
     val reworkAltsWithInfo: List<Pair<AlternativeTrajectory, ReworkSynthesiser.SynthesisedRework>> =
         reworkSummary?.synthesised.orEmpty().mapNotNull { rw ->
             val altCps = rw.altShas.map { sha ->
                 val cp = altCheckpointFor(sha) ?: return@mapNotNull null
                 if (sha in userShaSet) cp.copy(diff = DiffStats.ZERO) else cp
+            }
+            // Map each kept alt checkpoint to the user checkpoint it
+            // semantically lands at. Plan position `k` cherry-picks the
+            // user step originating at `fromSha + k`, landing on user
+            // checkpoint `fromIdx + k + 1`. Used by the chart to anchor
+            // alt steps against the user's tMs-interpolated layout
+            // after whitespace-only intermediates have been dropped.
+            val fromIdx = userIdxBySha[rw.fromSha]
+            val altCheckpointUserIndexes = if (fromIdx != null) {
+                rw.planStepPositions.map { fromIdx + 1 + it }
+            } else {
+                emptyList()
             }
             AlternativeTrajectory(
                 kind = DivergenceKind.REWORK,
@@ -620,6 +633,7 @@ internal fun buildAnalysisReport(
                 branchRefs = rw.branchRefs,
                 specs = emptyList(),
                 altCheckpoints = altCps,
+                altCheckpointUserIndexes = altCheckpointUserIndexes,
             ) to rw
         }
     val reworkAlts = reworkAltsWithInfo.map { it.first }

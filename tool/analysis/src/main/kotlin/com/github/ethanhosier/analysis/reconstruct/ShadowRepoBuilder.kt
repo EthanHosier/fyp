@@ -1,5 +1,6 @@
 package com.github.ethanhosier.analysis.reconstruct
 
+import com.github.ethanhosier.analysis.diffs.DiffAnalysis
 import com.github.ethanhosier.analysis.model.ReconstructionResult
 import com.github.ethanhosier.analysis.model.Trace
 import com.github.ethanhosier.ideplugin.model.FileChangeType
@@ -131,33 +132,8 @@ class ShadowRepoBuilder(
         return resolved
     }
 
-    /**
-     * Returns `true` when every modifying line in [patch] is a
-     * whitespace-only addition or removal — i.e. the event's only
-     * effect was reshuffling blank lines. File-header lines
-     * (`diff --git`, `index ...`, `--- a/...`, `+++ b/...`,
-     * `@@ ... @@`) are ignored; any `+` or `-` line carrying
-     * non-whitespace content fails the check. An empty patch
-     * (defensive — caller already gated on `hasStagedChanges`)
-     * returns `false` so we don't accidentally skip something we
-     * couldn't read.
-     */
-    private fun isBlankLineOnlyDiff(patch: String): Boolean {
-        if (patch.isBlank()) return false
-        var sawModification = false
-        for (line in patch.lineSequence()) {
-            when {
-                line.startsWith("+++") || line.startsWith("---") -> continue
-                line.startsWith("diff --git") || line.startsWith("index ") -> continue
-                line.startsWith("@@") -> continue
-                line.startsWith("+") || line.startsWith("-") -> {
-                    if (line.substring(1).isNotBlank()) return false
-                    sawModification = true
-                }
-            }
-        }
-        return sawModification
-    }
+    private fun isBlankLineOnlyDiff(patch: String): Boolean =
+        DiffAnalysis.isWhitespaceOnly(patch)
 
     private fun copyTree(source: Path, target: Path) {
         Files.walk(source).use { paths ->
