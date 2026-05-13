@@ -232,18 +232,27 @@ For each rework `DivergencePoint`, produce an
 
 1. Anchor at `fromSha = preSha(originating step k')`.
 2. For each surviving step `j` in `k'..lastStep`, build its
-   replayed patch:
-   - At step `k'`: the original patch with the matched `+L` lines
-     surgically removed (other hunks, other files preserved).
-   - At step `k` (terminal): the original patch with the matched
-     `-L` lines surgically removed.
-   - Other steps replay verbatim.
-3. Apply each replayed patch with `git apply --3way` against the
-   previous synthesised SHA, committing each result to produce
-   the alt checkpoint for that step.
-4. The alt's final synthesised SHA is its `userToSha` anchor —
-   set to the user's trace-terminal SHA so the alt converges with
-   the user at the end (no continuation segment needed).
+   replayed patch in two stages:
+   1. **Surgery**: drop matched `+L` lines from step `k'`'s patch
+      (or matched `-L` lines from step `k`'s patch). Other hunks,
+      other files, and intermediate steps replay verbatim.
+   2. **Drift renumbering**: translate the surviving hunk headers
+      from user-tree coords into synthetic-tree coords using a
+      per-file drift tracker (see below). The patch body stays
+      byte-identical; only the `@@ -oldStart +newStart @@`
+      numbers shift.
+3. Apply each renumbered patch with **plain `git apply --index`**
+   (not `--3way`) against the previous synthesised SHA. The drift
+   tracker has already aligned the patch to the synthetic tree's
+   coord system, so the literal hunk applies cleanly; `--3way`
+   would consult the patch's pre-blob (the user's tree) as a
+   merge base — which is exactly the divergent state the surgical
+   replay is meant to route around, producing spurious conflicts.
+4. Commit each successful apply to produce the alt checkpoint for
+   that step. The alt's final synthesised SHA is its `userToSha`
+   anchor — set to the user's trace-terminal SHA so the alt
+   converges with the user at the end (no continuation segment
+   needed).
 
 ### Per-hunk patch surgery primitive
 
@@ -261,6 +270,66 @@ including the `^@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@` regex and
 the prefix-aware body walker) are the model. Extract them into a
 shared `UnifiedDiffParser` consumed by both `PatchFilter` and the
 new `PatchLineSurgery`.
+
+### Per-file drift tracking and line-number renumbering
+
+Surgical removal causes the synthetic tree to diverge from the
+user's tree between `k'` (originating) and `k` (terminal). The
+user's intermediate-step patches reference line numbers from the
+user's tree — applying them verbatim to the synthetic tree fails
+because line numbers don't match. A drift tracker fixes this:
+maintain a per-file mapping `userLine → synthLine`, update it at
+each step, and renumber every intermediate patch before applying.
+
+**Zone shape.** Each surgical drop registers one "zone" in the
+tracker:
+- `ADDED`-side drop (user added but synth didn't): `K` user lines
+  beginning at `userStartLine` have *no synth equivalent*; lines
+  past the zone are at `userLine - K` in synth. `delta = -K`.
+- `REMOVED`-side drop (user removed but synth didn't): synth has
+  `K` extra lines that user no longer has; user lines past
+  `userStartLine` are at `userLine + K` in synth. `delta = +K`.
+- The terminal step `k` clears the matching zone (synth and user
+  converge again; net drift returns to zero).
+
+**Translation rules** (per hunk):
+- Modification (`oldLen > 0`): translate `oldStart` via the
+  drift map. If `oldStart` falls inside an `ADDED`-side zone
+  (user line with no synth equivalent), the hunk is untranslatable
+  — the patch is rejected for this step and we move on.
+- Pure insertion (`oldLen == 0`): the hunk inserts *after* line
+  `oldStart`. Translate the position immediately after the
+  insertion point (`oldStart + 1`) and step back by one. This
+  lets insertions at the end of a surgery zone land at the
+  corresponding boundary in synth — e.g. "insert after user line
+  8" where user line 8 is the last line of a 6-line zone starting
+  at line 3 translates to "insert just before synth line 3".
+- `newStart` translates the same way (modification vs insertion
+  determined by `newLen`).
+
+**Anchor drift across steps.** Each surviving hunk in step `j`
+adds / removes net lines in the user's tree. After applying the
+hunk to synth, any zone whose `userStartLine` was *after* the
+hunk's `oldStart` shifts by the hunk's net line delta — the
+zone's content has been pushed down (or pulled up) in the user's
+tree, and the tracker re-anchors to keep pointing at the same
+logical position.
+
+**Why plain `git apply`**: with hunk headers in synth coords,
+the patch body's `+` / `-` / context lines already match the
+synthetic tree at the renumbered positions. `git apply --index`
+applies the literal hunk and stages the result. `--3way` would
+instead do a three-way merge using the patch's blob OIDs — those
+blobs point at the user's tree, which the synthetic tree diverges
+from by design, so the merge surfaces spurious conflicts at every
+location where surgery preserved or skipped content.
+
+Two new utilities live alongside the surgery primitive:
+- `ReworkDriftTracker` (under `divergence/structural/`) holds the
+  zone state and exposes `translate(file, userLine)`.
+- `PatchLineRenumber` (under `diffs/`) takes a `(patch, tracker)`
+  pair and emits a renumbered patch, or `null` if any hunk hits a
+  zone-interior line.
 
 ### No abort on failure
 
@@ -299,12 +368,19 @@ penalty) is computed correctly.
   the `+` block.
 - **`k'` is multi-purpose** (touches the matched scope plus other
   scopes/files). Surgery preserves the other hunks; only the
-  matched `+` lines are stripped.
+  matched `+` lines are stripped. Drift renumbering still applies
+  to those preserved hunks at later steps.
 - **`k` is the last step in the trace.** Standard; the synthesised
   branch ends at the surgery of `k`.
-- **Intervening step modifies a line near the surgical hunk.**
-  `--3way` typically reconciles. If it can't, that step's commit is
-  skipped and the alt's `altCheckpoints` list is shorter. No abort.
+- **Intervening step inserts at end of file / end of class.** The
+  drift tracker shifts the insertion point's translation by the
+  cumulative zone delta so the literal hunk lands at the correct
+  synthetic-tree position. With plain `git apply`, this is exactly
+  what we want — no merge fallback.
+- **Intervening step modifies a line inside the surgery zone.**
+  Untranslatable: the line doesn't exist in synth. The renumber
+  step returns `null` for this patch, the alt builder skips this
+  step, and the alt is published with whatever applied so far.
 
 ## Schema additions
 
@@ -356,20 +432,32 @@ reports.
 - `tool/analysis/src/main/kotlin/com/github/ethanhosier/analysis/divergence/structural/ReworkAlternativeBuilder.kt`
   — surgical-replay producer using
   `WorktreePool.withBatchSession` (same pattern as alternative-
-  orderings synth).
+  orderings synth). Owns a `ReworkDriftTracker` instance per
+  finding and threads it through every step's renumbering pass.
+- `tool/analysis/src/main/kotlin/com/github/ethanhosier/analysis/divergence/structural/ReworkDriftTracker.kt`
+  — per-file `userLine → synthLine` mapping with zone registration,
+  zone clearing at terminal, and anchor-shift updates after each
+  applied hunk.
 - `tool/analysis/src/main/kotlin/com/github/ethanhosier/analysis/diffs/UnifiedDiffParser.kt`
-  — extracted hunk-parser core (consumed by `PatchFilter` and the
-  new `PatchLineSurgery`).
+  — extracted hunk-parser core (consumed by `PatchFilter`,
+  `PatchLineSurgery`, and `PatchLineRenumber`).
 - `tool/analysis/src/main/kotlin/com/github/ethanhosier/analysis/diffs/PatchLineSurgery.kt`
   — rewrites a unified diff to drop specific `+` / `-` body lines
   and recompute hunk headers.
+- `tool/analysis/src/main/kotlin/com/github/ethanhosier/analysis/diffs/PatchLineRenumber.kt`
+  — translates each hunk header's `oldStart` / `newStart` from
+  user coords to synth coords using a `ReworkDriftTracker`,
+  preserving the body byte-for-byte. Returns `null` when any
+  hunk targets a zone-interior line.
 
 **New tests:**
 
 - `tool/analysis/src/test/kotlin/com/github/ethanhosier/analysis/divergence/structural/ReworkDetectorTest.kt`
 - `tool/analysis/src/test/kotlin/com/github/ethanhosier/analysis/divergence/structural/ReworkAlternativeBuilderTest.kt`
+- `tool/analysis/src/test/kotlin/com/github/ethanhosier/analysis/divergence/structural/ReworkDriftTrackerTest.kt`
 - `tool/analysis/src/test/kotlin/com/github/ethanhosier/analysis/diffs/UnifiedDiffParserTest.kt`
 - `tool/analysis/src/test/kotlin/com/github/ethanhosier/analysis/diffs/PatchLineSurgeryTest.kt`
+- `tool/analysis/src/test/kotlin/com/github/ethanhosier/analysis/diffs/PatchLineRenumberTest.kt`
 
 **Modified backend:**
 
@@ -408,7 +496,11 @@ reports.
 - `SpecAnchorBuilder` JDT visitor pattern.
 - `AstSubtreeHasher.hashNode` (available if simple
   `methodName(paramTypes)` scope IDs prove insufficient).
-- `GitRunner.diffPatch`, `showAtSha`, `applyThreeWay`.
+- `GitRunner.diffPatch`, `showAtSha`. **New**: `GitRunner.applyDirect`
+  (plain `git apply --index --whitespace=nowarn`, no `--3way`) for
+  the rework alt builder. The existing `applyThreeWay` stays for
+  callers that need merge-fallback semantics (e.g. residual merge
+  in IDE-replay alts).
 - `WorktreePool.withBatchSession`.
 - Existing alt-trajectory plumbing (`AnalysisPipeline`,
   `DerivedMetricsRunner` enrichment, the process-score continuation
@@ -465,6 +557,42 @@ reports.
 3. **`drop_all_body_collapses_hunk`** — hunk vanishes; surrounding
    context preserved; remaining hunks unaffected.
 
+### `ReworkDriftTrackerTest`
+
+1. **`no_zones_translates_identity`** — fresh tracker maps every
+   user line to itself.
+2. **`added_zone_skips_zone_interior`** — register added-drop
+   zone at user line 5, length 3; translate(5..7) → null;
+   translate(8) → 5 (delta -3); translate(4) → 4.
+3. **`removed_zone_shifts_post_zone_lines_up`** — register
+   removed-drop zone at user line 5, length 3; translate(5)
+   → 5; translate(6) → 9 (delta +3 for lines past `userStartLine`).
+4. **`subsequent_hunk_shifts_zone_anchor`** — register a zone at
+   user line 50; report a hunk applied at line 20 with net
+   +2 lines; assert the zone's `userStartLine` advances to 52.
+5. **`hunk_after_zone_does_not_shift`** — hunk at line 100 with
+   net +5 lines doesn't move a zone at line 50.
+6. **`terminal_clears_zone_restores_identity`** — register a zone,
+   clear it, translate again — identity returned.
+
+### `PatchLineRenumberTest`
+
+1. **`identity_when_no_zones`** — patch round-trips byte-for-byte
+   when the tracker holds no zones.
+2. **`shifts_old_and_new_start_past_zone`** — registered added
+   zone at user line 5 length 3; a hunk `@@ -10,1 +10,1 @@` →
+   translated to `@@ -7,1 +7,1 @@`.
+3. **`pure_insertion_at_zone_boundary`** — added zone covers user
+   lines 3..8; a hunk `@@ -8,0 +9,1 @@ +x` (insert after user
+   line 8) → translated to `@@ -2,0 +3,1 @@ +x` (insert just
+   before the synth position of the post-zone first line).
+4. **`hunk_inside_zone_rejects_patch`** — added zone covers
+   user lines 5..7; a hunk `@@ -6,1 +6,1 @@ -a +b` → translator
+   returns `null` (the line doesn't exist in synth).
+5. **`body_is_preserved_byte_for_byte`** — non-trivial body
+   with `+` / `-` / context lines round-trips intact; only the
+   `@@` header changes.
+
 ### `ReworkAlternativeBuilderTest`
 
 1. **`clean_surgery_succeeds`** — extract-then-inline trajectory
@@ -475,9 +603,20 @@ reports.
    unrelated line in the same method; surgery drops only the
    matched pair; step 2's hunk replays unchanged.
 3. **`apply_failure_partial_publish`** — fabricate a case where a
-   middle step's `--3way` apply fails. Alt is published with the
+   middle step's apply fails (e.g. an intermediate step modifies
+   a line inside the surgery zone). Alt is published with the
    checkpoints that did apply; downstream metrics score the
    partial trajectory. No abort, no exception propagation.
+4. **`intermediate_insert_at_end_of_class_renumbers_correctly`** —
+   trace shape mirroring the real-world `OrderPricingServiceSuper`
+   failure: step 1 removes a multi-line block, step 2 inserts a
+   new method at end of class, step 3 reverts both. Assert the
+   alt publishes ≥1 commit and step 2's renumbered hunk applies
+   cleanly without `--3way` merge conflicts.
+5. **`intermediate_edit_far_from_zone_renumbers_correctly`** — a
+   step between origin and terminal modifies a line *after* the
+   surgery zone (different method body). Assert it translates and
+   applies, and the alt publishes a synthesised commit for it.
 
 ### Integration
 
