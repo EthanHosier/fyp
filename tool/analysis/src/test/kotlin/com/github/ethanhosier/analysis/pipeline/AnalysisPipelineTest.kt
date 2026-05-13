@@ -298,6 +298,70 @@ class AnalysisPipelineTest {
     }
 
     @Test
+    fun `alt with non-trace-end userToSha gets a continuation chain`() {
+        // 3 user checkpoints: from → mid → end. Alt covers from → mid,
+        // so its userToSha is "mid" (not the trace end). The pipeline
+        // should populate continuationCheckpointShas with the user's
+        // post-merge SHAs (["end"]) and a matching continuation score.
+        val trace = Trace(metadata = metadata("sess-cont"), events = emptyList())
+        val reconstruction = ReconstructionResult(
+            repoDir = Path.of("/tmp/fake"),
+            eventCommits = EventCommitMap(
+                mapping = linkedMapOf("e1" to "from", "e2" to "mid", "e3" to "end"),
+            ),
+        )
+        val metrics = MetricsRunner.Summary(
+            totalShas = 3,
+            computed = 3,
+            buildOk = 3,
+            testsOk = 3,
+            checkpoints = listOf(checkpoint("from"), checkpoint("mid"), checkpoint("end")),
+        )
+        val altMetrics = checkpoint("alt-mid")
+        val augmented = mapOf("alt-mid" to altMetrics)
+
+        val step = refactoringStep(stepIndex = 0).copy(fromSha = "from", toSha = "mid")
+        val miner = RefactoringMinerRunner.Summary(
+            checkpointsAnalysed = 3,
+            steps = listOf(step),
+        )
+        val alternative = AlternativeTrajectoryRunner.Summary(
+            candidates = 1,
+            synthesised = listOf(
+                AlternativeTrajectoryRunner.SynthesisedGroup(
+                    stepIndexes = listOf(0),
+                    fromSha = "from",
+                    userToSha = "mid",
+                    altShas = listOf("alt-mid"),
+                    branchRefs = listOf("alt/group-0/0"),
+                    residual = ResidualSummary(applied = true, addedLines = 0, deletedLines = 0, rejectedFiles = emptyList()),
+                ),
+            ),
+            skipped = emptyMap(),
+        )
+
+        val report = buildAnalysisReport(
+            trace = trace,
+            reconstruction = reconstruction,
+            metrics = metrics,
+            miner = miner,
+            alternative = alternative,
+            diffs = emptyDiffsSummary(),
+            pmdTracking = emptyPmdTrackingSummary(),
+            parallelism = 1,
+            metricsDurationMs = 0,
+            augmentedAltMetricsBySha = augmented,
+        )
+
+        val alt = report.alternativeTrajectories.single()
+        assertEquals(listOf("end"), alt.continuationCheckpoints.map { it.sha })
+        // Static metrics carry forward from the user's checkpoint; the
+        // overlay swaps in the alt's recomputed process score, so each
+        // continuation entry has a non-empty `process`.
+        assertTrue(alt.continuationCheckpoints.all { it.derivedMetrics.process.total in 0..100 })
+    }
+
+    @Test
     fun `failed reorder ordering emits no AlternativeTrajectory entry`() {
         val trace = Trace(metadata = metadata("sess-r2"), events = emptyList())
         val reconstruction = ReconstructionResult(

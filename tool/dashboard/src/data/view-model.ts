@@ -586,6 +586,79 @@ export function toViewModel(report: AnalysisReport): DashboardViewModel {
     // collide and hover-highlight together.
     const idx = altCounter++
 
+    // Each continuation entry is a server-built CheckpointReport
+    // aliasing the user's checkpoint at that sha with the alt's
+    // process score overlaid. Build a CheckpointVM by cloning the
+    // already-built user CheckpointVM at the same sha and swapping
+    // in the alt's process score / breakdown — the detail panel
+    // reuses `CheckpointBody` on click. Skip entries whose sha
+    // doesn't anchor onto a user checkpoint (defensive — shouldn't
+    // happen).
+    const contReports = alt.continuationCheckpoints ?? []
+    const continuationSteps: AlternativeTrajectoryVM["continuationSteps"] = []
+    for (const contCp of contReports) {
+      const checkpointIndex = checkpointBySha.get(contCp.sha)
+      if (checkpointIndex === undefined) continue
+      const userVm = checkpoints[checkpointIndex]
+      if (!userVm) continue
+      const altProcessBreakdown = mapProcessBreakdown(contCp.derivedMetrics?.process)
+      const cpVm: CheckpointVM = {
+        ...userVm,
+        // Sentinel so anything that joins by checkpoint index silently
+        // no-ops on a continuation cpVm.
+        index: -1,
+        values: { ...userVm.values, process: altProcessBreakdown.total },
+        processScore: altProcessBreakdown.total,
+        processBreakdown: altProcessBreakdown,
+      }
+      continuationSteps.push({
+        checkpointIndex,
+        processScore: altProcessBreakdown.total,
+        cpVm,
+      })
+    }
+
+    // Synthetic-End extension. The user's trajectory gets an extra
+    // "End" checkpoint appended at endTime (above) so the chart always
+    // has a visible terminator — that End inherits its process score
+    // from the last real checkpoint by construction. For the alt's
+    // line to extend the same distance, append one more continuation
+    // step at the End's xPos carrying forward the alt's most recent
+    // process score:
+    //   - if the alt has post-merge continuation entries, the carry
+    //     value is the last entry's score (the alt's process at the
+    //     last real checkpoint);
+    //   - if the alt merged at the trace's last real checkpoint, the
+    //     carry value is the alt's terminal alt-step process score.
+    // Either way the End-aligned step is at the End's xPos with no
+    // additional cumulative state computed — same as how the user's
+    // End VM aliases its last real checkpoint.
+    const endIndex = checkpoints.length - 1
+    const endVm = endIndex >= 0 ? checkpoints[endIndex] : undefined
+    const endIsSynthetic = endIndex >= 0 && endIndex >= report.checkpoints.length
+    if (endIsSynthetic && endVm) {
+      const lastCont = continuationSteps[continuationSteps.length - 1]
+      const lastAltCp = alt.altCheckpoints[alt.altCheckpoints.length - 1]
+      const carryBreakdown = lastCont
+        ? lastCont.cpVm.processBreakdown
+        : mapProcessBreakdown(lastAltCp?.derivedMetrics?.process)
+      const carryScore = lastCont?.processScore ?? carryBreakdown?.total
+      if (typeof carryScore === "number") {
+        const endCpVm: CheckpointVM = {
+          ...endVm,
+          index: -1,
+          values: { ...endVm.values, process: carryScore },
+          processScore: carryScore,
+          processBreakdown: carryBreakdown,
+        }
+        continuationSteps.push({
+          checkpointIndex: endIndex,
+          processScore: carryScore,
+          cpVm: endCpVm,
+        })
+      }
+    }
+
     return [
       {
         index: idx,
@@ -668,6 +741,7 @@ export function toViewModel(report: AnalysisReport): DashboardViewModel {
             cpVm,
           }
         }),
+        continuationSteps,
       },
     ]
   })

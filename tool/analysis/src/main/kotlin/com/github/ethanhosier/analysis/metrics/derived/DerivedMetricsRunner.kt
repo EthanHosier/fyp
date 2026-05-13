@@ -127,6 +127,13 @@ class DerivedMetricsRunner {
     data class Result(
         val main: Map<String, DerivedMetrics>,
         val alt: Map<String, DerivedMetrics>,
+        /** Process-score continuations past each alt's merge point,
+         *  parallel to the `alternatives` argument passed to [run].
+         *  Each entry is the recomputed score chain over the user's
+         *  remaining checkpoints, anchored at the alt's terminal
+         *  cumulative state. Empty list when the alt merges at the
+         *  trace end or its anchor snapshot was missing. */
+        val continuations: List<AltProcessContinuation> = emptyList(),
     )
 
     /**
@@ -168,11 +175,18 @@ class DerivedMetricsRunner {
         // alt step whose stepIndex doesn't map back to a real user step.
         val userRanTestsByStepIndex: Map<Int, Boolean> = refactoringSteps
             .associate { it.stepIndex to stepUserRanTests(mainCheckpoints, it) }
-        val altProcess: List<List<ProcessScore>> = computeAltProcess(
+        val altProcess: AltProcessOutput = computeAltProcess(
             alternatives = alternatives,
             altCleanliness = altCleanliness,
             mainSnapshots = mainProcess.snapshots,
             userRanTestsByStepIndex = userRanTestsByStepIndex,
+        )
+        val continuations: List<AltProcessContinuation> = computeAltContinuations(
+            alternatives = alternatives,
+            altFinalSnapshots = altProcess.finalSnapshots,
+            mainCheckpoints = mainCheckpoints,
+            mainCleanliness = mainCleanliness,
+            refactoringSteps = refactoringSteps,
         )
 
         val mainOut = mainCheckpoints.mapIndexed { i, cp ->
@@ -201,12 +215,12 @@ class DerivedMetricsRunner {
                     cognitive = altAgg[i][k].cognitive,
                     smells = altAgg[i][k].smells,
                     cleanliness = altCleanliness[i][k],
-                    process = altProcess[i][k],
+                    process = altProcess.perStepScores[i][k],
                 )
             }
         }
 
-        return Result(main = mainOut, alt = altOut)
+        return Result(main = mainOut, alt = altOut, continuations = continuations)
     }
 
     // ---- aggregators ----
@@ -410,158 +424,302 @@ class DerivedMetricsRunner {
     ): MainProcessOutput {
         if (checkpoints.isEmpty()) return MainProcessOutput(emptyList(), emptyMap())
 
-        // Steps grouped by their landing checkpoint index — O(1) lookup
-        // inside the per-checkpoint loop.
-        val stepsByIndex = HashMap<Int, MutableList<RefactoringStep>>()
-        for (s in refactoringSteps) {
-            stepsByIndex.getOrPut(s.toCheckpointIndex) { mutableListOf() }.add(s)
-        }
-
+        val stepsByIndex = stepsByCheckpointIndex(refactoringSteps)
         val cleanliness0 = cleanliness.firstOrNull()?.scalar
-
-        var brokenCount = 0
-        var addedSmellWeight = 0
-        var resolvedSmellWeight = 0
-        var totalSmellWeightSeen = 0
-        var openSmellWeightIntegral = 0
-        var refactoringStepsCount = 0
-        var testsSkippedCount = 0
-        var ideRelevantCount = 0
-        var manualWhenIdeCount = 0
-        var peakCleanliness = cleanliness0 ?: 0.0
-        var dipIntegral = 0.0
-        var dipObservations = 0
+        var snap = initialMainSnapshot(cleanliness0)
 
         val scores = mutableListOf<ProcessScore>()
         val snapshots = LinkedHashMap<String, ProcessSnapshot>()
-
         for (t in checkpoints.indices) {
-            val cp = checkpoints[t]
-            val build = cp.metrics.build.success
-            val testsOk = cp.metrics.tests.success
-            val testsSkipped = cp.metrics.tests.wasSkipped
-            // Match the frontend's "broken iff build OR tests failed" rule:
-            // skipped tests are not a failure.
-            val testsFailed = !testsOk && !testsSkipped
-            if (!build || testsFailed) brokenCount += 1
-
-            // Smell ledger is priority-weighted ((6 - priority), clamped ≥ 0).
-            // Same convention as the frontend `process-score.ts` smell weight.
-            val (added, resolved) = smellsForCheckpoint(checkpoints, t)
-            addedSmellWeight += added
-            resolvedSmellWeight += resolved
-            totalSmellWeightSeen += added
-            // Sample running open weight AFTER this checkpoint's adds /
-            // resolves are applied. Floor at 0 because a path that's
-            // resolved more than it added shouldn't count as negative
-            // smell load.
-            openSmellWeightIntegral += max(0, addedSmellWeight - resolvedSmellWeight)
-
-            for (s in stepsByIndex[t].orEmpty()) {
-                refactoringStepsCount += 1
-                if (!stepUserRanTests(checkpoints, s)) testsSkippedCount += 1
-                if (s.refactoring.ideRelevant) {
-                    ideRelevantCount += 1
-                    if (!s.wasPerformedByIde) manualWhenIdeCount += 1
-                }
-            }
-
-            val cleanT = cleanliness[t]?.scalar
-            val cleanlinessGain = if (cleanT == null || cleanliness0 == null) 0.0 else cleanT - cleanliness0
-
-            if (cleanT != null) {
-                if (cleanT > peakCleanliness) peakCleanliness = cleanT
-                dipIntegral += max(0.0, peakCleanliness - cleanT)
-                dipObservations += 1
-            }
-            val degradationFrac = if (dipObservations == 0) 0.0 else dipIntegral / dipObservations
-            val brokenFrac = brokenCount.toDouble() / (t + 1).toDouble()
-            val netSmell = computeNetSmell(openSmellWeightIntegral, t + 1)
-            // Laplace smoothing only kicks in when at least one bad step
-            // has happened; a perfect record (0 of N) returns 0 penalty.
-            val skipFrac = if (refactoringStepsCount == 0 || testsSkippedCount == 0) 0.0
-                else (testsSkippedCount + 1).toDouble() / (refactoringStepsCount + 2).toDouble()
-            val manualFrac = if (ideRelevantCount == 0 || manualWhenIdeCount == 0) 0.0
-                else (manualWhenIdeCount + 1).toDouble() / (ideRelevantCount + 2).toDouble()
-
-            val score = buildProcessScore(
-                cleanlinessGain = cleanlinessGain,
-                brokenFrac = brokenFrac,
-                brokenCount = brokenCount,
-                checkpointsSoFar = t + 1,
-                netSmell = netSmell,
-                openSmellWeightIntegral = openSmellWeightIntegral,
-                addedSmellWeight = addedSmellWeight,
-                resolvedSmellWeight = resolvedSmellWeight,
-                skipFrac = skipFrac,
-                testsSkippedCount = testsSkippedCount,
-                refactoringStepsCount = refactoringStepsCount,
-                manualFrac = manualFrac,
-                manualWhenIdeCount = manualWhenIdeCount,
-                ideRelevantCount = ideRelevantCount,
-                degradationFrac = degradationFrac,
-                peakCleanliness = peakCleanliness,
-                cleanT = cleanT,
+            val (next, score) = advanceMainStep(
+                snap = snap,
+                cp = checkpoints[t],
+                cpIndex = t,
+                checkpoints = checkpoints,
+                stepsLandingHere = stepsByIndex[t].orEmpty(),
+                cleanT = cleanliness[t]?.scalar,
             )
-            scores.add(score)
-
-            snapshots[cp.sha] = ProcessSnapshot(
-                brokenCount = brokenCount,
-                addedSmellWeight = addedSmellWeight,
-                resolvedSmellWeight = resolvedSmellWeight,
-                totalSmellWeightSeen = totalSmellWeightSeen,
-                openSmellWeightIntegral = openSmellWeightIntegral,
-                refactoringStepsCount = refactoringStepsCount,
-                testsSkippedCount = testsSkippedCount,
-                ideRelevantCount = ideRelevantCount,
-                manualWhenIdeCount = manualWhenIdeCount,
-                peakCleanliness = peakCleanliness,
-                dipIntegral = dipIntegral,
-                dipObservations = dipObservations,
-                cleanliness0 = cleanliness0,
-                checkpointsSoFar = t + 1,
-            )
+            scores += score
+            snapshots[checkpoints[t].sha] = next
+            snap = next
         }
-
         return MainProcessOutput(scores = scores, snapshots = snapshots)
     }
+
+    /**
+     * Steps grouped by their landing checkpoint index — O(1) lookup for
+     * any per-checkpoint walk (main pass and continuation walks).
+     */
+    private fun stepsByCheckpointIndex(
+        refactoringSteps: List<RefactoringStep>,
+    ): Map<Int, List<RefactoringStep>> {
+        val out = HashMap<Int, MutableList<RefactoringStep>>()
+        for (s in refactoringSteps) {
+            out.getOrPut(s.toCheckpointIndex) { mutableListOf() }.add(s)
+        }
+        return out
+    }
+
+    /** Zero snapshot for the start of a main walk. */
+    private fun initialMainSnapshot(cleanliness0: Double?): ProcessSnapshot = ProcessSnapshot(
+        brokenCount = 0,
+        addedSmellWeight = 0,
+        resolvedSmellWeight = 0,
+        totalSmellWeightSeen = 0,
+        openSmellWeightIntegral = 0,
+        refactoringStepsCount = 0,
+        testsSkippedCount = 0,
+        ideRelevantCount = 0,
+        manualWhenIdeCount = 0,
+        peakCleanliness = cleanliness0 ?: 0.0,
+        dipIntegral = 0.0,
+        dipObservations = 0,
+        cleanliness0 = cleanliness0,
+        checkpointsSoFar = 0,
+    )
+
+    /**
+     * Walk one user-trajectory step forward from [snap]. Used both for
+     * the main pass (seeded with [initialMainSnapshot]) and for alt
+     * "continuation" walks past the merge point (seeded with the alt's
+     * terminal snapshot — see [computeAltContinuations]). Either way
+     * the per-step accounting is the same: real `wasPerformedByIde`
+     * flags from [stepsLandingHere], real `TEST_RUN_FINISHED` events
+     * via [stepUserRanTests], seed-checkpoint smell handling via
+     * [smellsForCheckpoint] keyed on [cpIndex]. Returns the new
+     * snapshot and the cumulative process score after this step.
+     */
+    private fun advanceMainStep(
+        snap: ProcessSnapshot,
+        cp: CheckpointReport,
+        cpIndex: Int,
+        checkpoints: List<CheckpointReport>,
+        stepsLandingHere: List<RefactoringStep>,
+        cleanT: Double?,
+    ): Pair<ProcessSnapshot, ProcessScore> {
+        val build = cp.metrics.build.success
+        val testsOk = cp.metrics.tests.success
+        val testsSkipped = cp.metrics.tests.wasSkipped
+        // Match the frontend's "broken iff build OR tests failed" rule:
+        // skipped tests are not a failure.
+        val testsFailed = !testsOk && !testsSkipped
+        val brokenInc = if (!build || testsFailed) 1 else 0
+
+        // Smell ledger is priority-weighted ((6 - priority), clamped ≥ 0).
+        // Same convention as the frontend `process-score.ts` smell weight.
+        val (added, resolved) = smellsForCheckpoint(checkpoints, cpIndex)
+        val addedSmellWeight = snap.addedSmellWeight + added
+        val resolvedSmellWeight = snap.resolvedSmellWeight + resolved
+        val totalSmellWeightSeen = snap.totalSmellWeightSeen + added
+        // Sample running open weight AFTER this checkpoint's adds /
+        // resolves are applied. Floor at 0 because a path that's
+        // resolved more than it added shouldn't count as negative
+        // smell load.
+        val openSmellWeightIntegral = snap.openSmellWeightIntegral +
+            max(0, addedSmellWeight - resolvedSmellWeight)
+
+        var refactoringStepsCount = snap.refactoringStepsCount
+        var testsSkippedCount = snap.testsSkippedCount
+        var ideRelevantCount = snap.ideRelevantCount
+        var manualWhenIdeCount = snap.manualWhenIdeCount
+        for (s in stepsLandingHere) {
+            refactoringStepsCount += 1
+            if (!stepUserRanTests(checkpoints, s)) testsSkippedCount += 1
+            if (s.refactoring.ideRelevant) {
+                ideRelevantCount += 1
+                if (!s.wasPerformedByIde) manualWhenIdeCount += 1
+            }
+        }
+
+        val brokenCount = snap.brokenCount + brokenInc
+
+        var peakCleanliness = snap.peakCleanliness
+        var dipIntegral = snap.dipIntegral
+        var dipObservations = snap.dipObservations
+        if (cleanT != null) {
+            if (cleanT > peakCleanliness) peakCleanliness = cleanT
+            dipIntegral += max(0.0, peakCleanliness - cleanT)
+            dipObservations += 1
+        }
+        val degradationFrac = if (dipObservations == 0) 0.0 else dipIntegral / dipObservations
+
+        val checkpointsSoFar = snap.checkpointsSoFar + 1
+        val brokenFrac = brokenCount.toDouble() / checkpointsSoFar.toDouble()
+        val netSmell = computeNetSmell(openSmellWeightIntegral, checkpointsSoFar)
+        // Laplace smoothing only kicks in when at least one bad step
+        // has happened; a perfect record (0 of N) returns 0 penalty.
+        val skipFrac = if (refactoringStepsCount == 0 || testsSkippedCount == 0) 0.0
+            else (testsSkippedCount + 1).toDouble() / (refactoringStepsCount + 2).toDouble()
+        val manualFrac = if (ideRelevantCount == 0 || manualWhenIdeCount == 0) 0.0
+            else (manualWhenIdeCount + 1).toDouble() / (ideRelevantCount + 2).toDouble()
+
+        val cleanlinessGain = if (cleanT == null || snap.cleanliness0 == null) 0.0
+            else cleanT - snap.cleanliness0
+
+        val score = buildProcessScore(
+            cleanlinessGain = cleanlinessGain,
+            brokenFrac = brokenFrac,
+            brokenCount = brokenCount,
+            checkpointsSoFar = checkpointsSoFar,
+            netSmell = netSmell,
+            openSmellWeightIntegral = openSmellWeightIntegral,
+            addedSmellWeight = addedSmellWeight,
+            resolvedSmellWeight = resolvedSmellWeight,
+            skipFrac = skipFrac,
+            testsSkippedCount = testsSkippedCount,
+            refactoringStepsCount = refactoringStepsCount,
+            manualFrac = manualFrac,
+            manualWhenIdeCount = manualWhenIdeCount,
+            ideRelevantCount = ideRelevantCount,
+            degradationFrac = degradationFrac,
+            peakCleanliness = peakCleanliness,
+            cleanT = cleanT,
+        )
+
+        val next = ProcessSnapshot(
+            brokenCount = brokenCount,
+            addedSmellWeight = addedSmellWeight,
+            resolvedSmellWeight = resolvedSmellWeight,
+            totalSmellWeightSeen = totalSmellWeightSeen,
+            openSmellWeightIntegral = openSmellWeightIntegral,
+            refactoringStepsCount = refactoringStepsCount,
+            testsSkippedCount = testsSkippedCount,
+            ideRelevantCount = ideRelevantCount,
+            manualWhenIdeCount = manualWhenIdeCount,
+            peakCleanliness = peakCleanliness,
+            dipIntegral = dipIntegral,
+            dipObservations = dipObservations,
+            cleanliness0 = snap.cleanliness0,
+            checkpointsSoFar = checkpointsSoFar,
+        )
+        return next to score
+    }
+
+    private data class AltProcessOutput(
+        val perStepScores: List<List<ProcessScore>>,
+        /** One entry per alt, in [alternatives] order. `null` when the
+         *  anchor `mainSnapshots[fromSha]` was missing (in which case
+         *  the alt's perStepScores are all [ProcessScore.EMPTY] and
+         *  there's nothing to continue from). */
+        val finalSnapshots: List<ProcessSnapshot?>,
+    )
 
     private fun computeAltProcess(
         alternatives: List<AlternativeTrajectory>,
         altCleanliness: List<List<Cleanliness?>>,
         mainSnapshots: Map<String, ProcessSnapshot>,
         userRanTestsByStepIndex: Map<Int, Boolean>,
-    ): List<List<ProcessScore>> = alternatives.mapIndexed { i, alt ->
-        // Snapshot at fromSha is "main pass after processing that
-        // checkpoint" — the starting state for the alt's first synthetic
-        // step. Each subsequent step advances the snapshot in place, so
-        // the chain accumulates penalties exactly like the main walk.
-        // Missing anchor (shouldn't happen, defensive): emit baselines
-        // for every step in the chain.
-        val anchor = mainSnapshots[alt.fromSha]
-            ?: return@mapIndexed alt.altCheckpoints.map { ProcessScore.EMPTY }
+    ): AltProcessOutput {
+        val perStepScores = mutableListOf<List<ProcessScore>>()
+        val finalSnapshots = mutableListOf<ProcessSnapshot?>()
+        for (i in alternatives.indices) {
+            val alt = alternatives[i]
+            // Snapshot at fromSha is "main pass after processing that
+            // checkpoint" — the starting state for the alt's first
+            // synthetic step. Each subsequent step advances the
+            // snapshot in place, so the chain accumulates penalties
+            // exactly like the main walk. Missing anchor (shouldn't
+            // happen, defensive): emit baselines for every step in
+            // the chain.
+            val anchor = mainSnapshots[alt.fromSha]
+            if (anchor == null) {
+                perStepScores += alt.altCheckpoints.map { ProcessScore.EMPTY }
+                finalSnapshots += null
+                continue
+            }
 
-        var snap = anchor
-        val perStep = mutableListOf<ProcessScore>()
-        for (k in alt.altCheckpoints.indices) {
-            // Mirror the user's actual test-running behaviour at the
-            // user step this alt step covers — fair comparison: the
-            // user's habit at stepIndex K is what they'd plausibly do
-            // had they taken the alt path instead.
-            val userStepIndex = alt.stepIndexes.getOrNull(k)
-            val userRanTests = userStepIndex
-                ?.let { userRanTestsByStepIndex[it] }
-                ?: false
-            val (next, score) = advanceAltStep(
-                snap = snap,
-                cp = alt.altCheckpoints[k],
-                cleanT = altCleanliness[i][k]?.scalar,
-                userRanTests = userRanTests,
-            )
-            perStep += score
-            snap = next
+            var snap: ProcessSnapshot = anchor
+            val perStep = mutableListOf<ProcessScore>()
+            for (k in alt.altCheckpoints.indices) {
+                // Mirror the user's actual test-running behaviour at
+                // the user step this alt step covers — fair
+                // comparison: the user's habit at stepIndex K is what
+                // they'd plausibly do had they taken the alt path
+                // instead.
+                val userStepIndex = alt.stepIndexes.getOrNull(k)
+                val userRanTests = userStepIndex
+                    ?.let { userRanTestsByStepIndex[it] }
+                    ?: false
+                val (next, score) = advanceAltStep(
+                    snap = snap,
+                    cp = alt.altCheckpoints[k],
+                    cleanT = altCleanliness[i][k]?.scalar,
+                    userRanTests = userRanTests,
+                )
+                perStep += score
+                snap = next
+            }
+            perStepScores += perStep
+            finalSnapshots += snap
         }
-        perStep
+        return AltProcessOutput(perStepScores, finalSnapshots)
+    }
+
+    /**
+     * Roll each alt's terminal cumulative state forward through the
+     * user's checkpoints AFTER the alt's `userToSha`, recomputing
+     * process scores via [advanceMainStep] (user semantics, not alt
+     * semantics — these are the user's actual subsequent steps, with
+     * real `wasPerformedByIde` flags and real test-running events).
+     *
+     * Only process scores are recomputed: all other metrics are
+     * point-in-time functions of the code state, which is identical
+     * to the user's once the trees converge at the merge point.
+     *
+     * Returns one [AltProcessContinuation] per alt, in [alternatives]
+     * order. The list is empty when the alt's `userToSha` is the last
+     * main checkpoint, when its anchor snapshot was missing, or when
+     * `userToSha` isn't found in main.
+     */
+    private fun computeAltContinuations(
+        alternatives: List<AlternativeTrajectory>,
+        altFinalSnapshots: List<ProcessSnapshot?>,
+        mainCheckpoints: List<CheckpointReport>,
+        mainCleanliness: List<Cleanliness?>,
+        refactoringSteps: List<RefactoringStep>,
+    ): List<AltProcessContinuation> {
+        if (mainCheckpoints.isEmpty()) return alternatives.map { AltProcessContinuation.EMPTY }
+
+        val checkpointIdxBySha = mainCheckpoints
+            .mapIndexed { idx, c -> c.sha to idx }
+            .toMap()
+        val stepsByIndex = stepsByCheckpointIndex(refactoringSteps)
+
+        return alternatives.mapIndexed { i, alt ->
+            val finalSnap = altFinalSnapshots[i] ?: return@mapIndexed AltProcessContinuation.EMPTY
+            val mergeIdx = checkpointIdxBySha[alt.userToSha]
+                ?: return@mapIndexed AltProcessContinuation.EMPTY
+            if (mergeIdx >= mainCheckpoints.lastIndex) return@mapIndexed AltProcessContinuation.EMPTY
+
+            val shas = mutableListOf<String>()
+            val scores = mutableListOf<ProcessScore>()
+            var snap: ProcessSnapshot = finalSnap
+            for (t in (mergeIdx + 1)..mainCheckpoints.lastIndex) {
+                val (next, score) = advanceMainStep(
+                    snap = snap,
+                    cp = mainCheckpoints[t],
+                    cpIndex = t,
+                    checkpoints = mainCheckpoints,
+                    stepsLandingHere = stepsByIndex[t].orEmpty(),
+                    cleanT = mainCleanliness[t]?.scalar,
+                )
+                shas += mainCheckpoints[t].sha
+                scores += score
+                snap = next
+            }
+            AltProcessContinuation(checkpointShas = shas, processScores = scores)
+        }
+    }
+
+    /** Per-alt continuation result: parallel arrays of user-checkpoint
+     *  SHAs after the merge point and their recomputed process scores. */
+    data class AltProcessContinuation(
+        val checkpointShas: List<String>,
+        val processScores: List<ProcessScore>,
+    ) {
+        companion object {
+            val EMPTY = AltProcessContinuation(emptyList(), emptyList())
+        }
     }
 
     /** Walk one synthetic alt step forward from [snap] using [cp]'s

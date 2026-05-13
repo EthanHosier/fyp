@@ -92,6 +92,40 @@ export function DetailPanel({ vm }: { vm: DashboardViewModel }) {
         patchEmptyMessage="No diff captured for this alt step."
       />
     )
+  } else if (selection.kind === "altContinuation") {
+    const alt = vm.alternativeTrajectories.find((a) => a.index === selection.altIndex)
+    const step = alt?.continuationSteps[selection.continuationIndex]
+    if (!alt || !step) return null
+    const userVm = vm.checkpoints[step.checkpointIndex]
+    title = userVm?.description ?? step.cpVm.label
+    subtitle = (
+      <span className="inline-flex items-center gap-1.5">
+        <Text variant="mono" tone="fg-3">
+          {step.cpVm.shortSha}
+        </Text>
+        <Text variant="mono" tone="fg-4">
+          ·
+        </Text>
+        <Text variant="mono" tone="fg-3">
+          alt continuation
+        </Text>
+        <Text variant="mono" tone="fg-4">
+          ·
+        </Text>
+        <Text variant="mono" tone="fg-3">
+          process {step.processScore} vs user {userVm?.processScore ?? "—"}
+        </Text>
+      </span>
+    )
+    body = (
+      <CheckpointBody
+        vm={vm}
+        checkpoint={step.cpVm}
+        patch={step.cpVm.patch}
+        patchCacheKey={`alt-continuation-${alt.index}-${selection.continuationIndex}`}
+        patchEmptyMessage="No diff captured for this checkpoint."
+      />
+    )
   } else if (selection.kind === "altInterval") {
     const alt = vm.alternativeTrajectories.find((a) => a.index === selection.altIndex)
     if (!alt) return null

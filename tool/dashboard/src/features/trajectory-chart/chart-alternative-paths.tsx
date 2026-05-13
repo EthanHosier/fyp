@@ -48,8 +48,13 @@ export function ChartAlternativePaths({
   const { xs, ys } = scales
   // Per-element hover so a single edge / dot lights up rather than the
   // whole alt path going active together. `kind` distinguishes edge vs
-  // dot; `idx` is the segment / step index inside the alt.
-  type HoverTarget = { altIndex: number; kind: "edge" | "dot"; idx: number }
+  // dot vs continuation dot; `idx` is the segment / step / continuation
+  // index inside the alt.
+  type HoverTarget = {
+    altIndex: number
+    kind: "edge" | "dot" | "continuation"
+    idx: number
+  }
   const [hovered, setHovered] = useState<HoverTarget | null>(null)
 
   // Look up each user step's slot xPos by stepIndex so alt step k can
@@ -60,13 +65,15 @@ export function ChartAlternativePaths({
   // along the alt's actual application order.
   // RefactoringStepVM.index mirrors the server's stepIndex (chronological).
   const xPosByStepIndex = new Map<number, number>()
-  // User's value on the active stat at the slot for each user step.
-  const userValByStepIndex = new Map<number, number>()
   for (const s of vm.refactoringSteps) {
     xPosByStepIndex.set(s.index, s.xPos)
-    const v = vm.checkpoints[s.checkpointIndex]?.values[primary.id]
-    if (typeof v === "number") userValByStepIndex.set(s.index, v)
   }
+
+  // User's final process score at the trace terminator. The alt is
+  // coloured blue (vs grey) when its own final process score beats
+  // this — see the per-alt `altWins` calc below.
+  const userFinalProcess =
+    vm.checkpoints[vm.checkpoints.length - 1]?.processScore
 
   return (
     <g>
@@ -79,36 +86,23 @@ export function ChartAlternativePaths({
         const yTo = toCp.values[primary.id]
         if (typeof yFrom !== "number" || typeof yTo !== "number") return null
 
-        // Grey-out criterion: at every visual slot the alt sits at-or-
-        // worse than the user (polarity-aware), and dips strictly worse
-        // at at least one slot. The alt's k-th *applied* step is
-        // plotted at the user's k-th *chronological* window slot, so
-        // the comparison aligns alt-applied[k] against user-
-        // chronological[k] — not against the user step the alt happens
-        // to be doing at this position.
-        const sortedWindowStepIndexes = alt.steps
-          .map((s) => s.stepIndex)
-          .slice()
-          .sort((a, b) => a - b)
-        const altPerStep = alt.steps.map((s, k) => ({
-          alt: s.altValues[primary.id],
-          user: userValByStepIndex.get(sortedWindowStepIndexes[k]),
-        }))
-        const higher = primary.better === "higher"
-        const isWorse =
-          altPerStep.length > 0 &&
-          altPerStep.every(
-            ({ alt, user }) =>
-              typeof alt === "number" &&
-              typeof user === "number" &&
-              (higher ? alt <= user : alt >= user),
-          ) &&
-          altPerStep.some(
-            ({ alt, user }) =>
-              typeof alt === "number" &&
-              typeof user === "number" &&
-              (higher ? alt < user : alt > user),
-          )
+        // Colour criterion: blue iff the alt's final *process score*
+        // beats the user's final process score — for an alt with a
+        // continuation chain, that's the last continuation step (the
+        // End-extended terminator); for an alt without continuation
+        // (alt merges at the trace's last real checkpoint), the
+        // alt's terminal alt-step process. Metric-agnostic: the cue
+        // ("did this alt actually win on process?") is the same
+        // regardless of which metric the chart is currently showing.
+        const altFinalProcess =
+          alt.continuationSteps.length > 0
+            ? alt.continuationSteps[alt.continuationSteps.length - 1].processScore
+            : alt.altValues.process
+        const altWins =
+          typeof altFinalProcess === "number" &&
+          typeof userFinalProcess === "number" &&
+          altFinalProcess >= userFinalProcess
+        const isWorse = !altWins
 
         // Align alt's k-th applied step under the user's k-th window
         // step (chronological — sorted by stepIndex ascending). Y
@@ -139,11 +133,51 @@ export function ChartAlternativePaths({
         const xFrom = xs(fromCp.xPos)
         const xTo = xs(toCp.xPos)
 
-        const polyPoints = [
-          { x: xFrom, y: ys(yFrom) },
-          ...altPoints.map((p) => ({ x: p.x, y: p.y })),
-          { x: xTo, y: ys(yTo) },
-        ]
+        // Process-score is the only cumulative metric; once paths
+        // diverge their cumulative state diverges forever. For every
+        // other metric the alt rejoins the user at userToSha because
+        // those are state-only (identical once trees converge).
+        const isProcess = primary.id === "process"
+
+        // Continuation points (process metric only) — recomputed
+        // scores at the user's post-merge checkpoint X positions.
+        // `contIndex` is the array index into `alt.continuationSteps`
+        // (what the `altContinuation` Selection joins against).
+        const continuationPoints: {
+          x: number
+          y: number
+          cpIndex: number
+          contIndex: number
+        }[] = []
+        if (isProcess) {
+          alt.continuationSteps.forEach((step, ci) => {
+            const cp = vm.checkpoints[step.checkpointIndex]
+            if (!cp || typeof step.processScore !== "number") return
+            continuationPoints.push({
+              x: xs(cp.xPos),
+              y: ys(step.processScore),
+              cpIndex: step.checkpointIndex,
+              contIndex: ci,
+            })
+          })
+        }
+
+        // Clean divergence on process: skip the merge-back vertex at
+        // (xTo, ys(yTo)) entirely — the alt's altPoints[last] is
+        // already the alt's terminal process Y; the line continues
+        // from there through the continuation. For non-process
+        // metrics, keep the merge-back vertex (today's behaviour).
+        const polyPoints = isProcess
+          ? [
+              { x: xFrom, y: ys(yFrom) },
+              ...altPoints.map((p) => ({ x: p.x, y: p.y })),
+              ...continuationPoints.map((p) => ({ x: p.x, y: p.y })),
+            ]
+          : [
+              { x: xFrom, y: ys(yFrom) },
+              ...altPoints.map((p) => ({ x: p.x, y: p.y })),
+              { x: xTo, y: ys(yTo) },
+            ]
         const path = polyPoints
           .map((p, i) => `${i === 0 ? "M" : "L"}${p.x.toFixed(1)},${p.y.toFixed(1)}`)
           .join(" ")
@@ -152,18 +186,31 @@ export function ChartAlternativePaths({
         // dispatch its own altInterval selection. Endpoints inset
         // toward the segment's midpoint so the fat clickable stroke
         // doesn't overlap the user's checkpoint dots / alt step dots.
-        const polyAll = [
-          { x: xFrom, y: ys(yFrom), kind: "from" as const },
-          ...altPoints.map((p, i) => ({ x: p.x, y: p.y, kind: "alt" as const, idx: i })),
-          { x: xTo, y: ys(yTo), kind: "to" as const },
-        ]
+        // Process mode: hit targets cover up to the alt's terminal
+        // step only — continuation segments are read-only chart
+        // chrome and don't dispatch selections.
+        const polyAll = isProcess
+          ? [
+              { x: xFrom, y: ys(yFrom), kind: "from" as const },
+              ...altPoints.map((p, i) => ({ x: p.x, y: p.y, kind: "alt" as const, idx: i })),
+            ]
+          : [
+              { x: xFrom, y: ys(yFrom), kind: "from" as const },
+              ...altPoints.map((p, i) => ({ x: p.x, y: p.y, kind: "alt" as const, idx: i })),
+              { x: xTo, y: ys(yTo), kind: "to" as const },
+            ]
 
         return (
           <g key={alt.index} className={cn(isWorse ? "text-fg-4" : "text-brand")}>
             {/* Base dashed alt polyline — pointer events disabled so
-                the per-segment hit targets below own click + hover. */}
+                the per-segment hit targets below own click + hover.
+                In process mode the alt diverges forever; the stub at
+                (xTo, userY) would float disconnected from the polyline
+                so we skip it. */}
             <StubCircle x={xFrom} y={ys(yFrom)} selected={isAltSelected} />
-            <StubCircle x={xTo} y={ys(yTo)} selected={isAltSelected} />
+            {!isProcess && (
+              <StubCircle x={xTo} y={ys(yTo)} selected={isAltSelected} />
+            )}
             <path
               d={path}
               fill="none"
@@ -281,6 +328,75 @@ export function ChartAlternativePaths({
                     strokeWidth={1}
                   />
                   {dotActive ? (
+                    <circle
+                      cx={p.x}
+                      cy={p.y}
+                      r={6}
+                      fill="none"
+                      stroke="currentColor"
+                      strokeOpacity={0.55}
+                      strokeWidth={1.2}
+                    />
+                  ) : null}
+                </g>
+              )
+            })}
+
+            {/* Continuation dots — one per user-checkpoint position
+                the alt's recomputed process line passes through after
+                the merge. Clickable: opens the alt's process-only
+                detail panel (user's state at that sha with the alt's
+                process score overlaid). Hover ring matches the
+                alt-step dots so the layer reads as one alt object. */}
+            {isProcess && continuationPoints.map((p) => {
+              const contSelected =
+                selection?.kind === "altContinuation" &&
+                selection.altIndex === alt.index &&
+                selection.continuationIndex === p.contIndex
+              const contHovered =
+                hovered?.altIndex === alt.index &&
+                hovered.kind === "continuation" &&
+                hovered.idx === p.contIndex
+              const contActive = contSelected || contHovered
+              return (
+                <g
+                  key={`cont-${alt.index}-${p.contIndex}`}
+                  className="cursor-pointer"
+                  onMouseEnter={() =>
+                    setHovered({ altIndex: alt.index, kind: "continuation", idx: p.contIndex })
+                  }
+                  onMouseLeave={() =>
+                    setHovered((h) =>
+                      h &&
+                      h.altIndex === alt.index &&
+                      h.kind === "continuation" &&
+                      h.idx === p.contIndex
+                        ? null
+                        : h,
+                    )
+                  }
+                  onMouseMove={(e) => e.stopPropagation()}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onSelect({
+                      kind: "altContinuation",
+                      altIndex: alt.index,
+                      continuationIndex: p.contIndex,
+                    })
+                  }}
+                >
+                  <circle cx={p.x} cy={p.y} r={9} fill="transparent" />
+                  <circle
+                    cx={p.x}
+                    cy={p.y}
+                    r={contActive ? 3.4 : 2.2}
+                    fill="var(--color-bg-1)"
+                    stroke="currentColor"
+                    strokeOpacity={contActive ? 0.95 : 0.7}
+                    strokeWidth={1}
+                    strokeDasharray="2 1.5"
+                  />
+                  {contActive ? (
                     <circle
                       cx={p.x}
                       cy={p.y}

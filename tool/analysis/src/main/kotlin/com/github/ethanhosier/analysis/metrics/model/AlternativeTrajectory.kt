@@ -69,6 +69,25 @@ data class AlternativeTrajectory(
      *  `userToSha`). `applied=false` means 3-way merge conflicted and
      *  the alt-SHA is refactoring-only. */
     val residual: ResidualSummary? = null,
+    /** User-trajectory checkpoints the alt's process-score line
+     *  extends through after merging back at [userToSha]. Each entry
+     *  is a full [CheckpointReport] — same shape as [altCheckpoints]
+     *  and the main `checkpoints` list — so the frontend can render
+     *  a normal detail panel for them.
+     *
+     *  Static metrics (build/tests, CK, PMD, CPD, readability,
+     *  cleanliness) are identical to the user's at that sha because
+     *  the code state is the same once the trees converge.
+     *  `derivedMetrics.process`, however, carries the alt's
+     *  recomputed score: the alt's terminal cumulative snapshot
+     *  rolled forward through the user's subsequent activity via
+     *  main-walk semantics. Process score is the only *cumulative*
+     *  metric in the system — every other metric is state-only and
+     *  therefore identical to the user's by construction.
+     *
+     *  Empty when [userToSha] is the last main checkpoint or the
+     *  alt's anchor snapshot was missing. */
+    val continuationCheckpoints: List<CheckpointReport> = emptyList(),
 )
 
 /**
