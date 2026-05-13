@@ -7,6 +7,7 @@ import type { CheckpointVM, DashboardViewModel, StatusTone } from "@/data/types"
 import { AlternativeBody } from "@/features/detail-panel/alternative-body"
 import { AltIntervalBody } from "@/features/detail-panel/alt-interval-body"
 import { CheckpointBody } from "@/features/detail-panel/checkpoint-body"
+import { DivergenceBody } from "@/features/detail-panel/divergence-body"
 import { IntervalBody } from "@/features/detail-panel/interval-body"
 import {
   hasRefactoringPitfalls,
@@ -146,6 +147,24 @@ export function DetailPanel({ vm }: { vm: DashboardViewModel }) {
       </span>
     )
     body = <AltIntervalBody vm={vm} from={fromVm} to={toVm} />
+  } else if (selection.kind === "divergencePoint") {
+    const dp = vm.divergencePoints.find((d) => d.id === selection.dpId)
+    if (!dp) return null
+    title = dp.title
+    subtitle = (
+      <span className="inline-flex items-center gap-1.5">
+        <Text variant="mono" tone="fg-3">
+          {dp.kind.toLowerCase().replace("_", " ")}
+        </Text>
+        <Text variant="mono" tone="fg-4">
+          ·
+        </Text>
+        <Text variant="mono" tone="fg-3">
+          step {dp.stepIndex}
+        </Text>
+      </span>
+    )
+    body = <DivergenceBody vm={vm} dp={dp} />
   } else if (selection.kind === "alternative") {
     const alt = vm.alternativeTrajectories.find((a) => a.index === selection.index)
     if (!alt) return null

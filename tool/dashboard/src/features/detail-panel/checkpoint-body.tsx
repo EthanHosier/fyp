@@ -20,6 +20,7 @@ import {
 } from "@/features/detail-panel/commit-signals"
 import { DuplicationsSection } from "@/features/detail-panel/duplications-section"
 import { DiffSection } from "@/features/detail-panel/diff-section"
+import { DivergenceIndicators } from "@/features/detail-panel/divergence-indicators"
 import { SmellSignals } from "@/features/detail-panel/smell-signals"
 
 /**
@@ -87,6 +88,8 @@ export function CheckpointBody({
         </Text>
         <StatusRow build={checkpoint.build} tests={checkpoint.tests} />
       </section>
+
+      <DivergenceIndicators vm={vm} stepIndex={checkpoint.index} />
 
       {pitfalls ||
       hasSmellSignals(checkpoint) ||
