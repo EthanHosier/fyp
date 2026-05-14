@@ -28,6 +28,17 @@ export function ChartPoints({
     (s) => s.highlightedCheckpointIndex,
   )
 
+  // Flash policy: a manual highlight (e.g. the rework alt's "Code added
+  // at <ckpt>" link setting `highlightedCheckpointIndex`) always wins,
+  // and flashes that single checkpoint. With no manual highlight, the
+  // chart falls back to flashing every divergence-point's anchor step
+  // by default — so DPs draw the eye on first load. Clicking any link
+  // that sets a manual highlight collapses the set to just that one.
+  const flashingIndexes: ReadonlySet<number> =
+    highlightedCheckpointIndex != null
+      ? new Set([highlightedCheckpointIndex])
+      : new Set(vm.divergencePoints.map((dp) => dp.stepIndex))
+
   return (
     <g className={cn(TONE_TEXT[primary.tone])}>
       {vm.checkpoints.map((c) => {
@@ -35,7 +46,7 @@ export function ChartPoints({
         if (typeof v !== "number") return null
         const selected =
           selection?.kind === "checkpoint" && selection.index === c.index
-        const highlighted = highlightedCheckpointIndex === c.index
+        const highlighted = flashingIndexes.has(c.index)
         const r = selected ? 3 : 2
         return (
           <g
