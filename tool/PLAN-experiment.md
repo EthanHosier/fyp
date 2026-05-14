@@ -1,4 +1,242 @@
-# Implementation plan: injection-variant evaluation experiment
+# Experiment plans
+
+This file contains two complementary evaluation experiments:
+
+1. **Sensitivity analysis + ablation** *(this section)* — defends the
+   process-score *weights* against the "why these numbers?" critique.
+   Cheap, static-recomputation only.
+2. **Injection-variant divergence-detector evaluation** *(below)* —
+   defends the *detector* by showing it flags known-bad patterns and
+   beats the obvious baselines.
+
+Both feed the evaluation chapter; both move the same rubric dimension
+("Evaluation and Reflection", 20%) but address different attack
+surfaces.
+
+---
+
+# Experiment 1: Sensitivity analysis + ablation for the process score
+
+## Context
+
+The process score is a weighted-sum composite over trajectory signals
+(`W_BROKEN`, `W_SKIP_TESTS`, `W_COMMIT_GAP`, `W_GAIN`, `W_DEGRADATION`, `W_SMELL`) plus
+the literature-backed cleanliness sub-score. Its *structure* is
+defensible by literature analogy to SQALE / Quamoco / QMOOD; its
+*magnitudes* are axiom-constrained heuristic priors (see
+`PLAN-metric-justification.md` and `RESEARCH-metrics-weighting.md`,
+§"Weight derivation"). To convert the priors into a defensible thesis
+claim, two empirical experiments run over the fixture trajectories:
+
+1. **Sensitivity analysis** — does the divergence-point ranking change
+   when each weight is perturbed by ±50%?
+2. **Ablation** — does each process-layer term actually do work, or is
+   one redundant with the cleanliness layer or with other process
+   terms?
+
+Together these answer the strongest line of methodology-chapter
+attack: *"why these numbers and not others?"*. The answer becomes
+*"any constants satisfying C1–C4 give the same top-K within ±50%
+perturbation, and every term changes the output non-trivially."*
+
+The experiments are **cheap** because they reuse static metric
+aggregates already computed and persisted per checkpoint — only the
+final weighted-sum step (`DerivedMetricsRunner.computeProcess`) runs
+per perturbation. Per `MEMORY.md` "Checkpoint cost profile":
+build/test runs are expensive; static-metric recomputation is not.
+
+## Fixture corpus (shared with Experiment 2)
+
+Both experiments share the corpus assembled for the injection-variant
+evaluation below (`F-small`, `F-medium`, `F-real`, plus the 45
+injected trajectories). For weight-sensitivity testing, the 45
+injected trajectories are particularly useful because each carries a
+known-bad ground truth — sensitivity can be measured against *whether
+the detector still flags the right step* under perturbation, not just
+against arbitrary ranking-stability.
+
+## Experiment 1a — Sensitivity analysis
+
+### Question
+
+For each weight, does perturbing its magnitude by ±50% change the
+top-K divergence-point ranking on the fixture corpus?
+
+### Protocol
+
+1. **Baseline.** Run `DivergenceDetector.detect(report)` on every
+   fixture (clean + injected) with the production weights. Persist
+   the top-5 divergence points per fixture as `baseline.json`.
+2. **Perturb one weight at a time.** For each $w \in
+   \{W_\text{BROKEN}, W_\text{SKIP\_TESTS}, W_\text{COMMIT\_GAP},
+   W_\text{GAIN}, W_\text{DEGRADATION}, W_\text{SMELL}\}$:
+   - Set $w' = 0.5 \cdot w$. Re-run scoring + detection on every
+     fixture. Record top-5 divergence points.
+   - Set $w' = 1.5 \cdot w$. Re-run. Record top-5.
+3. **Per-fixture similarity.** For each fixture and each perturbation,
+   compare the perturbed top-5 to the baseline top-5 via:
+   - **Kendall's τ** over the intersection of step-indices (rank
+     correlation).
+   - **Top-5 hit rate** (fraction of baseline top-5 still in perturbed
+     top-5, ignoring order).
+   - **Ground-truth retention** *(injected trajectories only)*: does
+     the perturbed detector still flag the injected step in the top-K
+     with the correct kind? This is the strongest evidence — it
+     measures whether the *answer* changes, not just the ranking.
+4. **Aggregate.** For each weight × perturbation pair, report the mean
+   and 95% bootstrap CI of Kendall's τ, hit rate, and ground-truth
+   retention rate across the corpus.
+
+### Threshold for "stable"
+
+- **τ ≥ 0.8 and hit rate ≥ 80% and ground-truth retention ≥ 90%** →
+  weight is robust. Acceptable for thesis claim.
+- **0.5 ≤ τ < 0.8** → weight is mildly sensitive. Justify magnitude
+  more tightly or report as a limitation.
+- **τ < 0.5** → weight is fragile. Discuss as a methodology
+  limitation and either pin the magnitude to a tighter range or
+  reformulate the term.
+
+### Implementation
+
+- `analysis/src/test/.../experiment/SensitivityExperiment.kt` — Kotlin
+  test that wires a `ProcessScoreWeights` data class into
+  `DerivedMetricsRunner` via constructor injection. Production default
+  unchanged; the experiment passes perturbed copies.
+- One JUnit `@Test` per weight, parameterised over ±50% perturbation.
+  Output a `sensitivity-results.csv` for the evaluation chapter.
+
+### Threats to validity
+
+- **Fixture diversity.** If all fixtures come from the same Java
+  style, sensitivity results don't generalise. Mitigation: ensure
+  the corpus spans at least 3 distinct codebases (already required
+  for Experiment 2).
+- **Top-K choice.** K=5 is somewhat arbitrary. Report results for
+  K ∈ {3, 5, 10} and confirm robustness conclusions don't pivot on K.
+- **One-at-a-time perturbation.** Doesn't capture interactions.
+  Optional follow-up: a small grid over the three most sensitive
+  weights, time permitting.
+
+## Experiment 1b — Ablation
+
+### Question
+
+Is each term in the process layer non-redundant — i.e. does removing
+it materially change the divergence-point output?
+
+### Protocol
+
+Run the detector on every fixture under five score variants. Compare
+the resulting top-K divergence rankings to the full-score baseline.
+
+| Variant | Cleanliness | W_BROKEN | W_SKIP_TESTS | W_COMMIT_GAP | W_GAIN | W_DEGRADATION | W_SMELL |
+|---------|-------------|----------|--------------|--------------|--------|---------------|---------|
+| A1 — Cleanliness only         | yes | 0    | 0    | 0    | 0    | 0    | 0    |
+| A2 — + safety penalties       | yes | full | full | full | 0    | 0    | 0    |
+| A3 — + trajectory shape       | yes | 0    | 0    | 0    | full | full | 0    |
+| A4 — + smell ledger           | yes | 0    | 0    | 0    | 0    | 0    | full |
+| A5 — Full score (reference)   | yes | full | full | full | full | full | full |
+
+W_COMMIT_GAP is folded into A2 alongside W_BROKEN and W_SKIP_TESTS:
+all three are process-hygiene penalties (severity-ordered per axiom
+C2) and live or die together as a category. If ablation finds the
+A2 block redundant, that's a finding about the whole hygiene
+category, not about W_COMMIT_GAP in isolation.
+
+For each variant × fixture, compute Kendall's τ and top-5 hit rate
+between the variant's top-5 and A5's top-5. On injected fixtures, also
+report ground-truth retention (did the variant still flag the right
+step?).
+
+### What good ablation results look like
+
+- **A1 vs A5** — large divergence. Proves the process layer earns its
+  place over a snapshot-only score. This is the strongest result for
+  the "novel composite over trajectory signals" claim.
+- **A2 vs A5** and **A3 vs A5** — moderate divergence each. Proves
+  both halves of the process layer (safety vs trajectory-shape) are
+  non-redundant.
+- **A4 vs A5** — measurable divergence. If τ ≈ 1.0, the smell ledger
+  is redundant with the cleanliness layer's smell-count sub-signal,
+  and the thesis result is *"we proposed five terms; ablation showed
+  the smell ledger is redundant; the production score uses four."*
+  That's a *stronger* finding than "all five matter" — it demonstrates
+  that ablation was done honestly.
+
+### Implementation
+
+- `analysis/src/test/.../experiment/AblationExperiment.kt` — JUnit
+  test running the five variants over the corpus and writing
+  `ablation-results.csv`.
+- The cleanest way to express "term off" is to expose
+  `ProcessScoreWeights` (data class, refactor from Experiment 1a)
+  and pass a variant copy with zeroed fields rather than introducing
+  per-term feature flags.
+
+### Threats to validity
+
+- **Ablation doesn't isolate non-linearities.** A term may be
+  redundant on the current corpus but useful on broader inputs.
+  Discuss as future work.
+- **Cleanliness layer subsumes some signals.** The smell ledger
+  (W_SMELL) double-reads PMD; if redundant, that's an honest result,
+  not a flaw.
+
+## Deliverables (Experiment 1)
+
+1. **`sensitivity-results.csv`** + a one-figure summary chart
+   (Kendall's τ + 95% CI per weight × perturbation) for the
+   evaluation chapter.
+2. **`ablation-results.csv`** + a one-figure summary chart
+   (Kendall's τ vs A5 per variant) for the evaluation chapter.
+3. **Methodology-chapter prose** weaving the results into the
+   weight-justification argument:
+   > *"The constants W_GAIN=50, W_BROKEN=28, W_DEGRADATION=21,
+   > W_SMELL=21, W_SKIP_TESTS=14, W_COMMIT_GAP=7 are one instantiation
+   > satisfying axioms C1–C4. Sensitivity analysis (±50% perturbation, N≈20
+   > fixtures) shows the top-5 divergence-point ranking is stable
+   > (Kendall's τ ≥ 0.X) under perturbation of every weight except
+   > Y. Ablation confirms each term is non-redundant — variant A_i
+   > diverges from the full score by Kendall's τ ≈ Z_i."*
+4. **One paragraph in the limitations subsection** acknowledging
+   the axiomatic-prior framing and pointing at the corpus diversity
+   threat.
+
+## Sequencing (Experiment 1)
+
+- **Day 1.** Refactor `DerivedMetricsRunner` to accept a
+  `ProcessScoreWeights` parameter (constructor-injected; production
+  default unchanged). Verify existing tests still pass.
+- **Day 2.** Implement `SensitivityExperiment.kt`. Run on the
+  available fixtures, generate CSV + chart. (Can run before
+  Experiment 2's full corpus is built — uses whatever fixtures
+  exist.)
+- **Day 3.** Implement `AblationExperiment.kt`. Run, generate CSV +
+  chart.
+- **Day 4.** Methodology-chapter prose + figure embedding +
+  threats-to-validity paragraph.
+
+Total: ~4 days, all cheap static recomputation. Can run in parallel
+with Experiment 2 development.
+
+## Out of scope (Experiment 1)
+
+- **Multi-language fixtures.** Java-only for v1; consistent with the
+  rest of the thesis scope.
+- **AHP-style pairwise elicitation** as an alternative weight-derivation
+  method. The axiom-constrained framing is the contribution; AHP
+  would be an alternative methodology paper.
+- **Grid-search over the joint weight space.** One-at-a-time
+  perturbation is the affordable first pass; a joint sensitivity
+  study is future work.
+- **Learned weights from a labelled corpus of "good" / "bad"
+  trajectories.** No such labelled corpus exists at thesis scale;
+  building one is itself a research contribution and out of scope.
+
+---
+
+# Experiment 2: Injection-variant evaluation experiment
 
 ## Context
 
@@ -191,15 +429,27 @@ For each (fixture, injection) pair:
 1. Apply `InjectionHarness.inject(base, injection)` to produce
    $\tau'$.
 2. Run `AnalysisPipeline.run(τ')` end-to-end, get the
-   `AnalysisReport` with `divergencePoints`.
-3. Score against ground truth:
-   - **Detection (binary):** does *any* divergence with kind ==
-     `injection.expectedKind` land within `[targetStep − 1,
-     targetStep + 1]`?
-   - **Top-K (binary):** is that divergence in the top-K (default K=5)
-     by magnitude?
-   - **Specificity:** how many false-positive divergences appear on
-     $\tau'$ that don't appear on $\tau_0$ (the un-injected base)?
+   `AnalysisReport` with both `alternativeTrajectories` (all alts the
+   synth produced, regardless of magnitude) and `divergencePoints`
+   (only alts above their per-kind magnitude floor — `MIN_PROCESS_DELTA
+   = 3.0` for ORDERING/IDE_REPLAY, `MIN_REWORK_LINES = 2` for REWORK).
+3. Score against ground truth on **two tiers** (see "Two-tier success
+   criterion" below):
+   - **Tier 1 — Pattern detection (binary):** does *any*
+     `AlternativeTrajectory` of the right shape (kind / step / file)
+     for `injection.expectedKind` exist within `[targetStep − 1,
+     targetStep + 1]`? Tests capability — did the underlying machinery
+     find the pattern at all?
+   - **Tier 2 — Divergence-point flag (binary):** does the report's
+     `divergencePoints` list include a flagged divergence with kind ==
+     `injection.expectedKind` within the same step window? Tests the
+     user-facing behaviour — did the system actually surface it above
+     threshold?
+   - **Top-K (binary, on Tier 2):** is that flagged divergence in the
+     top-K (default K=5) by magnitude?
+   - **Specificity:** how many false-positive flagged divergences
+     appear on $\tau'$ that don't appear on $\tau_0$ (the un-injected
+     base)?
 4. Also run the pipeline on $\tau_0$ as a control — log all
    divergences the detector emits on a clean trajectory. These are
    the "background false-positive rate".
@@ -208,32 +458,107 @@ Repeat each injection at 2 distinct step positions across the medium
 fixture (so e.g. inject `ManualRenameSweep` at step 4 and step 9
 separately). 10 patterns × 2 positions × 2 fixtures (small + medium)
 + 5 patterns on `F-real` = roughly 45 injected trajectories. Plus 3
-controls.
+controls. Within each pattern, vary the injection magnitude across
+**loud / borderline / sub-threshold** strengths (see "Engineering
+borderline injections" below) — this is what makes Tier 1 vs Tier 2
+gap meaningful and feeds Experiment 1's sensitivity analysis.
+
+## Two-tier success criterion
+
+A pattern can be **detected** without being **flagged**. The
+underlying machinery (`ReorderSynthesiser`, `AlternativeTrajectoryRunner`,
+`HygieneDetector`, AST-hash rework matcher) generates an alt
+unconditionally; `DivergencePointBuilder` then applies per-kind
+magnitude floors and only flags alts above the floor. Both states are
+correct behaviour — Tier 1 measures *capability*, Tier 2 measures
+*calibrated UX*. Reporting both lets us distinguish two failure modes
+that look identical if conflated:
+
+- **Tier 1 fail.** The synth/predicate never found the pattern. This
+  is a *real* miss — the detector cannot identify this category of
+  process issue.
+- **Tier 1 pass, Tier 2 fail.** The synth/predicate found the pattern
+  but its magnitude fell below the magnitude floor (e.g. an ordering
+  alt with delta = 1.5 points). This is *correct* suppression of a
+  low-signal finding, and conflating it with a Tier 1 fail would
+  unfairly penalise the system for working as designed.
+
+**HYGIENE collapses both tiers.** `COMMIT_GAP` emits regardless of
+magnitude and `TESTS_SKIPPED` has no separate magnitude floor; if the
+predicate fires, the divergence point is flagged. So Tier 1 == Tier 2
+for hygiene rows — report a single value with a footnote.
+
+## Engineering borderline injections
+
+For each pattern, inject at three magnitude levels by varying the
+surrounding context (class size, churn, number of touched
+methods). The injection-harness `data class` carries an explicit
+strength tag so the eval driver can stratify results:
+
+```kotlin
+enum class Strength { LOUD, BORDERLINE, SUBTHRESHOLD }
+data class ManualRenameSweep(
+    override val targetStep: Int,
+    val strength: Strength,
+) : Injection { ... }
+```
+
+Approximate targets per kind:
+
+| Kind | Loud | Borderline | Sub-threshold |
+|------|------|------------|---------------|
+| ORDERING / IDE_REPLAY (`MIN_PROCESS_DELTA = 3.0`) | delta ≈ 10+ | delta ≈ 3.5–5.0 | delta ≈ 1.5–2.5 |
+| REWORK (`MIN_REWORK_LINES = 2`) | ≥10 reverted lines | 2–4 lines | 1 line (boundary case) |
+| HYGIENE COMMIT_GAP (`MIN_COMMIT_GAP = 6`) | gap ≥ 10 | gap = 6–8 | gap = 4–5 |
+
+Tier 1 detection rate should approach 100% across all strengths
+(synths/predicates aren't strength-sensitive). Tier 2 flag rate
+should approach 100% on loud, ~80–100% on borderline, ~0% on
+sub-threshold. Sub-threshold injections double as a *false-positive
+test* — the detector should not flag them, and doing so correctly is
+a Tier-2 success in the opposite direction (recorded as
+`expected_unflagged_and_unflagged = true`).
 
 ## Metrics + reporting
 
 For each detector kind $\kappa$:
 
-- **Precision** = (# correctly flagged at target step) / (# divergences
-  of kind $\kappa$ emitted).
-- **Recall** = (# correctly flagged at target step) / (# injections of
-  kind $\kappa$).
-- **Top-K hit rate** = (# injections where the target divergence was
-  in the top-K) / (# injections of kind $\kappa$).
-- **Per-kind background FP rate** (from controls).
+- **Tier 1 detection rate** = (# injections where an alt of kind
+  $\kappa$ was generated at the target step) / (# injections of kind
+  $\kappa$).
+- **Tier 2 precision** = (# flagged divergences correctly at target
+  step) / (# flagged divergences of kind $\kappa$ emitted on $\tau'$).
+- **Tier 2 recall** = (# flagged divergences correctly at target
+  step) / (# injections of kind $\kappa$, **excluding sub-threshold**
+  — sub-threshold injections are explicitly expected to remain
+  unflagged).
+- **Top-K hit rate** = (# injections where the target flagged
+  divergence was in the top-K) / (# injections of kind $\kappa$).
+- **Sub-threshold suppression rate** = (# sub-threshold injections
+  correctly *not* flagged) / (# sub-threshold injections). Should
+  approach 100%.
+- **Per-kind background FP rate** (from controls on $\tau_0$).
 
 Headline table for the evaluation chapter:
 
-| Kind | Precision | Recall | Top-5 hit | Background FP rate |
-|------|-----------|--------|-----------|--------------------|
-| Ordering | … | … | … | … |
-| IDE replay | … | … | … | … |
-| Hygiene | … | … | … | … |
-| Rework | … | … | … | … |
-| Local spike | … | … | … | … |
-| **Macro avg** | … | … | … | … |
+| Kind | Tier 1 detection | Tier 2 precision | Tier 2 recall (loud + borderline) | Top-5 hit | Sub-threshold suppression | Background FP |
+|------|------------------|------------------|-----------------------------------|-----------|---------------------------|---------------|
+| Ordering    | … | … | … | … | … | … |
+| IDE replay  | … | … | … | … | … | … |
+| Hygiene*    | … | (collapsed) | … | … | n/a | … |
+| Rework      | … | … | … | … | … | … |
+| Local spike | … | … | … | … | … | … |
+| **Macro avg** | … | … | … | … | … | … |
 
-Plus a figure: cumulative-detection curve as K varies from 1 to 10.
+*Hygiene rows: Tier 1 == Tier 2 (no separate magnitude floor); the
+"Tier 2 precision" column is the same as Tier 1 detection.
+
+Plus two figures:
+- **Cumulative-detection curve** as K varies from 1 to 10 (Tier 2).
+- **Tier 1 vs Tier 2 gap chart** per kind × strength — bars showing
+  100% Tier 1 across the board, and Tier 2 dropping to 0% at the
+  sub-threshold band. This visualisation directly justifies the
+  threshold calibration.
 
 ## Baseline comparisons
 
@@ -408,11 +733,15 @@ The rubric explicitly rewards "anticipates possible objections" at
 
 After running:
 
-1. `experiment-results.csv` — one row per (fixture, injection, position)
-   with columns: fixture, injection_kind, target_step, detected (bool),
-   in_top_k (bool), fp_count, detector_magnitude, baseline1_detected,
+1. `experiment-results.csv` — one row per (fixture, injection,
+   position, strength) with columns: fixture, injection_kind,
+   target_step, strength (loud/borderline/subthreshold),
+   tier1_detected (bool), tier2_flagged (bool), in_top_k (bool),
+   fp_count, detector_magnitude, baseline1_detected,
    baseline2_detected, baseline3_detected.
-2. `precision-recall.csv` — per-kind aggregated.
+2. `precision-recall.csv` — per-kind aggregated, with separate
+   Tier 1 / Tier 2 columns and a `subthreshold_suppression_rate`
+   column.
 3. `sensitivity-sweep/*.csv` — threshold sensitivity per kind.
 4. Plots generated from the CSVs (matplotlib or Vega-Lite). Bar chart
    for per-kind precision/recall, line plot for top-K cumulative
