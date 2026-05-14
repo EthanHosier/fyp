@@ -758,13 +758,13 @@ export function DesignSystemApp() {
                     Cognitive Complexity
                   </Text>
                   <Text as="p" variant="bodySm" tone="fg-2" className="mt-1.5">
-                    Sum of PMD&apos;s per-method cognitive complexity over every
-                    method in the project. Penalises nesting and breaks of
-                    linear flow rather than mere branch count.
+                    Mean of PMD&apos;s per-method cognitive complexity, restricted to
+                    methods whose file is in the trajectory-touched set. Penalises
+                    nesting and breaks of linear flow rather than mere branch count.
                   </Text>
                   <div className="border-border bg-bg-2 mt-2 rounded-sm border px-2 py-1.5">
                     <Text as="code" variant="mono" tone="fg">
-                      Σ (cognitive complexity per method)
+                      mean ( cognitive complexity per method ∈ touched files )
                     </Text>
                   </div>
                 </HoverCardContent>

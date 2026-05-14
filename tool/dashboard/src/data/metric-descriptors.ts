@@ -15,46 +15,46 @@ export type MetricDescriptor = {
 export const METRIC_DESCRIPTORS: Record<MetricId, MetricDescriptor> = {
   cognitive: {
     summary:
-      "How hard the code is to follow at a glance.",
-    formula: "Σ (cognitive complexity per method)",
+      "How hard the code is to follow at a glance — averaged over the methods you touched.",
+    formula: "mean ( cognitive complexity per method ∈ touched files )",
     detail:
-      "A high score means readers will struggle to hold a method in their head — usually because of deep nesting, chained conditionals, or jumps that break linear flow. Bringing it down generally means flattening control flow or splitting a long method into smaller, named steps.",
+      "Campbell 2018's cognitive complexity, per method. Aggregated as the mean across methods whose file is in the trajectory-touched set — the union of every file changed across the session, held fixed throughout. Mean (rather than Σ) rewards Extract Method: splitting a heavy method into smaller helpers reduces the average even though Σ would mechanically increase. A high score means readers will struggle to hold a typical touched method in their head — usually because of deep nesting, chained conditionals, or jumps that break linear flow.",
   },
   readability: {
     summary:
-      "How approachable the code looks to a new reader.",
+      "How approachable the touched code looks to a new reader.",
     formula:
-      "100 × ( 0.25·LineLength + 0.20·Indentation + 0.20·IdentifierLength + 0.15·(1 − SingleLetterRate) + 0.20·DictionaryWordRate )",
+      "100 × 0.20 · ( LineLength + Indentation + IdentifierLength + (1 − SingleLetterRate) + DictionaryWordRate )",
     detail:
-      "A composite of surface-level cues: shorter lines, shallower indentation, descriptive multi-letter names, and recognisable dictionary words all push the score up. A drop usually points to long lines, dense nesting, or cryptic identifiers worth renaming.",
+      "Uniform 0.20 blend of five Buse & Weimer 2010 features (line length, indentation depth, identifier length, single-letter rate, dictionary-word rate), evaluated on the touched-file subset with a line-count weighting so larger files contribute proportionally more. Equal weights follow Laplace's principle of insufficient reason — no in-domain calibration data distinguishes the relative importance of the five features. Shorter lines, shallower indentation, descriptive multi-letter names, and recognisable dictionary words all push the score up.",
   },
   duplication: {
     summary:
-      "The share of the codebase that is copy-pasted from somewhere else.",
-    formula: "( DuplicatedLines / TotalLines ) × 100",
+      "The share of the touched code that is copy-pasted from somewhere else.",
+    formula: "( DuplicatedLines ∈ touched / TotalLines ∈ touched ) × 100",
     detail:
-      "Duplicated logic means a bug fix has to be applied in several places and it's easy to miss one. A rising trend is a hint to extract the shared piece into a helper, base class, or utility.",
+      "Touched-file duplication rate: CPD detects clones across the whole codebase, but the numerator counts only occurrences inside the trajectory-touched set, divided by the total line count of touched files. This makes local deduplication visible in the score — a 400-token Extract Method in a small touched footprint moves this rate substantially, while it would barely move the whole-codebase share. Duplicated logic means a bug fix has to be applied in several places; extract the shared piece into a helper, base class, or utility.",
   },
   smells: {
     summary:
-      "The number of suspicious patterns flagged across the project.",
-    formula: "count( RuleViolations )",
+      "The number of suspicious patterns flagged across the touched files.",
+    formula: "count ( RuleViolations ∈ touched files )",
     detail:
-      "Each flag points at a likely design, error-prone, performance, or best-practice issue. Treat the trend as the signal — a sudden jump usually means a recent change introduced a new category of issue worth looking at.",
+      "PMD rule violations restricted to files in the trajectory-touched set — Marinescu 2004's detection-strategies approach to operationalising Fowler-style smells as thresholded structural rules. Unweighted by severity: priority weighting is reserved for the separate process-score smell ledger so we don't double-count severity across the cleanliness composite and the process penalty. A sudden jump usually means a recent change in your touched footprint introduced a new category of issue.",
   },
   coupling: {
     summary:
-      "How entangled the most-connected classes are with the rest of the system.",
-    formula: "p90 ( CouplingBetweenObjects per class )",
+      "How dependent the classes you touched are on the rest of the system.",
+    formula: "mean ( CouplingBetweenObjects per class ∈ touched files )",
     detail:
-      "Tightly coupled classes are hard to change in isolation — touching one tends to ripple through several others. The score reflects the worst offenders, so it drops when you sever a few dependencies on the most tangled classes.",
+      "Chidamber & Kemerer 1994's CBO, averaged over classes whose file lies in the trajectory-touched set. Mean (rather than P90) is used because the touched footprint is small — typically 3–10 classes — where percentile statistics collapse to near-max; restricting to the touched set already provides the hot-spot focus that whole-codebase aggregation would need percentiles to recover. Tightly coupled touched classes are hard to change in isolation; the score drops when you sever dependencies on them.",
   },
   cohesion: {
     summary:
-      "How focused each class is — do its methods belong together?",
-    formula: "mean ( TightClassCohesion per class )",
+      "How focused the classes you touched are — do their methods belong together?",
+    formula: "mean ( TightClassCohesion per class ∈ touched files )",
     detail:
-      "Low cohesion means a class is doing several unrelated jobs and is a candidate to split. A score near 1 means each class has a single, focused responsibility; near 0 suggests god-class behaviour.",
+      "Bieman & Kang 1995's TCC (the fraction of method pairs that share access to at least one instance variable), averaged over classes in the trajectory-touched set. TCC is preferred over the LCOM family because the latter has five competing definitions whose values disagree on the same input. A score near 1 means each touched class has a single, focused responsibility; near 0 suggests god-class behaviour and is a candidate to split.",
   },
   process: {
     summary:
@@ -68,8 +68,8 @@ export const METRIC_DESCRIPTORS: Record<MetricId, MetricDescriptor> = {
     summary:
       "Relative composite code-quality score across the six dimensions, 0..100.",
     formula:
-      "100 · ( 0.25·Cognitive + 0.20·Coupling + 0.20·Duplication + 0.15·Readability + 0.15·Smells + 0.05·Cohesion )",
+      "100 · (1/6) · ( Cognitive + Coupling + Duplication + Readability + Smells + Cohesion )",
     detail:
-      "Each sub-metric is min-max normalised against this trajectory's observed range, so 100 means \"the cleanest checkpoint in this session\" and 0 means \"the dirtiest\" — not absolute code quality. Weights come from the literature: cognitive complexity (Campbell 2018) and coupling (Chidamber & Kemerer 1994) are weighted heaviest as the strongest comprehension/defect predictors; cohesion is light because LCOM-family metrics are noisy and contested. Because the score is session-relative, comparing 60 in one session against 60 in another isn't meaningful — read it as direction within a session, not absolute quality.",
+      "Each of the six sub-signals is min-max normalised against this session's observed range, then combined as a uniform 1/6 weighted average and scaled to 0..100. Uniform weighting follows Laplace's principle of insufficient reason — with no in-domain calibration corpus we have no basis to weight one sub-signal above another; sensitivity analysis tests the robustness of the choice. Every sub-signal also aggregates over the same trajectory-touched file set (the union of files you changed across the session, held fixed throughout) so the composite measures the quality of your working footprint, not the codebase at large. 100 means \"the cleanest checkpoint in this session\", 0 means \"the dirtiest\" — not absolute code quality, so cross-session comparison of the raw number isn't meaningful.",
   },
 }

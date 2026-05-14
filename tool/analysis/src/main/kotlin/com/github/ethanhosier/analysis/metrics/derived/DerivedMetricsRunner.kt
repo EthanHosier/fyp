@@ -7,6 +7,7 @@ import com.github.ethanhosier.analysis.metrics.model.CleanlinessContribution
 import com.github.ethanhosier.analysis.metrics.model.DerivedMetrics
 import com.github.ethanhosier.analysis.metrics.model.ProcessContribution
 import com.github.ethanhosier.analysis.metrics.model.ProcessScore
+import com.github.ethanhosier.analysis.metrics.readability.FileReadability
 import com.github.ethanhosier.ideplugin.model.EventType
 import com.github.ethanhosier.analysis.miner.model.RefactoringStep
 import kotlin.math.max
@@ -39,32 +40,40 @@ import kotlin.math.roundToLong
  *     each sub-metric's weight, normalised value, and points contributed.
  *   - As an input to the process score's "cleanliness gain" term.
  *
- *  1. Literature-informed weights, not equal mean. No paper covers this
- *     exact bundle, but the closest references converge on a hierarchy:
- *       cognitive   0.25 — Campbell 2018 (Sonar): strongest empirical
- *                          correlate with comprehension time
- *       coupling    0.20 — Chidamber & Kemerer 1994: coupling repeatedly
- *                          the strongest defect predictor in OO studies
- *       duplication 0.20 — Heitlager et al. 2007 (SIG): one of four
- *                          equal pillars in the maintainability model
- *       readability 0.15 — Buse & Weimer 2010: validated readability
- *                          metric, but smaller effect than structural ones
- *       smells      0.15 — symptom of the above; weighting it as primary
- *                          would risk double-counting
- *       cohesion    0.05 — LCOM family is noisy and contested
- *                          (Etzkorn, Counsell)
+ *  1. Six literature-backed sub-signals aggregated over a fixed
+ *     **trajectory-touched file set** (the union of every file changed
+ *     across the user's main-trajectory checkpoints). The cleanliness
+ *     composite measures the developer's working footprint, not the
+ *     codebase at large. Per-sub-signal aggregation:
+ *       - Cohesion: mean TCC (Bieman & Kang 1995) over touched classes.
+ *       - Coupling: mean CBO (Chidamber & Kemerer 1994) over touched classes.
+ *       - Smells: count of PMD violations in touched files.
+ *       - Duplication: touched-file rate
+ *           = duplicated_lines_in_touched / total_lines_in_touched.
+ *       - Readability: line-count-weighted mean of five Buse & Weimer
+ *           2010 features over touched files, uniform 0.20 blend.
+ *       - Cognitive complexity: mean Campbell 2018 score over touched
+ *           methods.
+ *     See `RESEARCH-cleanliness-metrics.md` for the per-signal
+ *     methodology and citations.
  *
- *  2. Min-max normalisation across the main trajectory's observed range.
- *     Self-tunes per project (a 5-WMC bump on a 0..50 project is
- *     significant; on 0..200 it isn't).
+ *  2. Uniform 1/6 weighting across the six sub-signals (Laplace's
+ *     principle of insufficient reason — no in-domain calibration
+ *     corpus to derive non-uniform weights from). Sensitivity analysis
+ *     (`PLAN-experiment.md` Experiment 1) tests the robustness of the
+ *     uniform choice.
  *
- *  3. Re-base when sub-metrics are missing. If a metric is absent at a
+ *  3. Min-max normalisation across the main trajectory's observed range.
+ *     Self-tunes per project / session (a 5-WMC bump on a 0..50 range
+ *     is significant; on 0..200 it isn't).
+ *
+ *  4. Re-base when sub-metrics are missing. If a metric is absent at a
  *     checkpoint (or has degenerate range across the trajectory) its
  *     weight is redistributed proportionally over the remaining ones,
  *     so the composite stays on [0, 1]. The `rebased` flag lets the UI
  *     mark scores that aren't a full six-axis sweep.
  *
- *  4. Alts use main's range and clamp normalised values to [0, 1] so an
+ *  5. Alts use main's range and clamp normalised values to [0, 1] so an
  *     extreme alt can't shift main's normalisation, while alt scores
  *     still read on the same scale.
  *
@@ -171,11 +180,24 @@ class DerivedMetricsRunner {
         alternatives: List<AlternativeTrajectory>,
         refactoringSteps: List<RefactoringStep>,
     ): Result {
+        // Trajectory-touched file set: union of every file path that
+        // appeared in any user-trajectory checkpoint's diff, computed
+        // once and held fixed for the whole session. Every Layer-1
+        // aggregator (cohesion, coupling, smells, duplication,
+        // readability, cognitive complexity) operates over this set
+        // only — the cleanliness composite measures the quality of
+        // the developer's working footprint, not the codebase at
+        // large. See RESEARCH-cleanliness-metrics.md §1–§6.
+        val touchedSet: Set<String> = mainCheckpoints
+            .flatMap { cp -> cp.diff.perFileChurn.map { it.path } }
+            .toSet()
+
         // Raw per-checkpoint aggregates — what CK/PMD/CPD actually
-        // produced at this SHA. Used as the input to range computation
-        // (filtered to trustworthy only) and as the carry-forward
-        // source for the trustworthy slots below.
-        val mainRawAgg = mainCheckpoints.map { aggregate(it) }
+        // produced at this SHA, restricted to [touchedSet]. Used as
+        // the input to range computation (filtered to trustworthy
+        // only) and as the carry-forward source for the trustworthy
+        // slots below.
+        val mainRawAgg = mainCheckpoints.map { aggregate(it, touchedSet) }
 
         // Pass 1: forward carry-forward. Untrustworthy slots inherit
         // the previous trustworthy aggregate. Slots with no prior
@@ -224,7 +246,7 @@ class DerivedMetricsRunner {
         val altAgg = mutableListOf<List<Aggregates>>()
         val altTrustInfo = mutableListOf<List<TrustInfo>>()
         for (alt in alternatives) {
-            val rawAgg = alt.altCheckpoints.map { aggregate(it) }
+            val rawAgg = alt.altCheckpoints.map { aggregate(it, touchedSet) }
             val effective = MutableList<Aggregates?>(alt.altCheckpoints.size) { null }
             val trust = MutableList(alt.altCheckpoints.size) { TrustInfo(true, null) }
             var lastGood: Aggregates? = null
@@ -367,36 +389,57 @@ class DerivedMetricsRunner {
         val smells: Int,
     )
 
-    private fun aggregate(cp: CheckpointReport): Aggregates {
+    private fun aggregate(cp: CheckpointReport, touchedSet: Set<String>): Aggregates {
         val ck = cp.metrics.ck
-        // P90 of CBO across classes. Always emitted (mirrors frontend) —
-        // an empty class list yields 0 via the percentile fallback rather
-        // than a null sentinel.
-        val coupling = round1(percentile(ck.perClass.map { it.cbo.toDouble() }, 0.9))
-        // CK reports null TCC when undefined (< 2 eligible method pairs).
-        // Counting those as 0 would falsely flag trivial classes as "no
-        // cohesion" — drop them before averaging. This is the only
-        // sub-metric the frontend leaves missing when no signal exists,
-        // so we mirror that with `null` here.
-        val tccs = ck.perClass.mapNotNull { it.tcc?.toDouble() }
+        // Mean of CBO over classes whose file lies in the trajectory-
+        // touched set. Empty touched-set ⇒ 0.0 fallback (mirrors the
+        // legacy "empty list" behaviour so the carry-forward and
+        // range-normalisation paths keep working on degenerate inputs).
+        val touchedClasses = ck.perClass.filter { it.file in touchedSet }
+        val cbos = touchedClasses.map { it.cbo.toDouble() }
+        val coupling = if (cbos.isEmpty()) 0.0 else round1(cbos.average())
+
+        // Mean of TCC over touched classes; CK reports null TCC when
+        // undefined (< 2 eligible method pairs). Drop those before
+        // averaging — including them as 0 would falsely flag trivial
+        // classes as incohesive. Cohesion is the only sub-signal that
+        // remains genuinely nullable; computeCleanliness redistributes
+        // its weight when missing.
+        val tccs = touchedClasses.mapNotNull { it.tcc?.toDouble() }
         val cohesion = if (tccs.isEmpty()) null else round2(tccs.average())
 
-        // CpdResult always materialises (defaults to EMPTY), so duplication
-        // is always emitted — matches the frontend's `if (c.metrics.cpd)`
-        // truthy check, which is true for the EMPTY object.
-        val duplication = round1(cp.metrics.cpd.duplicatedLinesShare * 100.0)
+        // Touched-file duplication rate:
+        //   duplicated_lines_in_touched / total_lines_in_touched.
+        // CPD's clone detection still runs codebase-wide so cross-file
+        // clones are found; we restrict the numerator (and the
+        // denominator) to occurrences/lines inside the touched
+        // footprint. Per-file line counts come from the readability
+        // runner to avoid a separate filesystem walk.
+        val touchedDupLines = cp.metrics.cpd.duplications.sumOf { dup ->
+            dup.occurrences.count { it.file in touchedSet } * dup.lines
+        }
+        val touchedTotalLines = cp.metrics.readability.perFile
+            .filter { it.file in touchedSet }
+            .sumOf { it.totalLines }
+        val duplication = if (touchedTotalLines == 0) 0.0
+            else round1(touchedDupLines.toDouble() / touchedTotalLines.toDouble() * 100.0)
 
-        // ReadabilitySummary always materialises (defaults to EMPTY), and
-        // the frontend's `if (c.metrics.readability?.summary)` is true for
-        // the EMPTY object too, so we always emit. The blend over EMPTY
-        // ratios degenerates to 0.6 (lineLength + indent + singleLetter
-        // pin to 1, the rest to 0) which is the same value the frontend
-        // produces.
-        val readability = round1(readabilityScore(cp.metrics.readability.summary) * 100.0)
+        // Per-file readability ratios restricted to the touched set,
+        // re-aggregated as a line-count-weighted mean before applying
+        // the uniform 0.20 blend across five Buse-Weimer features.
+        val readability = readabilityTouched(cp.metrics.readability.perFile, touchedSet)
 
         val pmd = cp.metrics.pmd
-        val cognitive = pmd.methodMetrics.sumOf { it.cognitive }
-        val smells = pmd.violations.size
+        // Mean of cognitive complexity per method, over methods in
+        // touched files. Σ would mechanically increase under
+        // Extract Method (more methods × constant per-entry weight);
+        // mean correctly rewards the refactoring.
+        val cognitiveScores = pmd.methodMetrics.filter { it.file in touchedSet }.map { it.cognitive }
+        val cognitive = if (cognitiveScores.isEmpty()) 0 else cognitiveScores.average().roundToInt()
+        // Unweighted count of PMD violations in touched files —
+        // priority weighting is reserved for the process-score smell
+        // ledger to avoid double-counting severity.
+        val smells = pmd.violations.count { it.file in touchedSet }
 
         return Aggregates(
             coupling = coupling,
@@ -409,33 +452,55 @@ class DerivedMetricsRunner {
     }
 
     /**
-     * 5-signal weighted blend of `readability.summary` returning [0, 1].
-     * Comment ratio intentionally excluded — comment density is a poor
-     * readability proxy in modern Java. Mirrors the historical frontend
-     * formula in `view-model.ts:113-131`.
+     * Uniform 0.20 blend of five Buse-Weimer 2010 features
+     * (line length, indentation depth, identifier length, single-
+     * letter rate, dictionary-word rate), evaluated on the touched
+     * subset of `perFile` and combined with a line-count weighting
+     * so a 1000-line file contributes more than a 10-line one.
+     * Returns a `[0, 100]` value; degenerates to 0.0 when no touched
+     * file exists at this checkpoint.
+     *
+     * Uniform weights follow Laplace's principle of insufficient
+     * reason — no in-domain calibration data distinguishes the five
+     * features' relative importance; treat them symmetrically. See
+     * RESEARCH-cleanliness-metrics.md §5.
      */
-    private fun readabilityScore(summary: com.github.ethanhosier.analysis.metrics.readability.ReadabilitySummary): Double {
-        val lineLengthScore = 1.0 - min(1.0, summary.avgLineLength / 100.0)
-        val indentationScore = 1.0 - min(1.0, summary.avgIndentation / 12.0)
-        val identifierLengthScore = min(1.0, summary.avgIdentifierLength / 5.0)
-        val singleLetterScore = 1.0 - min(1.0, max(0.0, summary.singleLetterRatio))
-        val dictionaryScore = min(1.0, max(0.0, summary.dictionaryWordRatio))
-        return 0.25 * lineLengthScore +
-            0.20 * indentationScore +
-            0.20 * identifierLengthScore +
-            0.15 * singleLetterScore +
-            0.20 * dictionaryScore
+    private fun readabilityTouched(
+        perFile: List<FileReadability>,
+        touchedSet: Set<String>,
+    ): Double {
+        val touched = perFile.filter { it.file in touchedSet }
+        if (touched.isEmpty()) return 0.0
+        val totalLines = touched.sumOf { it.totalLines }.toDouble()
+        if (totalLines == 0.0) return 0.0
+
+        fun weighted(extract: (FileReadability) -> Double): Double =
+            touched.sumOf { extract(it) * it.totalLines } / totalLines
+
+        val lineLengthScore = 1.0 - min(1.0, weighted { it.avgLineLength } / 100.0)
+        val indentationScore = 1.0 - min(1.0, weighted { it.avgIndentation } / 12.0)
+        val identifierLengthScore = min(1.0, weighted { it.identifiers.avgLength } / 5.0)
+        val singleLetterScore = 1.0 - min(1.0, max(0.0, weighted { it.identifiers.singleLetterRatio }))
+        val dictionaryScore = min(1.0, max(0.0, weighted { it.identifiers.dictionaryWordRatio }))
+        val blend = 0.20 * (lineLengthScore + indentationScore + identifierLengthScore +
+            singleLetterScore + dictionaryScore)
+        return round1(blend * 100.0)
     }
 
     // ---- cleanliness ----
 
+    // Uniform 1/6 weighting across the six sub-signals (encoded as 1.0
+    // — computeCleanliness divides by Σ wᵢ so the magnitude is
+    // irrelevant). Laplace's principle of insufficient reason: with
+    // no in-domain calibration corpus we have no basis to weight one
+    // sub-signal above another. See RESEARCH-cleanliness-metrics.md §7.
     private enum class SubMetric(val id: String, val label: String, val weight: Double, val betterLower: Boolean) {
-        COGNITIVE("cognitive", "Cognitive complexity", 0.25, betterLower = true),
-        COUPLING("coupling", "Coupling", 0.20, betterLower = true),
-        DUPLICATION("duplication", "Duplication", 0.20, betterLower = true),
-        READABILITY("readability", "Readability", 0.15, betterLower = false),
-        SMELLS("smells", "Code smells", 0.15, betterLower = true),
-        COHESION("cohesion", "Cohesion", 0.05, betterLower = false),
+        COGNITIVE("cognitive", "Cognitive complexity", 1.0, betterLower = true),
+        COUPLING("coupling", "Coupling", 1.0, betterLower = true),
+        DUPLICATION("duplication", "Duplication", 1.0, betterLower = true),
+        READABILITY("readability", "Readability", 1.0, betterLower = false),
+        SMELLS("smells", "Code smells", 1.0, betterLower = true),
+        COHESION("cohesion", "Cohesion", 1.0, betterLower = false),
     }
 
     private fun valueOf(agg: Aggregates, m: SubMetric): Double? = when (m) {
@@ -1143,19 +1208,6 @@ class DerivedMetricsRunner {
     private fun pct(x: Double): String = "${(x * 100.0).roundToInt()}%"
 
     // ---- numeric helpers ----
-
-    /**
-     * Value at the given percentile (0..1), nearest-rank. Bit-exact match
-     * for the frontend `percentile` helper in `view-model.ts:95`:
-     * `idx = min(n-1, floor(p * n))`. Notably differs from the more
-     * common `ceil(p*n)-1` formulation at boundary cases (p·n integer).
-     */
-    private fun percentile(xs: List<Double>, p: Double): Double {
-        if (xs.isEmpty()) return 0.0
-        val sorted = xs.sorted()
-        val idx = min(sorted.size - 1, kotlin.math.floor(p * sorted.size).toInt())
-        return sorted[idx]
-    }
 
     private fun round1(x: Double): Double = (x * 10.0).roundToLong() / 10.0
     private fun round2(x: Double): Double = (x * 100.0).roundToLong() / 100.0
