@@ -14,7 +14,7 @@ import {
  * reach into the JSON shape of a descriptor:
  *
  *   <MetricExplainer label="Cognitive Complexity">
- *     <MetricExplainer.Formula>Σ (cognitive complexity per method)</MetricExplainer.Formula>
+ *     <MetricExplainer.Formula>mean ( cognitive complexity per method ∈ touched files )</MetricExplainer.Formula>
  *     <MetricExplainer.Description>A high score means …</MetricExplainer.Description>
  *   </MetricExplainer>
  */

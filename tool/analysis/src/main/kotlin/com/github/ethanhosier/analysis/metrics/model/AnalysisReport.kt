@@ -451,21 +451,27 @@ data class CheckpointReport(
  */
 @Serializable
 data class DerivedMetrics(
-    // P90 of CK `cbo` across classes, rounded to 1dp. Always emitted —
-    // empty class list yields 0 via the percentile fallback.
+    // Mean of CK `cbo` across classes whose file lies in the trajectory-
+    // touched set, rounded to 1dp. 0.0 when the touched set yields no
+    // CK data at this checkpoint.
     val coupling: Double = 0.0,
-    // Mean of non-null CK `tcc` across classes, rounded to 2dp. Null when
-    // no class has a defined TCC (the only sub-metric that may be
-    // genuinely missing — < 2 eligible method pairs).
+    // Mean of non-null CK `tcc` across touched classes, rounded to 2dp.
+    // Null when no touched class has a defined TCC (the only sub-metric
+    // that may be genuinely missing — < 2 eligible method pairs).
     val cohesion: Double? = null,
-    // `cpd.duplicatedLinesShare * 100`, rounded to 1dp. Always emitted.
+    // Touched-file duplication rate:
+    //   100 * duplicated_lines_in_touched / total_lines_in_touched,
+    // rounded to 1dp. 0.0 when the touched set has no lines.
     val duplication: Double = 0.0,
-    // 5-signal weighted blend of `readability.summary` × 100, rounded to
-    // 1dp. Always emitted (degenerate inputs blend to a stable 60).
+    // Uniform 0.20 blend of five Buse-Weimer 2010 features
+    // (line length, indentation, identifier length, single-letter rate,
+    // dictionary-word rate), line-count-weighted across touched files,
+    // × 100, rounded to 1dp. 0.0 when no touched file exists.
     val readability: Double = 0.0,
-    // Σ `pmd.methodMetrics[].cognitive`. Always emitted.
+    // Mean cognitive complexity per method (Campbell 2018) over methods
+    // whose file lies in the touched set, rounded to the nearest int.
     val cognitive: Int = 0,
-    // `pmd.violations.size`. Always emitted.
+    // Count of PMD violations in touched files.
     val smells: Int = 0,
     val cleanliness: Cleanliness? = null,
     val process: ProcessScore = ProcessScore.EMPTY,
@@ -477,11 +483,11 @@ data class DerivedMetrics(
 
 /**
  * Code-cleanliness composite at one checkpoint. Min-max normalised across
- * the main trajectory's observed range per sub-metric; weights match the
- * literature-informed mix used previously in the frontend (cognitive 0.25,
- * coupling 0.20, duplication 0.20, readability 0.15, smells 0.15,
- * cohesion 0.05). Weights re-base when a sub-metric is missing or
- * degenerate, in which case [rebased] is true.
+ * the main trajectory's observed range per sub-metric; uniform 1/6
+ * weighting across the six sub-signals (Laplace's principle of
+ * insufficient reason — see RESEARCH-cleanliness-metrics.md §7). Weights
+ * re-base when a sub-metric is missing or degenerate, in which case
+ * [rebased] is true.
  *
  * For alt checkpoints, the same main-trajectory range is used and the
  * normalised value is clamped to [0, 1] before blending — so alts read on
