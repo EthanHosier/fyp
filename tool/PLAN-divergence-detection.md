@@ -137,11 +137,19 @@ for k in 0 until report.checkpoints.size:
                     explanation=templ_rework(k, k', file))
                 break  // one rework finding per (k, file)
 
-return dps.sortedByDescending(magnitude).take(N)
+return dps.sortedByDescending(magnitude)
 ```
 
-Top-K (default 5) ranking — return all internally but expose the top
-few prominently in the UI.
+**Top-K is an evaluation-time concept, not a production-pipeline
+feature.** The production detector returns *every* DP that clears its
+per-kind magnitude floor (`MIN_PROCESS_DELTA`, `MIN_REWORK_LINES`),
+unsorted and untruncated. The dashboard renders all of them. The
+experiment harness (see `PLAN-experiment.md`) is what sorts by
+magnitude and slices the top-K when scoring against ground truth.
+Rationale: realistic session sizes produce <20 DPs, so production
+truncation is unnecessary cost and obscures honest output. A future
+UI affordance could expose "top N prominently, expand for all" but
+that's out of scope.
 
 ## Explanations (template, not LLM)
 

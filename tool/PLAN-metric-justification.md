@@ -12,20 +12,22 @@ Methodology chapter is two clearly-labelled layers:
 
 ### Layer 1 — Cleanliness (literature-backed)
 
-Every sub-signal cites its source. No novelty claim here — this layer
-is "standard quality signals, recomposed".
+Every sub-signal is selected on literature grounds; per-signal raw
+extraction, trajectory-touched-set aggregation, citations, and
+limitations live in
+[`RESEARCH-cleanliness-metrics.md`](RESEARCH-cleanliness-metrics.md).
+Sub-signals covered: cohesion (Bieman & Kang 1995's TCC), coupling
+(Chidamber & Kemerer 1994's CBO), smells (Marinescu 2004 detection
+strategies via PMD), duplication (Heitlager et al. 2007 / CPD),
+readability (Buse & Weimer 2010 feature taxonomy), and cognitive
+complexity (Campbell 2018).
 
-| Sub-signal     | Source                                         |
-|----------------|------------------------------------------------|
-| CBO (coupling) | Chidamber & Kemerer 1994                       |
-| LCOM (cohesion)| Chidamber & Kemerer 1994                       |
-| Duplication    | PMD/CPD docs; Fowler on duplication-as-smell   |
-| Readability    | Scalabrino et al. 2018; Buse & Weimer 2010     |
-| Cognitive comp.| Campbell 2018 (SonarSource)                    |
-| Smell count    | Arcelli-Fontana et al. (detection quality); Paiva et al. (false-positive limits) |
-
-The *composite* (six-signal weighted sum + range normalisation) is a
-design choice — declare it as such, but each input is grounded.
+The *composite* (range-normalised weighted average over six
+sub-signals × 100) is a design choice grounded in the Quamoco
+(Wagner et al. 2015) and QMOOD (Bansiya & Davis 2002) precedents.
+Within-composite weights are uniform (`1/6` each) under Laplace's
+principle of insufficient reason in the absence of an in-domain
+calibration corpus.
 
 ### Layer 2 — Process score (novel contribution)
 

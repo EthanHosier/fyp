@@ -55,6 +55,21 @@ known-bad ground truth — sensitivity can be measured against *whether
 the detector still flags the right step* under perturbation, not just
 against arbitrary ranking-stability.
 
+## Note on top-K
+
+Both experiments below talk in terms of *"top-K divergence-point
+ranking"*. **Top-K is an evaluation-time concept only.** The
+production pipeline (`DivergencePointBuilder`, `AnalysisPipeline`)
+returns every DP that clears its per-kind magnitude floor —
+unsorted, untruncated. The dashboard renders them all. The
+experiment harness does the sorting (`sortedByDescending(magnitude)`)
+and the K-slicing when scoring against ground truth. Default K=5 for
+both experiments; sensitivity over K∈{3, 5, 10} reported as
+robustness checks. Justification for not truncating in production:
+realistic session sizes produce <20 DPs, so truncation is wasted
+engineering and obscures honest output — see Experiment 2 threats-
+to-validity → "Performance and scalability".
+
 ## Experiment 1a — Sensitivity analysis
 
 ### Question
@@ -67,9 +82,28 @@ top-K divergence-point ranking on the fixture corpus?
 1. **Baseline.** Run `DivergenceDetector.detect(report)` on every
    fixture (clean + injected) with the production weights. Persist
    the top-5 divergence points per fixture as `baseline.json`.
-2. **Perturb one weight at a time.** For each $w \in
-   \{W_\text{BROKEN}, W_\text{SKIP\_TESTS}, W_\text{COMMIT\_GAP},
-   W_\text{GAIN}, W_\text{DEGRADATION}, W_\text{SMELL}\}$:
+2. **Perturb one weight at a time.** For each $w$ in the perturbation
+   set:
+   - **Process-layer weights:** $W_\text{BROKEN}$, $W_\text{SKIP\_TESTS}$,
+     $W_\text{COMMIT\_GAP}$, $W_\text{GAIN}$, $W_\text{DEGRADATION}$,
+     $W_\text{SMELL}$.
+   - **Composite-layer weights:** the six within-cleanliness weights
+     ($w_\text{cohesion}$, $w_\text{coupling}$, $w_\text{smells}$,
+     $w_\text{duplication}$, $w_\text{readability}$, $w_\text{cognitive}$;
+     all currently $1/6$ — see
+     [`RESEARCH-cleanliness-metrics.md`](RESEARCH-cleanliness-metrics.md), §7).
+   - **Readability-blend weights:** the five within-readability blend
+     weights (line-length, indentation, identifier-length,
+     single-letter, dictionary-word; all currently $0.20$ — see
+     `RESEARCH-cleanliness-metrics.md`, §5).
+   - **Sub-signal aggregation choices:** swap mean ↔ P90 for cohesion,
+     coupling, and cognitive-complexity over the trajectory-touched
+     set, and swap touched-file-rate ↔ whole-codebase-rate for
+     duplication. These are *categorical* perturbations rather than
+     ±50% scalar perturbations; report top-K stability under each
+     swap independently.
+
+   For scalar weights:
    - Set $w' = 0.5 \cdot w$. Re-run scoring + detection on every
      fixture. Record top-5 divergence points.
    - Set $w' = 1.5 \cdot w$. Re-run. Record top-5.
@@ -703,6 +737,24 @@ The rubric explicitly rewards "anticipates possible objections" at
 - **Small participant pool for human study.** n=5 is too small for
   statistical significance. Mitigation: report individual responses
   rather than aggregated significance claims; frame as illustrative.
+- **Performance and scalability.** The detector enumerates *all*
+  alternative trajectories the synth produces and *all* divergence
+  points above the magnitude floor, with no top-K truncation in the
+  production pipeline. (Top-K is an evaluation-time concept — the
+  experiment harness sorts and slices when scoring against ground
+  truth, but the score itself doesn't truncate.) On bounded session
+  sizes (≤30 checkpoints per fixture in this corpus) the pipeline
+  completes in under a minute end-to-end; the dominant cost is
+  alternative-trajectory generation (`ReorderSynthesiser`,
+  `AlternativeTrajectoryRunner`), not divergence-point assembly.
+  Scaling to session sizes beyond ~100 checkpoints would require a
+  top-K-aware enumeration strategy that prunes low-magnitude alts
+  before full synthesis. This is deliberately out of scope: the
+  research question concerns the *content* of process-quality
+  evaluation, not the scaling characteristics of the implementation.
+  Mitigation: report measured wall-clock timings on the evaluation
+  corpus (see "Output artefacts" → `timings.csv` and the headline
+  timings table) so the trade-off is visible rather than hidden.
 
 ## File-level changes
 
@@ -743,10 +795,25 @@ After running:
    Tier 1 / Tier 2 columns and a `subthreshold_suppression_rate`
    column.
 3. `sensitivity-sweep/*.csv` — threshold sensitivity per kind.
-4. Plots generated from the CSVs (matplotlib or Vega-Lite). Bar chart
+4. `timings.csv` — one row per fixture with columns: fixture,
+   checkpoints, refactoring_steps, alts_generated, dps_flagged,
+   pipeline_wall_ms, alt_synth_ms, divergence_build_ms. Breaking
+   `alt_synth_ms` and `divergence_build_ms` out lets the evaluation
+   chapter show that the cost lives in alt synthesis, not in
+   divergence-point assembly — which justifies the "no top-K
+   truncation" scope decision. Implemented as wall-clock
+   `System.nanoTime()` brackets around `AlternativeTrajectoryRunner`,
+   `ReorderSynthesiser`, and `DivergencePointBuilder.build` in
+   `AnalysisPipeline.run`; results logged at INFO and written to the
+   CSV by the experiment driver.
+5. Plots generated from the CSVs (matplotlib or Vega-Lite). Bar chart
    for per-kind precision/recall, line plot for top-K cumulative
-   detection, line plot for threshold sensitivity.
-5. Optional: `human-study-responses.csv` if the qualitative study is
+   detection, line plot for threshold sensitivity. Plus a small
+   headline timings table — 3–4 representative fixtures showing
+   wall-clock cost growing with checkpoint count, embedded in the
+   evaluation chapter alongside the "Performance and scalability"
+   threats-to-validity paragraph.
+6. Optional: `human-study-responses.csv` if the qualitative study is
    run.
 
 These artefacts go straight into the evaluation chapter as

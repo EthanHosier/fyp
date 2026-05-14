@@ -277,39 +277,36 @@ the loop on the magnitudes.
 
 ## Layer 1 — Cleanliness sub-score (literature-backed composition)
 
-The cleanliness composite is a **weighted sum of six range-normalised
-sub-signals** evaluated per checkpoint. The composition pattern — weighted
-aggregation of structural sub-signals up an ISO/IEC 25010-style tree —
-follows **Quamoco (Wagner et al. 2015)** as its structural blueprint, with
-**QMOOD (Bansiya & Davis 2002)** as the older OO-design precedent for
-hand-picked sign and magnitude weights over coupling/cohesion/complexity
-terms. The cleanliness composite is *not novel*; the contribution is
-applying it per-checkpoint along a trajectory.
+The cleanliness composite aggregates six range-normalised sub-signals
+(cohesion, coupling, smells, duplication, readability, cognitive
+complexity) into a single per-checkpoint scalar. The composition
+pattern — weighted aggregation of structural sub-signals up an
+ISO/IEC 25010-style tree — follows **Quamoco (Wagner et al. 2015)**
+as its structural blueprint, with **QMOOD (Bansiya & Davis 2002)** as
+the older OO-design precedent. The cleanliness composite is *not
+novel*; the contribution is applying it per-checkpoint along a
+trajectory, with trajectory-touched-set aggregation localising the
+signal to the developer's working footprint.
 
-| Sub-signal       | What it measures                          | Direction | Source for inclusion                          | Source for raw signal              |
-|------------------|-------------------------------------------|-----------|-----------------------------------------------|------------------------------------|
-| CBO (coupling)   | Class-level afferent + efferent coupling  | Lower is better | Chidamber & Kemerer 1994; Quamoco 2015     | CK metrics suite                   |
-| LCOM (cohesion)  | Lack of cohesion of methods               | Lower is better | Chidamber & Kemerer 1994; QMOOD 2002       | CK metrics suite                   |
-| CPD duplication  | Percentage of duplicated tokens           | Lower is better | Fowler "duplication is the worst smell"; SQALE remediation cost | PMD/CPD                  |
-| Readability      | Buse–Weimer logistic readability score    | Higher is better | Buse & Weimer 2010; Scalabrino et al. 2018 | Scalabrino readability model       |
-| Cognitive comp.  | Campbell cognitive complexity per method  | Lower is better | Campbell 2018 (SonarSource)                 | PMD method metrics                 |
-| Smell count      | PMD rule violations per KLOC              | Lower is better | Marinescu detection strategies 2004; SQALE  | PMD                                |
-
-**Equal weighting across the six sub-signals (1.0 each)** is used as a
-neutral baseline in the absence of a calibration corpus. Quamoco
-motivates explicit measure normalisation, utility functions, and
-aggregation up the quality tree, but does not by itself imply equal
-weights are optimal — that choice is a deliberate prior the sensitivity
-analysis (see `PLAN-experiment.md`) tests. The range-normalisation step
-(`computeRanges`) handles unit incompatibility across sub-signals.
+**See [`RESEARCH-cleanliness-metrics.md`](RESEARCH-cleanliness-metrics.md)
+for per-sub-signal methodology**: raw-signal selection, aggregation
+choice (mean over trajectory-touched set, touched-file rate for
+duplication, line-count-weighted mean for readability), citation
+trail, and limitations. The within-composite weights are uniform
+(`1/6` each) under Laplace's principle of insufficient reason in the
+absence of an in-domain calibration corpus — the same defence used
+within the readability blend itself. Sensitivity analysis in
+Experiment 1 (`PLAN-experiment.md`) tests the robustness of both the
+within-composite weights and each sub-signal's aggregation choice.
 
 **Caveat from Pantiuchina et al. 2018:** structural metrics often fail to
 detect developer-claimed quality improvements. This is *the reason* the
 process layer adds non-structural penalty terms (build broken, tests
 skipped) — structural cleanliness alone is too noisy to evaluate process.
 
-→ **See:** Wagner 2015 (Quamoco); Bansiya & Davis 2002 (QMOOD);
-Pantiuchina et al. 2018 (limitations).
+→ **See:** [`RESEARCH-cleanliness-metrics.md`](RESEARCH-cleanliness-metrics.md)
+(per-sub-signal methodology); Wagner 2015 (Quamoco); Bansiya & Davis
+2002 (QMOOD); Pantiuchina et al. 2018 (limitations).
 
 ## Layer 2 — Process score (novel composition, axiomatically justified weights)
 
