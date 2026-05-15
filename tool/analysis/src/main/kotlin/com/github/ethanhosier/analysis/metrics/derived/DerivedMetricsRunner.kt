@@ -627,6 +627,12 @@ class DerivedMetricsRunner {
          *  "you should have committed by now" overdue stretch. Drives
          *  the W_COMMIT_GAP penalty in [buildProcessScore]. */
         val commitGapEvents: Int,
+        /** Cumulative `+W_LENGTH` bonus an alt has earned so far. Main
+         *  walks stay at 0.0 (no comparator). Alt walks ramp this up
+         *  evenly across their N steps to a terminal value of
+         *  `W_LENGTH × max(0, (userSteps − altSteps) / userSteps)`,
+         *  then the continuation walk inherits the locked-in value. */
+        val altLengthBonusPoints: Double,
         val cleanliness0: Double?,
         val checkpointsSoFar: Int,
     )
@@ -718,6 +724,7 @@ class DerivedMetricsRunner {
         skippedCompositesCount = 0,
         greenSinceLastCommit = 0,
         commitGapEvents = 0,
+        altLengthBonusPoints = 0.0,
         cleanliness0 = cleanliness0,
         checkpointsSoFar = 0,
     )
@@ -803,6 +810,11 @@ class DerivedMetricsRunner {
         val brokenMs = snap.brokenMs + brokenMsInc
         val elapsedMs = snap.elapsedMs + durationMs
 
+        // Main walk doesn't add to the alt-length bonus — it's
+        // carried through unchanged so continuation walks (which
+        // reuse this function) preserve the alt's locked-in bonus.
+        val altLengthBonusPoints = snap.altLengthBonusPoints
+
         val checkpointsSoFar = snap.checkpointsSoFar + 1
         // Time-weighted broken fraction: avoids dilution from
         // many-small-checkpoints manual-edit clusters.
@@ -833,6 +845,7 @@ class DerivedMetricsRunner {
             manualWhenIdeCount = manualWhenIdeCount,
             ideRelevantCount = ideRelevantCount,
             commitGapEvents = commitGapEvents,
+            altLengthBonusPoints = altLengthBonusPoints,
         )
 
         val next = ProcessSnapshot(
@@ -847,6 +860,7 @@ class DerivedMetricsRunner {
             skippedCompositesCount = skippedCompositesCount,
             greenSinceLastCommit = greenSinceLastCommit,
             commitGapEvents = commitGapEvents,
+            altLengthBonusPoints = altLengthBonusPoints,
             cleanliness0 = snap.cleanliness0,
             checkpointsSoFar = checkpointsSoFar,
         )
@@ -892,6 +906,14 @@ class DerivedMetricsRunner {
             }
 
             val altDurations = altStepDurations(alt, userIdxBySha, stepByIndex, userDurations)
+            // W_LENGTH bonus: alt that covers the user's
+            // `fromSha → userToSha` window in fewer steps earns
+            // `+W_LENGTH × (userSteps − altSteps) / userSteps`.
+            // Distributed evenly across the alt's N steps so the
+            // chart's alt process-score line ramps smoothly rather
+            // than jumping at the merge point. Alts that don't save
+            // steps (ORDERING, HYGIENE) end up with 0 per-step bonus.
+            val perStepLengthBonus = computeAltLengthBonusPerStep(alt, userIdxBySha)
             // Track composites already counted on THIS alt's walk so
             // collapses (IDE_REPLAY) and revisits (ORDERING duplicates)
             // don't double-bump the composite counter.
@@ -899,7 +921,8 @@ class DerivedMetricsRunner {
             var snap: ProcessSnapshot = anchor
             val perStep = mutableListOf<ProcessScore>()
             for (k in alt.altCheckpoints.indices) {
-                val delta = altStepDelta(alt, k, stepByIndex, compositeInfoByStep, seenCompositesPerAlt)
+                val baseDelta = altStepDelta(alt, k, stepByIndex, compositeInfoByStep, seenCompositesPerAlt)
+                val delta = baseDelta.copy(lengthBonusPoints = perStepLengthBonus)
                 val (next, score) = advanceAltStep(
                     snap = snap,
                     cp = alt.altCheckpoints[k],
@@ -938,10 +961,15 @@ class DerivedMetricsRunner {
         val ideRelevantInc: Int,
         val compositesInc: Int,
         val skippedCompositesInc: Int,
+        /** Per-step contribution to the alt's `W_LENGTH` bonus.
+         *  Computed once per alt as `totalBonus / altCheckpoints.size`
+         *  in [computeAltProcess] and applied evenly across the alt's
+         *  steps so the alt's process-score line ramps smoothly. */
+        val lengthBonusPoints: Double,
         val landsRefactor: Boolean,
     ) {
         companion object {
-            val ZERO = AltStepDelta(0, 0, 0, 0, false)
+            val ZERO = AltStepDelta(0, 0, 0, 0, 0.0, false)
         }
     }
 
@@ -993,6 +1021,11 @@ class DerivedMetricsRunner {
             ideRelevantInc = ide,
             compositesInc = comp,
             skippedCompositesInc = skipComp,
+            // Filled in by the caller via .copy() — `altStepDelta`
+            // computes per-step accumulator deltas; the length bonus
+            // is uniform across an alt's steps and known only at the
+            // outer loop level.
+            lengthBonusPoints = 0.0,
             landsRefactor = true,
         )
     }
@@ -1010,6 +1043,34 @@ class DerivedMetricsRunner {
      * ORDERING / REWORK / HYGIENE: each alt step matches one user
      * step 1:1, so it borrows that user step's checkpoint duration.
      */
+    /**
+     * Per-alt-step `W_LENGTH` bonus contribution. Total bonus =
+     * `W_LENGTH × max(0, (userSteps − altSteps) / userSteps)` where
+     * `userSteps` is the number of user transitions covered by the
+     * alt's `[fromSha, userToSha]` window. The total is distributed
+     * evenly across the alt's N steps so the cumulative bonus
+     * reaches its full value exactly at the alt's terminal step
+     * and is then locked in for the continuation walk via the
+     * snapshot.
+     *
+     * Returns 0 for ORDERING (alt length == user length), HYGIENE
+     * (fromSha == userToSha, userSteps == 0), no-op REWORK
+     * (same case), and any alt that doesn't shorten the path.
+     */
+    private fun computeAltLengthBonusPerStep(
+        alt: AlternativeTrajectory,
+        userIdxBySha: Map<String, Int>,
+    ): Double {
+        val altSteps = alt.altCheckpoints.size
+        if (altSteps == 0) return 0.0
+        val fromIdx = userIdxBySha[alt.fromSha] ?: return 0.0
+        val toIdx = userIdxBySha[alt.userToSha] ?: return 0.0
+        val userSteps = toIdx - fromIdx
+        if (userSteps <= altSteps) return 0.0
+        val totalBonus = W_LENGTH * (userSteps - altSteps).toDouble() / userSteps.toDouble()
+        return totalBonus / altSteps.toDouble()
+    }
+
     private fun altStepDurations(
         alt: AlternativeTrajectory,
         userIdxBySha: Map<String, Int>,
@@ -1175,6 +1236,10 @@ class DerivedMetricsRunner {
         // by skippedCompositesCount) but kept on the snapshot for
         // diagnostics — alt walk just carries the prior value through.
         val testsSkippedCount = snap.testsSkippedCount
+        // Accumulate the W_LENGTH bonus — total reaches its locked-in
+        // value after the alt's last step; continuation walks inherit
+        // it unchanged via the snapshot.
+        val altLengthBonusPoints = snap.altLengthBonusPoints + delta.lengthBonusPoints
 
         // Commit-gap: alt steps land at synthesised commits which carry
         // `isUserCommit = false` by default (HYGIENE COMMIT_GAP alts flip
@@ -1223,6 +1288,7 @@ class DerivedMetricsRunner {
             manualWhenIdeCount = manualWhenIdeCount,
             ideRelevantCount = ideRelevantCount,
             commitGapEvents = commitGapEvents,
+            altLengthBonusPoints = altLengthBonusPoints,
         )
 
         val next = ProcessSnapshot(
@@ -1237,6 +1303,7 @@ class DerivedMetricsRunner {
             skippedCompositesCount = skippedCompositesCount,
             greenSinceLastCommit = greenSinceLastCommit,
             commitGapEvents = commitGapEvents,
+            altLengthBonusPoints = altLengthBonusPoints,
             cleanliness0 = snap.cleanliness0,
             checkpointsSoFar = checkpointsSoFar,
         )
@@ -1345,6 +1412,7 @@ class DerivedMetricsRunner {
         manualWhenIdeCount: Int,
         ideRelevantCount: Int,
         commitGapEvents: Int,
+        altLengthBonusPoints: Double,
     ): ProcessScore {
         val cleanlinessPoints = W_GAIN * cleanlinessGain
         val brokenPoints = -W_BROKEN * brokenFrac
@@ -1394,11 +1462,19 @@ class DerivedMetricsRunner {
                 else "$commitGapEvents stretch${if (commitGapEvents == 1) "" else "es"} of " +
                     "≥$MIN_COMMIT_GAP green refactor checkpoints without a commit",
             ),
+            ProcessContribution(
+                id = "altLength",
+                label = "Step-savings bonus",
+                points = altLengthBonusPoints,
+                detail = if (altLengthBonusPoints <= 0.0) "no step savings"
+                else "alt covers the user's window in fewer steps " +
+                    "(bonus locked in at merge)",
+            ),
         )
 
         val unclamped = BASELINE +
             cleanlinessPoints + brokenPoints +
-            skipPoints + manualPoints + commitGapPoints
+            skipPoints + manualPoints + commitGapPoints + altLengthBonusPoints
         val clampedValue = max(0.0, min(100.0, unclamped))
         val total = clampedValue.roundToLong().toInt()
         val clamped = unclamped != clampedValue
@@ -1459,6 +1535,13 @@ class DerivedMetricsRunner {
         private const val W_SKIP_TESTS = 14.0
         private const val W_MANUAL_IDE = 11.0
         private const val W_COMMIT_GAP = 7.0
+        // Alt-only step-savings bonus. Sits in the behavioural-cost
+        // tier (= W_MANUAL_IDE, "extra labour that could have been
+        // avoided"); bounded above by Fowler/Kerievsky's small-steps
+        // tradition. Anchored on Mkaouer 2014/2016 + Ouni 2017's
+        // "minimise number of refactorings" co-equal SBSE objective.
+        // See RESEARCH-metrics-weighting.md C4.
+        private const val W_LENGTH = 11.0
         private const val BASELINE = 50
     }
 }

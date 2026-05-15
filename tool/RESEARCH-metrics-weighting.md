@@ -27,7 +27,7 @@ Scope: Composition, weight-justification, sensitivity, framing for a weighted-su
 - **Contribution:** Demonstrates many-objective (up to 15) optimisation of QMOOD-style quality factors for automated refactoring; argues that aggregating quality dimensions into a single weighted sum collapses information and motivates Pareto fronts.
 - **Weighting scheme used:** None for selection (Pareto), but each objective is itself a weighted QMOOD attribute — i.e. weights live one level down.
 - **Sensitivity analysis:** Yes — compares NSGA-III vs NSGA-II vs IBEA vs MOEA/D vs mono-objective weighted-sum on convergence and code-smell coverage. Gives empirical evidence that weighted-sum loses information at high dimensionality.
-- **Applicability to thesis:** Cite as the counter-argument the thesis must address: why a weighted sum is acceptable here (low dimension, single-developer signal, interpretability) even though many-objective work prefers Pareto.
+- **Applicability to thesis:** Cite as the counter-argument the thesis must address: why a weighted sum is acceptable here (low dimension, single-developer signal, interpretability) even though many-objective work prefers Pareto. Also: the 15-objective formulation includes "minimise number of refactorings / code changes" as a first-class co-equal objective — empirical anchor for $W_\text{LENGTH}$ being a real-but-not-dominant signal. Reported empirical effect: NSGA-III suggested ~80 changes vs 95–101 for competitors, i.e. compression of ~15–20% is achievable and developer-preferred.
 
 ### Pareto Optimal Search Based Refactoring at the Design Level (Harman & Tratt, 2007)
 - **Venue:** GECCO '07, pp. 1106–1113
@@ -48,9 +48,10 @@ Scope: Composition, weight-justification, sensitivity, framing for a weighted-su
 ### MORE: A multi-objective refactoring recommendation approach (Ouni, Kessentini, Sahraoui, Inoue & Deb, 2017)
 - **Venue:** Journal of Software: Evolution and Process 29(5), e1843
 - **URL:** https://doi.org/10.1002/smr.1843
-- **Contribution:** Three-objective refactoring (quality improvement, design-pattern introduction, smell removal) framed as SBSE problem.
-- **Weighting scheme used:** Multi-objective (NSGA-II); per-objective uses summed QMOOD-style quality factors.
+- **Contribution:** Multi-objective refactoring (quality improvement, design-pattern introduction, smell removal, **minimise size of refactoring solution**, semantics preservation) framed as SBSE problem.
+- **Weighting scheme used:** Multi-objective (NSGA-II); each objective is co-equal on the Pareto front; per-objective uses summed QMOOD-style quality factors.
 - **Sensitivity analysis:** Reports trade-off curves but no formal weight-perturbation study.
+- **Applicability to thesis:** Anchors $W_\text{LENGTH}$: "minimise size of refactoring solution" is a recognised first-class objective in SBSE, treated as co-equal to (not above, not below) quality terms. Supports placing $W_\text{LENGTH}$ in the behavioural-cost tier of the weights.
 - **Applicability to thesis:** Useful as a Bucket-A multi-objective foil; reinforces that sub-signal composition is an open methodological choice.
 
 ## Bucket B — Weight-justification methodologies
@@ -389,15 +390,34 @@ so end-state regression is already on the books without a separate
 term. Literature analogue: Cedrim et al. 2017 (refactoring often
 neutral or worse) motivates the asymmetric framing.
 
+**Constraint C4 — Step-savings reward (alt-only).** When an
+alternative trajectory reaches the same end state in fewer steps
+than the user's actual path, the score must reward the saving:
+$W_\text{LENGTH} > 0$ applied as a positive bonus on the alt's
+score only. The main-walk score has no comparator and cannot
+sensibly carry a length term. Magnitude is bounded above by the
+behavioural-cost tier ($W_\text{LENGTH} \leq W_\text{SKIP\_TESTS}$)
+because the small-steps tradition (Fowler 2018, Kerievsky 2004)
+cautions against treating brevity as a headline virtue —
+*safe* small-step decomposition is preferred to compressed-but-risky
+sequences. Literature analogues: search-based refactoring
+treats "minimise number of refactorings" as a co-equal Pareto
+objective (Mkaouer et al. 2014, 2016; Ouni et al. 2017); Paixão
+et al. 2017/2018 model structural disruption as co-equal with
+quality gain. None of these published numeric weight ratios for
+the term; the magnitude here is fiat, defended by ordering rather
+than literature-derived numerics.
+
 **Current instantiation:**
 
-| Weight             | Magnitude | Constraints it satisfies |
-|--------------------|-----------|--------------------------|
-| W_GAIN             | 50        | dominant positive (C3); signed, so end-state regression already costs ≤ −50 |
-| W_BROKEN           | 28        | C1 (dominates typical gain)        |
-| W_SKIP_TESTS       | 14        | C2 (half W_BROKEN)                 |
-| W_MANUAL_IDE       | 11        | C2 (≈¾ W_SKIP_TESTS)               |
-| W_COMMIT_GAP       | 7         | C2 (half W_SKIP_TESTS)             |
+| Weight             | Magnitude | Scope | Constraints it satisfies |
+|--------------------|-----------|-------|--------------------------|
+| W_GAIN             | 50        | main + alt | dominant positive (C3); signed, so end-state regression already costs ≤ −50 |
+| W_BROKEN           | 28        | main + alt | C1 (dominates typical gain)        |
+| W_SKIP_TESTS       | 14        | main + alt | C2 (half W_BROKEN)                 |
+| W_MANUAL_IDE       | 11        | main + alt | C2 (≈¾ W_SKIP_TESTS)               |
+| W_LENGTH           | 11        | alt only   | C4 (matches W_MANUAL_IDE; both are "extra labour that could have been avoided") |
+| W_COMMIT_GAP       | 7         | main + alt | C2 (half W_SKIP_TESTS)             |
 
 Two terms are deliberately absent:
 - **Smells** as a standalone process-score term — the PMD smell delta
@@ -412,7 +432,7 @@ Two terms are deliberately absent:
   normal during a refactor" framing. Drop simplifies the ablation
   table without losing coverage of the actual regression axes.
 
-Crucially, **any other instantiation satisfying C1–C3 would be an
+Crucially, **any other instantiation satisfying C1–C4 would be an
 equally defensible thesis.** What the thesis defends is the
 *ranking-stability of its conclusions* under perturbation of these
 magnitudes (the sensitivity-analysis result), and the *non-redundancy*
@@ -459,6 +479,19 @@ trajectory length:
   `MIN_COMMIT_GAP = 6` (the threshold inherited from the hygiene
   detector), with the score's overall [0, 100] clamp acting as the
   ceiling.
+- **W_LENGTH** is alt-only. For an alt with $N$ steps replacing
+  the user's $M$ steps over the same `fromSha → userToSha`
+  transition, the alt earns a bonus
+  $\,+W_\text{LENGTH} \cdot \max(0, (M - N)/M)$. The bonus is
+  distributed evenly across the alt's $N$ steps (so the chart's
+  alt process-score line ramps smoothly to its final value rather
+  than jumping at the merge point), and the cumulative total is
+  locked in for the continuation walk past `userToSha`. Alts with
+  $N \geq M$ get no bonus. Empirical anchor: search-based
+  refactoring treats "minimise number of refactorings" as a
+  co-equal objective (Mkaouer et al. 2014; Ouni et al. 2017), and
+  Murphy-Hill & Black 2008 / Murphy-Hill et al. 2012 cite step
+  count as a real developer cost.
 
 These conventions are documented at the call sites in
 `DerivedMetricsRunner.advanceMainStep` / `.advanceAltStep`. The
@@ -533,6 +566,7 @@ file creation, not gradually — snapshot scores can't see this).
 | W_BROKEN axiom                        | Paixão et al. 2017                | —                                                |
 | W_GAIN dominant positive (signed)      | Paixão et al. 2017                | Cedrim et al. 2017                               |
 | W_SKIP_TESTS composite-window (60 s)   | Murphy-Hill, Parnin & Black 2012  | Negara, Vakilian et al. 2013 (semantic composite) |
+| W_LENGTH alt-only step-savings bonus   | Mkaouer et al. 2014 / 2016         | Ouni et al. 2017; Paixão et al. 2017 (disruption co-equal) |
 | Non-structural penalty terms (caveat) | Pantiuchina et al. 2018           | —                                                |
 | "Why weighted sum, not Pareto"        | Harman & Tratt 2007 (counter)     | Mkaouer 2016 (counter)                           |
 | Sensitivity-analysis chapter motivation | Verdecchia et al. 2022 (ATDx)     | Arcelli Fontana et al. 2017 (template)           |

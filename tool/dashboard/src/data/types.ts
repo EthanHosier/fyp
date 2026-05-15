@@ -94,6 +94,7 @@ export type ProcessScoreContribution = {
     | "skipTests"
     | "manualIde"
     | "commitGap"
+    | "altLength"
   label: string
   /** Signed; sums (with `baseline`) to `total` before clamping. */
   points: number

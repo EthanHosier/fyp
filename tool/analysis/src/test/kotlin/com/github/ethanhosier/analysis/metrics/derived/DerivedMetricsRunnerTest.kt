@@ -400,6 +400,81 @@ class DerivedMetricsRunnerTest {
     }
 
     @Test
+    fun `W_LENGTH bonus rewards alt that covers user window in fewer steps`() {
+        // User does 3 transitions a → b → c → d (3 steps over 3 cps).
+        // Alt collapses to 1 step a → alt → d (IDE_REPLAY style:
+        // 1 alt cp covers all 3 user steps).
+        // Bonus = W_LENGTH × (3 - 1) / 3 = 11 × 2/3 ≈ 7.33,
+        // distributed across 1 alt step → cumulative ≈ 7.33 at terminal.
+        val a = checkpoint("a", ck = ckResult(ckClass(cbo = 1, tcc = 0.5f)))
+        val b = checkpoint("b", ck = ckResult(ckClass(cbo = 1, tcc = 0.5f)))
+        val c = checkpoint("c", ck = ckResult(ckClass(cbo = 1, tcc = 0.5f)))
+        val d = checkpoint("d", ck = ckResult(ckClass(cbo = 1, tcc = 0.5f)))
+        val altCp = checkpoint("alt", ck = ckResult(ckClass(cbo = 1, tcc = 0.5f)))
+        val steps = listOf(
+            RefactoringStep(
+                stepIndex = 0, fromSha = "a", toSha = "b", toCheckpointIndex = 1,
+                timestamp = 0L,
+                refactoring = detected("Extract Method", ideRelevant = true),
+                wasPerformedByIde = false,
+            ),
+            RefactoringStep(
+                stepIndex = 1, fromSha = "b", toSha = "c", toCheckpointIndex = 2,
+                timestamp = 0L,
+                refactoring = detected("Extract Method", ideRelevant = true),
+                wasPerformedByIde = false,
+            ),
+            RefactoringStep(
+                stepIndex = 2, fromSha = "c", toSha = "d", toCheckpointIndex = 3,
+                timestamp = 0L,
+                refactoring = detected("Extract Method", ideRelevant = true),
+                wasPerformedByIde = false,
+            ),
+        )
+        val alt = AlternativeTrajectory(
+            kind = com.github.ethanhosier.analysis.pipeline.DivergenceKind.IDE_REPLAY,
+            stepIndexes = listOf(0, 1, 2),
+            fromSha = "a",
+            userToSha = "d",
+            branchRefs = listOf("refs/heads/alt"),
+            specs = listOf(RefactoringSpec.Other, RefactoringSpec.Other, RefactoringSpec.Other),
+            altCheckpoints = listOf(altCp),
+        )
+        val result = DerivedMetricsRunner().run(listOf(a, b, c, d), listOf(alt), steps)
+        val altLength = result.alt.getValue("alt").process.contributions
+            .single { it.id == "altLength" }
+        // ~7.33 points (within rounding tolerance)
+        assertTrue(altLength.points in 7.0..8.0, "expected bonus ≈ 7.33, got ${altLength.points}")
+    }
+
+    @Test
+    fun `W_LENGTH bonus is zero when alt has same step count as user`() {
+        // ORDERING-style alt: same number of steps, just reordered.
+        // No step savings → 0 bonus.
+        val a = checkpoint("a", ck = ckResult(ckClass(cbo = 1, tcc = 0.5f)))
+        val b = checkpoint("b", ck = ckResult(ckClass(cbo = 1, tcc = 0.5f)))
+        val altCp = checkpoint("alt", ck = ckResult(ckClass(cbo = 1, tcc = 0.5f)))
+        val step = RefactoringStep(
+            stepIndex = 0, fromSha = "a", toSha = "b", toCheckpointIndex = 1,
+            timestamp = 0L,
+            refactoring = detected("Extract Method", ideRelevant = true),
+            wasPerformedByIde = false,
+        )
+        val alt = AlternativeTrajectory(
+            stepIndexes = listOf(0),
+            fromSha = "a",
+            userToSha = "b",
+            branchRefs = listOf("refs/heads/alt"),
+            specs = listOf(RefactoringSpec.Other),
+            altCheckpoints = listOf(altCp),
+        )
+        val result = DerivedMetricsRunner().run(listOf(a, b), listOf(alt), listOf(step))
+        val altLength = result.alt.getValue("alt").process.contributions
+            .single { it.id == "altLength" }
+        assertEquals(0.0, altLength.points.absoluteValue)
+    }
+
+    @Test
     fun `alt continuation extends through remaining user checkpoints`() {
         // 3 user checkpoints: a → b → c. User does a manual-when-IDE
         // refactoring at b (incurs a manual penalty in the main walk).
