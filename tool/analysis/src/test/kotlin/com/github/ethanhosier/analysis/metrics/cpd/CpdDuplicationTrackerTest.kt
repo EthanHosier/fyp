@@ -1,6 +1,6 @@
 package com.github.ethanhosier.analysis.metrics.cpd
 
-import com.github.ethanhosier.analysis.metrics.model.CpdTracking
+import com.github.ethanhosier.analysis.pipeline.CpdTracking
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue

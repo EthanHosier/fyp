@@ -60,12 +60,6 @@ const SAMPLE_PROCESS_BREAKDOWN: ProcessScoreBreakdown = {
       detail: "2 of 13 checkpoints broken (15%)",
     },
     {
-      id: "smells",
-      label: "Smell load (time-average)",
-      points: -1.2,
-      detail: "avg 0.6 open weight per checkpoint (currently 4 open; 8 introduced, 4 resolved cumulatively)",
-    },
-    {
       id: "skipTests",
       label: "Tests skipped after refactor",
       points: -2.5,
@@ -76,6 +70,12 @@ const SAMPLE_PROCESS_BREAKDOWN: ProcessScoreBreakdown = {
       label: "Manual when IDE could refactor",
       points: -1.6,
       detail: "2 of 4 IDE-relevant steps done manually",
+    },
+    {
+      id: "commitGap",
+      label: "Long stretch without committing",
+      points: -7,
+      detail: "1 stretch of ≥6 green refactor checkpoints without a commit",
     },
   ],
   clamped: false,

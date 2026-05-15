@@ -1,10 +1,10 @@
 package com.github.ethanhosier.analysis.advice
 
-import com.github.ethanhosier.analysis.metrics.model.AdviceItem
-import com.github.ethanhosier.analysis.metrics.model.AdviceKind
-import com.github.ethanhosier.analysis.metrics.model.AdviceSeverity
-import com.github.ethanhosier.analysis.metrics.model.AnalysisReport
-import com.github.ethanhosier.analysis.metrics.model.CheckpointReport
+import com.github.ethanhosier.analysis.pipeline.AdviceItem
+import com.github.ethanhosier.analysis.pipeline.AdviceKind
+import com.github.ethanhosier.analysis.pipeline.AdviceSeverity
+import com.github.ethanhosier.analysis.pipeline.AnalysisReport
+import com.github.ethanhosier.analysis.pipeline.CheckpointReport
 
 /**
  * Trajectory-wide observations a senior engineer might call out after

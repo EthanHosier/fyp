@@ -105,7 +105,7 @@ data class PmdProcessingError(
 
 /**
  * A violation that was reported at the *previous* checkpoint but no longer
- * fires at the current one. Carried on [com.github.ethanhosier.analysis.metrics.model.PmdTracking]
+ * fires at the current one. Carried on [com.github.ethanhosier.analysis.pipeline.PmdTracking]
  * (a transition-derived sidecar on `CheckpointReport`), not on the per-SHA
  * `PmdResult`, because resolution is inherently a cross-checkpoint
  * observation. `firstSeenAtSha` is the earliest SHA at which this logical

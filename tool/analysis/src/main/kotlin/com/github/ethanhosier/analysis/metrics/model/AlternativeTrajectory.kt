@@ -1,10 +1,12 @@
 package com.github.ethanhosier.analysis.metrics.model
 
 import com.github.ethanhosier.analysis.miner.model.RefactoringSpec
+import com.github.ethanhosier.analysis.pipeline.CheckpointReport
+import com.github.ethanhosier.analysis.pipeline.DivergenceKind
 import kotlinx.serialization.Serializable
 
 /**
- * Top-level entry on [AnalysisReport] describing one alternative path the
+ * Top-level entry on [com.github.ethanhosier.analysis.pipeline.AnalysisReport] describing one alternative path the
  * user could have taken in place of (a slice of) their actual trajectory.
  *
  * Multi-step shape: a single entry can cover **N synthesised steps** all
@@ -19,10 +21,10 @@ import kotlinx.serialization.Serializable
  *    synthesised commits. List size equals the permutation length.
  *
  * Join keys for the frontend:
- *  - [stepIndexes] joins back into [AnalysisReport.refactoringSteps]
- *    (and into [AnalysisReport.alternativePatches] via each
+ *  - [stepIndexes] joins back into [com.github.ethanhosier.analysis.pipeline.AnalysisReport.refactoringSteps]
+ *    (and into [com.github.ethanhosier.analysis.pipeline.AnalysisReport.alternativePatches] via each
  *    `altCheckpoints[i].sha`) for the unified diff per applied step.
- *  - [fromSha] / [userToSha] are SHAs in [AnalysisReport.checkpoints]
+ *  - [fromSha] / [userToSha] are SHAs in [com.github.ethanhosier.analysis.pipeline.AnalysisReport.checkpoints]
  *    (the user's actual pre / post states).
  *  - Each `altCheckpoints[i].sha` is a synthesised alt SHA, reachable in
  *    the shadow repo via the parallel `branchRefs[i]`.

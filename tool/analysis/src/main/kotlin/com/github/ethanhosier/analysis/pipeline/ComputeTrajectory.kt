@@ -1,10 +1,5 @@
 package com.github.ethanhosier.analysis.pipeline
 
-import com.github.ethanhosier.analysis.metrics.model.CheckpointReport
-import com.github.ethanhosier.analysis.metrics.model.DuplicationTrajectoryStats
-import com.github.ethanhosier.analysis.metrics.model.MemberTouchStats
-import com.github.ethanhosier.analysis.metrics.model.ReadabilityTrajectoryStats
-import com.github.ethanhosier.analysis.metrics.model.TrajectoryStats
 import com.github.ethanhosier.ideplugin.model.TouchedMember
 
 private const val TOP_N = 10

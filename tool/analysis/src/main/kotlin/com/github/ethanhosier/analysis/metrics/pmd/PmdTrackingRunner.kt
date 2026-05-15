@@ -1,7 +1,7 @@
 package com.github.ethanhosier.analysis.metrics.pmd
 
 import com.github.ethanhosier.analysis.metrics.model.CheckpointMetrics
-import com.github.ethanhosier.analysis.metrics.model.PmdTracking
+import com.github.ethanhosier.analysis.pipeline.PmdTracking
 import com.github.ethanhosier.analysis.reconstruct.GitRunner
 
 /**

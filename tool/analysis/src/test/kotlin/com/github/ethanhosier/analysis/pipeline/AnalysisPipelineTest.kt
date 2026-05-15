@@ -1,11 +1,10 @@
 package com.github.ethanhosier.analysis.pipeline
 
-import com.github.ethanhosier.analysis.alternative.AlternativeTrajectoryRunner
+import com.github.ethanhosier.analysis.alternative.IdeRefactoringsRunner
 import com.github.ethanhosier.analysis.metrics.MetricsRunner
 import com.github.ethanhosier.analysis.metrics.ck.CkResult
 import com.github.ethanhosier.analysis.metrics.gradlebuild.BuildResult
 import com.github.ethanhosier.analysis.metrics.model.CheckpointMetrics
-import com.github.ethanhosier.analysis.metrics.model.DivergenceKind
 import com.github.ethanhosier.analysis.metrics.model.ReorderOrdering
 import com.github.ethanhosier.analysis.metrics.model.ReorderTrajectory
 import com.github.ethanhosier.analysis.metrics.model.ResidualSummary
@@ -72,7 +71,7 @@ class AnalysisPipelineTest {
             miner = emptyMinerSummary(),
             alternative = emptyAlternativeSummary(),
             diffs = emptyDiffsSummary(),
-            pmdTracking = emptyPmdTrackingSummary(),
+            trackedCodeSmells = emptyPmdTrackingSummary(),
             parallelism = 4,
             metricsDurationMs = 12_345,
         )
@@ -119,7 +118,7 @@ class AnalysisPipelineTest {
             miner = emptyMinerSummary(),
             alternative = emptyAlternativeSummary(),
             diffs = emptyDiffsSummary(),
-            pmdTracking = emptyPmdTrackingSummary(),
+            trackedCodeSmells = emptyPmdTrackingSummary(),
             parallelism = 1,
             metricsDurationMs = 0,
         )
@@ -185,7 +184,7 @@ class AnalysisPipelineTest {
             miner = miner,
             alternative = emptyAlternativeSummary(),
             diffs = emptyDiffsSummary(),
-            pmdTracking = emptyPmdTrackingSummary(),
+            trackedCodeSmells = emptyPmdTrackingSummary(),
             parallelism = 1,
             metricsDurationMs = 0,
             reorderTrajectories = listOf(traj),
@@ -252,10 +251,10 @@ class AnalysisPipelineTest {
             deletedLines = 1,
             rejectedFiles = emptyList(),
         )
-        val alternative = AlternativeTrajectoryRunner.Summary(
+        val alternative = IdeRefactoringsRunner.Summary(
             candidates = 1,
             synthesised = listOf(
-                AlternativeTrajectoryRunner.SynthesisedGroup(
+                IdeRefactoringsRunner.SynthesisedGroup(
                     stepIndexes = listOf(0, 1),
                     fromSha = "from",
                     userToSha = "to",
@@ -278,7 +277,7 @@ class AnalysisPipelineTest {
             miner = miner,
             alternative = alternative,
             diffs = emptyDiffsSummary(),
-            pmdTracking = emptyPmdTrackingSummary(),
+            trackedCodeSmells = emptyPmdTrackingSummary(),
             parallelism = 1,
             metricsDurationMs = 0,
             augmentedAltMetricsBySha = augmented,
@@ -328,10 +327,10 @@ class AnalysisPipelineTest {
             checkpointsAnalysed = 3,
             steps = listOf(step),
         )
-        val alternative = AlternativeTrajectoryRunner.Summary(
+        val alternative = IdeRefactoringsRunner.Summary(
             candidates = 1,
             synthesised = listOf(
-                AlternativeTrajectoryRunner.SynthesisedGroup(
+                IdeRefactoringsRunner.SynthesisedGroup(
                     stepIndexes = listOf(0),
                     fromSha = "from",
                     userToSha = "mid",
@@ -350,7 +349,7 @@ class AnalysisPipelineTest {
             miner = miner,
             alternative = alternative,
             diffs = emptyDiffsSummary(),
-            pmdTracking = emptyPmdTrackingSummary(),
+            trackedCodeSmells = emptyPmdTrackingSummary(),
             parallelism = 1,
             metricsDurationMs = 0,
             augmentedAltMetricsBySha = augmented,
@@ -409,7 +408,7 @@ class AnalysisPipelineTest {
             ),
             alternative = emptyAlternativeSummary(),
             diffs = emptyDiffsSummary(),
-            pmdTracking = emptyPmdTrackingSummary(),
+            trackedCodeSmells = emptyPmdTrackingSummary(),
             parallelism = 1,
             metricsDurationMs = 0,
             reorderTrajectories = listOf(traj),
@@ -429,7 +428,7 @@ class AnalysisPipelineTest {
         steps = emptyList(),
     )
 
-    private fun emptyAlternativeSummary() = AlternativeTrajectoryRunner.Summary(
+    private fun emptyAlternativeSummary() = IdeRefactoringsRunner.Summary(
         candidates = 0,
         synthesised = emptyList(),
         skipped = emptyMap(),

@@ -10,9 +10,9 @@ import com.github.ethanhosier.analysis.metrics.gitdiff.PerFileChurn
 import com.github.ethanhosier.analysis.metrics.gradlebuild.BuildResult
 import com.github.ethanhosier.analysis.metrics.model.AlternativeTrajectory
 import com.github.ethanhosier.analysis.metrics.model.CheckpointMetrics
-import com.github.ethanhosier.analysis.metrics.model.CheckpointReport
-import com.github.ethanhosier.analysis.metrics.model.EventSummary
-import com.github.ethanhosier.analysis.metrics.model.PmdTracking
+import com.github.ethanhosier.analysis.pipeline.CheckpointReport
+import com.github.ethanhosier.analysis.pipeline.EventSummary
+import com.github.ethanhosier.analysis.pipeline.PmdTracking
 import com.github.ethanhosier.analysis.metrics.pmd.PmdMethodMetrics
 import com.github.ethanhosier.analysis.metrics.pmd.PmdResult
 import com.github.ethanhosier.analysis.metrics.pmd.PmdViolation
@@ -124,11 +124,18 @@ class DerivedMetricsRunnerTest {
 
     @Test
     fun `broken checkpoint penalises process score`() {
-        val a = checkpoint("a", ck = ckResult(ckClass(cbo = 1, tcc = 0.9f)))
+        // Stamp timestamps so `brokenMs / elapsedMs` actually accumulates;
+        // a → b is 1s, both broken intervals contribute the full second.
+        val a = checkpoint(
+            "a",
+            ck = ckResult(ckClass(cbo = 1, tcc = 0.9f)),
+            events = listOf(syntheticEvent(timestamp = 0L)),
+        )
         val broken = checkpoint(
             "b",
             ck = ckResult(ckClass(cbo = 1, tcc = 0.9f)),
             build = passingBuild().copy(success = false),
+            events = listOf(syntheticEvent(timestamp = 1_000L), syntheticEvent(timestamp = 2_000L)),
         )
         val result = DerivedMetricsRunner().run(listOf(a, broken), emptyList(), emptyList())
         val b = result.main.getValue("b").process
@@ -143,7 +150,11 @@ class DerivedMetricsRunnerTest {
         // and pull the normalisation floor down. Carry-forward should
         // hold b's aggregates equal to a's, so cleanliness is flat
         // across a → b and the recovery a → b → c shows no fake gain.
-        val a = checkpoint("a", ck = ckResult(ckClass(cbo = 1, tcc = 0.9f)))
+        val a = checkpoint(
+            "a",
+            ck = ckResult(ckClass(cbo = 1, tcc = 0.9f)),
+            events = listOf(syntheticEvent(timestamp = 0L)),
+        )
         val b = checkpoint(
             "b",
             ck = ckResult(),  // empty perClass — coupling would degenerate
@@ -152,8 +163,13 @@ class DerivedMetricsRunnerTest {
             readability = ReadabilityResult.EMPTY,
             build = passingBuild().copy(success = false),
             tests = TestResult.skipped("build failed"),
+            events = listOf(syntheticEvent(timestamp = 1_000L)),
         )
-        val c = checkpoint("c", ck = ckResult(ckClass(cbo = 1, tcc = 0.9f)))
+        val c = checkpoint(
+            "c",
+            ck = ckResult(ckClass(cbo = 1, tcc = 0.9f)),
+            events = listOf(syntheticEvent(timestamp = 2_000L)),
+        )
 
         val result = DerivedMetricsRunner().run(listOf(a, b, c), emptyList(), emptyList())
 
@@ -258,6 +274,68 @@ class DerivedMetricsRunnerTest {
     }
 
     @Test
+    fun `consecutive refactor steps within 60s collapse into one composite`() {
+        // 3 refactor steps within 60s of each other → one composite.
+        // No tests anywhere → 1 of 1 composite skipped (not 3 of 3).
+        // Stamps: t=0, 20s, 40s for the steps; checkpoints stamped to
+        // match so durations are well-defined.
+        val a = checkpoint("a", events = listOf(syntheticEvent(0L)))
+        val b = checkpoint("b", events = listOf(syntheticEvent(20_000L)))
+        val c = checkpoint("c", events = listOf(syntheticEvent(40_000L)))
+        val d = checkpoint("d", events = listOf(syntheticEvent(50_000L)))
+        val steps = listOf(
+            RefactoringStep(
+                stepIndex = 0, fromSha = "a", toSha = "b", toCheckpointIndex = 1,
+                timestamp = 20_000L,
+                refactoring = detected("Extract Method", ideRelevant = false),
+                wasPerformedByIde = true,
+            ),
+            RefactoringStep(
+                stepIndex = 1, fromSha = "b", toSha = "c", toCheckpointIndex = 2,
+                timestamp = 40_000L,
+                refactoring = detected("Extract Method", ideRelevant = false),
+                wasPerformedByIde = true,
+            ),
+            RefactoringStep(
+                stepIndex = 2, fromSha = "c", toSha = "d", toCheckpointIndex = 3,
+                timestamp = 50_000L,
+                refactoring = detected("Extract Method", ideRelevant = false),
+                wasPerformedByIde = true,
+            ),
+        )
+        val result = DerivedMetricsRunner().run(listOf(a, b, c, d), emptyList(), steps)
+        val skip = result.main.getValue("d").process.contributions.single { it.id == "skipTests" }
+        // "1 of 1 refactoring batch not followed by tests"
+        assertTrue("1 of 1 refactoring batch" in skip.detail, "detail was: ${skip.detail}")
+    }
+
+    @Test
+    fun `refactor steps more than 60s apart form separate composites`() {
+        // Step A at t=0 and step B at t=70s (>60s gap) → 2 composites.
+        // No tests → 2 of 2 composites skipped.
+        val a = checkpoint("a", events = listOf(syntheticEvent(0L)))
+        val b = checkpoint("b", events = listOf(syntheticEvent(0L)))
+        val c = checkpoint("c", events = listOf(syntheticEvent(70_000L)))
+        val steps = listOf(
+            RefactoringStep(
+                stepIndex = 0, fromSha = "a", toSha = "b", toCheckpointIndex = 1,
+                timestamp = 0L,
+                refactoring = detected("Move Method", ideRelevant = false),
+                wasPerformedByIde = true,
+            ),
+            RefactoringStep(
+                stepIndex = 1, fromSha = "b", toSha = "c", toCheckpointIndex = 2,
+                timestamp = 70_000L,
+                refactoring = detected("Move Method", ideRelevant = false),
+                wasPerformedByIde = true,
+            ),
+        )
+        val result = DerivedMetricsRunner().run(listOf(a, b, c), emptyList(), steps)
+        val skip = result.main.getValue("c").process.contributions.single { it.id == "skipTests" }
+        assertTrue("2 of 2 refactoring batches" in skip.detail, "detail was: ${skip.detail}")
+    }
+
+    @Test
     fun `running tests after a refactor stops the skip penalty from firing`() {
         val a = checkpoint("a")
         val b = checkpoint(
@@ -286,9 +364,22 @@ class DerivedMetricsRunnerTest {
         // cleanliness — its process score should be lower than b's
         // because the alt step adds a manual-when-IDE-style penalty
         // (skipped tests on the synthesised path).
+        //
+        // The alt replaces user step 0 (landing on `b`); the user
+        // didn't run tests after that step (no TEST_RUN_FINISHED event
+        // on b) so the alt inherits the skip-tests penalty.
         val a = checkpoint("a", ck = ckResult(ckClass(cbo = 5, tcc = 0.5f)))
         val b = checkpoint("b", ck = ckResult(ckClass(cbo = 1, tcc = 0.9f)))
         val altCheckpoint = checkpoint("alt", ck = ckResult(ckClass(cbo = 1, tcc = 0.9f)))
+        val step = RefactoringStep(
+            stepIndex = 0,
+            fromSha = "a",
+            toSha = "b",
+            toCheckpointIndex = 1,
+            timestamp = 0L,
+            refactoring = detected("Move Method", ideRelevant = true),
+            wasPerformedByIde = false,
+        )
         val alt = AlternativeTrajectory(
             stepIndexes = listOf(0),
             fromSha = "a",
@@ -298,87 +389,89 @@ class DerivedMetricsRunnerTest {
             altCheckpoints = listOf(altCheckpoint),
         )
 
-        val result = DerivedMetricsRunner().run(listOf(a, b), listOf(alt), emptyList())
+        val result = DerivedMetricsRunner().run(listOf(a, b), listOf(alt), listOf(step))
         val altProc = result.alt.getValue("alt").process
-        // skipTests fires (synthesised commit ⇒ no user-run tests after it),
-        // manualIde does NOT fire (alt was performed by the IDE).
+        // skipTests fires (user didn't run tests at the replaced step's
+        // landing cp), manualIde does NOT fire (alts are IDE-driven).
         val skip = altProc.contributions.single { it.id == "skipTests" }
         val manual = altProc.contributions.single { it.id == "manualIde" }
-        assertTrue(skip.points < 0.0, "alt synthesises a skipped-tests step")
+        assertTrue(skip.points < 0.0, "alt inherits the user step's skip-tests penalty")
         assertEquals(0.0, manual.points.absoluteValue, "alt step is IDE-driven by definition")
     }
 
     @Test
-    fun `smell load is time-integral and churn-invariant on identical end state`() {
-        // Two trajectories, three checkpoints each, identical pmd at the
-        // terminus (one priority-3 violation open = weight 3). Path A is
-        // monotone: introduces it at c1, leaves it. Path B churns: adds
-        // 5 new violations at c1 (4 extra noise + the keeper) then resolves
-        // 4 of them at c2 leaving the same single violation. Under the
-        // old fraction-based formula B scored better (smaller open/seen
-        // ratio); under the time-integral formula B must score WORSE (it
-        // briefly carried a heavier smell load).
-        val seed = checkpoint(
-            "seed0",
-            pmd = pmdResult(),
-            pmdTracking = PmdTracking.EMPTY,
+    fun `W_LENGTH bonus rewards alt that covers user window in fewer steps`() {
+        // User does 3 transitions a → b → c → d (3 steps over 3 cps).
+        // Alt collapses to 1 step a → alt → d (IDE_REPLAY style:
+        // 1 alt cp covers all 3 user steps).
+        // Bonus = W_LENGTH × (3 - 1) / 3 = 11 × 2/3 ≈ 7.33,
+        // distributed across 1 alt step → cumulative ≈ 7.33 at terminal.
+        val a = checkpoint("a", ck = ckResult(ckClass(cbo = 1, tcc = 0.5f)))
+        val b = checkpoint("b", ck = ckResult(ckClass(cbo = 1, tcc = 0.5f)))
+        val c = checkpoint("c", ck = ckResult(ckClass(cbo = 1, tcc = 0.5f)))
+        val d = checkpoint("d", ck = ckResult(ckClass(cbo = 1, tcc = 0.5f)))
+        val altCp = checkpoint("alt", ck = ckResult(ckClass(cbo = 1, tcc = 0.5f)))
+        val steps = listOf(
+            RefactoringStep(
+                stepIndex = 0, fromSha = "a", toSha = "b", toCheckpointIndex = 1,
+                timestamp = 0L,
+                refactoring = detected("Extract Method", ideRelevant = true),
+                wasPerformedByIde = false,
+            ),
+            RefactoringStep(
+                stepIndex = 1, fromSha = "b", toSha = "c", toCheckpointIndex = 2,
+                timestamp = 0L,
+                refactoring = detected("Extract Method", ideRelevant = true),
+                wasPerformedByIde = false,
+            ),
+            RefactoringStep(
+                stepIndex = 2, fromSha = "c", toSha = "d", toCheckpointIndex = 3,
+                timestamp = 0L,
+                refactoring = detected("Extract Method", ideRelevant = true),
+                wasPerformedByIde = false,
+            ),
         )
-
-        // ---- path A: introduce the single keeper at c1, carry it.
-        val keeperA = violation(priority = 3)
-        val a1 = checkpoint(
-            "a1",
-            pmd = pmdResult(violations = listOf(keeperA)),
-            pmdTracking = PmdTracking(firstSeenAtSha = listOf("a1")),
+        val alt = AlternativeTrajectory(
+            kind = com.github.ethanhosier.analysis.pipeline.DivergenceKind.IDE_REPLAY,
+            stepIndexes = listOf(0, 1, 2),
+            fromSha = "a",
+            userToSha = "d",
+            branchRefs = listOf("refs/heads/alt"),
+            specs = listOf(RefactoringSpec.Other, RefactoringSpec.Other, RefactoringSpec.Other),
+            altCheckpoints = listOf(altCp),
         )
-        val a2 = checkpoint(
-            "a2",
-            pmd = pmdResult(violations = listOf(keeperA)),
-            pmdTracking = PmdTracking(firstSeenAtSha = listOf("a1")),
-        )
-        val aRes = DerivedMetricsRunner().run(listOf(seed, a1, a2), emptyList(), emptyList())
-        val aSmells = aRes.main.getValue("a2").process.contributions.single { it.id == "smells" }
-
-        // ---- path B: introduce keeper + 4 noise at c1, resolve noise at c2.
-        val keeperB = violation(priority = 3)
-        val noiseB = List(4) { violation(priority = 3) }
-        val b1 = checkpoint(
-            "b1",
-            pmd = pmdResult(violations = noiseB + keeperB),
-            pmdTracking = PmdTracking(firstSeenAtSha = List(5) { "b1" }),
-        )
-        val b2 = checkpoint(
-            "b2",
-            // Only keeperB carries forward; 4 noise resolved.
-            pmd = pmdResult(violations = listOf(keeperB)),
-            pmdTracking = PmdTracking(firstSeenAtSha = listOf("b1")),
-        )
-        val bRes = DerivedMetricsRunner().run(listOf(seed, b1, b2), emptyList(), emptyList())
-        val bSmells = bRes.main.getValue("b2").process.contributions.single { it.id == "smells" }
-
-        // Churn should be punished, not rewarded: B's intermediate dip is
-        // genuine smell load that the user lived through.
-        assertTrue(
-            bSmells.points < aSmells.points,
-            "churn-heavy path B should score worse than monotone A: A=${aSmells.points} B=${bSmells.points}",
-        )
+        val result = DerivedMetricsRunner().run(listOf(a, b, c, d), listOf(alt), steps)
+        val altLength = result.alt.getValue("alt").process.contributions
+            .single { it.id == "altLength" }
+        // ~7.33 points (within rounding tolerance)
+        assertTrue(altLength.points in 7.0..8.0, "expected bonus ≈ 7.33, got ${altLength.points}")
     }
 
     @Test
-    fun `seed-checkpoint preexisting violations are not counted as added`() {
-        // Seed has 2 violations both stamped at its own sha; with the
-        // frontend bucketing rule those count as carried, not added — so
-        // the smells contribution at c0 should be 0.
-        val seedViolations = listOf(violation(priority = 1), violation(priority = 1))
-        val cp = checkpoint(
-            "seed",
-            pmd = pmdResult(violations = seedViolations),
-            pmdTracking = PmdTracking(firstSeenAtSha = listOf("seed", "seed")),
+    fun `W_LENGTH bonus is zero when alt has same step count as user`() {
+        // ORDERING-style alt: same number of steps, just reordered.
+        // No step savings → 0 bonus.
+        val a = checkpoint("a", ck = ckResult(ckClass(cbo = 1, tcc = 0.5f)))
+        val b = checkpoint("b", ck = ckResult(ckClass(cbo = 1, tcc = 0.5f)))
+        val altCp = checkpoint("alt", ck = ckResult(ckClass(cbo = 1, tcc = 0.5f)))
+        val step = RefactoringStep(
+            stepIndex = 0, fromSha = "a", toSha = "b", toCheckpointIndex = 1,
+            timestamp = 0L,
+            refactoring = detected("Extract Method", ideRelevant = true),
+            wasPerformedByIde = false,
         )
-        val next = checkpoint("next")
-        val result = DerivedMetricsRunner().run(listOf(cp, next), emptyList(), emptyList())
-        val smells = result.main.getValue("seed").process.contributions.single { it.id == "smells" }
-        assertEquals(0.0, smells.points.absoluteValue)
+        val alt = AlternativeTrajectory(
+            stepIndexes = listOf(0),
+            fromSha = "a",
+            userToSha = "b",
+            branchRefs = listOf("refs/heads/alt"),
+            specs = listOf(RefactoringSpec.Other),
+            altCheckpoints = listOf(altCp),
+        )
+        val result = DerivedMetricsRunner().run(listOf(a, b), listOf(alt), listOf(step))
+        val altLength = result.alt.getValue("alt").process.contributions
+            .single { it.id == "altLength" }
+        assertEquals(0.0, altLength.points.absoluteValue)
     }
 
     @Test
@@ -718,6 +811,16 @@ class DerivedMetricsRunnerTest {
             pmdTracking = pmdTracking,
         )
     }
+
+    /** Neutral event whose only purpose is to anchor a checkpoint at a
+     *  specific timestamp — drives the time-weighted W_BROKEN
+     *  fraction. Event type is intentionally non-TEST so it doesn't
+     *  flip the `stepUserRanTests` predicate. */
+    private fun syntheticEvent(timestamp: Long): EventSummary = EventSummary(
+        id = "synthetic-$timestamp",
+        type = EventType.EDIT_BURST,
+        timestamp = timestamp,
+    )
 
     private fun ckResult(vararg classes: CkClassMetrics): CkResult =
         CkResult(perClass = classes.toList())
