@@ -124,11 +124,18 @@ class DerivedMetricsRunnerTest {
 
     @Test
     fun `broken checkpoint penalises process score`() {
-        val a = checkpoint("a", ck = ckResult(ckClass(cbo = 1, tcc = 0.9f)))
+        // Stamp timestamps so `brokenMs / elapsedMs` actually accumulates;
+        // a → b is 1s, both broken intervals contribute the full second.
+        val a = checkpoint(
+            "a",
+            ck = ckResult(ckClass(cbo = 1, tcc = 0.9f)),
+            events = listOf(syntheticEvent(timestamp = 0L)),
+        )
         val broken = checkpoint(
             "b",
             ck = ckResult(ckClass(cbo = 1, tcc = 0.9f)),
             build = passingBuild().copy(success = false),
+            events = listOf(syntheticEvent(timestamp = 1_000L), syntheticEvent(timestamp = 2_000L)),
         )
         val result = DerivedMetricsRunner().run(listOf(a, broken), emptyList(), emptyList())
         val b = result.main.getValue("b").process
@@ -143,7 +150,11 @@ class DerivedMetricsRunnerTest {
         // and pull the normalisation floor down. Carry-forward should
         // hold b's aggregates equal to a's, so cleanliness is flat
         // across a → b and the recovery a → b → c shows no fake gain.
-        val a = checkpoint("a", ck = ckResult(ckClass(cbo = 1, tcc = 0.9f)))
+        val a = checkpoint(
+            "a",
+            ck = ckResult(ckClass(cbo = 1, tcc = 0.9f)),
+            events = listOf(syntheticEvent(timestamp = 0L)),
+        )
         val b = checkpoint(
             "b",
             ck = ckResult(),  // empty perClass — coupling would degenerate
@@ -152,8 +163,13 @@ class DerivedMetricsRunnerTest {
             readability = ReadabilityResult.EMPTY,
             build = passingBuild().copy(success = false),
             tests = TestResult.skipped("build failed"),
+            events = listOf(syntheticEvent(timestamp = 1_000L)),
         )
-        val c = checkpoint("c", ck = ckResult(ckClass(cbo = 1, tcc = 0.9f)))
+        val c = checkpoint(
+            "c",
+            ck = ckResult(ckClass(cbo = 1, tcc = 0.9f)),
+            events = listOf(syntheticEvent(timestamp = 2_000L)),
+        )
 
         val result = DerivedMetricsRunner().run(listOf(a, b, c), emptyList(), emptyList())
 
@@ -645,6 +661,16 @@ class DerivedMetricsRunnerTest {
             pmdTracking = pmdTracking,
         )
     }
+
+    /** Neutral event whose only purpose is to anchor a checkpoint at a
+     *  specific timestamp — drives the time-weighted W_BROKEN
+     *  fraction. Event type is intentionally non-TEST so it doesn't
+     *  flip the `stepUserRanTests` predicate. */
+    private fun syntheticEvent(timestamp: Long): EventSummary = EventSummary(
+        id = "synthetic-$timestamp",
+        type = EventType.EDIT_BURST,
+        timestamp = timestamp,
+    )
 
     private fun ckResult(vararg classes: CkClassMetrics): CkResult =
         CkResult(perClass = classes.toList())

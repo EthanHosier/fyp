@@ -3,6 +3,7 @@ package com.github.ethanhosier.analysis.metrics.derived
 import com.github.ethanhosier.analysis.divergence.HygieneDetector.MIN_COMMIT_GAP
 import com.github.ethanhosier.analysis.metrics.model.AlternativeTrajectory
 import com.github.ethanhosier.analysis.pipeline.CheckpointReport
+import com.github.ethanhosier.analysis.pipeline.DivergenceKind
 import com.github.ethanhosier.analysis.pipeline.Cleanliness
 import com.github.ethanhosier.analysis.pipeline.CleanlinessContribution
 import com.github.ethanhosier.analysis.pipeline.DerivedMetrics
@@ -284,11 +285,18 @@ class DerivedMetricsRunner {
         // alt step whose stepIndex doesn't map back to a real user step.
         val userRanTestsByStepIndex: Map<Int, Boolean> = refactoringSteps
             .associate { it.stepIndex to stepUserRanTests(mainCheckpoints, it) }
+        // Wall-clock durations of the user's main checkpoints — alt
+        // steps borrow the slice of the user step they replace so the
+        // alt's `brokenMs` denominator stays comparable to the user's.
+        val userDurations = computeDurations(mainCheckpoints)
         val altProcess: AltProcessOutput = computeAltProcess(
             alternatives = alternatives,
             altCleanliness = altCleanliness,
             mainSnapshots = mainProcess.snapshots,
             userRanTestsByStepIndex = userRanTestsByStepIndex,
+            userDurations = userDurations,
+            mainCheckpoints = mainCheckpoints,
+            refactoringSteps = refactoringSteps,
         )
         val continuations: List<AltProcessContinuation> = computeAltContinuations(
             alternatives = alternatives,
@@ -296,6 +304,7 @@ class DerivedMetricsRunner {
             mainCheckpoints = mainCheckpoints,
             mainCleanliness = mainCleanliness,
             refactoringSteps = refactoringSteps,
+            userDurations = userDurations,
         )
 
         val mainOut = mainCheckpoints.mapIndexed { i, cp ->
@@ -582,7 +591,15 @@ class DerivedMetricsRunner {
     // ---- process score ----
 
     private data class ProcessSnapshot(
+        /** Count of broken checkpoints — surfaced in the breakdown
+         *  detail string alongside the time numerator. */
         val brokenCount: Int,
+        /** Milliseconds spent in a broken state (build red OR tests
+         *  failed, excluding skipped). Numerator for `brokenFrac`. */
+        val brokenMs: Long,
+        /** Total milliseconds covered by the walk so far. Denominator
+         *  for `brokenFrac`. */
+        val elapsedMs: Long,
         val refactoringStepsCount: Int,
         val testsSkippedCount: Int,
         val ideRelevantCount: Int,
@@ -623,6 +640,7 @@ class DerivedMetricsRunner {
 
         val stepsByIndex = stepsByCheckpointIndex(refactoringSteps)
         val cleanliness0 = cleanliness.firstOrNull()?.scalar
+        val durations = computeDurations(checkpoints)
         var snap = initialMainSnapshot(cleanliness0)
 
         val scores = mutableListOf<ProcessScore>()
@@ -635,12 +653,32 @@ class DerivedMetricsRunner {
                 checkpoints = checkpoints,
                 stepsLandingHere = stepsByIndex[t].orEmpty(),
                 cleanT = cleanliness[t]?.scalar,
+                durationMs = durations[t],
             )
             scores += score
             snapshots[checkpoints[t].sha] = next
             snap = next
         }
         return MainProcessOutput(scores = scores, snapshots = snapshots)
+    }
+
+    /**
+     * Per-checkpoint wall-clock duration: the time slice each cp covers
+     * in the user's IDE timeline. cp_i covers `[firstEventTs(cp_i),
+     * firstEventTs(cp_{i+1}))`; the last cp's duration is its own event
+     * span (mirrors [computeBrokenTime] charging the trailing broken
+     * run up to its last event). Drives the time-weighted `W_BROKEN`
+     * fraction in [buildProcessScore].
+     */
+    private fun computeDurations(checkpoints: List<CheckpointReport>): List<Long> {
+        fun firstTs(c: CheckpointReport) = c.events.minOfOrNull { it.timestamp }
+        fun lastTs(c: CheckpointReport) = c.events.maxOfOrNull { it.timestamp }
+        return List(checkpoints.size) { i ->
+            val cur = firstTs(checkpoints[i]) ?: return@List 0L
+            val nxt = checkpoints.getOrNull(i + 1)?.let { firstTs(it) }
+                ?: lastTs(checkpoints[i]) ?: cur
+            max(0L, nxt - cur)
+        }
     }
 
     /**
@@ -660,6 +698,8 @@ class DerivedMetricsRunner {
     /** Zero snapshot for the start of a main walk. */
     private fun initialMainSnapshot(cleanliness0: Double?): ProcessSnapshot = ProcessSnapshot(
         brokenCount = 0,
+        brokenMs = 0L,
+        elapsedMs = 0L,
         refactoringStepsCount = 0,
         testsSkippedCount = 0,
         ideRelevantCount = 0,
@@ -690,6 +730,7 @@ class DerivedMetricsRunner {
         checkpoints: List<CheckpointReport>,
         stepsLandingHere: List<RefactoringStep>,
         cleanT: Double?,
+        durationMs: Long,
     ): Pair<ProcessSnapshot, ProcessScore> {
         val build = cp.metrics.build.success
         val testsOk = cp.metrics.tests.success
@@ -697,7 +738,9 @@ class DerivedMetricsRunner {
         // Match the frontend's "broken iff build OR tests failed" rule:
         // skipped tests are not a failure.
         val testsFailed = !testsOk && !testsSkipped
-        val brokenInc = if (!build || testsFailed) 1 else 0
+        val isBroken = !build || testsFailed
+        val brokenInc = if (isBroken) 1 else 0
+        val brokenMsInc = if (isBroken) durationMs else 0L
 
         var refactoringStepsCount = snap.refactoringStepsCount
         var testsSkippedCount = snap.testsSkippedCount
@@ -736,6 +779,8 @@ class DerivedMetricsRunner {
         }
 
         val brokenCount = snap.brokenCount + brokenInc
+        val brokenMs = snap.brokenMs + brokenMsInc
+        val elapsedMs = snap.elapsedMs + durationMs
 
         var peakCleanliness = snap.peakCleanliness
         var dipIntegral = snap.dipIntegral
@@ -748,7 +793,9 @@ class DerivedMetricsRunner {
         val degradationFrac = if (dipObservations == 0) 0.0 else dipIntegral / dipObservations
 
         val checkpointsSoFar = snap.checkpointsSoFar + 1
-        val brokenFrac = brokenCount.toDouble() / checkpointsSoFar.toDouble()
+        // Time-weighted broken fraction: avoids dilution from
+        // many-small-checkpoints manual-edit clusters.
+        val brokenFrac = if (elapsedMs > 0L) brokenMs.toDouble() / elapsedMs.toDouble() else 0.0
         // Laplace smoothing only kicks in when at least one bad step
         // has happened; a perfect record (0 of N) returns 0 penalty.
         val skipFrac = if (refactoringStepsCount == 0 || testsSkippedCount == 0) 0.0
@@ -763,6 +810,8 @@ class DerivedMetricsRunner {
             cleanlinessGain = cleanlinessGain,
             brokenFrac = brokenFrac,
             brokenCount = brokenCount,
+            brokenMs = brokenMs,
+            elapsedMs = elapsedMs,
             checkpointsSoFar = checkpointsSoFar,
             skipFrac = skipFrac,
             testsSkippedCount = testsSkippedCount,
@@ -778,6 +827,8 @@ class DerivedMetricsRunner {
 
         val next = ProcessSnapshot(
             brokenCount = brokenCount,
+            brokenMs = brokenMs,
+            elapsedMs = elapsedMs,
             refactoringStepsCount = refactoringStepsCount,
             testsSkippedCount = testsSkippedCount,
             ideRelevantCount = ideRelevantCount,
@@ -807,7 +858,12 @@ class DerivedMetricsRunner {
         altCleanliness: List<List<Cleanliness?>>,
         mainSnapshots: Map<String, ProcessSnapshot>,
         userRanTestsByStepIndex: Map<Int, Boolean>,
+        userDurations: List<Long>,
+        mainCheckpoints: List<CheckpointReport>,
+        refactoringSteps: List<RefactoringStep>,
     ): AltProcessOutput {
+        val userIdxBySha = mainCheckpoints.mapIndexed { i, c -> c.sha to i }.toMap()
+        val stepByIndex = refactoringSteps.associateBy { it.stepIndex }
         val perStepScores = mutableListOf<List<ProcessScore>>()
         val finalSnapshots = mutableListOf<ProcessSnapshot?>()
         for (i in alternatives.indices) {
@@ -826,6 +882,7 @@ class DerivedMetricsRunner {
                 continue
             }
 
+            val altDurations = altStepDurations(alt, userIdxBySha, stepByIndex, userDurations)
             var snap: ProcessSnapshot = anchor
             val perStep = mutableListOf<ProcessScore>()
             for (k in alt.altCheckpoints.indices) {
@@ -843,6 +900,7 @@ class DerivedMetricsRunner {
                     cp = alt.altCheckpoints[k],
                     cleanT = altCleanliness[i][k]?.scalar,
                     userRanTests = userRanTests,
+                    durationMs = altDurations.getOrNull(k) ?: 0L,
                 )
                 perStep += score
                 snap = next
@@ -851,6 +909,52 @@ class DerivedMetricsRunner {
             finalSnapshots += snap
         }
         return AltProcessOutput(perStepScores, finalSnapshots)
+    }
+
+    /**
+     * Per-alt-step wall-clock duration — what each alt step "borrows"
+     * from the user's timeline for its broken-frac denominator.
+     *
+     * IDE_REPLAY: a single alt cp can collapse multiple user steps,
+     * so the alt step covers the full span from `fromSha` to
+     * `userToSha`. We charge that whole span to the single alt cp;
+     * extra residual cps (when `altCheckpoints.size > stepIndexes.size`)
+     * get 0 ms — they're cleanup that happened "for free" in the alt.
+     *
+     * ORDERING / REWORK / HYGIENE: each alt step matches one user
+     * step 1:1, so it borrows that user step's checkpoint duration.
+     */
+    private fun altStepDurations(
+        alt: AlternativeTrajectory,
+        userIdxBySha: Map<String, Int>,
+        stepByIndex: Map<Int, RefactoringStep>,
+        userDurations: List<Long>,
+    ): List<Long> {
+        val n = alt.altCheckpoints.size
+        if (n == 0) return emptyList()
+        return when (alt.kind) {
+            DivergenceKind.IDE_REPLAY -> {
+                val fromIdx = userIdxBySha[alt.fromSha]
+                val toIdx = userIdxBySha[alt.userToSha]
+                val spanMs = if (fromIdx != null && toIdx != null && fromIdx < toIdx) {
+                    // Durations are keyed on the cp the user LEFT — sum
+                    // [fromIdx, toIdx) covers the entire transition.
+                    userDurations.subList(fromIdx, toIdx).sum()
+                } else 0L
+                List(n) { k -> if (k == 0) spanMs else 0L }
+            }
+            else -> List(n) { k ->
+                val userStepIdx = alt.stepIndexes.getOrNull(k) ?: return@List 0L
+                val userCpIdx = stepByIndex[userStepIdx]?.toCheckpointIndex
+                    ?: return@List 0L
+                // The user step "lands" at userCpIdx; the time the user
+                // spent in that landing state is durations[userCpIdx-1]
+                // (the gap from the prior cp). Use that as the slice
+                // the alt step occupies.
+                val srcIdx = (userCpIdx - 1).coerceAtLeast(0)
+                userDurations.getOrNull(srcIdx) ?: 0L
+            }
+        }
     }
 
     /**
@@ -875,6 +979,7 @@ class DerivedMetricsRunner {
         mainCheckpoints: List<CheckpointReport>,
         mainCleanliness: List<Cleanliness?>,
         refactoringSteps: List<RefactoringStep>,
+        userDurations: List<Long>,
     ): List<AltProcessContinuation> {
         if (mainCheckpoints.isEmpty()) return alternatives.map { AltProcessContinuation.EMPTY }
 
@@ -900,6 +1005,7 @@ class DerivedMetricsRunner {
                     checkpoints = mainCheckpoints,
                     stepsLandingHere = stepsByIndex[t].orEmpty(),
                     cleanT = mainCleanliness[t]?.scalar,
+                    durationMs = userDurations.getOrNull(t) ?: 0L,
                 )
                 shas += mainCheckpoints[t].sha
                 scores += score
@@ -933,14 +1039,22 @@ class DerivedMetricsRunner {
         cp: CheckpointReport,
         cleanT: Double?,
         userRanTests: Boolean,
+        durationMs: Long,
     ): Pair<ProcessSnapshot, ProcessScore> {
         val build = cp.metrics.build.success
         val testsOk = cp.metrics.tests.success
         val testsSkipped = cp.metrics.tests.wasSkipped
         val testsFailed = !testsOk && !testsSkipped
-        val brokenInc = if (!build || testsFailed) 1 else 0
+        val isBroken = !build || testsFailed
+        val brokenInc = if (isBroken) 1 else 0
+        // Alt step's "time slice" mirrors the user-step it replaces —
+        // see `computeAltProcess` for the lookup. Lets an alt that
+        // avoids a long-broken stretch correctly out-score the user.
+        val brokenMsInc = if (isBroken) durationMs else 0L
 
         val brokenCount = snap.brokenCount + brokenInc
+        val brokenMs = snap.brokenMs + brokenMsInc
+        val elapsedMs = snap.elapsedMs + durationMs
 
         val refactoringStepsCount = snap.refactoringStepsCount + 1
         // Synthesised commits carry no user events, so we mirror what
@@ -982,7 +1096,7 @@ class DerivedMetricsRunner {
         val degradationFrac = if (dipObservations == 0) 0.0 else dipIntegral / dipObservations
 
         val checkpointsSoFar = snap.checkpointsSoFar + 1
-        val brokenFrac = brokenCount.toDouble() / checkpointsSoFar.toDouble()
+        val brokenFrac = if (elapsedMs > 0L) brokenMs.toDouble() / elapsedMs.toDouble() else 0.0
         val skipFrac = if (testsSkippedCount == 0) 0.0
             else (testsSkippedCount + 1).toDouble() / (refactoringStepsCount + 2).toDouble()
         val manualFrac = if (manualWhenIdeCount == 0) 0.0
@@ -995,6 +1109,8 @@ class DerivedMetricsRunner {
             cleanlinessGain = cleanlinessGain,
             brokenFrac = brokenFrac,
             brokenCount = brokenCount,
+            brokenMs = brokenMs,
+            elapsedMs = elapsedMs,
             checkpointsSoFar = checkpointsSoFar,
             skipFrac = skipFrac,
             testsSkippedCount = testsSkippedCount,
@@ -1010,6 +1126,8 @@ class DerivedMetricsRunner {
 
         val next = ProcessSnapshot(
             brokenCount = brokenCount,
+            brokenMs = brokenMs,
+            elapsedMs = elapsedMs,
             refactoringStepsCount = refactoringStepsCount,
             testsSkippedCount = testsSkippedCount,
             ideRelevantCount = ideRelevantCount,
@@ -1038,6 +1156,8 @@ class DerivedMetricsRunner {
         cleanlinessGain: Double,
         brokenFrac: Double,
         brokenCount: Int,
+        brokenMs: Long,
+        elapsedMs: Long,
         checkpointsSoFar: Int,
         skipFrac: Double,
         testsSkippedCount: Int,
@@ -1076,9 +1196,12 @@ class DerivedMetricsRunner {
             ),
             ProcessContribution(
                 id = "broken",
-                label = "Broken checkpoints",
+                label = "Broken time",
                 points = brokenPoints,
-                detail = "$brokenCount of $checkpointsSoFar checkpoint${if (checkpointsSoFar == 1) "" else "s"} broken (${pct(brokenFrac)})",
+                detail = if (elapsedMs <= 0L) "no elapsed time yet"
+                else "${formatMs(brokenMs)} of ${formatMs(elapsedMs)} broken " +
+                    "(${pct(brokenFrac)}) — $brokenCount of $checkpointsSoFar checkpoint" +
+                    (if (checkpointsSoFar == 1) "" else "s"),
             ),
             ProcessContribution(
                 id = "skipTests",
@@ -1131,6 +1254,22 @@ class DerivedMetricsRunner {
     }
 
     private fun pct(x: Double): String = "${(x * 100.0).roundToInt()}%"
+
+    /** Compact ms → "12s" / "4m12s" / "1h04m". For the broken-time
+     *  contribution row; matches the order-of-magnitude the user
+     *  would say aloud. */
+    private fun formatMs(ms: Long): String {
+        if (ms <= 0L) return "0s"
+        val totalSec = ms / 1000L
+        val h = totalSec / 3600L
+        val m = (totalSec % 3600L) / 60L
+        val s = totalSec % 60L
+        return when {
+            h > 0L -> "${h}h${m.toString().padStart(2, '0')}m"
+            m > 0L -> "${m}m${s.toString().padStart(2, '0')}s"
+            else -> "${s}s"
+        }
+    }
 
     // ---- numeric helpers ----
 

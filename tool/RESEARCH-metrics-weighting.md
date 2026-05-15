@@ -408,17 +408,31 @@ of each term (the ablation result).
 A reasonable concern: if W_BROKEN fires per checkpoint, longer
 refactoring sessions would accumulate more broken-state penalties just
 by virtue of having more checkpoints. The implementation forestalls
-this by pro-rating per-step penalties over the refactoring-step count:
-W_BROKEN, W_SKIP_TESTS, and W_MANUAL_IDE are applied as *fractions* of
-their full weight, scaled by `1 / refactoringStepsCount` per step.
-W_COMMIT_GAP is handled differently — it fires a fixed −7 each time the
-running count of green refactor checkpoints since the last commit
-crosses `MIN_COMMIT_GAP = 6` (the threshold inherited from the hygiene
-detector), with the score's overall [0, 100] clamp acting as the
-ceiling. This is documented at the call sites in
-`DerivedMetricsRunner.advanceMainStep`. The methodology chapter should
-state both normalisation conventions explicitly so the marker doesn't
-have to read code to confirm them.
+this by pro-rating each penalty against a denominator that scales with
+trajectory length:
+- **W_BROKEN** is applied as `brokenMs / elapsedMs` — the fraction of
+  wall-clock time the trajectory spent in a broken state (build red or
+  tests failed, excluding skipped). Using elapsed *time* rather than
+  *checkpoint count* matters because manual-edit-heavy sessions
+  generate many small checkpoints that would dilute the count-based
+  fraction even when the broken stretches are long. Alt paths borrow
+  the user's time slice at each step (`altStepDurations` in
+  `DerivedMetricsRunner`) so an alt that avoids a long broken stretch
+  correctly out-scores the user.
+- **W_SKIP_TESTS** and **W_MANUAL_IDE** are applied as fractions of
+  their full weight, scaled by `1 / refactoringStepsCount` per step
+  (Laplace-smoothed). Both are per-refactoring-step concerns so the
+  step count is the natural denominator.
+- **W_COMMIT_GAP** fires a fixed −7 each time the running count of
+  green refactor checkpoints since the last commit crosses
+  `MIN_COMMIT_GAP = 6` (the threshold inherited from the hygiene
+  detector), with the score's overall [0, 100] clamp acting as the
+  ceiling.
+
+These conventions are documented at the call sites in
+`DerivedMetricsRunner.advanceMainStep` / `.advanceAltStep`. The
+methodology chapter should state them explicitly so the marker
+doesn't have to read code to confirm them.
 
 → **See:** Paixão et al. 2018 (TEVC) for disruption framing; Cedrim
 et al. 2017 (FSE) for refactoring-degradation prevalence; Letouzey
