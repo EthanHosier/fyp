@@ -669,35 +669,8 @@ internal fun buildAnalysisReport(
     augmentedAltMetricsBySha: Map<String, CheckpointMetrics>? = null,
     reworkSummary: ReworkSynthesiser.Summary? = null,
 ): AnalysisReport {
-    // Preserve event order so each checkpoint's event list reads
-    // chronologically — LinkedHashMap's insertion order is what we want.
-    val eventsBySha = LinkedHashMap<String, MutableList<EventSummary>>()
-    val membersBySha = LinkedHashMap<String, LinkedHashSet<TouchedMember>>()
-    val mapping = reconstruction.eventCommits.mapping
-    for (event in trace.events) {
-        val sha = mapping[event.id] ?: continue
-        val eventMembers = LinkedHashSet<TouchedMember>()
-        for (snap in event.changedFiles) {
-            eventMembers.addAll(snap.touchedMembers)
-        }
-        eventsBySha.getOrPut(sha) { mutableListOf() }.add(
-            EventSummary(
-                id = event.id,
-                type = event.type,
-                timestamp = event.timestamp,
-                touchedMembers = eventMembers.toList(),
-                refactoringId = event.payload["refactoringId"],
-            ),
-        )
-        membersBySha.getOrPut(sha) { LinkedHashSet() }.addAll(eventMembers)
-    }
-
-    // SHAs the user actually committed during the session, derived from
-    // the GIT_COMMIT events. Used to tag CheckpointReports so the
-    // process-score walker can see commits as a property of the data —
-    // future commit-cadence penalty will consume this, and HYGIENE
-    // COMMIT_GAP alts already flip it.
-    val userCommitShas = trace.events.asSequence()
+    val (eventsBySha, membersBySha) = computeBySha(reconstruction, trace)
+    val gitShasActuallyCommitedByUser = trace.events.asSequence()
         .filter { it.type == EventType.GIT_COMMIT }
         .mapNotNull { it.payload["sha"] }
         .toSet()
@@ -712,7 +685,7 @@ internal fun buildAnalysisReport(
             sha = m.sha,
             events = events,
             metrics = m,
-            isUserCommit = m.sha in userCommitShas,
+            isUserCommit = m.sha in gitShasActuallyCommitedByUser,
             diff = metrics.diffBySha[m.sha] ?: DiffStats.ZERO,
             touchedMembers = membersBySha[m.sha]?.toList().orEmpty(),
             pmdTracking = trackedCodeSmells.trackingBySha[m.sha] ?: PmdTracking.EMPTY,
@@ -724,165 +697,21 @@ internal fun buildAnalysisReport(
     val altMetricsBySha = augmentedAltMetricsBySha
         ?: metrics.alternativeCheckpoints.associateBy { it.sha }
 
-    // Helper: build a CheckpointReport for one alt step SHA. Alt SHAs
-    // never carry user events / touched members; metrics + tracking come
-    // from the augmented alt-checkpoint map (which includes terminal
-    // aliases for reorder orderings).
-    fun altCheckpointFor(sha: String): CheckpointReport? {
-        val m = altMetricsBySha[sha] ?: return null
-        return CheckpointReport(
-            sha = sha,
-            events = emptyList(),
-            metrics = m,
-            diff = metrics.diffBySha[sha] ?: DiffStats.ZERO,
-            touchedMembers = emptyList(),
-            pmdTracking = trackedCodeSmells.alternativeTrackingBySha[sha] ?: PmdTracking.EMPTY,
-            cpdTracking = trackedDuplication.alternativeTrackingBySha[sha] ?: CpdTracking.EMPTY,
-        )
-    }
 
-    // IDE-driven alts: one entry per synthesised group. `altCheckpoints`
-    // is the per-step chain (one per applied refactoring + optional
-    // trailing residual SHA). `specs` and `stepIndexes` are parallel to
-    // *each other* (length N) and cover only the refactoring portion;
-    // `altCheckpoints` is length N or N+1 depending on whether the
-    // residual landed as its own step. When `altCheckpoints.size ==
-    // specs.size + 1`, the trailing entry is the residual cleanup.
-    val singleStepAlts = alternative.synthesised.mapNotNull { synth ->
-        val specs = synth.stepIndexes.map { idx ->
-            stepsByIndex[idx]?.spec ?: return@mapNotNull null
-        }
-        val altCps = synth.altShas.map { altCheckpointFor(it) ?: return@mapNotNull null }
-        AlternativeTrajectory(
-            kind = DivergenceKind.IDE_REPLAY,
-            stepIndexes = synth.stepIndexes,
-            fromSha = synth.fromSha,
-            userToSha = synth.userToSha,
-            branchRefs = synth.branchRefs,
-            specs = specs,
-            altCheckpoints = altCps,
-            residual = synth.residual,
-        )
-    }
+    val singleStepAlts =
+        computeSingleStepAlts(alternative, stepsByIndex, altMetricsBySha, trackedCodeSmells, trackedDuplication, metrics)
 
-    // Multi-step alts from kept reorder orderings. Each ordering becomes
-    // one AlternativeTrajectory entry covering N applied steps in the
-    // permutation order. Terminal step's CheckpointReport is built off
-    // the aliased CheckpointMetrics (Slice 2b) so its `metrics` field
-    // matches the user's windowToSha checkpoint for build/test/PMD —
-    // PMD/CPD tracking entries for the terminal sha were also computed
-    // upstream (inter-bracket pair `(prev_step, terminal_sha)` is in
-    // `allAltPairs`). Failed orderings emit no entry per Slice 2b scope.
-    val reorderAlts = reorderTrajectories.flatMap { traj ->
-        traj.orderings.mapNotNull { ord ->
-            if (!ord.terminalSuccess) return@mapNotNull null
-            if (ord.stepShas.size != ord.permutation.size) return@mapNotNull null
-            val orderedStepIndexes = ord.permutation.map { i -> traj.windowStepIndexes[i] }
-            val orderedSpecs = ord.permutation.mapNotNull { i ->
-                stepsByIndex[traj.windowStepIndexes[i]]?.spec
-            }
-            if (orderedSpecs.size != ord.permutation.size) return@mapNotNull null
-            val altCps = ord.stepShas.mapNotNull { altCheckpointFor(it) }
-            if (altCps.size != ord.stepShas.size) return@mapNotNull null
+    val reorderAlts =
+        computeReorderAlts(reorderTrajectories, stepsByIndex, altMetricsBySha, trackedCodeSmells, trackedDuplication, metrics)
 
-            // Trim leading shared prefix: any contiguous run from the
-            // start where the alt's permutation matches the user's
-            // chronological order (window-local indices 0,1,2,...).
-            // Those steps produced state identical to the user's, so
-            // counting them as alt-side divergence inflates the alt's
-            // process-score penalties and clutters the chart with
-            // overlapping dots. Anchor the alt at the user's checkpoint
-            // *after* the shared prefix and drop the prefix entries.
-            //
-            // TODO(efficiency): the trimmed step SHAs are still listed
-            // in `reorderIntermediateShas` (collected in `run()`), so
-            // MetricsRunner builds + tests them and Pmd/Cpd tracking
-            // computes entries for them. None of that work surfaces in
-            // the report. A follow-up should also trim the
-            // `reorderIntermediateShas` collection in `run()` to skip
-            // those builds. Visually + score-wise, trimming here alone
-            // is correct.
-            var sharedPrefixLen = 0
-            while (sharedPrefixLen < ord.permutation.size &&
-                ord.permutation[sharedPrefixLen] == sharedPrefixLen
-            ) {
-                sharedPrefixLen++
-            }
-            // Defensive: an entirely-shared ordering would mean the alt
-            // == the user's order, which the synthesiser excludes —
-            // drop if it ever leaks through.
-            if (sharedPrefixLen >= ord.permutation.size) return@mapNotNull null
-
-            val anchorSha = if (sharedPrefixLen == 0) {
-                traj.windowFromSha
-            } else {
-                val lastSharedIdx = traj.windowStepIndexes[sharedPrefixLen - 1]
-                stepsByIndex[lastSharedIdx]?.toSha ?: traj.windowFromSha
-            }
-
-            AlternativeTrajectory(
-                kind = DivergenceKind.ORDERING,
-                stepIndexes = orderedStepIndexes.drop(sharedPrefixLen),
-                fromSha = anchorSha,
-                userToSha = traj.windowToSha,
-                branchRefs = ord.branchRefs.drop(sharedPrefixLen),
-                specs = orderedSpecs.drop(sharedPrefixLen),
-                altCheckpoints = altCps.drop(sharedPrefixLen),
-            )
-        }
-    }
-
-    // Rework alts: one entry per synthesised rework. `specs` /
-    // `stepIndexes` are empty because rework replays raw user commits
-    // rather than miner-typed refactoring steps; the chart and
-    // continuation walk only consume `altCheckpoints` + from/userToSha
-    // anchors, which the rest of the alt-trajectory plumbing handles
-    // uniformly.
-    // Rework alts whose `altShas[i]` aliases a user SHA (the no-op
-    // case — delete-then-undelete cancels out, alt branches at fromSha
-    // and never moves) must NOT inherit the user's main-walk diff at
-    // that SHA. The user's diffBySha[fromSha] reflects fromSha's churn
-    // from its parent — i.e. the code that was already there before
-    // the rework — which has nothing to do with the alt. Attributing
-    // it to the alt's first step inflates the alt's churn / smells
-    // delta and depresses the process score artificially. Zero out
-    // the diff for any alt checkpoint whose SHA collides with a user
-    // checkpoint.
-    val userShaSet = baseCheckpoints.map { it.sha }.toSet()
-    // Build rework alts alongside their originating SynthesisedRework so
-    // the divergence-point builder can attach file/scope/lineCount/step
-    // metadata without re-running detection.
-    val userIdxBySha = baseCheckpoints.withIndex().associate { (i, cp) -> cp.sha to i }
-    val reworkAltsWithInfo: List<Pair<AlternativeTrajectory, ReworkSynthesiser.SynthesisedRework>> =
-        reworkSummary?.synthesised.orEmpty().mapNotNull { rw ->
-            val altCps = rw.altShas.map { sha ->
-                val cp = altCheckpointFor(sha) ?: return@mapNotNull null
-                if (sha in userShaSet) cp.copy(diff = DiffStats.ZERO) else cp
-            }
-            // Map each kept alt checkpoint to the user checkpoint it
-            // semantically lands at. Plan position `k` cherry-picks the
-            // user step originating at `fromSha + k`, landing on user
-            // checkpoint `fromIdx + k + 1`. Used by the chart to anchor
-            // alt steps against the user's tMs-interpolated layout
-            // after whitespace-only intermediates have been dropped.
-            val fromIdx = userIdxBySha[rw.fromSha]
-            val altCheckpointUserIndexes = if (fromIdx != null) {
-                rw.planStepPositions.map { fromIdx + 1 + it }
-            } else {
-                emptyList()
-            }
-            AlternativeTrajectory(
-                kind = DivergenceKind.REWORK,
-                stepIndexes = emptyList(),
-                fromSha = rw.fromSha,
-                userToSha = rw.userToSha,
-                branchRefs = rw.branchRefs,
-                specs = emptyList(),
-                altCheckpoints = altCps,
-                altCheckpointUserIndexes = altCheckpointUserIndexes,
-            ) to rw
-        }
-    val reworkAlts = reworkAltsWithInfo.map { it.first }
+    val (reworkAltsWithInfo, reworkAlts) = computeReworkAlts(
+        baseCheckpoints,
+        reworkSummary,
+        altMetricsBySha,
+        trackedCodeSmells,
+        trackedDuplication,
+        metrics
+    )
 
     val baseAlternatives = singleStepAlts + reorderAlts + reworkAlts
     val reworkBaseOffset = singleStepAlts.size + reorderAlts.size
@@ -1024,4 +853,246 @@ internal fun buildAnalysisReport(
             .toList(),
     )
     return preAdviceReport.copy(advice = TrajectoryAdvisor.advise(preAdviceReport))
+}
+
+private fun computeReworkAlts(
+    baseCheckpoints: List<CheckpointReport>,
+    reworkSummary: ReworkSynthesiser.Summary?,
+    altMetricsBySha: Map<String, CheckpointMetrics>,
+    trackedCodeSmells: PmdTrackingRunner.Summary,
+    trackedDuplication: CpdTrackingRunner.Summary,
+    metrics: MetricsRunner.Summary
+): Pair<List<Pair<AlternativeTrajectory, ReworkSynthesiser.SynthesisedRework>>, List<AlternativeTrajectory>> {
+    // Rework alts: one entry per synthesised rework. `specs` /
+    // `stepIndexes` are empty because rework replays raw user commits
+    // rather than miner-typed refactoring steps; the chart and
+    // continuation walk only consume `altCheckpoints` + from/userToSha
+    // anchors, which the rest of the alt-trajectory plumbing handles
+    // uniformly.
+    // Rework alts whose `altShas[i]` aliases a user SHA (the no-op
+    // case — delete-then-undelete cancels out, alt branches at fromSha
+    // and never moves) must NOT inherit the user's main-walk diff at
+    // that SHA. The user's diffBySha[fromSha] reflects fromSha's churn
+    // from its parent — i.e. the code that was already there before
+    // the rework — which has nothing to do with the alt. Attributing
+    // it to the alt's first step inflates the alt's churn / smells
+    // delta and depresses the process score artificially. Zero out
+    // the diff for any alt checkpoint whose SHA collides with a user
+    // checkpoint.
+    val userShaSet = baseCheckpoints.map { it.sha }.toSet()
+    // Build rework alts alongside their originating SynthesisedRework so
+    // the divergence-point builder can attach file/scope/lineCount/step
+    // metadata without re-running detection.
+    val userIdxBySha = baseCheckpoints.withIndex().associate { (i, cp) -> cp.sha to i }
+    val reworkAltsWithInfo: List<Pair<AlternativeTrajectory, ReworkSynthesiser.SynthesisedRework>> =
+        reworkSummary?.synthesised.orEmpty().mapNotNull { rw ->
+            val altCps = rw.altShas.map { sha ->
+                val cp = altCheckpointFor(sha, altMetricsBySha, trackedCodeSmells, trackedDuplication, metrics)
+                    ?: return@mapNotNull null
+                if (sha in userShaSet) cp.copy(diff = DiffStats.ZERO) else cp
+            }
+            // Map each kept alt checkpoint to the user checkpoint it
+            // semantically lands at. Plan position `k` cherry-picks the
+            // user step originating at `fromSha + k`, landing on user
+            // checkpoint `fromIdx + k + 1`. Used by the chart to anchor
+            // alt steps against the user's tMs-interpolated layout
+            // after whitespace-only intermediates have been dropped.
+            val fromIdx = userIdxBySha[rw.fromSha]
+            val altCheckpointUserIndexes = if (fromIdx != null) {
+                rw.planStepPositions.map { fromIdx + 1 + it }
+            } else {
+                emptyList()
+            }
+            AlternativeTrajectory(
+                kind = DivergenceKind.REWORK,
+                stepIndexes = emptyList(),
+                fromSha = rw.fromSha,
+                userToSha = rw.userToSha,
+                branchRefs = rw.branchRefs,
+                specs = emptyList(),
+                altCheckpoints = altCps,
+                altCheckpointUserIndexes = altCheckpointUserIndexes,
+            ) to rw
+        }
+    val reworkAlts = reworkAltsWithInfo.map { it.first }
+    return Pair(reworkAltsWithInfo, reworkAlts)
+}
+
+private fun computeReorderAlts(
+    reorderTrajectories: List<ReorderTrajectory>,
+    stepsByIndex: Map<Int, RefactoringStep>,
+    altMetricsBySha: Map<String, CheckpointMetrics>,
+    trackedCodeSmells: PmdTrackingRunner.Summary,
+    trackedDuplication: CpdTrackingRunner.Summary,
+    metrics: MetricsRunner.Summary
+): List<AlternativeTrajectory> {
+    // Multi-step alts from kept reorder orderings. Each ordering becomes
+    // one AlternativeTrajectory entry covering N applied steps in the
+    // permutation order. Terminal step's CheckpointReport is built off
+    // the aliased CheckpointMetrics (Slice 2b) so its `metrics` field
+    // matches the user's windowToSha checkpoint for build/test/PMD —
+    // PMD/CPD tracking entries for the terminal sha were also computed
+    // upstream (inter-bracket pair `(prev_step, terminal_sha)` is in
+    // `allAltPairs`). Failed orderings emit no entry per Slice 2b scope.
+    val reorderAlts = reorderTrajectories.flatMap { traj ->
+        traj.orderings.mapNotNull { ord ->
+            if (!ord.terminalSuccess) return@mapNotNull null
+            if (ord.stepShas.size != ord.permutation.size) return@mapNotNull null
+            val orderedStepIndexes = ord.permutation.map { i -> traj.windowStepIndexes[i] }
+            val orderedSpecs = ord.permutation.mapNotNull { i ->
+                stepsByIndex[traj.windowStepIndexes[i]]?.spec
+            }
+            if (orderedSpecs.size != ord.permutation.size) return@mapNotNull null
+            val altCps = ord.stepShas.mapNotNull {
+                altCheckpointFor(
+                    it,
+                    altMetricsBySha,
+                    trackedCodeSmells,
+                    trackedDuplication,
+                    metrics
+                )
+            }
+            if (altCps.size != ord.stepShas.size) return@mapNotNull null
+
+            // Trim leading shared prefix: any contiguous run from the
+            // start where the alt's permutation matches the user's
+            // chronological order (window-local indices 0,1,2,...).
+            // Those steps produced state identical to the user's, so
+            // counting them as alt-side divergence inflates the alt's
+            // process-score penalties and clutters the chart with
+            // overlapping dots. Anchor the alt at the user's checkpoint
+            // *after* the shared prefix and drop the prefix entries.
+            //
+            // TODO(efficiency): the trimmed step SHAs are still listed
+            // in `reorderIntermediateShas` (collected in `run()`), so
+            // MetricsRunner builds + tests them and Pmd/Cpd tracking
+            // computes entries for them. None of that work surfaces in
+            // the report. A follow-up should also trim the
+            // `reorderIntermediateShas` collection in `run()` to skip
+            // those builds. Visually + score-wise, trimming here alone
+            // is correct.
+            var sharedPrefixLen = 0
+            while (sharedPrefixLen < ord.permutation.size &&
+                ord.permutation[sharedPrefixLen] == sharedPrefixLen
+            ) {
+                sharedPrefixLen++
+            }
+            // Defensive: an entirely-shared ordering would mean the alt
+            // == the user's order, which the synthesiser excludes —
+            // drop if it ever leaks through.
+            if (sharedPrefixLen >= ord.permutation.size) return@mapNotNull null
+
+            val anchorSha = if (sharedPrefixLen == 0) {
+                traj.windowFromSha
+            } else {
+                val lastSharedIdx = traj.windowStepIndexes[sharedPrefixLen - 1]
+                stepsByIndex[lastSharedIdx]?.toSha ?: traj.windowFromSha
+            }
+
+            AlternativeTrajectory(
+                kind = DivergenceKind.ORDERING,
+                stepIndexes = orderedStepIndexes.drop(sharedPrefixLen),
+                fromSha = anchorSha,
+                userToSha = traj.windowToSha,
+                branchRefs = ord.branchRefs.drop(sharedPrefixLen),
+                specs = orderedSpecs.drop(sharedPrefixLen),
+                altCheckpoints = altCps.drop(sharedPrefixLen),
+            )
+        }
+    }
+    return reorderAlts
+}
+
+private fun computeSingleStepAlts(
+    alternative: IdeRefactoringsRunner.Summary,
+    stepsByIndex: Map<Int, RefactoringStep>,
+    altMetricsBySha: Map<String, CheckpointMetrics>,
+    trackedCodeSmells: PmdTrackingRunner.Summary,
+    trackedDuplication: CpdTrackingRunner.Summary,
+    metrics: MetricsRunner.Summary
+): List<AlternativeTrajectory> {
+    // IDE-driven alts: one entry per synthesised group. `altCheckpoints`
+    // is the per-step chain (one per applied refactoring + optional
+    // trailing residual SHA). `specs` and `stepIndexes` are parallel to
+    // *each other* (length N) and cover only the refactoring portion;
+    // `altCheckpoints` is length N or N+1 depending on whether the
+    // residual landed as its own step. When `altCheckpoints.size ==
+    // specs.size + 1`, the trailing entry is the residual cleanup.
+    val singleStepAlts = alternative.synthesised.mapNotNull { synth ->
+        val specs = synth.stepIndexes.map { idx ->
+            stepsByIndex[idx]?.spec ?: return@mapNotNull null
+        }
+        val altCps = synth.altShas.map {
+            altCheckpointFor(
+                it,
+                altMetricsBySha,
+                trackedCodeSmells,
+                trackedDuplication,
+                metrics
+            ) ?: return@mapNotNull null
+        }
+        AlternativeTrajectory(
+            kind = DivergenceKind.IDE_REPLAY,
+            stepIndexes = synth.stepIndexes,
+            fromSha = synth.fromSha,
+            userToSha = synth.userToSha,
+            branchRefs = synth.branchRefs,
+            specs = specs,
+            altCheckpoints = altCps,
+            residual = synth.residual,
+        )
+    }
+    return singleStepAlts
+}
+
+private fun computeBySha(
+    reconstruction: ReconstructionResult,
+    trace: Trace
+): Pair<LinkedHashMap<String, MutableList<EventSummary>>, LinkedHashMap<String, LinkedHashSet<TouchedMember>>> {
+    // Preserve event order so each checkpoint's event list reads
+    // chronologically — LinkedHashMap's insertion order is what we want.
+    val eventsBySha = LinkedHashMap<String, MutableList<EventSummary>>()
+    val membersBySha = LinkedHashMap<String, LinkedHashSet<TouchedMember>>()
+    val mapping = reconstruction.eventCommits.mapping
+    for (event in trace.events) {
+        val sha = mapping[event.id] ?: continue
+        val eventMembers = LinkedHashSet<TouchedMember>()
+        for (snap in event.changedFiles) {
+            eventMembers.addAll(snap.touchedMembers)
+        }
+        eventsBySha.getOrPut(sha) { mutableListOf() }.add(
+            EventSummary(
+                id = event.id,
+                type = event.type,
+                timestamp = event.timestamp,
+                touchedMembers = eventMembers.toList(),
+                refactoringId = event.payload["refactoringId"],
+            ),
+        )
+        membersBySha.getOrPut(sha) { LinkedHashSet() }.addAll(eventMembers)
+    }
+    return Pair(eventsBySha, membersBySha)
+}
+
+// Helper: build a CheckpointReport for one alt step SHA. Alt SHAs
+// never carry user events / touched members; metrics + tracking come
+// from the augmented alt-checkpoint map (which includes terminal
+// aliases for reorder orderings).
+fun altCheckpointFor(
+    sha: String,
+    altCheckpointsFor: Map<String, CheckpointMetrics>,
+    trackedCodeSmells: PmdTrackingRunner.Summary,
+    trackedDuplication: CpdTrackingRunner.Summary,
+    metrics: MetricsRunner.Summary
+): CheckpointReport? {
+    val m = altCheckpointsFor[sha] ?: return null
+    return CheckpointReport(
+        sha = sha,
+        events = emptyList(),
+        metrics = m,
+        diff = metrics.diffBySha[sha] ?: DiffStats.ZERO,
+        touchedMembers = emptyList(),
+        pmdTracking = trackedCodeSmells.alternativeTrackingBySha[sha] ?: PmdTracking.EMPTY,
+        cpdTracking = trackedDuplication.alternativeTrackingBySha[sha] ?: CpdTracking.EMPTY,
+    )
 }
