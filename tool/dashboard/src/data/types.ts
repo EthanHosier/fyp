@@ -90,7 +90,6 @@ export type CheckpointVM = {
 export type ProcessScoreContribution = {
   id:
     | "cleanliness"
-    | "degradation"
     | "broken"
     | "skipTests"
     | "manualIde"

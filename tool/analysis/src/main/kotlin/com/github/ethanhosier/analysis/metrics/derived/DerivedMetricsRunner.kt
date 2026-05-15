@@ -117,20 +117,7 @@ import kotlin.math.roundToLong
  *     on the cumulative ledger from when it was `added`; adding a carry
  *     drag would double-count.
  *
- *  7. Intermediate degradation — running-peak dip integral. Cleanliness
- *     gain is point-in-time (clean(t) − clean(0)) so a trajectory that
- *     dips and then recovers to baseline scores identically to one that
- *     stayed clean — the score forgets the dip. The intermediate-
- *     degradation term remembers it: track the running max of
- *     cleanliness, sum `max(0, peak − clean(i))` across the prefix, and
- *     normalise by checkpoint count to keep the term in [0, 1].
- *     Penalises both the depth of the dip and how long the trajectory
- *     stayed below its prior best. Picked running-peak over endpoint-
- *     floor because the latter lets a clever path hide a dip by ending
- *     where it started; running-peak captures "you got the code clean
- *     once, you don't get to forget that you broke it."
- *
- *  8. No churn term. Bigger refactorings shouldn't be inherently worse
+ *  7. No churn term. Bigger refactorings shouldn't be inherently worse
  *     than smaller ones.
  */
 class DerivedMetricsRunner {
@@ -616,9 +603,6 @@ class DerivedMetricsRunner {
          *  "you should have committed by now" overdue stretch. Drives
          *  the W_COMMIT_GAP penalty in [buildProcessScore]. */
         val commitGapEvents: Int,
-        val peakCleanliness: Double,
-        val dipIntegral: Double,
-        val dipObservations: Int,
         val cleanliness0: Double?,
         val checkpointsSoFar: Int,
     )
@@ -706,9 +690,6 @@ class DerivedMetricsRunner {
         manualWhenIdeCount = 0,
         greenSinceLastCommit = 0,
         commitGapEvents = 0,
-        peakCleanliness = cleanliness0 ?: 0.0,
-        dipIntegral = 0.0,
-        dipObservations = 0,
         cleanliness0 = cleanliness0,
         checkpointsSoFar = 0,
     )
@@ -782,16 +763,6 @@ class DerivedMetricsRunner {
         val brokenMs = snap.brokenMs + brokenMsInc
         val elapsedMs = snap.elapsedMs + durationMs
 
-        var peakCleanliness = snap.peakCleanliness
-        var dipIntegral = snap.dipIntegral
-        var dipObservations = snap.dipObservations
-        if (cleanT != null) {
-            if (cleanT > peakCleanliness) peakCleanliness = cleanT
-            dipIntegral += max(0.0, peakCleanliness - cleanT)
-            dipObservations += 1
-        }
-        val degradationFrac = if (dipObservations == 0) 0.0 else dipIntegral / dipObservations
-
         val checkpointsSoFar = snap.checkpointsSoFar + 1
         // Time-weighted broken fraction: avoids dilution from
         // many-small-checkpoints manual-edit clusters.
@@ -820,9 +791,6 @@ class DerivedMetricsRunner {
             manualWhenIdeCount = manualWhenIdeCount,
             ideRelevantCount = ideRelevantCount,
             commitGapEvents = commitGapEvents,
-            degradationFrac = degradationFrac,
-            peakCleanliness = peakCleanliness,
-            cleanT = cleanT,
         )
 
         val next = ProcessSnapshot(
@@ -835,9 +803,6 @@ class DerivedMetricsRunner {
             manualWhenIdeCount = manualWhenIdeCount,
             greenSinceLastCommit = greenSinceLastCommit,
             commitGapEvents = commitGapEvents,
-            peakCleanliness = peakCleanliness,
-            dipIntegral = dipIntegral,
-            dipObservations = dipObservations,
             cleanliness0 = snap.cleanliness0,
             checkpointsSoFar = checkpointsSoFar,
         )
@@ -1141,16 +1106,6 @@ class DerivedMetricsRunner {
             }
         }
 
-        var peakCleanliness = snap.peakCleanliness
-        var dipIntegral = snap.dipIntegral
-        var dipObservations = snap.dipObservations
-        if (cleanT != null) {
-            if (cleanT > peakCleanliness) peakCleanliness = cleanT
-            dipIntegral += max(0.0, peakCleanliness - cleanT)
-            dipObservations += 1
-        }
-        val degradationFrac = if (dipObservations == 0) 0.0 else dipIntegral / dipObservations
-
         val checkpointsSoFar = snap.checkpointsSoFar + 1
         val brokenFrac = if (elapsedMs > 0L) brokenMs.toDouble() / elapsedMs.toDouble() else 0.0
         val skipFrac = if (testsSkippedCount == 0) 0.0
@@ -1175,9 +1130,6 @@ class DerivedMetricsRunner {
             manualWhenIdeCount = manualWhenIdeCount,
             ideRelevantCount = ideRelevantCount,
             commitGapEvents = commitGapEvents,
-            degradationFrac = degradationFrac,
-            peakCleanliness = peakCleanliness,
-            cleanT = cleanT,
         )
 
         val next = ProcessSnapshot(
@@ -1190,9 +1142,6 @@ class DerivedMetricsRunner {
             manualWhenIdeCount = manualWhenIdeCount,
             greenSinceLastCommit = greenSinceLastCommit,
             commitGapEvents = commitGapEvents,
-            peakCleanliness = peakCleanliness,
-            dipIntegral = dipIntegral,
-            dipObservations = dipObservations,
             cleanliness0 = snap.cleanliness0,
             checkpointsSoFar = checkpointsSoFar,
         )
@@ -1222,13 +1171,9 @@ class DerivedMetricsRunner {
         manualWhenIdeCount: Int,
         ideRelevantCount: Int,
         commitGapEvents: Int,
-        degradationFrac: Double,
-        peakCleanliness: Double,
-        cleanT: Double?,
     ): ProcessScore {
         val cleanlinessPoints = W_GAIN * cleanlinessGain
         val brokenPoints = -W_BROKEN * brokenFrac
-        val degradationPoints = -W_DEGRADATION * degradationFrac
         val skipPoints = -W_SKIP_TESTS * skipFrac
         val manualPoints = -W_MANUAL_IDE * manualFrac
         // Fixed −W_COMMIT_GAP per event (one "you should have committed
@@ -1243,12 +1188,6 @@ class DerivedMetricsRunner {
                 label = "Cleanliness gain",
                 points = cleanlinessPoints,
                 detail = formatGainDetail(cleanlinessGain),
-            ),
-            ProcessContribution(
-                id = "degradation",
-                label = "Intermediate degradation",
-                points = degradationPoints,
-                detail = formatDegradationDetail(degradationFrac, peakCleanliness, cleanT),
             ),
             ProcessContribution(
                 id = "broken",
@@ -1285,7 +1224,7 @@ class DerivedMetricsRunner {
 
         val unclamped = BASELINE +
             cleanlinessPoints + brokenPoints +
-            degradationPoints + skipPoints + manualPoints + commitGapPoints
+            skipPoints + manualPoints + commitGapPoints
         val clampedValue = max(0.0, min(100.0, unclamped))
         val total = clampedValue.roundToLong().toInt()
         val clamped = unclamped != clampedValue
@@ -1295,12 +1234,6 @@ class DerivedMetricsRunner {
             clamped = clamped,
             contributions = contributions,
         )
-    }
-
-    private fun formatDegradationDetail(frac: Double, peak: Double, cleanT: Double?): String {
-        if (frac == 0.0) return "no dip below running peak"
-        val gap = if (cleanT == null) 0.0 else max(0.0, peak - cleanT)
-        return "avg gap ${"%.2f".format(frac)} below running peak ${"%.2f".format(peak)} (currently ${"%.2f".format(gap)} below)"
     }
 
     private fun formatGainDetail(gain: Double): String {
@@ -1347,9 +1280,6 @@ class DerivedMetricsRunner {
         // event.
         private const val W_GAIN = 50.0
         private const val W_BROKEN = 28.0
-        // Lighter than broken-checkpoints (more acute) and the gain term
-        // (which still dominates net improvement).
-        private const val W_DEGRADATION = 21.0
         // Hygiene triplet, ordered by safety-criticality:
         // tests > IDE-correctness > commit cadence.
         private const val W_SKIP_TESTS = 14.0

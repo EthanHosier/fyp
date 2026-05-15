@@ -60,9 +60,9 @@ export const METRIC_DESCRIPTORS: Record<MetricId, MetricDescriptor> = {
     summary:
       "How well the refactoring process has gone up to here — cumulative.",
     formula:
-      "50 + 50·CleanlinessGain − 28·BrokenFrac − 21·IntermediateDegradation − 14·TestsSkipped − 11·ManualWhenIde − 7·CommitGapEvents",
+      "50 + 50·CleanlinessGain − 28·BrokenFrac − 14·TestsSkipped − 11·ManualWhenIde − 7·CommitGapEvents",
     detail:
-      "A single 0..100 score that summarises the trajectory so far rather than the code at this instant. Weighted gain in code quality from the start (cognitive, coupling, duplication, readability, smells, cohesion — weights from the literature) pushes the score up; broken checkpoints, refactorings without follow-up tests, manual edits where the IDE could have done the refactoring, long stretches of green refactor checkpoints without committing, and intermediate degradation (running-peak dips — \"you got the code clean once, you don't get to forget that you broke it\") all push it down. Anchored at 50 so a flat trajectory isn't misread as perfect.",
+      "A single 0..100 score that summarises the trajectory so far rather than the code at this instant. Weighted gain in code quality from the start (cognitive, coupling, duplication, readability, smells, cohesion — weights from the literature) pushes the score up; time spent in a broken state, refactorings without follow-up tests, manual edits where the IDE could have done the refactoring, and long stretches of green refactor checkpoints without committing all push it down. Anchored at 50 so a flat trajectory isn't misread as perfect.",
   },
   cleanliness: {
     summary:

@@ -43,7 +43,7 @@ Scope: Composition, weight-justification, sensitivity, framing for a weighted-su
 - **Contribution:** SQALE encodes quality as a hierarchy of non-compliance items each priced with a "remediation cost" (minutes), summed to a debt index. The industry-standard composite quality score (powers SonarQube).
 - **Weighting scheme used:** Hand-tuned, expert-elicited remediation-cost weights per rule violation; characteristic-level aggregation by sum.
 - **Sensitivity analysis:** No, in original paper — weights are fiat.
-- **Applicability to thesis:** Direct precedent for the thesis's penalty terms (smell delta, cleanliness gain/degradation) being valued in fixed weights. Cite SQALE as the canonical "weighted-sum with expert weights" composite, then justify why your weights deviate.
+- **Applicability to thesis:** Direct precedent for the thesis's penalty terms (cleanliness gain, broken-build, hygiene) being valued in fixed weights. Cite SQALE as the canonical "weighted-sum with expert weights" composite, then justify why your weights deviate.
 
 ### MORE: A multi-objective refactoring recommendation approach (Ouni, Kessentini, Sahraoui, Inoue & Deb, 2017)
 - **Venue:** Journal of Software: Evolution and Process 29(5), e1843
@@ -113,7 +113,7 @@ Scope: Composition, weight-justification, sensitivity, framing for a weighted-su
 - **Contribution:** Across 233 sequential releases of 10 systems, shows that developers leave ~25% potential cohesion/coupling improvement on the table to avoid the ~57% structural disruption that optimum solutions demand.
 - **Weighting scheme used:** Bi-objective: quality improvement vs disruption magnitude.
 - **Sensitivity analysis:** Yes — trade-off front explored systematically.
-- **Applicability to thesis:** Empirical anchor for the "cleanliness degradation" and "build broken" penalty terms — quantifies how aversion to disruption is a first-class signal in developer behaviour.
+- **Applicability to thesis:** Empirical anchor for the "build broken" penalty term — quantifies how aversion to disruption is a first-class signal in developer behaviour, motivating $W_\text{BROKEN}$ as the largest negative weight.
 
 ### Understanding the impact of refactoring on smells: a longitudinal study of 23 software projects (Cedrim, Garcia, Mongiovi, Gheyi, Sousa, Ribeiro, Chávez & Mens, 2017)
 - **Venue:** FSE 2017, pp. 465–475
@@ -121,7 +121,7 @@ Scope: Composition, weight-justification, sensitivity, framing for a weighted-su
 - **Contribution:** ~57% of refactorings are neutral on smells; some (e.g. Pull Up Method) introduce new smells in 28% of applications.
 - **Weighting scheme used:** N/A.
 - **Sensitivity analysis:** No — descriptive longitudinal study.
-- **Applicability to thesis:** Direct empirical justification for the "smell delta" and "cleanliness degradation" sub-signals: refactoring often makes things worse, so the score must penalise regressions, not merely reward gains.
+- **Applicability to thesis:** Direct empirical justification for treating $W_\text{GAIN}$ as a *signed* term — refactoring often makes things worse, so the score must let cleanliness regressions cost points (negative `cleanlinessGain · W_GAIN`) rather than only rewarding gains.
 
 ### When and Why Your Code Starts to Smell Bad (Tufano, Palomba, Bavota, Oliveto, Di Penta, De Lucia & Poshyvanyk, 2017; journal 2020)
 - **Venue:** IEEE Transactions on Software Engineering 43(11), 1063–1088 (2017); extended in TSE 2020
@@ -371,31 +371,38 @@ The 28:14:11:7 instantiation gives each adjacent pair a roughly 2:1 or
 ~3:2 step, mirroring SQALE's "blocker:critical:major:minor" severity
 gradient. Literature analogue: SQALE / Letouzey 2012.
 
-**Constraint C3 — Progress asymmetry.** Sustained cleanliness
-improvement is rewarded more strongly than transient cleanliness dips
-are punished: $W_\text{GAIN} > W_\text{DEGRADATION}$. This codifies
-the empirical reality that some interim degradation is normal during a
-refactor — Cedrim et al. 2017 find ~57% of refactorings are neutral or
-worse on smells. The exact ratio is *not* claimed to follow from Paixão
-or Cedrim; it is a deliberate prior that intentionally leans
-encouraging.
+**Constraint C3 — Dominant positive.** Sustained cleanliness
+improvement is the dominant signed term: $W_\text{GAIN}$ is large
+enough that a maximally-clean trajectory reaches the score's
+$\text{BASELINE} + W_\text{GAIN} = 100$ ceiling, and `cleanlinessGain`
+is itself signed — a trajectory ending dirtier than it started
+contributes $W_\text{GAIN} \cdot \text{(cleanT − cleanliness0)} < 0$,
+so end-state regression is already on the books without a separate
+term. Literature analogue: Cedrim et al. 2017 (refactoring often
+neutral or worse) motivates the asymmetric framing.
 
 **Current instantiation:**
 
 | Weight             | Magnitude | Constraints it satisfies |
 |--------------------|-----------|--------------------------|
-| W_GAIN             | 50        | dominant positive (C3)   |
+| W_GAIN             | 50        | dominant positive (C3); signed, so end-state regression already costs ≤ −50 |
 | W_BROKEN           | 28        | C1 (dominates typical gain)        |
-| W_DEGRADATION      | 21        | C3 (~42% of W_GAIN)                |
 | W_SKIP_TESTS       | 14        | C2 (half W_BROKEN)                 |
 | W_MANUAL_IDE       | 11        | C2 (≈¾ W_SKIP_TESTS)               |
 | W_COMMIT_GAP       | 7         | C2 (half W_SKIP_TESTS)             |
 
-Smells are deliberately absent as a standalone process-score term: the
-PMD smell delta already feeds the cleanliness composite that drives
-$W_\text{GAIN}$ and $W_\text{DEGRADATION}$. Surfacing it again as a
-top-level penalty would double-count the same signal; the cleanliness
-machinery is the canonical carrier.
+Two terms are deliberately absent:
+- **Smells** as a standalone process-score term — the PMD smell delta
+  already feeds the cleanliness composite that drives $W_\text{GAIN}$.
+  Surfacing it again would double-count.
+- **Intermediate degradation** (running-peak cleanliness dip integral)
+  — the only thing it captured uniquely was "structural quality
+  regressed mid-trajectory but recovered by the end". `W_BROKEN`
+  handles build/test regressions, signed `W_GAIN` handles end-state
+  regressions; the residual case (cleanliness dipped and recovered)
+  is also already de-emphasised by Cedrim 2017's "interim dips are
+  normal during a refactor" framing. Drop simplifies the ablation
+  table without losing coverage of the actual regression axes.
 
 Crucially, **any other instantiation satisfying C1–C3 would be an
 equally defensible thesis.** What the thesis defends is the
@@ -499,7 +506,7 @@ file creation, not gradually — snapshot scores can't see this).
 | Smell count + thresholding            | Marinescu 2004                    | Arcelli Fontana et al. 2017                       |
 | Process-layer composition (weighted sum + fiat weights) | Letouzey 2012 (SQALE)             | Quamoco                                          |
 | W_BROKEN axiom                        | Paixão et al. 2017                | —                                                |
-| W_GAIN / W_DEGRADATION asymmetry       | Paixão et al. 2017                | Cedrim et al. 2017                               |
+| W_GAIN dominant positive (signed)      | Paixão et al. 2017                | Cedrim et al. 2017                               |
 | Non-structural penalty terms (caveat) | Pantiuchina et al. 2018           | —                                                |
 | "Why weighted sum, not Pareto"        | Harman & Tratt 2007 (counter)     | Mkaouer 2016 (counter)                           |
 | Sensitivity-analysis chapter motivation | Verdecchia et al. 2022 (ATDx)     | Arcelli Fontana et al. 2017 (template)           |
