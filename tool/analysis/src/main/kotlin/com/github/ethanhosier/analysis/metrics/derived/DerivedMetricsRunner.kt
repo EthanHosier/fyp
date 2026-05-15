@@ -1,5 +1,6 @@
 package com.github.ethanhosier.analysis.metrics.derived
 
+import com.github.ethanhosier.analysis.divergence.HygieneDetector.MIN_COMMIT_GAP
 import com.github.ethanhosier.analysis.metrics.model.AlternativeTrajectory
 import com.github.ethanhosier.analysis.pipeline.CheckpointReport
 import com.github.ethanhosier.analysis.pipeline.Cleanliness
@@ -582,21 +583,22 @@ class DerivedMetricsRunner {
 
     private data class ProcessSnapshot(
         val brokenCount: Int,
-        val addedSmellWeight: Int,
-        val resolvedSmellWeight: Int,
-        val totalSmellWeightSeen: Int,
-        // Time integral of running open-smell weight: sum_t (added_t -
-        // resolved_t) sampled after each checkpoint. Divided by
-        // checkpointsSoFar this gives the average open-smell load over
-        // the trajectory — the basis for the `netSmell` penalty.
-        // Churn-invariant: a path that adds 5 smells then resolves all
-        // contributes the same to this integral as a path that adds 5
-        // and leaves them open (over the same number of steps).
-        val openSmellWeightIntegral: Int,
         val refactoringStepsCount: Int,
         val testsSkippedCount: Int,
         val ideRelevantCount: Int,
         val manualWhenIdeCount: Int,
+        /** Cumulative count of green-refactor checkpoints since the most
+         *  recent (real or synthetic) commit. Mirrors HygieneDetector's
+         *  `greenSinceLastCommit` walk: a checkpoint counts iff a
+         *  refactoring step landed there AND build+tests both passed
+         *  AND tests weren't skipped. Reset to 0 at a user commit or
+         *  after a commit-gap event fires. */
+        val greenSinceLastCommit: Int,
+        /** Number of times the green-refactor counter has crossed
+         *  [MIN_COMMIT_GAP] so far on this trajectory — one event per
+         *  "you should have committed by now" overdue stretch. Drives
+         *  the W_COMMIT_GAP penalty in [buildProcessScore]. */
+        val commitGapEvents: Int,
         val peakCleanliness: Double,
         val dipIntegral: Double,
         val dipObservations: Int,
@@ -658,14 +660,12 @@ class DerivedMetricsRunner {
     /** Zero snapshot for the start of a main walk. */
     private fun initialMainSnapshot(cleanliness0: Double?): ProcessSnapshot = ProcessSnapshot(
         brokenCount = 0,
-        addedSmellWeight = 0,
-        resolvedSmellWeight = 0,
-        totalSmellWeightSeen = 0,
-        openSmellWeightIntegral = 0,
         refactoringStepsCount = 0,
         testsSkippedCount = 0,
         ideRelevantCount = 0,
         manualWhenIdeCount = 0,
+        greenSinceLastCommit = 0,
+        commitGapEvents = 0,
         peakCleanliness = cleanliness0 ?: 0.0,
         dipIntegral = 0.0,
         dipObservations = 0,
@@ -679,10 +679,9 @@ class DerivedMetricsRunner {
      * "continuation" walks past the merge point (seeded with the alt's
      * terminal snapshot — see [computeAltContinuations]). Either way
      * the per-step accounting is the same: real `wasPerformedByIde`
-     * flags from [stepsLandingHere], real `TEST_RUN_FINISHED` events
-     * via [stepUserRanTests], seed-checkpoint smell handling via
-     * [smellsForCheckpoint] keyed on [cpIndex]. Returns the new
-     * snapshot and the cumulative process score after this step.
+     * flags from [stepsLandingHere] and real `TEST_RUN_FINISHED` events
+     * via [stepUserRanTests]. Returns the new snapshot and the
+     * cumulative process score after this step.
      */
     private fun advanceMainStep(
         snap: ProcessSnapshot,
@@ -700,25 +699,6 @@ class DerivedMetricsRunner {
         val testsFailed = !testsOk && !testsSkipped
         val brokenInc = if (!build || testsFailed) 1 else 0
 
-        // Smell ledger is priority-weighted ((6 - priority), clamped ≥ 0).
-        // Same convention as the frontend `process-score.ts` smell weight.
-        // Skip the ledger update entirely when this checkpoint isn't
-        // trustworthy — broken build/tests typically means sparse PMD
-        // output, which would otherwise look like "every prior smell
-        // was resolved here", artificially deflating the smell load.
-        val (added, resolved) =
-            if (isTrustworthy(cp)) smellsForCheckpoint(checkpoints, cpIndex)
-            else 0 to 0
-        val addedSmellWeight = snap.addedSmellWeight + added
-        val resolvedSmellWeight = snap.resolvedSmellWeight + resolved
-        val totalSmellWeightSeen = snap.totalSmellWeightSeen + added
-        // Sample running open weight AFTER this checkpoint's adds /
-        // resolves are applied. Floor at 0 because a path that's
-        // resolved more than it added shouldn't count as negative
-        // smell load.
-        val openSmellWeightIntegral = snap.openSmellWeightIntegral +
-            max(0, addedSmellWeight - resolvedSmellWeight)
-
         var refactoringStepsCount = snap.refactoringStepsCount
         var testsSkippedCount = snap.testsSkippedCount
         var ideRelevantCount = snap.ideRelevantCount
@@ -729,6 +709,29 @@ class DerivedMetricsRunner {
             if (s.refactoring.ideRelevant) {
                 ideRelevantCount += 1
                 if (!s.wasPerformedByIde) manualWhenIdeCount += 1
+            }
+        }
+
+        // Commit-gap walk: mirrors HygieneDetector's `greenSinceLastCommit`
+        // counter (`anchorIndex` checkpoint logic). Increments per
+        // green-refactor checkpoint; resets on real or synthetic commits;
+        // each threshold crossing emits one "missed commit" event. The
+        // penalty is per overdue stretch, not per step — so a developer
+        // who batches 18 green refactors without committing is charged
+        // 3 events, not 18 increments.
+        val testsAtCpSuccess = testsOk && !testsSkipped
+        val landsRefactor = stepsLandingHere.isNotEmpty()
+        val greenRefactorCp = landsRefactor && build && testsAtCpSuccess
+        var greenSinceLastCommit = snap.greenSinceLastCommit
+        var commitGapEvents = snap.commitGapEvents
+        when {
+            cp.isUserCommit -> greenSinceLastCommit = 0
+            greenRefactorCp -> {
+                greenSinceLastCommit += 1
+                if (greenSinceLastCommit >= MIN_COMMIT_GAP) {
+                    commitGapEvents += 1
+                    greenSinceLastCommit = 0
+                }
             }
         }
 
@@ -746,7 +749,6 @@ class DerivedMetricsRunner {
 
         val checkpointsSoFar = snap.checkpointsSoFar + 1
         val brokenFrac = brokenCount.toDouble() / checkpointsSoFar.toDouble()
-        val netSmell = computeNetSmell(openSmellWeightIntegral, checkpointsSoFar)
         // Laplace smoothing only kicks in when at least one bad step
         // has happened; a perfect record (0 of N) returns 0 penalty.
         val skipFrac = if (refactoringStepsCount == 0 || testsSkippedCount == 0) 0.0
@@ -762,16 +764,13 @@ class DerivedMetricsRunner {
             brokenFrac = brokenFrac,
             brokenCount = brokenCount,
             checkpointsSoFar = checkpointsSoFar,
-            netSmell = netSmell,
-            openSmellWeightIntegral = openSmellWeightIntegral,
-            addedSmellWeight = addedSmellWeight,
-            resolvedSmellWeight = resolvedSmellWeight,
             skipFrac = skipFrac,
             testsSkippedCount = testsSkippedCount,
             refactoringStepsCount = refactoringStepsCount,
             manualFrac = manualFrac,
             manualWhenIdeCount = manualWhenIdeCount,
             ideRelevantCount = ideRelevantCount,
+            commitGapEvents = commitGapEvents,
             degradationFrac = degradationFrac,
             peakCleanliness = peakCleanliness,
             cleanT = cleanT,
@@ -779,14 +778,12 @@ class DerivedMetricsRunner {
 
         val next = ProcessSnapshot(
             brokenCount = brokenCount,
-            addedSmellWeight = addedSmellWeight,
-            resolvedSmellWeight = resolvedSmellWeight,
-            totalSmellWeightSeen = totalSmellWeightSeen,
-            openSmellWeightIntegral = openSmellWeightIntegral,
             refactoringStepsCount = refactoringStepsCount,
             testsSkippedCount = testsSkippedCount,
             ideRelevantCount = ideRelevantCount,
             manualWhenIdeCount = manualWhenIdeCount,
+            greenSinceLastCommit = greenSinceLastCommit,
+            commitGapEvents = commitGapEvents,
             peakCleanliness = peakCleanliness,
             dipIntegral = dipIntegral,
             dipObservations = dipObservations,
@@ -924,9 +921,9 @@ class DerivedMetricsRunner {
     }
 
     /** Walk one synthetic alt step forward from [snap] using [cp]'s
-     *  metrics + smell delta + [cleanT]. Alt steps are definitionally
-     *  IDE-driven (`wasPerformedByIde=true`, `ideRelevant=true`) and
-     *  never count as manual. [userRanTests] mirrors the user's actual
+     *  metrics and [cleanT]. Alt steps are definitionally IDE-driven
+     *  (`wasPerformedByIde=true`, `ideRelevant=true`) and never count
+     *  as manual. [userRanTests] mirrors the user's actual
      *  TEST_RUN_FINISHED behaviour at the user step this alt step
      *  covers — credits the alt for tests the user would have run had
      *  they taken this path. Returns the new running snapshot and the
@@ -943,17 +940,7 @@ class DerivedMetricsRunner {
         val testsFailed = !testsOk && !testsSkipped
         val brokenInc = if (!build || testsFailed) 1 else 0
 
-        // Skip the alt smell-ledger update on untrustworthy alt
-        // checkpoints — same rationale as the main walk.
-        val (addedW, resolvedW) =
-            if (isTrustworthy(cp)) smellWeightsForAltCp(cp)
-            else 0 to 0
         val brokenCount = snap.brokenCount + brokenInc
-        val addedSmellWeight = snap.addedSmellWeight + addedW
-        val resolvedSmellWeight = snap.resolvedSmellWeight + resolvedW
-        val totalSmellWeightSeen = snap.totalSmellWeightSeen + addedW
-        val openSmellWeightIntegral = snap.openSmellWeightIntegral +
-            max(0, addedSmellWeight - resolvedSmellWeight)
 
         val refactoringStepsCount = snap.refactoringStepsCount + 1
         // Synthesised commits carry no user events, so we mirror what
@@ -963,6 +950,26 @@ class DerivedMetricsRunner {
         val ideRelevantCount = snap.ideRelevantCount + 1
         // Performed by IDE definitionally ⇒ doesn't count as manual.
         val manualWhenIdeCount = snap.manualWhenIdeCount
+
+        // Commit-gap: alt steps land at synthesised commits which carry
+        // `isUserCommit = false` by default (HYGIENE COMMIT_GAP alts flip
+        // their anchor to `true` — same field, same reset rule). A
+        // green-refactor alt step adds to the running counter just like
+        // a green user step would; threshold crossings emit events.
+        val testsAtAltSuccess = testsOk && !testsSkipped
+        val greenRefactorCp = build && testsAtAltSuccess
+        var greenSinceLastCommit = snap.greenSinceLastCommit
+        var commitGapEvents = snap.commitGapEvents
+        when {
+            cp.isUserCommit -> greenSinceLastCommit = 0
+            greenRefactorCp -> {
+                greenSinceLastCommit += 1
+                if (greenSinceLastCommit >= MIN_COMMIT_GAP) {
+                    commitGapEvents += 1
+                    greenSinceLastCommit = 0
+                }
+            }
+        }
 
         var peakCleanliness = snap.peakCleanliness
         var dipIntegral = snap.dipIntegral
@@ -976,7 +983,6 @@ class DerivedMetricsRunner {
 
         val checkpointsSoFar = snap.checkpointsSoFar + 1
         val brokenFrac = brokenCount.toDouble() / checkpointsSoFar.toDouble()
-        val netSmell = computeNetSmell(openSmellWeightIntegral, checkpointsSoFar)
         val skipFrac = if (testsSkippedCount == 0) 0.0
             else (testsSkippedCount + 1).toDouble() / (refactoringStepsCount + 2).toDouble()
         val manualFrac = if (manualWhenIdeCount == 0) 0.0
@@ -990,16 +996,13 @@ class DerivedMetricsRunner {
             brokenFrac = brokenFrac,
             brokenCount = brokenCount,
             checkpointsSoFar = checkpointsSoFar,
-            netSmell = netSmell,
-            openSmellWeightIntegral = openSmellWeightIntegral,
-            addedSmellWeight = addedSmellWeight,
-            resolvedSmellWeight = resolvedSmellWeight,
             skipFrac = skipFrac,
             testsSkippedCount = testsSkippedCount,
             refactoringStepsCount = refactoringStepsCount,
             manualFrac = manualFrac,
             manualWhenIdeCount = manualWhenIdeCount,
             ideRelevantCount = ideRelevantCount,
+            commitGapEvents = commitGapEvents,
             degradationFrac = degradationFrac,
             peakCleanliness = peakCleanliness,
             cleanT = cleanT,
@@ -1007,14 +1010,12 @@ class DerivedMetricsRunner {
 
         val next = ProcessSnapshot(
             brokenCount = brokenCount,
-            addedSmellWeight = addedSmellWeight,
-            resolvedSmellWeight = resolvedSmellWeight,
-            totalSmellWeightSeen = totalSmellWeightSeen,
-            openSmellWeightIntegral = openSmellWeightIntegral,
             refactoringStepsCount = refactoringStepsCount,
             testsSkippedCount = testsSkippedCount,
             ideRelevantCount = ideRelevantCount,
             manualWhenIdeCount = manualWhenIdeCount,
+            greenSinceLastCommit = greenSinceLastCommit,
+            commitGapEvents = commitGapEvents,
             peakCleanliness = peakCleanliness,
             dipIntegral = dipIntegral,
             dipObservations = dipObservations,
@@ -1023,49 +1024,6 @@ class DerivedMetricsRunner {
         )
         return next to score
     }
-
-    /**
-     * Added / resolved priority-weight totals at main checkpoint index `t`.
-     * Mirrors the frontend `deriveSmells` bucketing rule: the seed
-     * checkpoint (t == 0) has no predecessor to carry from, so PMD's
-     * `firstSeenAtSha = curr.sha` rows are treated as carried — *not*
-     * added — to avoid charging the user for preexisting baseline smells.
-     */
-    private fun smellsForCheckpoint(checkpoints: List<CheckpointReport>, t: Int): Pair<Int, Int> {
-        val cp = checkpoints[t]
-        val violations = cp.metrics.pmd.violations
-        val firstSeen = cp.pmdTracking.firstSeenAtSha
-
-        var added = 0
-        if (t > 0) {
-            for (i in violations.indices) {
-                val seenAt = firstSeen.getOrNull(i) ?: cp.sha
-                if (seenAt == cp.sha) added += smellWeight(violations[i].priority)
-            }
-        }
-        var resolved = 0
-        for (r in cp.pmdTracking.resolvedSincePrev) resolved += smellWeight(r.priority)
-        return added to resolved
-    }
-
-    /** Same convention for an alt checkpoint — seed semantics don't apply
-     *  (an alt is always a transition from `fromSha`), so any violation
-     *  whose `firstSeenAtSha` is the alt sha counts as added. */
-    private fun smellWeightsForAltCp(cp: CheckpointReport): Pair<Int, Int> {
-        val violations = cp.metrics.pmd.violations
-        val firstSeen = cp.pmdTracking.firstSeenAtSha
-        var added = 0
-        for (i in violations.indices) {
-            val seenAt = firstSeen.getOrNull(i) ?: cp.sha
-            if (seenAt == cp.sha) added += smellWeight(violations[i].priority)
-        }
-        var resolved = 0
-        for (r in cp.pmdTracking.resolvedSincePrev) resolved += smellWeight(r.priority)
-        return added to resolved
-    }
-
-    /** Priority 1 (worst) → 5; priority 5 → 1. Clamped ≥ 0. */
-    private fun smellWeight(priority: Int): Int = max(0, 6 - priority)
 
     /** True iff the checkpoint that the step landed on has any
      *  `TEST_RUN_FINISHED` event — same heuristic as the frontend. */
@@ -1081,26 +1039,27 @@ class DerivedMetricsRunner {
         brokenFrac: Double,
         brokenCount: Int,
         checkpointsSoFar: Int,
-        netSmell: Double,
-        openSmellWeightIntegral: Int,
-        addedSmellWeight: Int,
-        resolvedSmellWeight: Int,
         skipFrac: Double,
         testsSkippedCount: Int,
         refactoringStepsCount: Int,
         manualFrac: Double,
         manualWhenIdeCount: Int,
         ideRelevantCount: Int,
+        commitGapEvents: Int,
         degradationFrac: Double,
         peakCleanliness: Double,
         cleanT: Double?,
     ): ProcessScore {
         val cleanlinessPoints = W_GAIN * cleanlinessGain
         val brokenPoints = -W_BROKEN * brokenFrac
-        val smellPoints = -W_SMELL * netSmell
         val degradationPoints = -W_DEGRADATION * degradationFrac
         val skipPoints = -W_SKIP_TESTS * skipFrac
         val manualPoints = -W_MANUAL_IDE * manualFrac
+        // Fixed −W_COMMIT_GAP per event (one "you should have committed
+        // by now" stretch). Unbounded — the score's overall [0, 100]
+        // clamp is the only ceiling. Each event = MIN_COMMIT_GAP green
+        // refactor checkpoints without a commit.
+        val commitGapPoints = -W_COMMIT_GAP * commitGapEvents.toDouble()
 
         val contributions = listOf(
             ProcessContribution(
@@ -1122,17 +1081,6 @@ class DerivedMetricsRunner {
                 detail = "$brokenCount of $checkpointsSoFar checkpoint${if (checkpointsSoFar == 1) "" else "s"} broken (${pct(brokenFrac)})",
             ),
             ProcessContribution(
-                id = "smells",
-                label = "Smell load (time-average)",
-                points = smellPoints,
-                detail = formatSmellDetail(
-                    openSmellWeightIntegral = openSmellWeightIntegral,
-                    checkpointsSoFar = checkpointsSoFar,
-                    addedSmellWeight = addedSmellWeight,
-                    resolvedSmellWeight = resolvedSmellWeight,
-                ),
-            ),
-            ProcessContribution(
                 id = "skipTests",
                 label = "Tests skipped after refactor",
                 points = skipPoints,
@@ -1146,11 +1094,19 @@ class DerivedMetricsRunner {
                 detail = if (ideRelevantCount == 0) "no IDE-relevant refactorings yet"
                 else "$manualWhenIdeCount of $ideRelevantCount IDE-relevant step${if (ideRelevantCount == 1) "" else "s"} done manually",
             ),
+            ProcessContribution(
+                id = "commitGap",
+                label = "Long stretch without committing",
+                points = commitGapPoints,
+                detail = if (commitGapEvents == 0) "no overdue commit stretches"
+                else "$commitGapEvents stretch${if (commitGapEvents == 1) "" else "es"} of " +
+                    "≥$MIN_COMMIT_GAP green refactor checkpoints without a commit",
+            ),
         )
 
         val unclamped = BASELINE +
-            cleanlinessPoints + brokenPoints + smellPoints +
-            degradationPoints + skipPoints + manualPoints
+            cleanlinessPoints + brokenPoints +
+            degradationPoints + skipPoints + manualPoints + commitGapPoints
         val clampedValue = max(0.0, min(100.0, unclamped))
         val total = clampedValue.roundToLong().toInt()
         val clamped = unclamped != clampedValue
@@ -1172,37 +1128,6 @@ class DerivedMetricsRunner {
         if (gain == 0.0) return "no change from baseline"
         val dir = if (gain > 0.0) "up" else "down"
         return "$dir ${"%.2f".format(kotlin.math.abs(gain))} from c0 baseline"
-    }
-
-    /**
-     * Time-integral smell penalty: `min(1, avgOpenWeight / SATURATION)`.
-     * avgOpenWeight = integral of (added - resolved) sampled after each
-     * checkpoint, divided by checkpoints seen. Churn-invariant: two paths
-     * with the same final unresolved smell count get the same score even
-     * if one passed through messier intermediates. Saturates at
-     * [SMELL_SATURATION_WEIGHT] open weight (∼ "consistently this much
-     * unresolved smell" maxes the penalty).
-     */
-    private fun computeNetSmell(openSmellWeightIntegral: Int, checkpointsSoFar: Int): Double {
-        if (checkpointsSoFar <= 0) return 0.0
-        val avg = openSmellWeightIntegral.toDouble() / checkpointsSoFar.toDouble()
-        return min(1.0, avg / SMELL_SATURATION_WEIGHT)
-    }
-
-    private fun formatSmellDetail(
-        openSmellWeightIntegral: Int,
-        checkpointsSoFar: Int,
-        addedSmellWeight: Int,
-        resolvedSmellWeight: Int,
-    ): String {
-        if (openSmellWeightIntegral == 0 && addedSmellWeight == 0 && resolvedSmellWeight == 0) {
-            return "no smells touched"
-        }
-        val avg = if (checkpointsSoFar <= 0) 0.0
-        else openSmellWeightIntegral.toDouble() / checkpointsSoFar.toDouble()
-        val openNow = max(0, addedSmellWeight - resolvedSmellWeight)
-        return "avg ${"%.1f".format(avg)} open weight per checkpoint (currently $openNow open; " +
-            "$addedSmellWeight introduced, $resolvedSmellWeight resolved cumulatively)"
     }
 
     private fun pct(x: Double): String = "${(x * 100.0).roundToInt()}%"
@@ -1227,19 +1152,14 @@ class DerivedMetricsRunner {
         // event.
         private const val W_GAIN = 50.0
         private const val W_BROKEN = 28.0
-        // Same magnitude as the smells weight: both are "you let things
-        // deteriorate" penalties. Lighter than broken-checkpoints (more
-        // acute) and the gain term (which still dominates net improvement).
+        // Lighter than broken-checkpoints (more acute) and the gain term
+        // (which still dominates net improvement).
         private const val W_DEGRADATION = 21.0
-        private const val W_SMELL = 21.0
+        // Hygiene triplet, ordered by safety-criticality:
+        // tests > IDE-correctness > commit cadence.
         private const val W_SKIP_TESTS = 14.0
         private const val W_MANUAL_IDE = 11.0
+        private const val W_COMMIT_GAP = 7.0
         private const val BASELINE = 50
-
-        // Average open-smell weight at which the smells penalty saturates
-        // (netSmell = 1.0). Weights are priority-derived (6 − priority,
-        // clamped ≥ 0), so 10 ≈ "consistently five priority-1 violations
-        // open" or "ten priority-5 violations open" across the trajectory.
-        private const val SMELL_SATURATION_WEIGHT = 10.0
     }
 }

@@ -359,14 +359,17 @@ analogue: Paixão et al. 2018 — disruption is a real cost developers
 attend to.
 
 **Constraint C2 — Process-hygiene severity ordering.** Process-hygiene
-signals are ordered by safety-criticality: build correctness >
-test execution > commit cadence. Formally:
-$W_\text{BROKEN} > W_\text{SKIP\_TESTS} > W_\text{COMMIT\_GAP} > 0$.
-Build correctness is the headline safety property; running tests
-corroborates it; committing frequently is review-and-rollback
-ergonomics. The 4:2:1 instantiation (28:14:7) mirrors SQALE's
-"blocker:critical:major" severity steps. Literature analogue: SQALE /
-Letouzey 2012.
+signals are ordered by safety-criticality: test execution >
+IDE-correctness guarantee > commit cadence. Formally:
+$W_\text{BROKEN} > W_\text{SKIP\_TESTS} > W_\text{MANUAL\_IDE} >
+W_\text{COMMIT\_GAP} > 0$. Build correctness is the headline disruption
+term; running tests corroborates it; using the IDE's mechanically-safe
+refactoring instead of a hand-edit is a correctness-guarantee axis
+(structural transformations the IDE applies are AST-preserving by
+construction); committing frequently is review-and-rollback ergonomics.
+The 28:14:11:7 instantiation gives each adjacent pair a roughly 2:1 or
+~3:2 step, mirroring SQALE's "blocker:critical:major:minor" severity
+gradient. Literature analogue: SQALE / Letouzey 2012.
 
 **Constraint C3 — Progress asymmetry.** Sustained cleanliness
 improvement is rewarded more strongly than transient cleanliness dips
@@ -377,12 +380,6 @@ worse on smells. The exact ratio is *not* claimed to follow from Paixão
 or Cedrim; it is a deliberate prior that intentionally leans
 encouraging.
 
-**Constraint C4 — Non-domination.** The smell ledger must contribute
-to the score but not dominate the static cleanliness signal it derives
-from: $W_\text{SMELL} \leq W_\text{DEGRADATION}$. Literature analogue:
-Pantiuchina et al. 2018 — structural metrics alone are noisy, so the
-smell-delta should be a corroborating signal, not the headline one.
-
 **Current instantiation:**
 
 | Weight             | Magnitude | Constraints it satisfies |
@@ -390,11 +387,17 @@ smell-delta should be a corroborating signal, not the headline one.
 | W_GAIN             | 50        | dominant positive (C3)   |
 | W_BROKEN           | 28        | C1 (dominates typical gain)        |
 | W_DEGRADATION      | 21        | C3 (~42% of W_GAIN)                |
-| W_SMELL            | 21        | C4 (=W_DEGRADATION ceiling)        |
 | W_SKIP_TESTS       | 14        | C2 (half W_BROKEN)                 |
+| W_MANUAL_IDE       | 11        | C2 (≈¾ W_SKIP_TESTS)               |
 | W_COMMIT_GAP       | 7         | C2 (half W_SKIP_TESTS)             |
 
-Crucially, **any other instantiation satisfying C1–C4 would be an
+Smells are deliberately absent as a standalone process-score term: the
+PMD smell delta already feeds the cleanliness composite that drives
+$W_\text{GAIN}$ and $W_\text{DEGRADATION}$. Surfacing it again as a
+top-level penalty would double-count the same signal; the cleanliness
+machinery is the canonical carrier.
+
+Crucially, **any other instantiation satisfying C1–C3 would be an
 equally defensible thesis.** What the thesis defends is the
 *ranking-stability of its conclusions* under perturbation of these
 magnitudes (the sensitivity-analysis result), and the *non-redundancy*
@@ -406,13 +409,16 @@ A reasonable concern: if W_BROKEN fires per checkpoint, longer
 refactoring sessions would accumulate more broken-state penalties just
 by virtue of having more checkpoints. The implementation forestalls
 this by pro-rating per-step penalties over the refactoring-step count:
-W_BROKEN, W_SKIP_TESTS, and W_COMMIT_GAP are applied as *fractions* of
-their full weight, scaled by `1 / refactoringStepsCount` per step. This is
-documented at the call sites in `DerivedMetricsRunner.advanceMainStep`
-and is what allows the per-step penalty to compose into a
-trajectory-wide score without length bias. The methodology chapter
-should state this explicitly so the marker doesn't have to read code
-to confirm it.
+W_BROKEN, W_SKIP_TESTS, and W_MANUAL_IDE are applied as *fractions* of
+their full weight, scaled by `1 / refactoringStepsCount` per step.
+W_COMMIT_GAP is handled differently — it fires a fixed −7 each time the
+running count of green refactor checkpoints since the last commit
+crosses `MIN_COMMIT_GAP = 6` (the threshold inherited from the hygiene
+detector), with the score's overall [0, 100] clamp acting as the
+ceiling. This is documented at the call sites in
+`DerivedMetricsRunner.advanceMainStep`. The methodology chapter should
+state both normalisation conventions explicitly so the marker doesn't
+have to read code to confirm them.
 
 → **See:** Paixão et al. 2018 (TEVC) for disruption framing; Cedrim
 et al. 2017 (FSE) for refactoring-degradation prevalence; Letouzey
@@ -432,11 +438,11 @@ and operational detail live in **`PLAN-experiment.md`**. In summary:
   rankings vs data-driven alternatives. Methodological template from
   Arcelli Fontana et al. 2017 (IST).
 - **Ablation** — run the pipeline with subsets of the process layer
-  (cleanliness-only, +safety penalties, +gain/degradation only,
-  +smell ledger only, full) and compare divergence-point output. Each
-  term must be demonstrably non-redundant; a term that doesn't change
-  the output gets deleted from the score (and that deletion is itself
-  a stronger thesis result).
+  (cleanliness-only, +broken, +hygiene triplet (skipTests / manualIde /
+  commitGap), full) and compare divergence-point output. Each term must
+  be demonstrably non-redundant; a term that doesn't change the output
+  gets deleted from the score (and that deletion is itself a stronger
+  thesis result).
 
 Together these convert "I picked weights and cited papers" into:
 *structure literature-backed → terms axiomatically constrained →

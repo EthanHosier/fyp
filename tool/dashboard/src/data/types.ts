@@ -92,9 +92,9 @@ export type ProcessScoreContribution = {
     | "cleanliness"
     | "degradation"
     | "broken"
-    | "smells"
     | "skipTests"
     | "manualIde"
+    | "commitGap"
   label: string
   /** Signed; sums (with `baseline`) to `total` before clamping. */
   points: number
