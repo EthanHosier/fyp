@@ -232,13 +232,25 @@ class DerivedMetricsRunner {
         // ranges; the midpoint placeholder uses the main ranges too so
         // the alt slot is comparable). Per-alt trust info collected
         // alongside so the pipeline can splice it onto alt CheckpointReports.
+        //
+        // Seed `lastGood` from the user's effective aggregate at
+        // `alt.fromSha` so an alt whose first cp is broken inherits
+        // the user's last-known-good state (PRIOR) rather than
+        // dropping to MIDPOINT. Without this, e.g. a no-op rework alt
+        // aliasing a broken user cp had no in-alt prior, so its
+        // cleanliness collapsed to session midpoint — wrong, because
+        // the natural "before" state is the same user cp the main
+        // walk already carry-forwarded for.
+        val mainEffectiveBySha: Map<String, Aggregates> = mainCheckpoints
+            .mapIndexed { i, cp -> cp.sha to mainAgg[i] }
+            .toMap()
         val altAgg = mutableListOf<List<Aggregates>>()
         val altTrustInfo = mutableListOf<List<TrustInfo>>()
         for (alt in alternatives) {
             val rawAgg = alt.altCheckpoints.map { aggregate(it, touchedSet) }
             val effective = MutableList<Aggregates?>(alt.altCheckpoints.size) { null }
             val trust = MutableList(alt.altCheckpoints.size) { TrustInfo(true, null) }
-            var lastGood: Aggregates? = null
+            var lastGood: Aggregates? = mainEffectiveBySha[alt.fromSha]
             for (i in alt.altCheckpoints.indices) {
                 if (isTrustworthy(alt.altCheckpoints[i])) {
                     effective[i] = rawAgg[i]
@@ -922,11 +934,16 @@ class DerivedMetricsRunner {
         for (s in userSteps) {
             ref += 1
             if (s.refactoring.ideRelevant) ide += 1
-            // Mirror the user's actual test-running behaviour at the
-            // step's landing cp — credit the alt for tests the user
-            // would plausibly have run had they taken this path.
-            val ranTests = userRanTestsByStepIndex[s.stepIndex] ?: false
-            if (!ranTests) skip += 1
+            // IDE_REPLAY alts are "you could have used the IDE refactor"
+            // counterfactuals — they assume the safer mechanical path,
+            // which includes running tests after. Don't inherit the
+            // user's actual skip-behaviour; treat the alt as if it ran
+            // tests. ORDERING alts replace a *different* user refactor
+            // 1:1 — the user's test-running habit at that step is the
+            // natural fairness comparison.
+            val altRanTests = alt.kind == DivergenceKind.IDE_REPLAY ||
+                (userRanTestsByStepIndex[s.stepIndex] ?: false)
+            if (!altRanTests) skip += 1
         }
         return AltStepDelta(ref, ide, skip, landsRefactor = true)
     }
