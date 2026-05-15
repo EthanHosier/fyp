@@ -3,16 +3,16 @@ package com.github.ethanhosier.analysis.advice
 import com.github.ethanhosier.analysis.metrics.ck.CkResult
 import com.github.ethanhosier.analysis.metrics.cpd.CpdResult
 import com.github.ethanhosier.analysis.metrics.gradlebuild.BuildResult
-import com.github.ethanhosier.analysis.metrics.model.AdviceKind
-import com.github.ethanhosier.analysis.metrics.model.AdviceSeverity
+import com.github.ethanhosier.analysis.pipeline.AdviceKind
+import com.github.ethanhosier.analysis.pipeline.AdviceSeverity
 import com.github.ethanhosier.analysis.metrics.model.AlternativeTrajectory
-import com.github.ethanhosier.analysis.metrics.model.AnalysisReport
+import com.github.ethanhosier.analysis.pipeline.AnalysisReport
 import com.github.ethanhosier.analysis.metrics.model.CheckpointMetrics
-import com.github.ethanhosier.analysis.metrics.model.CheckpointReport
-import com.github.ethanhosier.analysis.metrics.model.DerivedMetrics
-import com.github.ethanhosier.analysis.metrics.model.PmdTracking
-import com.github.ethanhosier.analysis.metrics.model.ProcessScore
-import com.github.ethanhosier.analysis.metrics.model.UserGitCommit
+import com.github.ethanhosier.analysis.pipeline.CheckpointReport
+import com.github.ethanhosier.analysis.pipeline.DerivedMetrics
+import com.github.ethanhosier.analysis.pipeline.PmdTracking
+import com.github.ethanhosier.analysis.pipeline.ProcessScore
+import com.github.ethanhosier.analysis.pipeline.UserGitCommit
 import com.github.ethanhosier.analysis.metrics.pmd.PmdResult
 import com.github.ethanhosier.analysis.metrics.readability.ReadabilityResult
 import com.github.ethanhosier.analysis.metrics.tests.TestResult
@@ -22,9 +22,9 @@ import com.github.ethanhosier.analysis.miner.model.RefactoringStep
 import com.github.ethanhosier.ideplugin.model.SessionMetadata
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import com.github.ethanhosier.analysis.pipeline.RunInfo
 
 class TrajectoryAdvisorTest {
 
@@ -343,7 +343,7 @@ class TrajectoryAdvisorTest {
             ideVersion = "x",
             pluginVersion = "x",
         ),
-        run = com.github.ethanhosier.analysis.metrics.model.RunInfo(
+        run = RunInfo(
             parallelism = 1, generatedAt = 0, metricsDurationMs = 0,
         ),
         checkpoints = checkpoints,

@@ -84,6 +84,62 @@ const PLACEHOLDER_BREAKDOWN: ProcessScoreBreakdown = {
  * Cleanliness is omitted when the backend couldn't normalise (degenerate
  * trajectory) — `null` in `values` reads as "no data" everywhere.
  */
+// Murphy-Hill et al. 2012 batch-refactoring window — kept in sync with
+// `HygieneDetector.COMPOSITE_GAP_MS` on the backend.
+const COMPOSITE_GAP_MS = 60_000
+
+/**
+ * Per-step "did the user run tests after this refactor's batch?" map.
+ * Steps within COMPOSITE_GAP_MS of each other form a composite; the
+ * composite is "tested" iff any `TEST_RUN_FINISHED` event lands in
+ * `[firstStep.ts, nextComposite.firstStep.ts)`. Returns
+ * `userRanTests = false` ONLY for the last step of an untested
+ * composite — every other step in the batch reports `true`, matching
+ * the backend's per-batch TESTS_SKIPPED finding semantics.
+ */
+function computeStepUserRanTests(
+  steps: RefactoringStep[],
+  checkpoints: CheckpointReport[],
+): Map<number, boolean> {
+  const out = new Map<number, boolean>()
+  if (steps.length === 0) return out
+
+  const sorted = [...steps].sort((a, b) => a.timestamp - b.timestamp)
+  const composites: RefactoringStep[][] = []
+  let current: RefactoringStep[] | null = null
+  let prevTs: number | null = null
+  for (const s of sorted) {
+    const gap = prevTs == null ? Number.POSITIVE_INFINITY : s.timestamp - prevTs
+    if (current == null || gap > COMPOSITE_GAP_MS) {
+      current = []
+      composites.push(current)
+    }
+    current.push(s)
+    prevTs = s.timestamp
+  }
+
+  const testTimestamps = checkpoints
+    .flatMap((c) => c.events ?? [])
+    .filter((e) => e.type === "TEST_RUN_FINISHED")
+    .map((e) => e.timestamp)
+    .sort((a, b) => a - b)
+
+  for (let i = 0; i < composites.length; i++) {
+    const c = composites[i]
+    const lo = c[0].timestamp
+    const hi = composites[i + 1]?.[0].timestamp ?? Number.POSITIVE_INFINITY
+    const tested = testTimestamps.some((t) => t >= lo && t < hi)
+    for (let k = 0; k < c.length; k++) {
+      const isLast = k === c.length - 1
+      // Every non-last step in the composite is silenced (true) so the
+      // UI doesn't repeat the "tests not run" pitfall N times. The last
+      // step carries the actual tested/untested verdict for the batch.
+      out.set(c[k].stepIndex, isLast ? tested : true)
+    }
+  }
+  return out
+}
+
 function checkpointValues(c: CheckpointReport): Partial<Record<MetricId, number>> {
   const d = c.derivedMetrics
   if (!d) return {}
@@ -523,9 +579,20 @@ export function toViewModel(report: AnalysisReport): DashboardViewModel {
       }
     : undefined
 
+  // Composite-window assignment (mirrors `DerivedMetricsRunner` +
+  // `HygieneDetector` on the backend, Murphy-Hill 2012). Refactoring
+  // steps within 60s of each other form one batch; the UI flags the
+  // missed-test pitfall on the *last* step of an untested batch only.
+  // Other steps in the same batch report `userRanTests = true` so the
+  // chart glyph / pitfall card don't repeat the warning for each
+  // refactor in the cluster.
+  const userRanTestsByStepIndex = computeStepUserRanTests(
+    report.refactoringSteps ?? [],
+    report.checkpoints ?? [],
+  )
+
   const refactoringSteps: RefactoringStepVM[] = (report.refactoringSteps ?? []).map(
     (s: RefactoringStep, i) => {
-      const toEvents = report.checkpoints[s.toCheckpointIndex]?.events ?? []
       // Each step has its own slot xPos, even when multiple steps share a
       // landing checkpoint (RefactoringMiner can detect N refactorings
       // inside a single user-edit transition). Step dots render side by
@@ -548,7 +615,7 @@ export function toViewModel(report: AnalysisReport): DashboardViewModel {
         shortToSha: shortSha(s.toSha),
         ideRelevant: s.refactoring.ideRelevant,
         wasPerformedByIde: s.wasPerformedByIde ?? false,
-        userRanTests: toEvents.some((e) => e.type === "TEST_RUN_FINISHED"),
+        userRanTests: userRanTestsByStepIndex.get(s.stepIndex) ?? true,
         patch: report.refactoringPatches?.[i] ?? "",
       }
     },
@@ -746,6 +813,18 @@ export function toViewModel(report: AnalysisReport): DashboardViewModel {
             processBreakdown: altProcessBreakdown,
             cleanlinessScore: altCleanlinessBreakdown?.total ?? null,
             cleanlinessBreakdown: altCleanlinessBreakdown,
+            // Carry-forward badge gating — HYGIENE alts inherit their
+            // anchor user cp's trust flag (set in
+            // `HygieneDetector.buildAlts`), and ORDERING / IDE_REPLAY
+            // alts get their own trust info via the backend
+            // `DerivedMetricsRunner` alt-walk. Without threading these
+            // through, broken-cp alts silently render trustworthy.
+            metricsTrustworthy: cp.metricsTrustworthy ?? true,
+            metricsCarryForwardSource:
+              cp.metricsCarryForwardSource === "PRIOR" ||
+              cp.metricsCarryForwardSource === "MIDPOINT"
+                ? cp.metricsCarryForwardSource
+                : undefined,
           }
           return {
             altSha: cp.sha,

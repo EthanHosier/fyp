@@ -27,7 +27,7 @@ Scope: Composition, weight-justification, sensitivity, framing for a weighted-su
 - **Contribution:** Demonstrates many-objective (up to 15) optimisation of QMOOD-style quality factors for automated refactoring; argues that aggregating quality dimensions into a single weighted sum collapses information and motivates Pareto fronts.
 - **Weighting scheme used:** None for selection (Pareto), but each objective is itself a weighted QMOOD attribute — i.e. weights live one level down.
 - **Sensitivity analysis:** Yes — compares NSGA-III vs NSGA-II vs IBEA vs MOEA/D vs mono-objective weighted-sum on convergence and code-smell coverage. Gives empirical evidence that weighted-sum loses information at high dimensionality.
-- **Applicability to thesis:** Cite as the counter-argument the thesis must address: why a weighted sum is acceptable here (low dimension, single-developer signal, interpretability) even though many-objective work prefers Pareto.
+- **Applicability to thesis:** Cite as the counter-argument the thesis must address: why a weighted sum is acceptable here (low dimension, single-developer signal, interpretability) even though many-objective work prefers Pareto. Also: the 15-objective formulation includes "minimise number of refactorings / code changes" as a first-class co-equal objective — empirical anchor for $W_\text{LENGTH}$ being a real-but-not-dominant signal. Reported empirical effect: NSGA-III suggested ~80 changes vs 95–101 for competitors, i.e. compression of ~15–20% is achievable and developer-preferred.
 
 ### Pareto Optimal Search Based Refactoring at the Design Level (Harman & Tratt, 2007)
 - **Venue:** GECCO '07, pp. 1106–1113
@@ -43,14 +43,15 @@ Scope: Composition, weight-justification, sensitivity, framing for a weighted-su
 - **Contribution:** SQALE encodes quality as a hierarchy of non-compliance items each priced with a "remediation cost" (minutes), summed to a debt index. The industry-standard composite quality score (powers SonarQube).
 - **Weighting scheme used:** Hand-tuned, expert-elicited remediation-cost weights per rule violation; characteristic-level aggregation by sum.
 - **Sensitivity analysis:** No, in original paper — weights are fiat.
-- **Applicability to thesis:** Direct precedent for the thesis's penalty terms (smell delta, cleanliness gain/degradation) being valued in fixed weights. Cite SQALE as the canonical "weighted-sum with expert weights" composite, then justify why your weights deviate.
+- **Applicability to thesis:** Direct precedent for the thesis's penalty terms (cleanliness gain, broken-build, hygiene) being valued in fixed weights. Cite SQALE as the canonical "weighted-sum with expert weights" composite, then justify why your weights deviate.
 
 ### MORE: A multi-objective refactoring recommendation approach (Ouni, Kessentini, Sahraoui, Inoue & Deb, 2017)
 - **Venue:** Journal of Software: Evolution and Process 29(5), e1843
 - **URL:** https://doi.org/10.1002/smr.1843
-- **Contribution:** Three-objective refactoring (quality improvement, design-pattern introduction, smell removal) framed as SBSE problem.
-- **Weighting scheme used:** Multi-objective (NSGA-II); per-objective uses summed QMOOD-style quality factors.
+- **Contribution:** Multi-objective refactoring (quality improvement, design-pattern introduction, smell removal, **minimise size of refactoring solution**, semantics preservation) framed as SBSE problem.
+- **Weighting scheme used:** Multi-objective (NSGA-II); each objective is co-equal on the Pareto front; per-objective uses summed QMOOD-style quality factors.
 - **Sensitivity analysis:** Reports trade-off curves but no formal weight-perturbation study.
+- **Applicability to thesis:** Anchors $W_\text{LENGTH}$: "minimise size of refactoring solution" is a recognised first-class objective in SBSE, treated as co-equal to (not above, not below) quality terms. Supports placing $W_\text{LENGTH}$ in the behavioural-cost tier of the weights.
 - **Applicability to thesis:** Useful as a Bucket-A multi-objective foil; reinforces that sub-signal composition is an open methodological choice.
 
 ## Bucket B — Weight-justification methodologies
@@ -113,7 +114,7 @@ Scope: Composition, weight-justification, sensitivity, framing for a weighted-su
 - **Contribution:** Across 233 sequential releases of 10 systems, shows that developers leave ~25% potential cohesion/coupling improvement on the table to avoid the ~57% structural disruption that optimum solutions demand.
 - **Weighting scheme used:** Bi-objective: quality improvement vs disruption magnitude.
 - **Sensitivity analysis:** Yes — trade-off front explored systematically.
-- **Applicability to thesis:** Empirical anchor for the "cleanliness degradation" and "build broken" penalty terms — quantifies how aversion to disruption is a first-class signal in developer behaviour.
+- **Applicability to thesis:** Empirical anchor for the "build broken" penalty term — quantifies how aversion to disruption is a first-class signal in developer behaviour, motivating $W_\text{BROKEN}$ as the largest negative weight.
 
 ### Understanding the impact of refactoring on smells: a longitudinal study of 23 software projects (Cedrim, Garcia, Mongiovi, Gheyi, Sousa, Ribeiro, Chávez & Mens, 2017)
 - **Venue:** FSE 2017, pp. 465–475
@@ -121,7 +122,15 @@ Scope: Composition, weight-justification, sensitivity, framing for a weighted-su
 - **Contribution:** ~57% of refactorings are neutral on smells; some (e.g. Pull Up Method) introduce new smells in 28% of applications.
 - **Weighting scheme used:** N/A.
 - **Sensitivity analysis:** No — descriptive longitudinal study.
-- **Applicability to thesis:** Direct empirical justification for the "smell delta" and "cleanliness degradation" sub-signals: refactoring often makes things worse, so the score must penalise regressions, not merely reward gains.
+- **Applicability to thesis:** Direct empirical justification for treating $W_\text{GAIN}$ as a *signed* term — refactoring often makes things worse, so the score must let cleanliness regressions cost points (negative `cleanlinessGain · W_GAIN`) rather than only rewarding gains.
+
+### How We Refactor, and How We Know It (Murphy-Hill, Parnin & Black, 2012)
+- **Venue:** IEEE Transactions on Software Engineering 38(1), 5–18 (2012)
+- **URL:** https://doi.org/10.1109/TSE.2011.41
+- **Contribution:** Eclipse-telemetry study of professional refactoring practice (~700 sessions across the Mylyn corpus + lab study). Introduces the *batch refactoring* concept and quantifies it: refactorings executed within 60 s of each other form a batch, and ~40 % of tool-invoked refactorings cluster this way. Provides the canonical empirical anchor for treating a composite, rather than an individual step, as the unit at which test cadence should be assessed.
+- **Weighting scheme used:** N/A — empirical telemetry study.
+- **Sensitivity analysis:** No (descriptive).
+- **Applicability to thesis:** Directly backs the 60 s composite window used as the denominator for `W_SKIP_TESTS`. Cited at the constant `COMPOSITE_GAP_MS` and in the penalty-normalisation section. Provides the *empirical* counterweight to Fowler 2018's per-step prescription: the textbook says "test after every micro-step", but professional practice batches and tests at the boundary; the metric scores against the latter for fairness.
 
 ### When and Why Your Code Starts to Smell Bad (Tufano, Palomba, Bavota, Oliveto, Di Penta, De Lucia & Poshyvanyk, 2017; journal 2020)
 - **Venue:** IEEE Transactions on Software Engineering 43(11), 1063–1088 (2017); extended in TSE 2020
@@ -359,40 +368,69 @@ analogue: Paixão et al. 2018 — disruption is a real cost developers
 attend to.
 
 **Constraint C2 — Process-hygiene severity ordering.** Process-hygiene
-signals are ordered by safety-criticality: build correctness >
-test execution > commit cadence. Formally:
-$W_\text{BROKEN} > W_\text{SKIP\_TESTS} > W_\text{COMMIT\_GAP} > 0$.
-Build correctness is the headline safety property; running tests
-corroborates it; committing frequently is review-and-rollback
-ergonomics. The 4:2:1 instantiation (28:14:7) mirrors SQALE's
-"blocker:critical:major" severity steps. Literature analogue: SQALE /
-Letouzey 2012.
+signals are ordered by safety-criticality: test execution >
+IDE-correctness guarantee > commit cadence. Formally:
+$W_\text{BROKEN} > W_\text{SKIP\_TESTS} > W_\text{MANUAL\_IDE} >
+W_\text{COMMIT\_GAP} > 0$. Build correctness is the headline disruption
+term; running tests corroborates it; using the IDE's mechanically-safe
+refactoring instead of a hand-edit is a correctness-guarantee axis
+(structural transformations the IDE applies are AST-preserving by
+construction); committing frequently is review-and-rollback ergonomics.
+The 28:14:11:7 instantiation gives each adjacent pair a roughly 2:1 or
+~3:2 step, mirroring SQALE's "blocker:critical:major:minor" severity
+gradient. Literature analogue: SQALE / Letouzey 2012.
 
-**Constraint C3 — Progress asymmetry.** Sustained cleanliness
-improvement is rewarded more strongly than transient cleanliness dips
-are punished: $W_\text{GAIN} > W_\text{DEGRADATION}$. This codifies
-the empirical reality that some interim degradation is normal during a
-refactor — Cedrim et al. 2017 find ~57% of refactorings are neutral or
-worse on smells. The exact ratio is *not* claimed to follow from Paixão
-or Cedrim; it is a deliberate prior that intentionally leans
-encouraging.
+**Constraint C3 — Dominant positive.** Sustained cleanliness
+improvement is the dominant signed term: $W_\text{GAIN}$ is large
+enough that a maximally-clean trajectory reaches the score's
+$\text{BASELINE} + W_\text{GAIN} = 100$ ceiling, and `cleanlinessGain`
+is itself signed — a trajectory ending dirtier than it started
+contributes $W_\text{GAIN} \cdot \text{(cleanT − cleanliness0)} < 0$,
+so end-state regression is already on the books without a separate
+term. Literature analogue: Cedrim et al. 2017 (refactoring often
+neutral or worse) motivates the asymmetric framing.
 
-**Constraint C4 — Non-domination.** The smell ledger must contribute
-to the score but not dominate the static cleanliness signal it derives
-from: $W_\text{SMELL} \leq W_\text{DEGRADATION}$. Literature analogue:
-Pantiuchina et al. 2018 — structural metrics alone are noisy, so the
-smell-delta should be a corroborating signal, not the headline one.
+**Constraint C4 — Step-savings reward (alt-only).** When an
+alternative trajectory reaches the same end state in fewer steps
+than the user's actual path, the score must reward the saving:
+$W_\text{LENGTH} > 0$ applied as a positive bonus on the alt's
+score only. The main-walk score has no comparator and cannot
+sensibly carry a length term. Magnitude is bounded above by the
+behavioural-cost tier ($W_\text{LENGTH} \leq W_\text{SKIP\_TESTS}$)
+because the small-steps tradition (Fowler 2018, Kerievsky 2004)
+cautions against treating brevity as a headline virtue —
+*safe* small-step decomposition is preferred to compressed-but-risky
+sequences. Literature analogues: search-based refactoring
+treats "minimise number of refactorings" as a co-equal Pareto
+objective (Mkaouer et al. 2014, 2016; Ouni et al. 2017); Paixão
+et al. 2017/2018 model structural disruption as co-equal with
+quality gain. None of these published numeric weight ratios for
+the term; the magnitude here is fiat, defended by ordering rather
+than literature-derived numerics.
 
 **Current instantiation:**
 
-| Weight             | Magnitude | Constraints it satisfies |
-|--------------------|-----------|--------------------------|
-| W_GAIN             | 50        | dominant positive (C3)   |
-| W_BROKEN           | 28        | C1 (dominates typical gain)        |
-| W_DEGRADATION      | 21        | C3 (~42% of W_GAIN)                |
-| W_SMELL            | 21        | C4 (=W_DEGRADATION ceiling)        |
-| W_SKIP_TESTS       | 14        | C2 (half W_BROKEN)                 |
-| W_COMMIT_GAP       | 7         | C2 (half W_SKIP_TESTS)             |
+| Weight             | Magnitude | Scope | Constraints it satisfies |
+|--------------------|-----------|-------|--------------------------|
+| W_GAIN             | 50        | main + alt | dominant positive (C3); signed, so end-state regression already costs ≤ −50 |
+| W_BROKEN           | 28        | main + alt | C1 (dominates typical gain)        |
+| W_SKIP_TESTS       | 14        | main + alt | C2 (half W_BROKEN)                 |
+| W_MANUAL_IDE       | 11        | main + alt | C2 (≈¾ W_SKIP_TESTS)               |
+| W_LENGTH           | 11        | alt only   | C4 (matches W_MANUAL_IDE; both are "extra labour that could have been avoided") |
+| W_COMMIT_GAP       | 7         | main + alt | C2 (half W_SKIP_TESTS)             |
+
+Two terms are deliberately absent:
+- **Smells** as a standalone process-score term — the PMD smell delta
+  already feeds the cleanliness composite that drives $W_\text{GAIN}$.
+  Surfacing it again would double-count.
+- **Intermediate degradation** (running-peak cleanliness dip integral)
+  — the only thing it captured uniquely was "structural quality
+  regressed mid-trajectory but recovered by the end". `W_BROKEN`
+  handles build/test regressions, signed `W_GAIN` handles end-state
+  regressions; the residual case (cleanliness dipped and recovered)
+  is also already de-emphasised by Cedrim 2017's "interim dips are
+  normal during a refactor" framing. Drop simplifies the ablation
+  table without losing coverage of the actual regression axes.
 
 Crucially, **any other instantiation satisfying C1–C4 would be an
 equally defensible thesis.** What the thesis defends is the
@@ -405,19 +443,66 @@ of each term (the ablation result).
 A reasonable concern: if W_BROKEN fires per checkpoint, longer
 refactoring sessions would accumulate more broken-state penalties just
 by virtue of having more checkpoints. The implementation forestalls
-this by pro-rating per-step penalties over the refactoring-step count:
-W_BROKEN, W_SKIP_TESTS, and W_COMMIT_GAP are applied as *fractions* of
-their full weight, scaled by `1 / refactoringStepsCount` per step. This is
-documented at the call sites in `DerivedMetricsRunner.advanceMainStep`
-and is what allows the per-step penalty to compose into a
-trajectory-wide score without length bias. The methodology chapter
-should state this explicitly so the marker doesn't have to read code
-to confirm it.
+this by pro-rating each penalty against a denominator that scales with
+trajectory length:
+- **W_BROKEN** is applied as `brokenMs / elapsedMs` — the fraction of
+  wall-clock time the trajectory spent in a broken state (build red or
+  tests failed, excluding skipped). Using elapsed *time* rather than
+  *checkpoint count* matters because manual-edit-heavy sessions
+  generate many small checkpoints that would dilute the count-based
+  fraction even when the broken stretches are long. Alt paths borrow
+  the user's time slice at each step (`altStepDurations` in
+  `DerivedMetricsRunner`) so an alt that avoids a long broken stretch
+  correctly out-scores the user.
+- **W_SKIP_TESTS** is applied as `missedComposites / totalComposites`
+  (Laplace-smoothed). A *composite* is a run of consecutive
+  refactoring steps whose inter-step gap is ≤ 60 s, following
+  Murphy-Hill, Parnin & Black 2012 (TSE), who report ~40 % of
+  tool-invoked refactorings cluster within 60 s of each other on
+  their Eclipse-telemetry corpus. A composite is "tested" iff any
+  `TEST_RUN_FINISHED` event lands in the half-open interval
+  `[composite.firstStep.ts, nextComposite.firstStep.ts)`. Switching
+  the denominator from per-step to per-composite avoids penalising
+  the empirically-common pattern of testing once at the batch
+  boundary rather than after every micro-step — Fowler 2018's
+  per-step prescription remains the textbook ideal, but
+  Murphy-Hill 2012 and Negara/Vakilian 2013 establish that the
+  composite is the unit professional developers actually reason
+  about.
+- **W_MANUAL_IDE** is applied as a fraction of its full weight,
+  scaled by `1 / refactoringStepsCount` per step (Laplace-smoothed).
+  Per-step is the natural denominator here because the IDE-vs-manual
+  choice is made at each individual refactor invocation, not at the
+  batch boundary.
+- **W_COMMIT_GAP** fires a fixed −7 each time the running count of
+  green refactor checkpoints since the last commit crosses
+  `MIN_COMMIT_GAP = 6` (the threshold inherited from the hygiene
+  detector), with the score's overall [0, 100] clamp acting as the
+  ceiling.
+- **W_LENGTH** is alt-only. For an alt with $N$ steps replacing
+  the user's $M$ steps over the same `fromSha → userToSha`
+  transition, the alt earns a bonus
+  $\,+W_\text{LENGTH} \cdot \max(0, (M - N)/M)$. The bonus is
+  distributed evenly across the alt's $N$ steps (so the chart's
+  alt process-score line ramps smoothly to its final value rather
+  than jumping at the merge point), and the cumulative total is
+  locked in for the continuation walk past `userToSha`. Alts with
+  $N \geq M$ get no bonus. Empirical anchor: search-based
+  refactoring treats "minimise number of refactorings" as a
+  co-equal objective (Mkaouer et al. 2014; Ouni et al. 2017), and
+  Murphy-Hill & Black 2008 / Murphy-Hill et al. 2012 cite step
+  count as a real developer cost.
+
+These conventions are documented at the call sites in
+`DerivedMetricsRunner.advanceMainStep` / `.advanceAltStep`. The
+methodology chapter should state them explicitly so the marker
+doesn't have to read code to confirm them.
 
 → **See:** Paixão et al. 2018 (TEVC) for disruption framing; Cedrim
-et al. 2017 (FSE) for refactoring-degradation prevalence; Letouzey
-2012 (SQALE) for fiat-weight composite precedent; Wagner 2015
-(Quamoco) for structural blueprint.
+et al. 2017 (FSE) for refactoring-degradation prevalence;
+Murphy-Hill, Parnin & Black 2012 (TSE) for the 60 s composite
+window; Letouzey 2012 (SQALE) for fiat-weight composite precedent;
+Wagner 2015 (Quamoco) for structural blueprint.
 
 ## Sensitivity analysis + ablation (closes the loop on fiat weights)
 
@@ -432,11 +517,11 @@ and operational detail live in **`PLAN-experiment.md`**. In summary:
   rankings vs data-driven alternatives. Methodological template from
   Arcelli Fontana et al. 2017 (IST).
 - **Ablation** — run the pipeline with subsets of the process layer
-  (cleanliness-only, +safety penalties, +gain/degradation only,
-  +smell ledger only, full) and compare divergence-point output. Each
-  term must be demonstrably non-redundant; a term that doesn't change
-  the output gets deleted from the score (and that deletion is itself
-  a stronger thesis result).
+  (cleanliness-only, +broken, +hygiene triplet (skipTests / manualIde /
+  commitGap), full) and compare divergence-point output. Each term must
+  be demonstrably non-redundant; a term that doesn't change the output
+  gets deleted from the score (and that deletion is itself a stronger
+  thesis result).
 
 Together these convert "I picked weights and cited papers" into:
 *structure literature-backed → terms axiomatically constrained →
@@ -479,7 +564,9 @@ file creation, not gradually — snapshot scores can't see this).
 | Smell count + thresholding            | Marinescu 2004                    | Arcelli Fontana et al. 2017                       |
 | Process-layer composition (weighted sum + fiat weights) | Letouzey 2012 (SQALE)             | Quamoco                                          |
 | W_BROKEN axiom                        | Paixão et al. 2017                | —                                                |
-| W_GAIN / W_DEGRADATION asymmetry       | Paixão et al. 2017                | Cedrim et al. 2017                               |
+| W_GAIN dominant positive (signed)      | Paixão et al. 2017                | Cedrim et al. 2017                               |
+| W_SKIP_TESTS composite-window (60 s)   | Murphy-Hill, Parnin & Black 2012  | Negara, Vakilian et al. 2013 (semantic composite) |
+| W_LENGTH alt-only step-savings bonus   | Mkaouer et al. 2014 / 2016         | Ouni et al. 2017; Paixão et al. 2017 (disruption co-equal) |
 | Non-structural penalty terms (caveat) | Pantiuchina et al. 2018           | —                                                |
 | "Why weighted sum, not Pareto"        | Harman & Tratt 2007 (counter)     | Mkaouer 2016 (counter)                           |
 | Sensitivity-analysis chapter motivation | Verdecchia et al. 2022 (ATDx)     | Arcelli Fontana et al. 2017 (template)           |

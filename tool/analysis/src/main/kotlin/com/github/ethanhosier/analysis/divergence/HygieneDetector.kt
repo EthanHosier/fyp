@@ -2,10 +2,10 @@ package com.github.ethanhosier.analysis.divergence
 
 import com.github.ethanhosier.analysis.metrics.derived.DerivedMetricsRunner
 import com.github.ethanhosier.analysis.metrics.model.AlternativeTrajectory
-import com.github.ethanhosier.analysis.metrics.model.CheckpointReport
-import com.github.ethanhosier.analysis.metrics.model.DivergenceKind
-import com.github.ethanhosier.analysis.metrics.model.EventSummary
-import com.github.ethanhosier.analysis.metrics.model.ProcessScore
+import com.github.ethanhosier.analysis.pipeline.CheckpointReport
+import com.github.ethanhosier.analysis.pipeline.DivergenceKind
+import com.github.ethanhosier.analysis.pipeline.EventSummary
+import com.github.ethanhosier.analysis.pipeline.ProcessScore
 import com.github.ethanhosier.analysis.miner.model.RefactoringStep
 import com.github.ethanhosier.ideplugin.model.EventType
 
@@ -51,6 +51,13 @@ object HygieneDetector {
      *  counter wouldn't. */
     const val MIN_COMMIT_GAP: Int = 6
 
+    /** Composite window for TESTS_SKIPPED + `W_SKIP_TESTS`: refactoring
+     *  steps whose inter-step gap is ≤ this value belong to one
+     *  composite. Following Murphy-Hill, Parnin & Black 2012 (TSE,
+     *  "How We Refactor and How We Know It"), who report ~40 % of
+     *  tool-invoked refactorings cluster within 60 s of each other. */
+    const val COMPOSITE_GAP_MS: Long = 60_000L
+
     enum class SubKind { TESTS_SKIPPED, COMMIT_GAP }
 
     data class Finding(
@@ -73,20 +80,52 @@ object HygieneDetector {
         if (checkpoints.isEmpty()) return emptyList()
         val out = mutableListOf<Finding>()
 
-        // TESTS_SKIPPED — fires only at refactoring-step post-checkpoints
-        // that carry no `TEST_RUN_FINISHED` event. This is what the
-        // process-score formula penalises (W_SKIP_TESTS in
-        // `DerivedMetricsRunner.advanceMainStep`): `testsSkippedCount`
-        // only increments at refactoring steps, and the test indicator
-        // it reads is the IDE event stream rather than `tests.wasSkipped`
-        // (which tracks gradle test runs, a different signal). Anchoring
-        // at non-refactoring checkpoints would emit DPs that don't move
-        // the recomputed score.
-        for (step in refactoringSteps) {
-            val cp = checkpoints.getOrNull(step.toCheckpointIndex) ?: continue
-            val userRanTests = cp.events.any { it.type == EventType.TEST_RUN_FINISHED }
-            if (!userRanTests) {
-                out += Finding(SubKind.TESTS_SKIPPED, anchorIndex = step.toCheckpointIndex)
+        // TESTS_SKIPPED — fires once per *untested composite*, anchored
+        // at the composite's last step's checkpoint. A composite is a
+        // run of consecutive refactoring steps whose inter-step gap is
+        // ≤ COMPOSITE_GAP_MS, mirroring `DerivedMetricsRunner`'s
+        // composite definition (Murphy-Hill, Parnin & Black 2012).
+        // The composite is "tested" iff any `TEST_RUN_FINISHED` event
+        // lands in `[firstStep.ts, nextComposite.firstStep.ts)`. This
+        // matches the `W_SKIP_TESTS` denominator switch (per-composite,
+        // not per-step) so the divergence-point count agrees with the
+        // process-score signal — one DP per missed batch, not per
+        // missed step.
+        val sortedSteps = refactoringSteps.sortedBy { it.timestamp }
+        if (sortedSteps.isNotEmpty()) {
+            // Pass 1: group steps into composites.
+            data class Composite(val steps: MutableList<RefactoringStep>)
+            val composites = mutableListOf<Composite>()
+            var current: Composite? = null
+            var prevTs: Long? = null
+            for (s in sortedSteps) {
+                val gap = prevTs?.let { s.timestamp - it } ?: Long.MAX_VALUE
+                if (current == null || gap > COMPOSITE_GAP_MS) {
+                    current = Composite(mutableListOf())
+                    composites += current
+                }
+                current.steps += s
+                prevTs = s.timestamp
+            }
+
+            // Pass 2: collect TEST_RUN_FINISHED timestamps once.
+            val testTimestamps = checkpoints
+                .flatMap { it.events }
+                .filter { it.type == EventType.TEST_RUN_FINISHED }
+                .map { it.timestamp }
+                .sorted()
+
+            // Pass 3: emit one finding per untested composite at its
+            // last step's checkpoint.
+            for (i in composites.indices) {
+                val c = composites[i]
+                val lo = c.steps.first().timestamp
+                val hi = composites.getOrNull(i + 1)?.steps?.first()?.timestamp ?: Long.MAX_VALUE
+                val tested = testTimestamps.any { it >= lo && it < hi }
+                if (!tested) {
+                    val lastStep = c.steps.last()
+                    out += Finding(SubKind.TESTS_SKIPPED, anchorIndex = lastStep.toCheckpointIndex)
+                }
             }
         }
 
@@ -141,11 +180,23 @@ object HygieneDetector {
         refactoringSteps: List<RefactoringStep>,
     ): List<AlternativeTrajectory> = findings.map { f ->
         val anchorCp = checkpoints[f.anchorIndex]
+        // Anchor-step timestamp: used as the synthetic
+        // TEST_RUN_FINISHED event's timestamp so it lands inside the
+        // composite's `[firstStep.ts, nextComposite.firstStep.ts)`
+        // window in `computeCompositeAssignments`. The anchor cp is
+        // where the *last* step of an untested composite lands, so
+        // that step's timestamp is in the window by construction.
+        // Fallback to the cp's max existing event timestamp, or 0 if
+        // empty — covers degenerate test fixtures.
+        val anchorTs = refactoringSteps
+            .firstOrNull { it.toCheckpointIndex == f.anchorIndex }?.timestamp
+            ?: anchorCp.events.maxOfOrNull { it.timestamp }
+            ?: 0L
 
         // Mutate the anchor checkpoint with the sub-kind-specific flip.
         // Only the anchor is mutated — one flip per alt.
         val mutated = checkpoints.toMutableList()
-        mutated[f.anchorIndex] = applyFlip(anchorCp, f.subKind)
+        mutated[f.anchorIndex] = applyFlip(anchorCp, f.subKind, anchorTs)
 
         // Re-run the process-score walk over the mutated trajectory.
         // No alts on this second pass — we only need the recomputed
@@ -219,20 +270,21 @@ object HygieneDetector {
         )
     }
 
-    private fun applyFlip(cp: CheckpointReport, subKind: SubKind): CheckpointReport = when (subKind) {
-        // Inject a synthetic TEST_RUN_FINISHED event — that's the
-        // signal `DerivedMetricsRunner.stepUserRanTests` reads to gate
-        // the W_SKIP_TESTS penalty. Also flip the gradle metric flags
-        // for UI consistency (the StatusRow renders them) — though
-        // those flags don't affect the score directly.
+    private fun applyFlip(cp: CheckpointReport, subKind: SubKind, ts: Long): CheckpointReport = when (subKind) {
+        // Inject a synthetic TEST_RUN_FINISHED event stamped at `ts`
+        // so it falls inside the composite's test window in
+        // `DerivedMetricsRunner.computeCompositeAssignments`. We do
+        // *not* touch `tests.success` or `tests.wasSkipped` —
+        // running tests doesn't determine the outcome, and inventing
+        // a pass result would be dishonest: the counterfactual is
+        // "you should have run them", not "they would have passed".
+        // W_SKIP_TESTS (gated on TEST_RUN_FINISHED) correctly lifts;
+        // W_BROKEN (gated on build/test outcomes) is left untouched.
         SubKind.TESTS_SKIPPED -> cp.copy(
             events = cp.events + EventSummary(
                 id = "hygiene-synthetic-test-run-${cp.sha}",
                 type = EventType.TEST_RUN_FINISHED,
-                timestamp = 0L,
-            ),
-            metrics = cp.metrics.copy(
-                tests = cp.metrics.tests.copy(success = true, wasSkipped = false),
+                timestamp = ts,
             ),
         )
         SubKind.COMMIT_GAP -> cp.copy(isUserCommit = true)

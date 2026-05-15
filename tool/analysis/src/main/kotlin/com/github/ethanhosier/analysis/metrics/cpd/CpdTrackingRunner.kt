@@ -1,7 +1,7 @@
 package com.github.ethanhosier.analysis.metrics.cpd
 
 import com.github.ethanhosier.analysis.metrics.model.CheckpointMetrics
-import com.github.ethanhosier.analysis.metrics.model.CpdTracking
+import com.github.ethanhosier.analysis.pipeline.CpdTracking
 
 /**
  * Sequential post-processing pass that computes [CpdTracking] for every

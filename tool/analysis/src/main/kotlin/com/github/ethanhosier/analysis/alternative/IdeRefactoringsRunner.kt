@@ -55,7 +55,7 @@ import java.nio.file.Path
  * groups (one index init per group instead of one per spec) and
  * identical for single-spec groups.
  */
-class AlternativeTrajectoryRunner(
+class IdeRefactoringsRunner(
     private val refactoringClient: RefactoringClient,
     // Sensible Maven/Gradle defaults; override if a project lays out
     // its sources elsewhere. Classpath-extraction-from-Gradle is a

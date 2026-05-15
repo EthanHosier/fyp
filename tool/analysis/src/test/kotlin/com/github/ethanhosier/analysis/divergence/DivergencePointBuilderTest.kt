@@ -5,10 +5,10 @@ import com.github.ethanhosier.analysis.metrics.gitdiff.DiffStats
 import com.github.ethanhosier.analysis.metrics.gradlebuild.BuildResult
 import com.github.ethanhosier.analysis.metrics.model.AlternativeTrajectory
 import com.github.ethanhosier.analysis.metrics.model.CheckpointMetrics
-import com.github.ethanhosier.analysis.metrics.model.CheckpointReport
-import com.github.ethanhosier.analysis.metrics.model.DerivedMetrics
-import com.github.ethanhosier.analysis.metrics.model.DivergenceKind
-import com.github.ethanhosier.analysis.metrics.model.ProcessScore
+import com.github.ethanhosier.analysis.pipeline.CheckpointReport
+import com.github.ethanhosier.analysis.pipeline.DerivedMetrics
+import com.github.ethanhosier.analysis.pipeline.DivergenceKind
+import com.github.ethanhosier.analysis.pipeline.ProcessScore
 import com.github.ethanhosier.analysis.metrics.pmd.PmdResult
 import com.github.ethanhosier.analysis.metrics.tests.TestResult
 import com.github.ethanhosier.analysis.miner.model.RefactoringSpec

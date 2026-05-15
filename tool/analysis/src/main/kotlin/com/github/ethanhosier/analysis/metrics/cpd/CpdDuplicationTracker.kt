@@ -1,7 +1,7 @@
 package com.github.ethanhosier.analysis.metrics.cpd
 
-import com.github.ethanhosier.analysis.metrics.model.CpdTracking
-import com.github.ethanhosier.analysis.metrics.model.ResolvedCpdDuplication
+import com.github.ethanhosier.analysis.pipeline.CpdTracking
+import com.github.ethanhosier.analysis.pipeline.ResolvedCpdDuplication
 
 /**
  * Stateless per-pair tracker for CPD clone groups: given the previous and
