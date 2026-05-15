@@ -10,9 +10,9 @@ import com.github.ethanhosier.analysis.metrics.gitdiff.PerFileChurn
 import com.github.ethanhosier.analysis.metrics.gradlebuild.BuildResult
 import com.github.ethanhosier.analysis.metrics.model.AlternativeTrajectory
 import com.github.ethanhosier.analysis.metrics.model.CheckpointMetrics
-import com.github.ethanhosier.analysis.metrics.model.CheckpointReport
-import com.github.ethanhosier.analysis.metrics.model.EventSummary
-import com.github.ethanhosier.analysis.metrics.model.PmdTracking
+import com.github.ethanhosier.analysis.pipeline.CheckpointReport
+import com.github.ethanhosier.analysis.pipeline.EventSummary
+import com.github.ethanhosier.analysis.pipeline.PmdTracking
 import com.github.ethanhosier.analysis.metrics.pmd.PmdMethodMetrics
 import com.github.ethanhosier.analysis.metrics.pmd.PmdResult
 import com.github.ethanhosier.analysis.metrics.pmd.PmdViolation

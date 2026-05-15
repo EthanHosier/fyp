@@ -1,6 +1,6 @@
 package com.github.ethanhosier.analysis.codegen
 
-import com.github.ethanhosier.analysis.metrics.model.AnalysisReport
+import com.github.ethanhosier.analysis.pipeline.AnalysisReport
 import dev.adamko.kxstsgen.KxsTsGenerator
 import java.nio.file.Files
 import java.nio.file.Paths

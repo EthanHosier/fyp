@@ -1,6 +1,6 @@
 package com.github.ethanhosier.analysis.cli
 
-import com.github.ethanhosier.analysis.metrics.model.AnalysisReport
+import com.github.ethanhosier.analysis.pipeline.AnalysisReport
 import com.github.ethanhosier.analysis.pipeline.AnalysisPipeline
 import com.github.ethanhosier.analysis.refactoring.RefactoringClientFactory
 import com.github.ethanhosier.ideplugin.model.TraceEvent

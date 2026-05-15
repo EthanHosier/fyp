@@ -1,6 +1,5 @@
 package com.github.ethanhosier.analysis.metrics.pmd
 
-import com.github.ethanhosier.analysis.metrics.model.PmdTracking
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue

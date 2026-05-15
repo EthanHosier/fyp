@@ -1,12 +1,12 @@
 package com.github.ethanhosier.analysis.metrics.derived
 
 import com.github.ethanhosier.analysis.metrics.model.AlternativeTrajectory
-import com.github.ethanhosier.analysis.metrics.model.CheckpointReport
-import com.github.ethanhosier.analysis.metrics.model.Cleanliness
-import com.github.ethanhosier.analysis.metrics.model.CleanlinessContribution
-import com.github.ethanhosier.analysis.metrics.model.DerivedMetrics
-import com.github.ethanhosier.analysis.metrics.model.ProcessContribution
-import com.github.ethanhosier.analysis.metrics.model.ProcessScore
+import com.github.ethanhosier.analysis.pipeline.CheckpointReport
+import com.github.ethanhosier.analysis.pipeline.Cleanliness
+import com.github.ethanhosier.analysis.pipeline.CleanlinessContribution
+import com.github.ethanhosier.analysis.pipeline.DerivedMetrics
+import com.github.ethanhosier.analysis.pipeline.ProcessContribution
+import com.github.ethanhosier.analysis.pipeline.ProcessScore
 import com.github.ethanhosier.analysis.metrics.readability.FileReadability
 import com.github.ethanhosier.ideplugin.model.EventType
 import com.github.ethanhosier.analysis.miner.model.RefactoringStep

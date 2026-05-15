@@ -2,10 +2,10 @@ package com.github.ethanhosier.analysis.divergence
 
 import com.github.ethanhosier.analysis.metrics.derived.DerivedMetricsRunner
 import com.github.ethanhosier.analysis.metrics.model.AlternativeTrajectory
-import com.github.ethanhosier.analysis.metrics.model.CheckpointReport
-import com.github.ethanhosier.analysis.metrics.model.DivergenceKind
-import com.github.ethanhosier.analysis.metrics.model.EventSummary
-import com.github.ethanhosier.analysis.metrics.model.ProcessScore
+import com.github.ethanhosier.analysis.pipeline.CheckpointReport
+import com.github.ethanhosier.analysis.pipeline.DivergenceKind
+import com.github.ethanhosier.analysis.pipeline.EventSummary
+import com.github.ethanhosier.analysis.pipeline.ProcessScore
 import com.github.ethanhosier.analysis.miner.model.RefactoringStep
 import com.github.ethanhosier.ideplugin.model.EventType
 
