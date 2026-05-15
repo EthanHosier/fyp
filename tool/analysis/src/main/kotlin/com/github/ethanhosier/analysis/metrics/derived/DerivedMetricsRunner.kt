@@ -886,20 +886,12 @@ class DerivedMetricsRunner {
             var snap: ProcessSnapshot = anchor
             val perStep = mutableListOf<ProcessScore>()
             for (k in alt.altCheckpoints.indices) {
-                // Mirror the user's actual test-running behaviour at
-                // the user step this alt step covers — fair
-                // comparison: the user's habit at stepIndex K is what
-                // they'd plausibly do had they taken the alt path
-                // instead.
-                val userStepIndex = alt.stepIndexes.getOrNull(k)
-                val userRanTests = userStepIndex
-                    ?.let { userRanTestsByStepIndex[it] }
-                    ?: false
+                val delta = altStepDelta(alt, k, stepByIndex, userRanTestsByStepIndex)
                 val (next, score) = advanceAltStep(
                     snap = snap,
                     cp = alt.altCheckpoints[k],
                     cleanT = altCleanliness[i][k]?.scalar,
-                    userRanTests = userRanTests,
+                    delta = delta,
                     durationMs = altDurations.getOrNull(k) ?: 0L,
                 )
                 perStep += score
@@ -909,6 +901,69 @@ class DerivedMetricsRunner {
             finalSnapshots += snap
         }
         return AltProcessOutput(perStepScores, finalSnapshots)
+    }
+
+    /**
+     * Per-alt-step refactoring-step accumulator delta. Mirrors what the
+     * main walk would have added at the user step(s) this alt cp
+     * replaces — `manualWhenIde` is always zero (alts are mechanically
+     * IDE-driven by construction).
+     *
+     * REWORK: zero — the rework cp isn't a refactoring step, it just
+     * removes round-trip code. `landsRefactor = false` so it doesn't
+     * contribute to the commit-gap counter either.
+     *
+     * IDE_REPLAY: cp[0] absorbs ALL the user steps it collapses (the
+     * single alt cp stands in for N user refactorings). Subsequent
+     * cleanup cps (`altCheckpoints.size > stepIndexes.size`) are
+     * residual — zero delta.
+     *
+     * ORDERING: 1:1, alt step k mirrors user step `stepIndexes[k]`.
+     */
+    private data class AltStepDelta(
+        val refactoringStepsInc: Int,
+        val ideRelevantInc: Int,
+        val testsSkippedInc: Int,
+        val landsRefactor: Boolean,
+    ) {
+        companion object {
+            val ZERO = AltStepDelta(0, 0, 0, false)
+        }
+    }
+
+    private fun altStepDelta(
+        alt: AlternativeTrajectory,
+        k: Int,
+        stepByIndex: Map<Int, RefactoringStep>,
+        userRanTestsByStepIndex: Map<Int, Boolean>,
+    ): AltStepDelta {
+        val userSteps: List<RefactoringStep> = when (alt.kind) {
+            DivergenceKind.REWORK -> emptyList()
+            DivergenceKind.IDE_REPLAY ->
+                if (k == 0) alt.stepIndexes.mapNotNull { stepByIndex[it] }
+                else emptyList()
+            // ORDERING / HYGIENE (HYGIENE never actually reaches this
+            // walker — pre-baked — but the 1:1 fallback is harmless).
+            else -> alt.stepIndexes.getOrNull(k)
+                ?.let { stepByIndex[it] }
+                ?.let { listOf(it) }
+                ?: emptyList()
+        }
+        if (userSteps.isEmpty()) return AltStepDelta.ZERO
+
+        var ref = 0
+        var ide = 0
+        var skip = 0
+        for (s in userSteps) {
+            ref += 1
+            if (s.refactoring.ideRelevant) ide += 1
+            // Mirror the user's actual test-running behaviour at the
+            // step's landing cp — credit the alt for tests the user
+            // would plausibly have run had they taken this path.
+            val ranTests = userRanTestsByStepIndex[s.stepIndex] ?: false
+            if (!ranTests) skip += 1
+        }
+        return AltStepDelta(ref, ide, skip, landsRefactor = true)
     }
 
     /**
@@ -1027,18 +1082,19 @@ class DerivedMetricsRunner {
     }
 
     /** Walk one synthetic alt step forward from [snap] using [cp]'s
-     *  metrics and [cleanT]. Alt steps are definitionally IDE-driven
-     *  (`wasPerformedByIde=true`, `ideRelevant=true`) and never count
-     *  as manual. [userRanTests] mirrors the user's actual
-     *  TEST_RUN_FINISHED behaviour at the user step this alt step
-     *  covers — credits the alt for tests the user would have run had
-     *  they taken this path. Returns the new running snapshot and the
-     *  cumulative process score after this step. */
+     *  metrics and [cleanT]. The refactoring-step accumulators are
+     *  driven by [delta] (precomputed in [altStepDelta]) so REWORK
+     *  cps (no refactor) contribute 0, and IDE_REPLAY/ORDERING cps
+     *  contribute exactly what the user step(s) they replace would
+     *  have contributed in the main walk — minus the manual-when-IDE
+     *  count, which is always 0 (alts are mechanically IDE-driven).
+     *  Returns the new running snapshot and the cumulative process
+     *  score after this step. */
     private fun advanceAltStep(
         snap: ProcessSnapshot,
         cp: CheckpointReport,
         cleanT: Double?,
-        userRanTests: Boolean,
+        delta: AltStepDelta,
         durationMs: Long,
     ): Pair<ProcessSnapshot, ProcessScore> {
         val build = cp.metrics.build.success
@@ -1056,13 +1112,10 @@ class DerivedMetricsRunner {
         val brokenMs = snap.brokenMs + brokenMsInc
         val elapsedMs = snap.elapsedMs + durationMs
 
-        val refactoringStepsCount = snap.refactoringStepsCount + 1
-        // Synthesised commits carry no user events, so we mirror what
-        // the user actually did at the matching stepIndex on their
-        // real path — fair comparison rather than a blanket penalty.
-        val testsSkippedCount = snap.testsSkippedCount + (if (userRanTests) 0 else 1)
-        val ideRelevantCount = snap.ideRelevantCount + 1
-        // Performed by IDE definitionally ⇒ doesn't count as manual.
+        val refactoringStepsCount = snap.refactoringStepsCount + delta.refactoringStepsInc
+        val testsSkippedCount = snap.testsSkippedCount + delta.testsSkippedInc
+        val ideRelevantCount = snap.ideRelevantCount + delta.ideRelevantInc
+        // Alts are mechanically IDE-driven ⇒ never count as manual.
         val manualWhenIdeCount = snap.manualWhenIdeCount
 
         // Commit-gap: alt steps land at synthesised commits which carry
@@ -1070,8 +1123,11 @@ class DerivedMetricsRunner {
         // their anchor to `true` — same field, same reset rule). A
         // green-refactor alt step adds to the running counter just like
         // a green user step would; threshold crossings emit events.
+        // `landsRefactor` mirrors the main walk's gate — REWORK cps
+        // don't actually land a refactor so they're not eligible for
+        // the green-refactor count.
         val testsAtAltSuccess = testsOk && !testsSkipped
-        val greenRefactorCp = build && testsAtAltSuccess
+        val greenRefactorCp = delta.landsRefactor && build && testsAtAltSuccess
         var greenSinceLastCommit = snap.greenSinceLastCommit
         var commitGapEvents = snap.commitGapEvents
         when {

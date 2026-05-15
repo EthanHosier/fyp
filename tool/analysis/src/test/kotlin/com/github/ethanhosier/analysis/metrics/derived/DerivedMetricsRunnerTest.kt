@@ -302,9 +302,22 @@ class DerivedMetricsRunnerTest {
         // cleanliness — its process score should be lower than b's
         // because the alt step adds a manual-when-IDE-style penalty
         // (skipped tests on the synthesised path).
+        //
+        // The alt replaces user step 0 (landing on `b`); the user
+        // didn't run tests after that step (no TEST_RUN_FINISHED event
+        // on b) so the alt inherits the skip-tests penalty.
         val a = checkpoint("a", ck = ckResult(ckClass(cbo = 5, tcc = 0.5f)))
         val b = checkpoint("b", ck = ckResult(ckClass(cbo = 1, tcc = 0.9f)))
         val altCheckpoint = checkpoint("alt", ck = ckResult(ckClass(cbo = 1, tcc = 0.9f)))
+        val step = RefactoringStep(
+            stepIndex = 0,
+            fromSha = "a",
+            toSha = "b",
+            toCheckpointIndex = 1,
+            timestamp = 0L,
+            refactoring = detected("Move Method", ideRelevant = true),
+            wasPerformedByIde = false,
+        )
         val alt = AlternativeTrajectory(
             stepIndexes = listOf(0),
             fromSha = "a",
@@ -314,13 +327,13 @@ class DerivedMetricsRunnerTest {
             altCheckpoints = listOf(altCheckpoint),
         )
 
-        val result = DerivedMetricsRunner().run(listOf(a, b), listOf(alt), emptyList())
+        val result = DerivedMetricsRunner().run(listOf(a, b), listOf(alt), listOf(step))
         val altProc = result.alt.getValue("alt").process
-        // skipTests fires (synthesised commit ⇒ no user-run tests after it),
-        // manualIde does NOT fire (alt was performed by the IDE).
+        // skipTests fires (user didn't run tests at the replaced step's
+        // landing cp), manualIde does NOT fire (alts are IDE-driven).
         val skip = altProc.contributions.single { it.id == "skipTests" }
         val manual = altProc.contributions.single { it.id == "manualIde" }
-        assertTrue(skip.points < 0.0, "alt synthesises a skipped-tests step")
+        assertTrue(skip.points < 0.0, "alt inherits the user step's skip-tests penalty")
         assertEquals(0.0, manual.points.absoluteValue, "alt step is IDE-driven by definition")
     }
 
