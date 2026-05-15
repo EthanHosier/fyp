@@ -274,6 +274,68 @@ class DerivedMetricsRunnerTest {
     }
 
     @Test
+    fun `consecutive refactor steps within 60s collapse into one composite`() {
+        // 3 refactor steps within 60s of each other → one composite.
+        // No tests anywhere → 1 of 1 composite skipped (not 3 of 3).
+        // Stamps: t=0, 20s, 40s for the steps; checkpoints stamped to
+        // match so durations are well-defined.
+        val a = checkpoint("a", events = listOf(syntheticEvent(0L)))
+        val b = checkpoint("b", events = listOf(syntheticEvent(20_000L)))
+        val c = checkpoint("c", events = listOf(syntheticEvent(40_000L)))
+        val d = checkpoint("d", events = listOf(syntheticEvent(50_000L)))
+        val steps = listOf(
+            RefactoringStep(
+                stepIndex = 0, fromSha = "a", toSha = "b", toCheckpointIndex = 1,
+                timestamp = 20_000L,
+                refactoring = detected("Extract Method", ideRelevant = false),
+                wasPerformedByIde = true,
+            ),
+            RefactoringStep(
+                stepIndex = 1, fromSha = "b", toSha = "c", toCheckpointIndex = 2,
+                timestamp = 40_000L,
+                refactoring = detected("Extract Method", ideRelevant = false),
+                wasPerformedByIde = true,
+            ),
+            RefactoringStep(
+                stepIndex = 2, fromSha = "c", toSha = "d", toCheckpointIndex = 3,
+                timestamp = 50_000L,
+                refactoring = detected("Extract Method", ideRelevant = false),
+                wasPerformedByIde = true,
+            ),
+        )
+        val result = DerivedMetricsRunner().run(listOf(a, b, c, d), emptyList(), steps)
+        val skip = result.main.getValue("d").process.contributions.single { it.id == "skipTests" }
+        // "1 of 1 refactoring batch not followed by tests"
+        assertTrue("1 of 1 refactoring batch" in skip.detail, "detail was: ${skip.detail}")
+    }
+
+    @Test
+    fun `refactor steps more than 60s apart form separate composites`() {
+        // Step A at t=0 and step B at t=70s (>60s gap) → 2 composites.
+        // No tests → 2 of 2 composites skipped.
+        val a = checkpoint("a", events = listOf(syntheticEvent(0L)))
+        val b = checkpoint("b", events = listOf(syntheticEvent(0L)))
+        val c = checkpoint("c", events = listOf(syntheticEvent(70_000L)))
+        val steps = listOf(
+            RefactoringStep(
+                stepIndex = 0, fromSha = "a", toSha = "b", toCheckpointIndex = 1,
+                timestamp = 0L,
+                refactoring = detected("Move Method", ideRelevant = false),
+                wasPerformedByIde = true,
+            ),
+            RefactoringStep(
+                stepIndex = 1, fromSha = "b", toSha = "c", toCheckpointIndex = 2,
+                timestamp = 70_000L,
+                refactoring = detected("Move Method", ideRelevant = false),
+                wasPerformedByIde = true,
+            ),
+        )
+        val result = DerivedMetricsRunner().run(listOf(a, b, c), emptyList(), steps)
+        val skip = result.main.getValue("c").process.contributions.single { it.id == "skipTests" }
+        assertTrue("2 of 2 refactoring batches" in skip.detail, "detail was: ${skip.detail}")
+    }
+
+    @Test
     fun `running tests after a refactor stops the skip penalty from firing`() {
         val a = checkpoint("a")
         val b = checkpoint(

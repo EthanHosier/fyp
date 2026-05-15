@@ -1,5 +1,6 @@
 package com.github.ethanhosier.analysis.metrics.derived
 
+import com.github.ethanhosier.analysis.divergence.HygieneDetector.COMPOSITE_GAP_MS
 import com.github.ethanhosier.analysis.divergence.HygieneDetector.MIN_COMMIT_GAP
 import com.github.ethanhosier.analysis.metrics.model.AlternativeTrajectory
 import com.github.ethanhosier.analysis.pipeline.CheckpointReport
@@ -276,14 +277,14 @@ class DerivedMetricsRunner {
             perAlt.map { computeCleanliness(it, ranges, clamp = true) }
         }
 
-        val mainProcess = computeMainProcess(mainCheckpoints, mainCleanliness, refactoringSteps)
-        // Mirror the user's actual test-running habit: each alt step
-        // covers the user's `stepIndex` slot, so we credit (or charge)
-        // the alt step exactly the same way as the user's corresponding
-        // step in `computeMainProcess`. Falls back to `false` for any
-        // alt step whose stepIndex doesn't map back to a real user step.
-        val userRanTestsByStepIndex: Map<Int, Boolean> = refactoringSteps
-            .associate { it.stepIndex to stepUserRanTests(mainCheckpoints, it) }
+        // Composite-window mapping: groups refactoring steps into
+        // batches (≤ 60s gap, Murphy-Hill 2012) and records whether
+        // each batch was followed by a `TEST_RUN_FINISHED` event.
+        // Drives `W_SKIP_TESTS`'s denominator. Computed once and
+        // threaded into both the main and alt walks so they agree
+        // on the composite boundaries.
+        val compositeInfoByStep = computeCompositeAssignments(refactoringSteps, mainCheckpoints)
+        val mainProcess = computeMainProcess(mainCheckpoints, mainCleanliness, refactoringSteps, compositeInfoByStep)
         // Wall-clock durations of the user's main checkpoints — alt
         // steps borrow the slice of the user step they replace so the
         // alt's `brokenMs` denominator stays comparable to the user's.
@@ -292,10 +293,10 @@ class DerivedMetricsRunner {
             alternatives = alternatives,
             altCleanliness = altCleanliness,
             mainSnapshots = mainProcess.snapshots,
-            userRanTestsByStepIndex = userRanTestsByStepIndex,
             userDurations = userDurations,
             mainCheckpoints = mainCheckpoints,
             refactoringSteps = refactoringSteps,
+            compositeInfoByStep = compositeInfoByStep,
         )
         val continuations: List<AltProcessContinuation> = computeAltContinuations(
             alternatives = alternatives,
@@ -304,6 +305,7 @@ class DerivedMetricsRunner {
             mainCleanliness = mainCleanliness,
             refactoringSteps = refactoringSteps,
             userDurations = userDurations,
+            compositeInfoByStep = compositeInfoByStep,
         )
 
         val mainOut = mainCheckpoints.mapIndexed { i, cp ->
@@ -603,6 +605,16 @@ class DerivedMetricsRunner {
         val testsSkippedCount: Int,
         val ideRelevantCount: Int,
         val manualWhenIdeCount: Int,
+        /** Number of refactoring composites encountered so far on
+         *  this walk — used as the denominator for the `W_SKIP_TESTS`
+         *  fraction. A composite is a run of refactoring steps whose
+         *  inter-step gap is ≤ [COMPOSITE_GAP_MS] (Murphy-Hill et al.
+         *  2012). */
+        val compositesCount: Int,
+        /** Number of composites that had NO `TEST_RUN_FINISHED` event
+         *  between their last step and the next composite's first
+         *  step (or session end). Numerator for `W_SKIP_TESTS`. */
+        val skippedCompositesCount: Int,
         /** Cumulative count of green-refactor checkpoints since the most
          *  recent (real or synthetic) commit. Mirrors HygieneDetector's
          *  `greenSinceLastCommit` walk: a checkpoint counts iff a
@@ -631,6 +643,7 @@ class DerivedMetricsRunner {
         checkpoints: List<CheckpointReport>,
         cleanliness: List<Cleanliness?>,
         refactoringSteps: List<RefactoringStep>,
+        compositeInfoByStep: Map<Int, CompositeInfo>,
     ): MainProcessOutput {
         if (checkpoints.isEmpty()) return MainProcessOutput(emptyList(), emptyMap())
 
@@ -650,6 +663,7 @@ class DerivedMetricsRunner {
                 stepsLandingHere = stepsByIndex[t].orEmpty(),
                 cleanT = cleanliness[t]?.scalar,
                 durationMs = durations[t],
+                compositeInfoByStep = compositeInfoByStep,
             )
             scores += score
             snapshots[checkpoints[t].sha] = next
@@ -700,6 +714,8 @@ class DerivedMetricsRunner {
         testsSkippedCount = 0,
         ideRelevantCount = 0,
         manualWhenIdeCount = 0,
+        compositesCount = 0,
+        skippedCompositesCount = 0,
         greenSinceLastCommit = 0,
         commitGapEvents = 0,
         cleanliness0 = cleanliness0,
@@ -724,6 +740,7 @@ class DerivedMetricsRunner {
         stepsLandingHere: List<RefactoringStep>,
         cleanT: Double?,
         durationMs: Long,
+        compositeInfoByStep: Map<Int, CompositeInfo>,
     ): Pair<ProcessSnapshot, ProcessScore> {
         val build = cp.metrics.build.success
         val testsOk = cp.metrics.tests.success
@@ -739,12 +756,23 @@ class DerivedMetricsRunner {
         var testsSkippedCount = snap.testsSkippedCount
         var ideRelevantCount = snap.ideRelevantCount
         var manualWhenIdeCount = snap.manualWhenIdeCount
+        var compositesCount = snap.compositesCount
+        var skippedCompositesCount = snap.skippedCompositesCount
         for (s in stepsLandingHere) {
             refactoringStepsCount += 1
             if (!stepUserRanTests(checkpoints, s)) testsSkippedCount += 1
             if (s.refactoring.ideRelevant) {
                 ideRelevantCount += 1
                 if (!s.wasPerformedByIde) manualWhenIdeCount += 1
+            }
+            // Composite accounting: only bump the running counts at
+            // the *first* step of each composite. A composite that
+            // had no `TEST_RUN_FINISHED` event in its post-batch
+            // window contributes 1 to the `W_SKIP_TESTS` numerator.
+            val info = compositeInfoByStep[s.stepIndex]
+            if (info != null && info.isFirstStepInComposite) {
+                compositesCount += 1
+                if (!info.hasTestInWindow) skippedCompositesCount += 1
             }
         }
 
@@ -779,10 +807,12 @@ class DerivedMetricsRunner {
         // Time-weighted broken fraction: avoids dilution from
         // many-small-checkpoints manual-edit clusters.
         val brokenFrac = if (elapsedMs > 0L) brokenMs.toDouble() / elapsedMs.toDouble() else 0.0
-        // Laplace smoothing only kicks in when at least one bad step
+        // Laplace smoothing only kicks in when at least one bad batch
         // has happened; a perfect record (0 of N) returns 0 penalty.
-        val skipFrac = if (refactoringStepsCount == 0 || testsSkippedCount == 0) 0.0
-            else (testsSkippedCount + 1).toDouble() / (refactoringStepsCount + 2).toDouble()
+        // `skipFrac` is now per-composite (Murphy-Hill 2012 batch
+        // boundary); `manualFrac` stays per-step.
+        val skipFrac = if (compositesCount == 0 || skippedCompositesCount == 0) 0.0
+            else (skippedCompositesCount + 1).toDouble() / (compositesCount + 2).toDouble()
         val manualFrac = if (ideRelevantCount == 0 || manualWhenIdeCount == 0) 0.0
             else (manualWhenIdeCount + 1).toDouble() / (ideRelevantCount + 2).toDouble()
 
@@ -797,8 +827,8 @@ class DerivedMetricsRunner {
             elapsedMs = elapsedMs,
             checkpointsSoFar = checkpointsSoFar,
             skipFrac = skipFrac,
-            testsSkippedCount = testsSkippedCount,
-            refactoringStepsCount = refactoringStepsCount,
+            skippedCompositesCount = skippedCompositesCount,
+            compositesCount = compositesCount,
             manualFrac = manualFrac,
             manualWhenIdeCount = manualWhenIdeCount,
             ideRelevantCount = ideRelevantCount,
@@ -813,6 +843,8 @@ class DerivedMetricsRunner {
             testsSkippedCount = testsSkippedCount,
             ideRelevantCount = ideRelevantCount,
             manualWhenIdeCount = manualWhenIdeCount,
+            compositesCount = compositesCount,
+            skippedCompositesCount = skippedCompositesCount,
             greenSinceLastCommit = greenSinceLastCommit,
             commitGapEvents = commitGapEvents,
             cleanliness0 = snap.cleanliness0,
@@ -834,10 +866,10 @@ class DerivedMetricsRunner {
         alternatives: List<AlternativeTrajectory>,
         altCleanliness: List<List<Cleanliness?>>,
         mainSnapshots: Map<String, ProcessSnapshot>,
-        userRanTestsByStepIndex: Map<Int, Boolean>,
         userDurations: List<Long>,
         mainCheckpoints: List<CheckpointReport>,
         refactoringSteps: List<RefactoringStep>,
+        compositeInfoByStep: Map<Int, CompositeInfo>,
     ): AltProcessOutput {
         val userIdxBySha = mainCheckpoints.mapIndexed { i, c -> c.sha to i }.toMap()
         val stepByIndex = refactoringSteps.associateBy { it.stepIndex }
@@ -860,10 +892,14 @@ class DerivedMetricsRunner {
             }
 
             val altDurations = altStepDurations(alt, userIdxBySha, stepByIndex, userDurations)
+            // Track composites already counted on THIS alt's walk so
+            // collapses (IDE_REPLAY) and revisits (ORDERING duplicates)
+            // don't double-bump the composite counter.
+            val seenCompositesPerAlt = mutableSetOf<Int>()
             var snap: ProcessSnapshot = anchor
             val perStep = mutableListOf<ProcessScore>()
             for (k in alt.altCheckpoints.indices) {
-                val delta = altStepDelta(alt, k, stepByIndex, userRanTestsByStepIndex)
+                val delta = altStepDelta(alt, k, stepByIndex, compositeInfoByStep, seenCompositesPerAlt)
                 val (next, score) = advanceAltStep(
                     snap = snap,
                     cp = alt.altCheckpoints[k],
@@ -900,11 +936,12 @@ class DerivedMetricsRunner {
     private data class AltStepDelta(
         val refactoringStepsInc: Int,
         val ideRelevantInc: Int,
-        val testsSkippedInc: Int,
+        val compositesInc: Int,
+        val skippedCompositesInc: Int,
         val landsRefactor: Boolean,
     ) {
         companion object {
-            val ZERO = AltStepDelta(0, 0, 0, false)
+            val ZERO = AltStepDelta(0, 0, 0, 0, false)
         }
     }
 
@@ -912,7 +949,8 @@ class DerivedMetricsRunner {
         alt: AlternativeTrajectory,
         k: Int,
         stepByIndex: Map<Int, RefactoringStep>,
-        userRanTestsByStepIndex: Map<Int, Boolean>,
+        compositeInfoByStep: Map<Int, CompositeInfo>,
+        seenCompositesPerAlt: MutableSet<Int>,
     ): AltStepDelta {
         val userSteps: List<RefactoringStep> = when (alt.kind) {
             DivergenceKind.REWORK -> emptyList()
@@ -930,22 +968,33 @@ class DerivedMetricsRunner {
 
         var ref = 0
         var ide = 0
-        var skip = 0
+        var comp = 0
+        var skipComp = 0
         for (s in userSteps) {
             ref += 1
             if (s.refactoring.ideRelevant) ide += 1
-            // IDE_REPLAY alts are "you could have used the IDE refactor"
-            // counterfactuals — they assume the safer mechanical path,
-            // which includes running tests after. Don't inherit the
-            // user's actual skip-behaviour; treat the alt as if it ran
-            // tests. ORDERING alts replace a *different* user refactor
-            // 1:1 — the user's test-running habit at that step is the
-            // natural fairness comparison.
-            val altRanTests = alt.kind == DivergenceKind.IDE_REPLAY ||
-                (userRanTestsByStepIndex[s.stepIndex] ?: false)
-            if (!altRanTests) skip += 1
+            // Composite accounting: count each composite once per
+            // alt walk (track via the caller-supplied set so the
+            // walker doesn't double-count across IDE_REPLAY
+            // collapses or ORDERING revisits).
+            val info = compositeInfoByStep[s.stepIndex]
+            if (info != null && seenCompositesPerAlt.add(info.compositeId)) {
+                comp += 1
+                // IDE_REPLAY alts are "you could have used the safer
+                // mechanical IDE refactor" counterfactuals — assume
+                // they include the post-batch test run. ORDERING
+                // alts inherit the user's actual batch-test behaviour.
+                val altTested = alt.kind == DivergenceKind.IDE_REPLAY || info.hasTestInWindow
+                if (!altTested) skipComp += 1
+            }
         }
-        return AltStepDelta(ref, ide, skip, landsRefactor = true)
+        return AltStepDelta(
+            refactoringStepsInc = ref,
+            ideRelevantInc = ide,
+            compositesInc = comp,
+            skippedCompositesInc = skipComp,
+            landsRefactor = true,
+        )
     }
 
     /**
@@ -979,6 +1028,26 @@ class DerivedMetricsRunner {
                     userDurations.subList(fromIdx, toIdx).sum()
                 } else 0L
                 List(n) { k -> if (k == 0) spanMs else 0L }
+            }
+            DivergenceKind.REWORK -> List(n) { k ->
+                // REWORK alts have empty `stepIndexes` (the rework
+                // isn't a typed refactor-miner step), so we use the
+                // `altCheckpointUserIndexes` map — populated by
+                // `computeReworkAlts` to record which user cp each
+                // alt step semantically lands at. Same offset
+                // convention as ORDERING: `userCpIdx - 1` is the
+                // user's transition-into-this-cp duration.
+                //
+                // Without this, every REWORK alt step contributed 0
+                // ms to `elapsedMs`, freezing the alt's brokenFrac at
+                // the value it had at `fromSha`. The user's main
+                // path would then accumulate more clean time post-
+                // fromSha and bring its own brokenFrac down, making
+                // the alt look worse than the user even when the
+                // alt was genuinely the better path.
+                val userCpIdx = alt.altCheckpointUserIndexes.getOrNull(k) ?: return@List 0L
+                val srcIdx = (userCpIdx - 1).coerceAtLeast(0)
+                userDurations.getOrNull(srcIdx) ?: 0L
             }
             else -> List(n) { k ->
                 val userStepIdx = alt.stepIndexes.getOrNull(k) ?: return@List 0L
@@ -1017,6 +1086,7 @@ class DerivedMetricsRunner {
         mainCleanliness: List<Cleanliness?>,
         refactoringSteps: List<RefactoringStep>,
         userDurations: List<Long>,
+        compositeInfoByStep: Map<Int, CompositeInfo>,
     ): List<AltProcessContinuation> {
         if (mainCheckpoints.isEmpty()) return alternatives.map { AltProcessContinuation.EMPTY }
 
@@ -1043,6 +1113,7 @@ class DerivedMetricsRunner {
                     stepsLandingHere = stepsByIndex[t].orEmpty(),
                     cleanT = mainCleanliness[t]?.scalar,
                     durationMs = userDurations.getOrNull(t) ?: 0L,
+                    compositeInfoByStep = compositeInfoByStep,
                 )
                 shas += mainCheckpoints[t].sha
                 scores += score
@@ -1095,10 +1166,15 @@ class DerivedMetricsRunner {
         val elapsedMs = snap.elapsedMs + durationMs
 
         val refactoringStepsCount = snap.refactoringStepsCount + delta.refactoringStepsInc
-        val testsSkippedCount = snap.testsSkippedCount + delta.testsSkippedInc
         val ideRelevantCount = snap.ideRelevantCount + delta.ideRelevantInc
         // Alts are mechanically IDE-driven ⇒ never count as manual.
         val manualWhenIdeCount = snap.manualWhenIdeCount
+        val compositesCount = snap.compositesCount + delta.compositesInc
+        val skippedCompositesCount = snap.skippedCompositesCount + delta.skippedCompositesInc
+        // testsSkippedCount is no longer used by the score (replaced
+        // by skippedCompositesCount) but kept on the snapshot for
+        // diagnostics — alt walk just carries the prior value through.
+        val testsSkippedCount = snap.testsSkippedCount
 
         // Commit-gap: alt steps land at synthesised commits which carry
         // `isUserCommit = false` by default (HYGIENE COMMIT_GAP alts flip
@@ -1125,8 +1201,8 @@ class DerivedMetricsRunner {
 
         val checkpointsSoFar = snap.checkpointsSoFar + 1
         val brokenFrac = if (elapsedMs > 0L) brokenMs.toDouble() / elapsedMs.toDouble() else 0.0
-        val skipFrac = if (testsSkippedCount == 0) 0.0
-            else (testsSkippedCount + 1).toDouble() / (refactoringStepsCount + 2).toDouble()
+        val skipFrac = if (compositesCount == 0 || skippedCompositesCount == 0) 0.0
+            else (skippedCompositesCount + 1).toDouble() / (compositesCount + 2).toDouble()
         val manualFrac = if (manualWhenIdeCount == 0) 0.0
             else (manualWhenIdeCount + 1).toDouble() / (ideRelevantCount + 2).toDouble()
 
@@ -1141,8 +1217,8 @@ class DerivedMetricsRunner {
             elapsedMs = elapsedMs,
             checkpointsSoFar = checkpointsSoFar,
             skipFrac = skipFrac,
-            testsSkippedCount = testsSkippedCount,
-            refactoringStepsCount = refactoringStepsCount,
+            skippedCompositesCount = skippedCompositesCount,
+            compositesCount = compositesCount,
             manualFrac = manualFrac,
             manualWhenIdeCount = manualWhenIdeCount,
             ideRelevantCount = ideRelevantCount,
@@ -1157,6 +1233,8 @@ class DerivedMetricsRunner {
             testsSkippedCount = testsSkippedCount,
             ideRelevantCount = ideRelevantCount,
             manualWhenIdeCount = manualWhenIdeCount,
+            compositesCount = compositesCount,
+            skippedCompositesCount = skippedCompositesCount,
             greenSinceLastCommit = greenSinceLastCommit,
             commitGapEvents = commitGapEvents,
             cleanliness0 = snap.cleanliness0,
@@ -1172,6 +1250,85 @@ class DerivedMetricsRunner {
         return cp.events.any { it.type == EventType.TEST_RUN_FINISHED }
     }
 
+    /** Per-refactoring-step composite metadata: what composite it
+     *  belongs to, whether it's the chronologically-first step of
+     *  that composite, and whether the composite has any
+     *  `TEST_RUN_FINISHED` event in its test window. */
+    private data class CompositeInfo(
+        val compositeId: Int,
+        val isFirstStepInComposite: Boolean,
+        val hasTestInWindow: Boolean,
+    )
+
+    /**
+     * Group refactoring steps into composites: a step joins the
+     * previous composite iff its `timestamp` is within
+     * [COMPOSITE_GAP_MS] of the previous step's `timestamp`,
+     * otherwise it starts a new one. Following Murphy-Hill, Parnin
+     * & Black 2012 (TSE, "How We Refactor and How We Know It"),
+     * who report ~40 % of tool-invoked refactorings cluster within
+     * 60 s of each other on their Eclipse-telemetry corpus.
+     *
+     * A composite is "tested" iff any checkpoint event of type
+     * [EventType.TEST_RUN_FINISHED] has its timestamp in the
+     * half-open interval `[firstStepOfThisComposite.timestamp,
+     * firstStepOfNextComposite.timestamp)` — at-or-after the
+     * composite's first step, strictly before the next composite
+     * begins. For the final composite the upper bound is `+∞`.
+     * This rewards the empirically-common pattern of testing once
+     * at the batch boundary (and handles synthetic same-timestamp
+     * fixtures naturally).
+     */
+    private fun computeCompositeAssignments(
+        refactoringSteps: List<RefactoringStep>,
+        checkpoints: List<CheckpointReport>,
+    ): Map<Int, CompositeInfo> {
+        if (refactoringSteps.isEmpty()) return emptyMap()
+        val sorted = refactoringSteps.sortedBy { it.timestamp }
+
+        // Assign each step a composite id + isFirst flag.
+        data class Assignment(val compositeId: Int, val isFirst: Boolean)
+        val assignments = mutableMapOf<Int, Assignment>()
+        var compositeId = 0
+        var prevTs: Long? = null
+        // For each composite track its lastStep timestamp (closing
+        // bound) so we can fill in the test window below.
+        val compositeFirstTs = mutableMapOf<Int, Long>()
+        for (s in sorted) {
+            val previous = prevTs
+            val isFirst = previous == null || (s.timestamp - previous) > COMPOSITE_GAP_MS
+            if (isFirst && previous != null) compositeId += 1
+            assignments[s.stepIndex] = Assignment(compositeId, isFirst)
+            compositeFirstTs.putIfAbsent(compositeId, s.timestamp)
+            prevTs = s.timestamp
+        }
+
+        // Test-run timestamps from all checkpoint events.
+        val testTimestamps = checkpoints
+            .flatMap { it.events }
+            .filter { it.type == EventType.TEST_RUN_FINISHED }
+            .map { it.timestamp }
+            .sorted()
+
+        // Per-composite hasTest: window is [firstStep, nextFirstStep)
+        // (or +∞ for the final composite).
+        val maxCompositeId = compositeId
+        val hasTest = mutableMapOf<Int, Boolean>()
+        for (cid in 0..maxCompositeId) {
+            val lo = compositeFirstTs[cid] ?: continue
+            val hi = compositeFirstTs[cid + 1] ?: Long.MAX_VALUE
+            hasTest[cid] = testTimestamps.any { it >= lo && it < hi }
+        }
+
+        return assignments.mapValues { (_, a) ->
+            CompositeInfo(
+                compositeId = a.compositeId,
+                isFirstStepInComposite = a.isFirst,
+                hasTestInWindow = hasTest[a.compositeId] ?: false,
+            )
+        }
+    }
+
     // ---- score assembly + breakdown ----
 
     private fun buildProcessScore(
@@ -1182,8 +1339,8 @@ class DerivedMetricsRunner {
         elapsedMs: Long,
         checkpointsSoFar: Int,
         skipFrac: Double,
-        testsSkippedCount: Int,
-        refactoringStepsCount: Int,
+        skippedCompositesCount: Int,
+        compositesCount: Int,
         manualFrac: Double,
         manualWhenIdeCount: Int,
         ideRelevantCount: Int,
@@ -1217,10 +1374,10 @@ class DerivedMetricsRunner {
             ),
             ProcessContribution(
                 id = "skipTests",
-                label = "Tests skipped after refactor",
+                label = "Tests skipped after refactor batch",
                 points = skipPoints,
-                detail = if (refactoringStepsCount == 0) "no refactorings yet"
-                else "$testsSkippedCount of $refactoringStepsCount refactoring step${if (refactoringStepsCount == 1) "" else "s"} not followed by tests",
+                detail = if (compositesCount == 0) "no refactorings yet"
+                else "$skippedCompositesCount of $compositesCount refactoring batch${if (compositesCount == 1) "" else "es"} not followed by tests",
             ),
             ProcessContribution(
                 id = "manualIde",

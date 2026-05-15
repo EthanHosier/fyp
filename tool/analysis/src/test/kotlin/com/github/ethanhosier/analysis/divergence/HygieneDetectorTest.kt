@@ -24,10 +24,18 @@ class HygieneDetectorTest {
         ranTests: Boolean = false,
         buildOk: Boolean = true,
         testsOk: Boolean = true,
+        testTs: Long? = null,
     ): CheckpointReport = CheckpointReport(
         sha = sha,
+        // Default the test event's timestamp to the cp's index-derived
+        // slot so it lands inside the matching step's composite window
+        // (steps are spaced 120 s apart by default in `step(...)`).
         events = if (ranTests) listOf(
-            EventSummary(id = "$sha-test", type = EventType.TEST_RUN_FINISHED, timestamp = 0L),
+            EventSummary(
+                id = "$sha-test",
+                type = EventType.TEST_RUN_FINISHED,
+                timestamp = testTs ?: (sha.removePrefix("u").toLongOrNull() ?: 0L) * 120_000L,
+            ),
         ) else emptyList(),
         metrics = CheckpointMetrics(
             sha = sha,
@@ -48,12 +56,16 @@ class HygieneDetectorTest {
         diff = DiffStats.ZERO,
     )
 
-    private fun step(toIdx: Int) = RefactoringStep(
+    private fun step(toIdx: Int, timestamp: Long = toIdx * 120_000L) = RefactoringStep(
         stepIndex = toIdx,
         fromSha = "u${toIdx - 1}",
         toSha = "u$toIdx",
         toCheckpointIndex = toIdx,
-        timestamp = 0L,
+        // Default spacing of 2 min so each step is its own composite —
+        // tests written before the COMPOSITE_GAP_MS rule existed assume
+        // per-step semantics. Tests that want a single composite pass
+        // a closer timestamp explicitly.
+        timestamp = timestamp,
         refactoring = DetectedRefactoring(
             type = "Extract Method",
             description = "stub",

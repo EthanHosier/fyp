@@ -123,6 +123,14 @@ Scope: Composition, weight-justification, sensitivity, framing for a weighted-su
 - **Sensitivity analysis:** No — descriptive longitudinal study.
 - **Applicability to thesis:** Direct empirical justification for treating $W_\text{GAIN}$ as a *signed* term — refactoring often makes things worse, so the score must let cleanliness regressions cost points (negative `cleanlinessGain · W_GAIN`) rather than only rewarding gains.
 
+### How We Refactor, and How We Know It (Murphy-Hill, Parnin & Black, 2012)
+- **Venue:** IEEE Transactions on Software Engineering 38(1), 5–18 (2012)
+- **URL:** https://doi.org/10.1109/TSE.2011.41
+- **Contribution:** Eclipse-telemetry study of professional refactoring practice (~700 sessions across the Mylyn corpus + lab study). Introduces the *batch refactoring* concept and quantifies it: refactorings executed within 60 s of each other form a batch, and ~40 % of tool-invoked refactorings cluster this way. Provides the canonical empirical anchor for treating a composite, rather than an individual step, as the unit at which test cadence should be assessed.
+- **Weighting scheme used:** N/A — empirical telemetry study.
+- **Sensitivity analysis:** No (descriptive).
+- **Applicability to thesis:** Directly backs the 60 s composite window used as the denominator for `W_SKIP_TESTS`. Cited at the constant `COMPOSITE_GAP_MS` and in the penalty-normalisation section. Provides the *empirical* counterweight to Fowler 2018's per-step prescription: the textbook says "test after every micro-step", but professional practice batches and tests at the boundary; the metric scores against the latter for fairness.
+
 ### When and Why Your Code Starts to Smell Bad (Tufano, Palomba, Bavota, Oliveto, Di Penta, De Lucia & Poshyvanyk, 2017; journal 2020)
 - **Venue:** IEEE Transactions on Software Engineering 43(11), 1063–1088 (2017); extended in TSE 2020
 - **URL:** https://doi.org/10.1109/TSE.2017.2653105
@@ -426,10 +434,26 @@ trajectory length:
   the user's time slice at each step (`altStepDurations` in
   `DerivedMetricsRunner`) so an alt that avoids a long broken stretch
   correctly out-scores the user.
-- **W_SKIP_TESTS** and **W_MANUAL_IDE** are applied as fractions of
-  their full weight, scaled by `1 / refactoringStepsCount` per step
-  (Laplace-smoothed). Both are per-refactoring-step concerns so the
-  step count is the natural denominator.
+- **W_SKIP_TESTS** is applied as `missedComposites / totalComposites`
+  (Laplace-smoothed). A *composite* is a run of consecutive
+  refactoring steps whose inter-step gap is ≤ 60 s, following
+  Murphy-Hill, Parnin & Black 2012 (TSE), who report ~40 % of
+  tool-invoked refactorings cluster within 60 s of each other on
+  their Eclipse-telemetry corpus. A composite is "tested" iff any
+  `TEST_RUN_FINISHED` event lands in the half-open interval
+  `[composite.firstStep.ts, nextComposite.firstStep.ts)`. Switching
+  the denominator from per-step to per-composite avoids penalising
+  the empirically-common pattern of testing once at the batch
+  boundary rather than after every micro-step — Fowler 2018's
+  per-step prescription remains the textbook ideal, but
+  Murphy-Hill 2012 and Negara/Vakilian 2013 establish that the
+  composite is the unit professional developers actually reason
+  about.
+- **W_MANUAL_IDE** is applied as a fraction of its full weight,
+  scaled by `1 / refactoringStepsCount` per step (Laplace-smoothed).
+  Per-step is the natural denominator here because the IDE-vs-manual
+  choice is made at each individual refactor invocation, not at the
+  batch boundary.
 - **W_COMMIT_GAP** fires a fixed −7 each time the running count of
   green refactor checkpoints since the last commit crosses
   `MIN_COMMIT_GAP = 6` (the threshold inherited from the hygiene
@@ -442,9 +466,10 @@ methodology chapter should state them explicitly so the marker
 doesn't have to read code to confirm them.
 
 → **See:** Paixão et al. 2018 (TEVC) for disruption framing; Cedrim
-et al. 2017 (FSE) for refactoring-degradation prevalence; Letouzey
-2012 (SQALE) for fiat-weight composite precedent; Wagner 2015
-(Quamoco) for structural blueprint.
+et al. 2017 (FSE) for refactoring-degradation prevalence;
+Murphy-Hill, Parnin & Black 2012 (TSE) for the 60 s composite
+window; Letouzey 2012 (SQALE) for fiat-weight composite precedent;
+Wagner 2015 (Quamoco) for structural blueprint.
 
 ## Sensitivity analysis + ablation (closes the loop on fiat weights)
 
@@ -507,6 +532,7 @@ file creation, not gradually — snapshot scores can't see this).
 | Process-layer composition (weighted sum + fiat weights) | Letouzey 2012 (SQALE)             | Quamoco                                          |
 | W_BROKEN axiom                        | Paixão et al. 2017                | —                                                |
 | W_GAIN dominant positive (signed)      | Paixão et al. 2017                | Cedrim et al. 2017                               |
+| W_SKIP_TESTS composite-window (60 s)   | Murphy-Hill, Parnin & Black 2012  | Negara, Vakilian et al. 2013 (semantic composite) |
 | Non-structural penalty terms (caveat) | Pantiuchina et al. 2018           | —                                                |
 | "Why weighted sum, not Pareto"        | Harman & Tratt 2007 (counter)     | Mkaouer 2016 (counter)                           |
 | Sensitivity-analysis chapter motivation | Verdecchia et al. 2022 (ATDx)     | Arcelli Fontana et al. 2017 (template)           |
