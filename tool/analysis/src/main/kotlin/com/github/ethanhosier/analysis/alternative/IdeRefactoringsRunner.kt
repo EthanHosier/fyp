@@ -135,14 +135,19 @@ class IdeRefactoringsRunner(
 
         // Group co-located refactorings. Miner emission order is
         // preserved within each group by sorting on stepIndex — RM
-        // assigns stepIndex monotonically in detection order.
+        // assigns stepIndex monotonically in detection order. The
+        // group's `settledSha` is the max across member steps — for
+        // co-located refactorings the latest settle point dominates
+        // (they all share the same window).
         val groups = candidateSteps
             .groupBy { it.fromSha to it.toSha }
             .map { (key, members) ->
+                val ordered = members.sortedBy { it.stepIndex }
                 Group(
                     fromSha = key.first,
                     toSha = key.second,
-                    steps = members.sortedBy { it.stepIndex },
+                    settledSha = ordered.map { it.settledSha }.lastOrNull() ?: key.second,
+                    steps = ordered,
                 )
             }
             .sortedBy { it.steps.first().stepIndex }
@@ -258,17 +263,23 @@ class IdeRefactoringsRunner(
             }
 
             // Residual 3-way merge layered on top of the last
-            // refactoring SHA. Clean + non-empty ⇒ commits a final
-            // residual SHA as its own node on the alt path. Conflicted
-            // ⇒ reset back to the last refactoring SHA so the chain
-            // still represents a valid IDE outcome (just without the
-            // user's leftover edits). Empty ⇒ no extra commit, chain
-            // ends at the last refactoring SHA.
+            // refactoring SHA. Targets the *settled* user SHA, not the
+            // RM detection's toSha: when the user takes several edit
+            // bursts to land a refactoring (e.g. inline call sites one
+            // at a time), RM detects the refactoring at the first
+            // checkpoint where the signature is clear, but the user's
+            // refactoring isn't complete there — comparing to that
+            // mid-progression SHA would force the residual to revert
+            // the alt's complete IDE refactoring back to the half-done
+            // intermediate. Comparing to `settledSha` (the latest
+            // checkpoint where the same logical refactoring still
+            // applies) means residual = "what the user did that wasn't
+            // part of this refactoring," which is its intended role.
             val lastRefactoringSha = stepShas.last()
             val residualOutcome = applyResidual(
                 worktreeGit = worktreeGit,
                 refactoringOnlySha = lastRefactoringSha,
-                userToSha = group.toSha,
+                userToSha = group.settledSha,
             )
 
             when (residualOutcome) {
@@ -295,7 +306,14 @@ class IdeRefactoringsRunner(
             val synth = SynthesisedGroup(
                 stepIndexes = appliedSteps.map { it.stepIndex },
                 fromSha = group.fromSha,
-                userToSha = group.toSha,
+                // The alt's terminal state (lastRefactoringSha + optional
+                // residual layer) lands at the same checkpoint state as
+                // `settledSha`. Pin userToSha to settledSha so downstream
+                // comparisons (e.g. DivergencePointBuilder's
+                // `altProcess - userProcess`) line up against the user's
+                // post-refactoring state rather than a mid-progression
+                // intermediate.
+                userToSha = group.settledSha,
                 altShas = stepShas.toList(),
                 branchRefs = stepBranchRefs.toList(),
                 residual = residualOutcome.summary,
@@ -341,6 +359,10 @@ class IdeRefactoringsRunner(
     private data class Group(
         val fromSha: String,
         val toSha: String,
+        /** Target of the residual 3-way merge — see [RefactoringStep.settledSha].
+         *  Defaults to [toSha] for groups whose steps don't carry a settled
+         *  point (e.g. legacy reports or hand-built test fixtures). */
+        val settledSha: String,
         val steps: List<RefactoringStep>,
     )
 
