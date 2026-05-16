@@ -9,3 +9,11 @@ session_id,pattern,strength,target_step,expected_kind,fixture_path,control_sessi
 008,ManualRenameMethod,borderline,2,IDE_REPLAY,sessions/008/,042
 009,ManualRenameMethod,subthreshold,2,IDE_REPLAY,sessions/009/,042
 010,ManualInlineMethod,loud,2,IDE_REPLAY,sessions/010/,043
+011,ManualInlineMethod,loud,2,IDE_REPLAY,sessions/011/,043
+012,ManualInlineMethod,borderline,2,IDE_REPLAY,sessions/012/,042
+013,ManualInlineMethod,subthreshold,2,IDE_REPLAY,sessions/013/,042
+014,ManualMoveMethod,loud,2,IDE_REPLAY,sessions/014/,044
+015,ManualMoveMethod,loud,2,IDE_REPLAY,sessions/015/,044
+016,ManualMoveMethod,borderline,2,IDE_REPLAY,sessions/016/,042
+017,ManualMoveMethod,subthreshold,2,IDE_REPLAY,sessions/017/,042
+018,ManualExtractVariable,loud,2,IDE_REPLAY,sessions/018/,043

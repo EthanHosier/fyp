@@ -26,6 +26,7 @@ import gr.uom.java.xmi.diff.MoveAndRenameAttributeRefactoring
 import gr.uom.java.xmi.diff.MoveAndRenameClassRefactoring
 import gr.uom.java.xmi.diff.MoveAttributeRefactoring
 import gr.uom.java.xmi.diff.MoveClassRefactoring
+import gr.uom.java.xmi.diff.MoveOperationRefactoring
 import gr.uom.java.xmi.diff.PullUpAttributeRefactoring
 import gr.uom.java.xmi.diff.PullUpOperationRefactoring
 import gr.uom.java.xmi.diff.PushDownAttributeRefactoring
@@ -375,6 +376,32 @@ class RefactoringMinerRunner(
             fieldName = r.originalAttribute.name,
             destinationTypeFqn = r.targetClassName,
         )
+
+        // Move Method — JDT's MoveInstanceMethod refactoring rewires the
+        // method into the type of one of its parameters (or instance
+        // fields). RM detects the move structurally; we recover the
+        // target-parameter name by matching parameter types against the
+        // moved operation's new className (FQN or simple). If no
+        // parameter's type matches (e.g. a static-shaped move via a
+        // wholly new field), fall through to Other so the synth skips
+        // rather than guesses.
+        is MoveOperationRefactoring -> {
+            val sourceFqn = r.originalOperation.className
+            val destFqn = r.movedOperation.className
+            val destSimple = destFqn.substringAfterLast('.')
+            val target = r.originalOperation.parameterDeclarationList
+                .firstOrNull { p ->
+                    val typeStr = p.type?.toString() ?: ""
+                    typeStr == destFqn || typeStr == destSimple
+                }
+                ?.variableName
+            if (target == null) RefactoringSpec.Other
+            else RefactoringSpec.MoveInstanceMethod(
+                sourceTypeFqn = sourceFqn,
+                methodName = r.originalOperation.name,
+                targetName = target,
+            )
+        }
 
         is ExtractOperationRefactoring -> {
             // RM's leftSide() returns BOTH the extracted code-fragments

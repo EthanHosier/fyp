@@ -12,7 +12,9 @@
 
 ## What this session demonstrates
 
-User manually moves `LibrarySystem.formatReport` (lines 168-178) into `ReportFormatter`. External call-sites (in tests) must be rewired by hand. Loud IDE_REPLAY anchor.
+User manually moves `LibrarySystem.helperB(Member)` into `Member` as an instance method (`Member.helperB()`) and rewires the 3 in-class call sites by hand instead of using `Refactor -> Move Instance Method`. helperB is called from 3 sites *inside LibrarySystem* — `processReturn`, `bulkLendBooks`, and `fooBar` — so the move forces a visible cross-method cascade of updates. Loud IDE_REPLAY anchor.
+
+(Previously this session targeted `formatReport`, but that method has no internal callers in LibrarySystem and no external production callers — a weak "loud" example. Moving `helperB` mirrors session 014's pattern on a different method/destination pair to give a second loud datapoint.)
 
 ## Setup (every session)
 
@@ -42,15 +44,36 @@ User manually moves `LibrarySystem.formatReport` (lines 168-178) into `ReportFor
 
 ## Step 2 — Manual Move Method (the bad step)
 
-1. In `LibrarySystem.java`, **manually** select lines 168-178 — the entire `formatReport(Member m)` method. **Cmd-X**.
-2. Open `ReportFormatter.java`. Paste (Cmd-V) below the existing `formatReport(List<Loan>, Member)` method (around line 53). Rename the pasted method by hand to `formatMemberReport(Member m, Map<String, Loan> loans)` and pass dependencies in (no `this.loans` available in ReportFormatter).
-3. Edit by hand:
-   - Replace `loans.values()` with the passed-in `loans.values()`.
-   - Replace `fooBar(m.getId(), LocalDate.now())` — `fooBar` doesn't exist in `ReportFormatter`; inline a stub `String header = "notify:" + m.getName();` or pass the header in.
-4. In `LibrarySystem.java`, replace the now-gone `formatReport(m)` method with a delegating one-liner that calls `reportFormatter.formatMemberReport(m, loans)`. Type by hand.
-5. Update test callers in `LibrarySystemTest.java` and `ReportFormatterTest.java` if needed.
-6. Save all. Run tests. Expect green.
-7. Terminal: `git commit -am "manual move: formatReport -> ReportFormatter"`.
+1. In `LibrarySystem.java`, locate the `helperB(Member member)` declaration (around line 125). **Manually** select all 3 lines:
+   ```java
+       public boolean helperB(Member member) {
+           return member.getType() == MemberType.PREMIUM;
+       }
+   ```
+   Press **Cmd-X** to cut. (Do NOT use `Refactor -> Move Instance Method`.)
+
+2. Open `Member.java`. Place the caret on the blank line before the final `}` of the `Member` class. Press **Cmd-V** to paste.
+
+3. **Manually** convert the pasted method from static-shaped helper into an instance method:
+   ```java
+       public boolean helperB() {
+           return getType() == MemberType.PREMIUM;
+       }
+   ```
+   - Delete the `Member member` parameter.
+   - Delete the `member.` prefix on `getType()`.
+   - If `Member.java` doesn't yet import `MemberType` directly (it's a nested enum in the same file), the reference resolves without an import.
+
+4. Back in `LibrarySystem.java`, update the 3 internal call sites by hand. Use **Cmd-F** to find `helperB(` in the file (DO NOT use Refactor → Rename, DO NOT use Find/Replace across files — type each replacement at the call site). Replacements:
+   - Line ~58 inside `processReturn`: `helperB(member)` → `member.helperB()`
+   - Line ~107 inside `bulkLendBooks`: `helperB(member)` → `member.helperB()`
+   - Line ~161 inside `fooBar`: `helperB(m)` → `m.helperB()`
+
+5. Save all open files (Cmd-S in each, or Cmd-Shift-S for "Save All").
+
+6. Run all tests (Cmd-Shift-F10 on `src/test/java`). Expect green. If a test fails, fix the wiring by hand — do NOT undo and use the IDE refactor.
+
+7. Commit: `cd fixtures/library-fixture && git commit -am "manual move: helperB into Member"`.
 
 ## End
 
