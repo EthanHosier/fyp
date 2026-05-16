@@ -10,6 +10,7 @@ import com.github.ethanhosier.analysis.diffs.DiffsRunner
 import com.github.ethanhosier.analysis.ingest.TraceLoader
 import com.github.ethanhosier.analysis.metrics.MetricsRunner
 import com.github.ethanhosier.analysis.metrics.cpd.CpdTrackingRunner
+import com.github.ethanhosier.analysis.metrics.derived.ScoringConfig
 import com.github.ethanhosier.analysis.metrics.model.CheckpointMetrics
 import com.github.ethanhosier.analysis.metrics.pmd.PmdTrackingRunner
 import com.github.ethanhosier.analysis.miner.RefactoringMinerRunner
@@ -64,7 +65,42 @@ class AnalysisPipeline(
         val report: AnalysisReport,
     )
 
-    fun run(sessionDir: Path): Result {
+    fun run(sessionDir: Path, config: ScoringConfig = ScoringConfig.PRODUCTION): Result {
+        val (phaseA, alternativeDurationMs, minerDurationMs, diffsDurationMs) = runPhaseAInternal(sessionDir)
+        val report = ReportAssembler.assemble(phaseA, config)
+        return Result(
+            trace = phaseA.trace,
+            reconstruction = phaseA.reconstruction,
+            metricsSummary = phaseA.metrics,
+            metricsDurationMs = phaseA.metricsDurationMs,
+            minerSummary = phaseA.miner,
+            minerDurationMs = minerDurationMs,
+            alternativeSummary = phaseA.alternative,
+            alternativeDurationMs = alternativeDurationMs,
+            diffsSummary = phaseA.diffs,
+            diffsDurationMs = diffsDurationMs,
+            report = report,
+        )
+    }
+
+    /**
+     * Run only the expensive Phase A: load + reconstruct + mine +
+     * synthesise + metrics + diffs + tracking. Returns the frozen
+     * [PhaseAResult] without invoking [ReportAssembler]. Use this when
+     * you want to cache the heavy work and iterate on report assembly
+     * separately (Phase 1.3 CLI / tests).
+     */
+    fun runPhaseA(sessionDir: Path): PhaseAResult =
+        runPhaseAInternal(sessionDir).phaseA
+
+    private data class PhaseATiming(
+        val phaseA: PhaseAResult,
+        val alternativeDurationMs: Long,
+        val minerDurationMs: Long,
+        val diffsDurationMs: Long,
+    )
+
+    private fun runPhaseAInternal(sessionDir: Path): PhaseATiming {
         log("starting analysis on $sessionDir (parallelism=$parallelism)")
         val trace = normalizeTrace(sessionDir)
         val reconstruction = reconstructRepo(sessionDir, trace)
@@ -88,35 +124,36 @@ class AnalysisPipeline(
         )
 
         val (diffs, diffsDurationMs) = computeDiffs(reconstruction, minedRefactorings, allAltPairs)
+        val trackedCodeSmells = trackCodeSmells(reconstruction, metricsSummary, allAltPairs, augmentedAltCheckpoints)
+        val trackedDuplication = trackDuplication(metricsSummary, allAltPairs, augmentedAltCheckpoints)
 
-        val report = buildAnalysisReport(
+        val phaseA = PhaseAResult(
             trace = trace,
             reconstruction = reconstruction,
             metrics = metricsSummary,
-            augmentedAltMetricsBySha = altMetricsByShaMut,
             miner = minedRefactorings,
             alternative = automaticIdeRefactoringAlternatives,
             diffs = diffs,
-            trackedCodeSmells = trackCodeSmells(reconstruction, metricsSummary, allAltPairs, augmentedAltCheckpoints),
-            trackedDuplication = trackDuplication(metricsSummary, allAltPairs, augmentedAltCheckpoints),
+            trackedCodeSmells = trackedCodeSmells,
+            trackedDuplication = trackedDuplication,
             parallelism = parallelism,
             metricsDurationMs = metricsDurationMs,
             reorderTrajectories = reorderSynth.trajectories,
+            augmentedAltMetricsBySha = altMetricsByShaMut,
             reworkSummary = reworkSummary,
+            // Side-table specs so `PhaseAResult` round-trips through JSON.
+            // `RefactoringStep.spec` is `@Transient` (the dashboard report
+            // doesn't carry typed specs), but Phase B assembly reads
+            // `step.spec` for divergence-point construction.
+            specsByStepIndex = minedRefactorings.steps.mapNotNull { s ->
+                s.spec?.let { s.stepIndex to it }
+            }.toMap(),
         )
-
-        return Result(
-            trace = trace,
-            reconstruction = reconstruction,
-            metricsSummary = metricsSummary,
-            metricsDurationMs = metricsDurationMs,
-            minerSummary = minedRefactorings,
-            minerDurationMs = minerDurationMs,
-            alternativeSummary = automaticIdeRefactoringAlternatives,
+        return PhaseATiming(
+            phaseA = phaseA,
             alternativeDurationMs = alternativeDurationMs,
-            diffsSummary = diffs,
+            minerDurationMs = minerDurationMs,
             diffsDurationMs = diffsDurationMs,
-            report = report,
         )
     }
 

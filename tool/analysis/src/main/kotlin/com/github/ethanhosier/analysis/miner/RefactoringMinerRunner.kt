@@ -41,6 +41,7 @@ import org.refactoringminer.api.Refactoring
 import org.refactoringminer.api.RefactoringType
 import org.refactoringminer.api.RefactoringHandler
 import org.refactoringminer.rm1.GitHistoryRefactoringMinerImpl
+import kotlinx.serialization.Serializable
 import java.nio.file.Path
 
 /**
@@ -69,6 +70,7 @@ class RefactoringMinerRunner(
     private val parallelism: Int = defaultParallelism(),
 ) {
 
+    @Serializable
     data class Summary(
         val checkpointsAnalysed: Int,
         val steps: List<RefactoringStep>,

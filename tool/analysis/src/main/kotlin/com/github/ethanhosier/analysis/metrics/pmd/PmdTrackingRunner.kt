@@ -3,6 +3,7 @@ package com.github.ethanhosier.analysis.metrics.pmd
 import com.github.ethanhosier.analysis.metrics.model.CheckpointMetrics
 import com.github.ethanhosier.analysis.pipeline.PmdTracking
 import com.github.ethanhosier.analysis.reconstruct.GitRunner
+import kotlinx.serialization.Serializable
 
 /**
  * Sequential post-processing pass that computes [PmdTracking] for every
@@ -25,6 +26,7 @@ import com.github.ethanhosier.analysis.reconstruct.GitRunner
  */
 class PmdTrackingRunner(private val git: GitRunner) {
 
+    @Serializable
     data class Summary(
         /** Keyed by user-trajectory SHA, in trajectory order. */
         val trackingBySha: Map<String, PmdTracking>,

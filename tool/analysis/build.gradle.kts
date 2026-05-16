@@ -159,6 +159,35 @@ tasks.named<JavaExec>("run") {
 val dashboardTypesOutput = rootProject.layout.projectDirectory
     .file("dashboard/src/generated/report-types.ts")
 
+// Phase-A standalone driver: dumps `PhaseAResult` JSON for a session
+// folder so Phase B can be re-run cheaply without re-paying for
+// reconstruction / metrics / synthesis. Pairs with `:phaseB` below.
+// Equinox bundle wiring mirrors `:analysis:run` — Phase A still drives
+// `IdeRefactoringsRunner`, which needs `RefactoringClientFactory`.
+tasks.register<JavaExec>("phaseA") {
+    group = "verification"
+    description = "Run Phase A only and dump PhaseAResult JSON."
+    mainClass.set("com.github.ethanhosier.analysis.cli.PhaseACli")
+    classpath = sourceSets["main"].runtimeClasspath
+    val bundleFiles: FileCollection = refactoringBundle
+    inputs.files(bundleFiles)
+    jvmArgumentProviders.add(
+        CommandLineArgumentProvider {
+            listOf("-Drefactoring.bundle.jar=" + bundleFiles.singleFile.absolutePath)
+        },
+    )
+}
+
+// Phase-B cached replay: re-assembles an AnalysisReport from a
+// PhaseAResult dump + ScoringConfig JSON. No Equinox needed — Phase B
+// is pure in-memory.
+tasks.register<JavaExec>("phaseB") {
+    group = "verification"
+    description = "Re-run Phase B (cheap scoring) against a Phase-A JSON dump."
+    mainClass.set("com.github.ethanhosier.analysis.cli.PhaseBCli")
+    classpath = sourceSets["main"].runtimeClasspath
+}
+
 tasks.register<JavaExec>("generateDashboardTypes") {
     group = "build"
     description = "Generates TypeScript types for the React dashboard from AnalysisReport."
