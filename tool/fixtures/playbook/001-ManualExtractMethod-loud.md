@@ -12,7 +12,7 @@
 
 ## What this session demonstrates
 
-The user manually extracts a ~20-line fee-calculation block out of `LibrarySystem.processReturn` using cut/paste and a hand-typed signature instead of `Refactor -> Extract Method`. The synthesiser should detect that an `ExtractMethod` IDE refactor would have produced an equivalent edit at lower process cost, producing an `IDE_REPLAY` divergence point at step 2. This is the canonical loud IDE_REPLAY probe.
+The user manually extracts the entire overdue-processing branch (~36 self-contained lines) out of `LibrarySystem.processReturn` using cut/paste and a hand-typed signature instead of `Refactor -> Extract Method`. The synthesiser should detect that an `ExtractMethod` IDE refactor would have produced an equivalent edit at lower process cost, producing an `IDE_REPLAY` divergence point at step 2. This is the canonical loud IDE_REPLAY probe.
 
 ## Setup (every session)
 
@@ -47,27 +47,28 @@ After step 1: tests pass, one commit on top of baseline.
 
 ## Step 2 — Manual Extract Method (the bad step)
 
+We extract the **entire overdue branch** — every local declared inside lives inside the cut block, so no parameters need to come back out. The helper returns `fee` and that's the only value the call site cares about.
+
 1. Open `src/main/java/org/library/LibrarySystem.java`. Locate `processReturn(...)` at line 32.
-2. **Manually** select lines 48-67 inclusive — the entire fee-calc block beginning with `long daysLate = loan.daysOverdue(today);` and ending with `member.bumpT1();`. Press **Cmd-X** to cut.
-3. In place of the cut block, type the call site by hand:
+2. **Manually** select lines 48-83 inclusive — the entire body of the `if (overdueFlag) { ... }`, beginning with `long daysLate = loan.daysOverdue(today);` and ending with `fooBar(member.getId(), today);`. **Do NOT include** the closing `}` of the if at line 84. Press **Cmd-X** to cut.
+3. In place of the cut block, type the call site by hand (still inside the if):
    ```java
-                   double fee2 = applyLateFee(loan, member, today);
-                   fee = fee2;
+               fee = handleOverdueReturn(loan, member, book, today);
    ```
    (Do NOT use Refactor -> Extract Method. Do NOT use Live Templates.)
-4. Move the caret below the closing `}` of `processReturn` (around line 90 after the cut). Type the new method signature by hand:
+4. Move the caret below the closing `}` of `processReturn` (the outer method-closing brace, near the bottom of the class). Type the new method by hand. First the signature:
    ```java
-       private double applyLateFee(Loan loan, Member member, LocalDate today) {
+       private double handleOverdueReturn(Loan loan, Member member, Book book, LocalDate today) {
+           double fee = 0.0;
    ```
-   Press **Cmd-V** to paste the cut block. At the bottom of the pasted block, type by hand:
+   Press **Cmd-V** to paste the cut block. Then type the closing return + brace by hand:
    ```java
-           return Math.round(fee * 100.0) / 100.0;
+           return fee;
        }
    ```
-   Then delete the original `double fee = ...; ... member.bumpT1();` line that did the assignment if it still sits inside the helper — rewire so the helper returns the fee and the call site assigns to `fee`. Adjust by hand: the helper computes `accumulated`, calls `feeCalc.helper(rounded)`, bumps `member.bumpT1()`, then returns the fee.
 5. Save (Cmd-S).
 6. Run all tests (Cmd-Shift-F10 on `src/test/java`). Expect green. If a test fails, fix the wiring by hand — do NOT undo and use the IDE refactor.
-7. Commit: in a terminal, `git commit -am "manual extract: applyLateFee"`.
+7. Commit: in a terminal, `cd fixtures/library-fixture && git commit -am "manual extract: handleOverdueReturn"`.
 
 ## End
 
