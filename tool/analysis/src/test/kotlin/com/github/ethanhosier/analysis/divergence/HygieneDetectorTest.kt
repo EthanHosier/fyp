@@ -83,7 +83,7 @@ class HygieneDetectorTest {
             cp("u1"),                 // refactoring lands here, no test event
             cp("u2", ranTests = true), // refactoring lands here, test event present
         )
-        val findings = HygieneDetector.detect(checkpoints, listOf(step(1), step(2)))
+        val findings = HygieneDetector().detect(checkpoints, listOf(step(1), step(2)))
         assertEquals(1, findings.size)
         assertEquals(HygieneDetector.SubKind.TESTS_SKIPPED, findings[0].subKind)
         assertEquals(1, findings[0].anchorIndex)
@@ -96,7 +96,7 @@ class HygieneDetectorTest {
             cp("u1", ranTests = true),
             cp("u2", ranTests = true),
         )
-        val findings = HygieneDetector.detect(checkpoints, listOf(step(1), step(2)))
+        val findings = HygieneDetector().detect(checkpoints, listOf(step(1), step(2)))
         assertTrue(
             findings.none { it.subKind == HygieneDetector.SubKind.TESTS_SKIPPED },
             "expected no TESTS_SKIPPED findings, got $findings",
@@ -110,7 +110,7 @@ class HygieneDetectorTest {
         // fires again at i=11.
         val checkpoints = (0 until 14).map { cp("u$it") }
         val refactors = (0 until 14).map { step(it) }
-        val findings = HygieneDetector
+        val findings = HygieneDetector()
             .detect(checkpoints, refactors)
             .filter { it.subKind == HygieneDetector.SubKind.COMMIT_GAP }
         assertEquals(2, findings.size)
@@ -128,7 +128,7 @@ class HygieneDetectorTest {
             cp("u$idx", buildOk = idx != 5)
         }
         val refactors = (0 until 14).filter { it != 2 }.map { step(it) }
-        val findings = HygieneDetector
+        val findings = HygieneDetector()
             .detect(checkpoints, refactors)
             .filter { it.subKind == HygieneDetector.SubKind.COMMIT_GAP }
         assertEquals(2, findings.size)
@@ -139,7 +139,7 @@ class HygieneDetectorTest {
     fun `COMMIT_GAP silent below threshold`() {
         // 5 green refactor checkpoints — short of the 6-step threshold.
         val checkpoints = (0 until 5).map { cp("u$it") }
-        val findings = HygieneDetector
+        val findings = HygieneDetector()
             .detect(checkpoints, (0 until 5).map { step(it) })
             .filter { it.subKind == HygieneDetector.SubKind.COMMIT_GAP }
         assertTrue(findings.isEmpty(), "expected no COMMIT_GAP findings, got $findings")
@@ -152,7 +152,7 @@ class HygieneDetectorTest {
         // fires at the 6th post-commit green = i=10.
         val checkpoints = (0 until 12).map { idx -> cp("u$idx", isCommit = idx == 4) }
         val refactors = (0 until 12).map { step(it) }
-        val findings = HygieneDetector
+        val findings = HygieneDetector()
             .detect(checkpoints, refactors)
             .filter { it.subKind == HygieneDetector.SubKind.COMMIT_GAP }
         assertEquals(1, findings.size)
