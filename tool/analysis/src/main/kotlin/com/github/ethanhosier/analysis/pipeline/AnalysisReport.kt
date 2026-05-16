@@ -10,6 +10,7 @@ import com.github.ethanhosier.analysis.metrics.MetricsRunner
 import com.github.ethanhosier.analysis.metrics.cpd.CpdOccurrence
 import com.github.ethanhosier.analysis.metrics.cpd.CpdTrackingRunner
 import com.github.ethanhosier.analysis.metrics.derived.DerivedMetricsRunner
+import com.github.ethanhosier.analysis.metrics.derived.ScoringConfig
 import com.github.ethanhosier.analysis.metrics.gitdiff.DiffStats
 import com.github.ethanhosier.analysis.metrics.model.AlternativeTrajectory
 import com.github.ethanhosier.analysis.metrics.model.CheckpointMetrics
@@ -668,6 +669,7 @@ internal fun buildAnalysisReport(
      *  for callers that don't synthesise terminal aliases (e.g. tests). */
     augmentedAltMetricsBySha: Map<String, CheckpointMetrics>? = null,
     reworkSummary: ReworkSynthesiser.Summary? = null,
+    config: ScoringConfig = ScoringConfig.PRODUCTION,
 ): AnalysisReport {
     val (eventsBySha, membersBySha) = computeBySha(reconstruction, trace)
     val gitShasActuallyCommitedByUser = trace.events.asSequence()
@@ -716,7 +718,7 @@ internal fun buildAnalysisReport(
     val baseAlternatives = singleStepAlts + reorderAlts + reworkAlts
     val reworkBaseOffset = singleStepAlts.size + reorderAlts.size
 
-    val derived = DerivedMetricsRunner().run(
+    val derived = DerivedMetricsRunner(config = config).run(
         mainCheckpoints = baseCheckpoints,
         alternatives = baseAlternatives,
         refactoringSteps = miner.steps,
@@ -737,8 +739,9 @@ internal fun buildAnalysisReport(
     // Done after the main derived run so the user's own derivedMetrics
     // are stable; the hygiene alts pre-bake their own derivedMetrics
     // so they don't need to pass through DerivedMetricsRunner again.
-    val hygieneFindings = HygieneDetector.detect(checkpoints, miner.steps)
-    val hygieneAlts = HygieneDetector.buildAlts(
+    val hygieneDetector = HygieneDetector(config = config)
+    val hygieneFindings = hygieneDetector.detect(checkpoints, miner.steps)
+    val hygieneAlts = hygieneDetector.buildAlts(
         findings = hygieneFindings,
         checkpoints = checkpoints,
         refactoringSteps = miner.steps,

@@ -1,7 +1,5 @@
 package com.github.ethanhosier.analysis.metrics.derived
 
-import com.github.ethanhosier.analysis.divergence.HygieneDetector.COMPOSITE_GAP_MS
-import com.github.ethanhosier.analysis.divergence.HygieneDetector.MIN_COMMIT_GAP
 import com.github.ethanhosier.analysis.metrics.model.AlternativeTrajectory
 import com.github.ethanhosier.analysis.pipeline.CheckpointReport
 import com.github.ethanhosier.analysis.pipeline.DivergenceKind
@@ -121,7 +119,12 @@ import kotlin.math.roundToLong
  *  7. No churn term. Bigger refactorings shouldn't be inherently worse
  *     than smaller ones.
  */
-class DerivedMetricsRunner {
+class DerivedMetricsRunner(
+    val config: ScoringConfig = ScoringConfig.PRODUCTION,
+) {
+    val weights: ProcessScoreWeights get() = config.process
+    private val cleanlinessWeights: CleanlinessWeights get() = config.cleanliness
+
 
     data class Result(
         val main: Map<String, DerivedMetrics>,
@@ -500,18 +503,30 @@ class DerivedMetricsRunner {
 
     // ---- cleanliness ----
 
-    // Uniform 1/6 weighting across the six sub-signals (encoded as 1.0
-    // — computeCleanliness divides by Σ wᵢ so the magnitude is
-    // irrelevant). Laplace's principle of insufficient reason: with
-    // no in-domain calibration corpus we have no basis to weight one
-    // sub-signal above another. See RESEARCH-cleanliness-metrics.md §7.
-    private enum class SubMetric(val id: String, val label: String, val weight: Double, val betterLower: Boolean) {
-        COGNITIVE("cognitive", "Cognitive complexity", 1.0, betterLower = true),
-        COUPLING("coupling", "Coupling", 1.0, betterLower = true),
-        DUPLICATION("duplication", "Duplication", 1.0, betterLower = true),
-        READABILITY("readability", "Readability", 1.0, betterLower = false),
-        SMELLS("smells", "Code smells", 1.0, betterLower = true),
-        COHESION("cohesion", "Cohesion", 1.0, betterLower = false),
+    // Default uniform 1/6 weighting across the six sub-signals (encoded
+    // as 1.0 each — computeCleanliness divides by Σ wᵢ so absolute
+    // magnitudes are irrelevant for the blended score, only ratios are).
+    // Laplace's principle of insufficient reason: with no in-domain
+    // calibration corpus we have no basis to weight one sub-signal above
+    // another. See RESEARCH-cleanliness-metrics.md §7. Per-sub-signal
+    // weights are configurable via [ScoringConfig.cleanliness] so
+    // perturbation experiments can probe sensitivity.
+    private enum class SubMetric(val id: String, val label: String, val betterLower: Boolean) {
+        COGNITIVE("cognitive", "Cognitive complexity", betterLower = true),
+        COUPLING("coupling", "Coupling", betterLower = true),
+        DUPLICATION("duplication", "Duplication", betterLower = true),
+        READABILITY("readability", "Readability", betterLower = false),
+        SMELLS("smells", "Code smells", betterLower = true),
+        COHESION("cohesion", "Cohesion", betterLower = false),
+    }
+
+    private fun weightOf(m: SubMetric): Double = when (m) {
+        SubMetric.COGNITIVE -> cleanlinessWeights.cognitive
+        SubMetric.COUPLING -> cleanlinessWeights.coupling
+        SubMetric.DUPLICATION -> cleanlinessWeights.duplication
+        SubMetric.READABILITY -> cleanlinessWeights.readability
+        SubMetric.SMELLS -> cleanlinessWeights.smells
+        SubMetric.COHESION -> cleanlinessWeights.cohesion
     }
 
     private fun valueOf(agg: Aggregates, m: SubMetric): Double? = when (m) {
@@ -562,9 +577,10 @@ class DerivedMetricsRunner {
             var n = (raw - range.lo) / (range.hi - range.lo)
             if (m.betterLower) n = 1.0 - n
             if (clamp) n = max(0.0, min(1.0, n))
-            weighted += m.weight * n
-            totalW += m.weight
-            rows.add(m to Triple(n, raw, m.weight))
+            val w = weightOf(m)
+            weighted += w * n
+            totalW += w
+            rows.add(m to Triple(n, raw, w))
         }
         if (totalW == 0.0) return null
 
@@ -799,7 +815,7 @@ class DerivedMetricsRunner {
             cp.isUserCommit -> greenSinceLastCommit = 0
             greenRefactorCp -> {
                 greenSinceLastCommit += 1
-                if (greenSinceLastCommit >= MIN_COMMIT_GAP) {
+                if (greenSinceLastCommit >= weights.minCommitGap) {
                     commitGapEvents += 1
                     greenSinceLastCommit = 0
                 }
@@ -1067,7 +1083,7 @@ class DerivedMetricsRunner {
         val toIdx = userIdxBySha[alt.userToSha] ?: return 0.0
         val userSteps = toIdx - fromIdx
         if (userSteps <= altSteps) return 0.0
-        val totalBonus = W_LENGTH * (userSteps - altSteps).toDouble() / userSteps.toDouble()
+        val totalBonus = weights.length * (userSteps - altSteps).toDouble() / userSteps.toDouble()
         return totalBonus / altSteps.toDouble()
     }
 
@@ -1257,7 +1273,7 @@ class DerivedMetricsRunner {
             cp.isUserCommit -> greenSinceLastCommit = 0
             greenRefactorCp -> {
                 greenSinceLastCommit += 1
-                if (greenSinceLastCommit >= MIN_COMMIT_GAP) {
+                if (greenSinceLastCommit >= weights.minCommitGap) {
                     commitGapEvents += 1
                     greenSinceLastCommit = 0
                 }
@@ -1363,7 +1379,7 @@ class DerivedMetricsRunner {
         val compositeFirstTs = mutableMapOf<Int, Long>()
         for (s in sorted) {
             val previous = prevTs
-            val isFirst = previous == null || (s.timestamp - previous) > COMPOSITE_GAP_MS
+            val isFirst = previous == null || (s.timestamp - previous) > weights.compositeGapMs
             if (isFirst && previous != null) compositeId += 1
             assignments[s.stepIndex] = Assignment(compositeId, isFirst)
             compositeFirstTs.putIfAbsent(compositeId, s.timestamp)
@@ -1414,15 +1430,15 @@ class DerivedMetricsRunner {
         commitGapEvents: Int,
         altLengthBonusPoints: Double,
     ): ProcessScore {
-        val cleanlinessPoints = W_GAIN * cleanlinessGain
-        val brokenPoints = -W_BROKEN * brokenFrac
-        val skipPoints = -W_SKIP_TESTS * skipFrac
-        val manualPoints = -W_MANUAL_IDE * manualFrac
+        val cleanlinessPoints = weights.gain * cleanlinessGain
+        val brokenPoints = -weights.broken * brokenFrac
+        val skipPoints = -weights.skipTests * skipFrac
+        val manualPoints = -weights.manualIde * manualFrac
         // Fixed −W_COMMIT_GAP per event (one "you should have committed
         // by now" stretch). Unbounded — the score's overall [0, 100]
         // clamp is the only ceiling. Each event = MIN_COMMIT_GAP green
         // refactor checkpoints without a commit.
-        val commitGapPoints = -W_COMMIT_GAP * commitGapEvents.toDouble()
+        val commitGapPoints = -weights.commitGap * commitGapEvents.toDouble()
 
         val contributions = listOf(
             ProcessContribution(
@@ -1460,7 +1476,7 @@ class DerivedMetricsRunner {
                 points = commitGapPoints,
                 detail = if (commitGapEvents == 0) "no overdue commit stretches"
                 else "$commitGapEvents stretch${if (commitGapEvents == 1) "" else "es"} of " +
-                    "≥$MIN_COMMIT_GAP green refactor checkpoints without a commit",
+                    "≥${weights.minCommitGap} green refactor checkpoints without a commit",
             ),
             ProcessContribution(
                 id = "altLength",
@@ -1472,7 +1488,7 @@ class DerivedMetricsRunner {
             ),
         )
 
-        val unclamped = BASELINE +
+        val unclamped = weights.baseline +
             cleanlinessPoints + brokenPoints +
             skipPoints + manualPoints + commitGapPoints + altLengthBonusPoints
         val clampedValue = max(0.0, min(100.0, unclamped))
@@ -1480,7 +1496,7 @@ class DerivedMetricsRunner {
         val clamped = unclamped != clampedValue
         return ProcessScore(
             total = total,
-            baseline = BASELINE,
+            baseline = weights.baseline,
             clamped = clamped,
             contributions = contributions,
         )
@@ -1515,33 +1531,4 @@ class DerivedMetricsRunner {
     private fun round1(x: Double): Double = (x * 10.0).roundToLong() / 10.0
     private fun round2(x: Double): Double = (x * 100.0).roundToLong() / 100.0
 
-    companion object {
-        // Top-level term weights. The score is `50 + gain·W_GAIN - Σ
-        // penalty·W`, clamped to [0, 100]. Weights chosen so a flawless
-        // trajectory with maximum cleanliness gain reaches exactly 100
-        // (`BASELINE + W_GAIN`), and a maximally damaging one bottoms out
-        // below 0 (clamped). Internal proportions follow the original
-        // 35 / 20 / 15 / 15 / 10 / 8 design, scaled by 50/35 ≈ 1.43 and
-        // rounded — the score's meaning is unchanged, the scale just
-        // spans the full 0..100 range now.
-        //
-        // Worst-case unclamped: 50 - 95 = -45, so genuinely bad sessions
-        // still hit the 0 floor; clamping is a safety net, not a routine
-        // event.
-        private const val W_GAIN = 50.0
-        private const val W_BROKEN = 28.0
-        // Hygiene triplet, ordered by safety-criticality:
-        // tests > IDE-correctness > commit cadence.
-        private const val W_SKIP_TESTS = 14.0
-        private const val W_MANUAL_IDE = 11.0
-        private const val W_COMMIT_GAP = 7.0
-        // Alt-only step-savings bonus. Sits in the behavioural-cost
-        // tier (= W_MANUAL_IDE, "extra labour that could have been
-        // avoided"); bounded above by Fowler/Kerievsky's small-steps
-        // tradition. Anchored on Mkaouer 2014/2016 + Ouni 2017's
-        // "minimise number of refactorings" co-equal SBSE objective.
-        // See RESEARCH-metrics-weighting.md C4.
-        private const val W_LENGTH = 11.0
-        private const val BASELINE = 50
-    }
 }

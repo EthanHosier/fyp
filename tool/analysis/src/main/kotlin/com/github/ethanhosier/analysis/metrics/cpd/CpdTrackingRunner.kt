@@ -2,6 +2,7 @@ package com.github.ethanhosier.analysis.metrics.cpd
 
 import com.github.ethanhosier.analysis.metrics.model.CheckpointMetrics
 import com.github.ethanhosier.analysis.pipeline.CpdTracking
+import kotlinx.serialization.Serializable
 
 /**
  * Sequential post-processing pass that computes [CpdTracking] for every
@@ -16,6 +17,7 @@ import com.github.ethanhosier.analysis.pipeline.CpdTracking
  */
 class CpdTrackingRunner {
 
+    @Serializable
     data class Summary(
         /** Keyed by user-trajectory SHA, in trajectory order. */
         val trackingBySha: Map<String, CpdTracking>,

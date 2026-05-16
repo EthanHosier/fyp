@@ -1,6 +1,7 @@
 package com.github.ethanhosier.analysis.divergence
 
 import com.github.ethanhosier.analysis.metrics.derived.DerivedMetricsRunner
+import com.github.ethanhosier.analysis.metrics.derived.ScoringConfig
 import com.github.ethanhosier.analysis.metrics.model.AlternativeTrajectory
 import com.github.ethanhosier.analysis.pipeline.CheckpointReport
 import com.github.ethanhosier.analysis.pipeline.DivergenceKind
@@ -20,7 +21,7 @@ import com.github.ethanhosier.ideplugin.model.EventType
  *    on that checkpoint, lifting the W_SKIP_TESTS penalty (≈14 points,
  *    pro-rated over `total / refactoringStepsCount`). Honest because the
  *    code is identical — only the decision to run tests changed.
- *  - `COMMIT_GAP` — the user went `MIN_COMMIT_GAP` checkpoints without
+ *  - `COMMIT_GAP` — the user went `weights.minCommitGap` checkpoints without
  *    committing. The counterfactual flips `isUserCommit = true` on the
  *    anchor checkpoint. **Magnitude is 0 today** because commit cadence
  *    isn't a term in the process score yet; the infrastructure lands now
@@ -40,23 +41,10 @@ import com.github.ethanhosier.ideplugin.model.EventType
  * recommended commit point); the walker resets the gap clock at each
  * synthetic commit.
  */
-object HygieneDetector {
-
-    /** Number of *green refactor checkpoints* (a refactoring step landed
-     *  there AND build + tests both passed) accumulated since the
-     *  previous commit at which COMMIT_GAP fires. The count is
-     *  cumulative — non-green or non-refactor checkpoints don't break
-     *  the run, they just don't contribute. So `1 green → 1 red → 5
-     *  greens` fires (6 cumulative greens) where a strict consecutive
-     *  counter wouldn't. */
-    const val MIN_COMMIT_GAP: Int = 6
-
-    /** Composite window for TESTS_SKIPPED + `W_SKIP_TESTS`: refactoring
-     *  steps whose inter-step gap is ≤ this value belong to one
-     *  composite. Following Murphy-Hill, Parnin & Black 2012 (TSE,
-     *  "How We Refactor and How We Know It"), who report ~40 % of
-     *  tool-invoked refactorings cluster within 60 s of each other. */
-    const val COMPOSITE_GAP_MS: Long = 60_000L
+class HygieneDetector(
+    val config: ScoringConfig = ScoringConfig.PRODUCTION,
+) {
+    private val weights get() = config.process
 
     enum class SubKind { TESTS_SKIPPED, COMMIT_GAP }
 
@@ -83,7 +71,7 @@ object HygieneDetector {
         // TESTS_SKIPPED — fires once per *untested composite*, anchored
         // at the composite's last step's checkpoint. A composite is a
         // run of consecutive refactoring steps whose inter-step gap is
-        // ≤ COMPOSITE_GAP_MS, mirroring `DerivedMetricsRunner`'s
+        // ≤ weights.compositeGapMs, mirroring `DerivedMetricsRunner`'s
         // composite definition (Murphy-Hill, Parnin & Black 2012).
         // The composite is "tested" iff any `TEST_RUN_FINISHED` event
         // lands in `[firstStep.ts, nextComposite.firstStep.ts)`. This
@@ -100,7 +88,7 @@ object HygieneDetector {
             var prevTs: Long? = null
             for (s in sortedSteps) {
                 val gap = prevTs?.let { s.timestamp - it } ?: Long.MAX_VALUE
-                if (current == null || gap > COMPOSITE_GAP_MS) {
+                if (current == null || gap > weights.compositeGapMs) {
                     current = Composite(mutableListOf())
                     composites += current
                 }
@@ -134,7 +122,7 @@ object HygieneDetector {
         // iff a refactoring step landed there AND build+tests both
         // passed. Non-green or non-refactor checkpoints don't contribute
         // (and don't break the run). Fires once the cumulative count
-        // hits MIN_COMMIT_GAP, then resets — treating the finding as
+        // hits weights.minCommitGap, then resets — treating the finding as
         // if the user had committed there, so long stretches emit one
         // DP per recommended commit point instead of one giant DP.
         val refactorLandingIdx = refactoringSteps.mapTo(HashSet()) { it.toCheckpointIndex }
@@ -151,7 +139,7 @@ object HygieneDetector {
                 !cp.metrics.tests.wasSkipped
             if (landsRefactor && green) {
                 greenSinceLastCommit += 1
-                if (greenSinceLastCommit >= MIN_COMMIT_GAP) {
+                if (greenSinceLastCommit >= weights.minCommitGap) {
                     out += Finding(
                         SubKind.COMMIT_GAP,
                         anchorIndex = i,
@@ -202,7 +190,7 @@ object HygieneDetector {
         // No alts on this second pass — we only need the recomputed
         // main-pass scores so we can anchor the alt and roll its line
         // forward as a continuation.
-        val recomputed = DerivedMetricsRunner().run(
+        val recomputed = DerivedMetricsRunner(config).run(
             mainCheckpoints = mutated,
             alternatives = emptyList(),
             refactoringSteps = refactoringSteps,
