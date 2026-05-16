@@ -188,6 +188,38 @@ tasks.register<JavaExec>("phaseB") {
     classpath = sourceSets["main"].runtimeClasspath
 }
 
+// Phase-2.2 sensitivity sweep: perturbs each scoring weight by ×0.5 /
+// ×1.5 against a corpus of Phase-A dumps and emits a CSV of Kendall-τ +
+// top-5 hit-rate vs. the baseline ranking. Pure in-memory like phaseB —
+// no Equinox bundle wiring needed.
+tasks.register<JavaExec>("sensitivity") {
+    group = "verification"
+    description = "Sweep scoring weights against a Phase-A corpus and emit a sensitivity CSV."
+    mainClass.set("com.github.ethanhosier.analysis.experiment.SensitivityExperiment")
+    classpath = sourceSets["main"].runtimeClasspath
+}
+
+// Phase-2.3 ablation sweep: cumulatively zeroes process-score weights
+// against a corpus of Phase-A dumps and emits a CSV of Kendall-τ +
+// top-5 hit-rate vs. the full-production ranking. Pure in-memory like
+// :sensitivity — no Equinox bundle wiring needed.
+tasks.register<JavaExec>("ablation") {
+    group = "verification"
+    description = "Ablate scoring weights against a Phase-A corpus and emit an ablation CSV."
+    mainClass.set("com.github.ethanhosier.analysis.experiment.AblationExperiment")
+    classpath = sourceSets["main"].runtimeClasspath
+}
+
+// Phase-2.4 divergence-detection driver: per-row injection manifest →
+// detector + baseline hits CSV. Pure in-memory like the other Phase-2
+// drivers — no Equinox bundle wiring needed.
+tasks.register<JavaExec>("divergence") {
+    group = "verification"
+    description = "Score the detector + baselines against an injection manifest and emit a CSV."
+    mainClass.set("com.github.ethanhosier.analysis.experiment.DivergenceExperiment")
+    classpath = sourceSets["main"].runtimeClasspath
+}
+
 tasks.register<JavaExec>("generateDashboardTypes") {
     group = "build"
     description = "Generates TypeScript types for the React dashboard from AnalysisReport."
