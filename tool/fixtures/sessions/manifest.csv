@@ -2,3 +2,10 @@ session_id,pattern,strength,target_step,expected_kind,fixture_path,control_sessi
 001,ManualExtractMethod,loud,2,IDE_REPLAY,sessions/001/,042
 002,ManualExtractMethod,loud,2,IDE_REPLAY,sessions/002/,042
 003,ManualExtractMethod,loud,2,IDE_REPLAY,sessions/003/,043
+004,ManualExtractMethod,borderline,2,IDE_REPLAY,sessions/004/,042
+005,ManualExtractMethod,subthreshold,2,IDE_REPLAY,sessions/005/,042
+006,ManualRenameMethod,loud,2,IDE_REPLAY,sessions/006/,043
+007,ManualRenameMethod,loud,2,IDE_REPLAY,sessions/007/,043
+008,ManualRenameMethod,borderline,2,IDE_REPLAY,sessions/008/,042
+009,ManualRenameMethod,subthreshold,2,IDE_REPLAY,sessions/009/,042
+010,ManualInlineMethod,loud,2,IDE_REPLAY,sessions/010/,043

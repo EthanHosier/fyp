@@ -15,7 +15,7 @@ public class LibrarySystem {
     private final Map<String, Book> books = new HashMap<>();
     private final Map<String, Member> members = new HashMap<>();
     private final Map<String, Loan> loans = new HashMap<>();
-    private final List<String> notifications = new ArrayList<>();
+    private final List<String> noticeLog = new ArrayList<>();
     private final LateFeeCalculator feeCalc = new LateFeeCalculator();
     private final ReportFormatter reportFormatter = new ReportFormatter();
 
@@ -25,7 +25,7 @@ public class LibrarySystem {
         for (Loan x : l) loans.put(x.getId(), x);
     }
 
-    public List<String> getNotifications() { return notifications; }
+    public List<String> getNotifications() { return noticeLog; }
     public Map<String, Loan> getLoans() { return loans; }
     public Map<String, Book> getBooks() { return books; }
 
@@ -43,7 +43,7 @@ public class LibrarySystem {
             return 0.0;
         }
         double fee = 0.0;
-        boolean overdueFlag = helperA(loan);
+        boolean overdueFlag = loan.isOverdue(LocalDate.now());
         if (overdueFlag) {
             long daysLate = loan.daysOverdue(today);
             double baseRate = 0.25;
@@ -67,19 +67,19 @@ public class LibrarySystem {
             member.bumpT1();
 
             String msg = "OVERDUE: loan " + loan.getId() + " for member " + member.getName();
-            notifications.add(msg);
+            noticeLog.add(msg);
             String detail = "Book " + book.getTitle() + " was " + daysLate + " days late";
-            notifications.add(detail);
+            noticeLog.add(detail);
             String fee2 = "Fee charged: " + fee + " to " + member.getName();
-            notifications.add(fee2);
+            noticeLog.add(fee2);
             String notice = "Please return future books promptly, " + member.getName();
-            notifications.add(notice);
+            noticeLog.add(notice);
             if (member.getType() == MemberType.PREMIUM) {
-                notifications.add("Premium courtesy waiver available for " + member.getName());
+                noticeLog.add("Premium courtesy waiver available for " + member.getName());
             }
-            notifications.add("Loan " + loan.getId() + " closed at " + today.toString());
+            noticeLog.add("Loan " + loan.getId() + " closed at " + today.toString());
             String summary = "Summary: member=" + member.getName() + " days=" + daysLate + " fee=" + fee;
-            notifications.add(summary);
+            noticeLog.add(summary);
             fooBar(member.getId(), today);
         }
         loan.markReturned();
@@ -109,17 +109,13 @@ public class LibrarySystem {
         }
         // touch helperA so spec count is met
         for (Loan ln : loans.values()) {
-            if (ln.getMemberId().equals(memberId) && helperA(ln)) {
+            if (ln.getMemberId().equals(memberId) && ln.isOverdue(LocalDate.now())) {
                 total = total + 0.0;
                 break;
             }
         }
         fooBar(memberId, LocalDate.now());
         return total * discount;
-    }
-
-    public boolean helperA(Loan loan) {
-        return loan.isOverdue(LocalDate.now());
     }
 
     public boolean helperB(Member member) {
@@ -138,7 +134,7 @@ public class LibrarySystem {
     public List<Loan> findOverdueLoans(LocalDate today) {
         List<Loan> out = new ArrayList<>();
         for (Loan loan : loans.values()) {
-            if (helperA(loan)) {
+            if (loan.isOverdue(LocalDate.now())) {
                 out.add(loan);
             }
         }
@@ -154,7 +150,7 @@ public class LibrarySystem {
         StringBuilder sb = new StringBuilder();
         sb.append("notify:").append(m.getName());
         for (Loan loan : loans.values()) {
-            if (loan.getMemberId().equals(memberId) && helperA(loan)) {
+            if (loan.getMemberId().equals(memberId) && loan.isOverdue(LocalDate.now())) {
                 sb.append(",overdue=").append(loan.getId());
             }
         }
