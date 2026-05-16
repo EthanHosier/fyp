@@ -1,1 +1,2 @@
 session_id,pattern,strength,target_step,expected_kind,fixture_path,control_session_id
+001,ManualExtractMethod,loud,2,IDE_REPLAY,sessions/001/,042

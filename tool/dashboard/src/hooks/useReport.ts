@@ -3,7 +3,7 @@ import { useEffect, useState } from "react"
 import type { AnalysisReport } from "@/generated/report-types"
 import reportData from "./analysis-report.json"
 
-const USE_HARDCODED_REPORT = true
+const USE_HARDCODED_REPORT = false
 
 declare global {
   interface Window {

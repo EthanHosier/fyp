@@ -45,7 +45,42 @@ public class LibrarySystem {
         double fee = 0.0;
         boolean overdueFlag = helperA(loan);
         if (overdueFlag) {
-            fee = handleOverdueReturn(loan, member, book, today);
+            long daysLate = loan.daysOverdue(today);
+            double baseRate = 0.25;
+            double rate = baseRate;
+            if (daysLate > 7) {
+                rate = baseRate * 1.5;
+            }
+            if (daysLate > 30) {
+                rate = baseRate * 2.5;
+            }
+            double premiumFactor = 1.0;
+            if (helperB(member)) {
+                premiumFactor = 0.5;
+            }
+            double accumulated = 0.0;
+            for (long i = 0; i < daysLate; i++) {
+                accumulated = accumulated + rate * premiumFactor;
+            }
+            double rounded = Math.round(accumulated * 100.0) / 100.0;
+            fee = feeCalc.helper(rounded);
+            member.bumpT1();
+
+            String msg = "OVERDUE: loan " + loan.getId() + " for member " + member.getName();
+            notifications.add(msg);
+            String detail = "Book " + book.getTitle() + " was " + daysLate + " days late";
+            notifications.add(detail);
+            String fee2 = "Fee charged: " + fee + " to " + member.getName();
+            notifications.add(fee2);
+            String notice = "Please return future books promptly, " + member.getName();
+            notifications.add(notice);
+            if (member.getType() == MemberType.PREMIUM) {
+                notifications.add("Premium courtesy waiver available for " + member.getName());
+            }
+            notifications.add("Loan " + loan.getId() + " closed at " + today.toString());
+            String summary = "Summary: member=" + member.getName() + " days=" + daysLate + " fee=" + fee;
+            notifications.add(summary);
+            fooBar(member.getId(), today);
         }
         loan.markReturned();
         book.setStatus(BookStatus.AVAILABLE);
@@ -63,14 +98,14 @@ public class LibrarySystem {
             total = total + 5.0;
             book.setStatus(BookStatus.LENT);
         }
-        double bulkDiscount = 1.0;
+        double discount = 1.0;
         if (bookIds.size() >= 10) {
-            bulkDiscount = 0.85;
+            discount = 0.85;
         } else if (bookIds.size() >= 5) {
-            bulkDiscount = 0.95;
+            discount = 0.95;
         }
         if (helperB(member)) {
-            bulkDiscount = bulkDiscount * 0.70;
+            discount = discount * 0.70;
         }
         // touch helperA so spec count is met
         for (Loan ln : loans.values()) {
@@ -80,48 +115,7 @@ public class LibrarySystem {
             }
         }
         fooBar(memberId, LocalDate.now());
-        return total * bulkDiscount;
-    }
-
-    private double handleOverdueReturn(Loan loan, Member member, Book book, LocalDate today) {
-        double fee;
-        long daysLate = loan.daysOverdue(today);
-        double baseRate = 0.25;
-        double rate = baseRate;
-        if (daysLate > 7) {
-            rate = baseRate * 1.5;
-        }
-        if (daysLate > 30) {
-            rate = baseRate * 2.5;
-        }
-        double premiumFactor = 1.0;
-        if (helperB(member)) {
-            premiumFactor = 0.5;
-        }
-        double accumulated = 0.0;
-        for (long i = 0; i < daysLate; i++) {
-            accumulated = accumulated + rate * premiumFactor;
-        }
-        double rounded = Math.round(accumulated * 100.0) / 100.0;
-        fee = feeCalc.helper(rounded);
-        member.bumpT1();
-
-        String msg = "OVERDUE: loan " + loan.getId() + " for member " + member.getName();
-        notifications.add(msg);
-        String detail = "Book " + book.getTitle() + " was " + daysLate + " days late";
-        notifications.add(detail);
-        String fee2 = "Fee charged: " + fee + " to " + member.getName();
-        notifications.add(fee2);
-        String notice = "Please return future books promptly, " + member.getName();
-        notifications.add(notice);
-        if (member.getType() == MemberType.PREMIUM) {
-            notifications.add("Premium courtesy waiver available for " + member.getName());
-        }
-        notifications.add("Loan " + loan.getId() + " closed at " + today.toString());
-        String summary = "Summary: member=" + member.getName() + " days=" + daysLate + " fee=" + fee;
-        notifications.add(summary);
-        fooBar(member.getId(), today);
-        return fee;
+        return total * discount;
     }
 
     public boolean helperA(Loan loan) {
