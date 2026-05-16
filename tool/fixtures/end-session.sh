@@ -38,6 +38,21 @@ if [ ! -d "$playbook_dir" ] || [ ! -d "$sessions_dir" ]; then
   exit 1
 fi
 
+# Fail fast if this session id has already been captured. Done before
+# we touch the trace dir so a stale id doesn't burn through the rest
+# of the workflow only to clobber an existing recording.
+if [ -e "$sessions_dir/${id}" ]; then
+  echo "Error: $sessions_dir/${id} already exists." >&2
+  echo "       Session $id is already captured. Pick a different id or" >&2
+  echo "       'rm -rf $sessions_dir/${id}' if you really want to overwrite." >&2
+  exit 1
+fi
+if grep -q "^${id}," "$sessions_dir/manifest.csv" 2>/dev/null; then
+  echo "Error: manifest.csv already has a row for session $id." >&2
+  echo "       Remove that row first if you really want to re-capture." >&2
+  exit 1
+fi
+
 # Locate the playbook file matching "<id>-*.md".
 playbook_file="$(ls "$playbook_dir/${id}"-*.md 2>/dev/null | head -n1 || true)"
 if [ -z "$playbook_file" ]; then
@@ -62,11 +77,6 @@ fi
 trace_src="${traces[0]%/}"
 
 target="$sessions_dir/${id}"
-if [ -e "$target" ]; then
-  echo "Error: $target already exists — refusing to overwrite." >&2
-  exit 1
-fi
-
 mv "$trace_src" "$target"
 echo "Moved $trace_src -> $target"
 

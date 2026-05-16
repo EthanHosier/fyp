@@ -236,7 +236,7 @@ class IdeRefactoringsRunner(
                         }
                         is SpecDispatcher.Result.Ok -> Unit
                     }
-                    worktreeGit.addAll()
+                    worktreeGit.addAllExcept(".project", ".classpath", ".settings")
                     if (!worktreeGit.hasStagedChanges()) {
                         // Spec accepted by JDT but the worktree is
                         // byte-identical — count as a failure for this

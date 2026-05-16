@@ -34,6 +34,19 @@ class GitRunner(private val workDir: Path) {
         run("add", "-A")
     }
 
+    /**
+     * `git add -A` but skips the given pathspecs. Used by the alt-trajectory
+     * synthesiser to keep Eclipse JDT/LTK workspace metadata (`.project`,
+     * `.classpath`, `.settings/`) out of synthesised alt SHAs — those files
+     * are created by Eclipse as a side effect of running refactorings
+     * headlessly and would otherwise pollute every alt-vs-baseline diff.
+     */
+    fun addAllExcept(vararg pathspecs: String) {
+        val args = mutableListOf("add", "-A", "--", ".")
+        for (p in pathspecs) args += ":(exclude)$p"
+        run(*args.toTypedArray())
+    }
+
     /** `true` iff the index holds changes relative to HEAD. */
     fun hasStagedChanges(): Boolean {
         // `git diff --cached --quiet` exits 0 when no staged diff, 1 when there is.
