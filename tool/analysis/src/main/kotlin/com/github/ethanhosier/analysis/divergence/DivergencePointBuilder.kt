@@ -20,13 +20,20 @@ import com.github.ethanhosier.analysis.pipeline.DivergencePoint
  *    count, originating step) is passed in via [reworkInfoByAltIndex] —
  *    these don't live on the alt itself.
  *
- * Per-kind magnitude floors (compile-time constants) drop noise:
- *  - IDE_REPLAY / ORDERING: ≥ [MIN_PROCESS_DELTA] process points.
- *  - REWORK: ≥ [MIN_REWORK_LINES] reverted lines.
+ * Process-score-based filters were intentionally removed: every
+ * synthesised alt of an IDE_REPLAY / ORDERING / HYGIENE kind now
+ * produces a DP regardless of magnitude. Downstream consumers
+ * (dashboard, experiment drivers) apply their own threshold post-hoc
+ * if they want noise suppression — the builder reports the raw
+ * magnitude so the choice of threshold is auditable rather than
+ * baked into the tool.
+ *
+ * REWORK keeps its domain floor: a chunk of `< MIN_REWORK_LINES`
+ * normalised lines is line-noise by definition and isn't worth a
+ * divergence point regardless of score.
  */
 object DivergencePointBuilder {
 
-    const val MIN_PROCESS_DELTA: Double = 3.0
     const val MIN_REWORK_LINES: Int = 2
 
     /** Per-alt metadata for a REWORK divergence — fields the alt itself
@@ -83,7 +90,6 @@ object DivergencePointBuilder {
                 ?.derivedMetrics?.process?.total ?: continue
             val userProcess = userProcessBySha[alt.userToSha] ?: continue
             val delta = (altProcess - userProcess).toDouble()
-            if (delta < MIN_PROCESS_DELTA) continue
 
             val specLabel = alt.specs.firstOrNull()?.let { specDisplayName(it::class.simpleName) }
                 ?: "Refactoring"
@@ -93,10 +99,10 @@ object DivergencePointBuilder {
                 stepIndex = stepIndex,
                 kind = DivergenceKind.IDE_REPLAY,
                 magnitude = delta,
-                title = "$specLabel: IDE replay would have scored +${formatDelta(delta)}",
+                title = "$specLabel: IDE replay would have scored ${formatDelta(delta)}",
                 explanation = "You performed $specLabel manually across $nSteps $stepWord; " +
                     "the IDE-driven equivalent reached process score $altProcess vs your " +
-                    "$userProcess — a +${formatDelta(delta)} gap.",
+                    "$userProcess — a ${formatDelta(delta)} gap.",
                 altTrajectoryIndexes = listOf(i),
                 replacedRefactoringId = alt.specs.firstOrNull()?.let { it::class.simpleName },
             )
@@ -126,29 +132,26 @@ object DivergencePointBuilder {
             }
             if (scoredGroup.isEmpty()) continue
 
-            val winning = scoredGroup.filter { it.third >= MIN_PROCESS_DELTA }
-            if (winning.isEmpty()) continue
-
-            val best = winning.maxBy { it.third }
+            val best = scoredGroup.maxBy { it.third }
             val windowSteps = scoredGroup
                 .flatMap { (_, alt, _) -> alt.stepIndexes }
                 .toSortedSet().toList()
             val anchorStepIndex = windowSteps.lastOrNull()
                 ?: userStepIndexBySha[userToSha]
                 ?: continue
-            val nBeating = winning.size
+            val nBeating = scoredGroup.count { it.third > 0.0 }
             val orderingsWord = if (nBeating == 1) "ordering" else "orderings"
 
             out += DivergencePoint(
                 stepIndex = anchorStepIndex,
                 kind = DivergenceKind.ORDERING,
                 magnitude = best.third,
-                title = "Reordering ${windowSteps.size} steps would have scored +${formatDelta(best.third)}",
+                title = "Reordering ${windowSteps.size} steps would have scored ${formatDelta(best.third)}",
                 explanation = "An alternative ordering of these ${windowSteps.size} refactorings " +
                     "reached process score ${best.second.altCheckpoints.last().derivedMetrics.process.total} " +
-                    "vs your $userProcess — a +${formatDelta(best.third)} gap. " +
-                    "$nBeating $orderingsWord beat yours.",
-                altTrajectoryIndexes = winning.map { it.first }.sorted(),
+                    "vs your $userProcess — a ${formatDelta(best.third)} gap. " +
+                    "$nBeating of ${scoredGroup.size} $orderingsWord beat yours.",
+                altTrajectoryIndexes = scoredGroup.map { it.first }.sorted(),
                 orderingWindowSteps = windowSteps,
             )
         }
@@ -189,11 +192,11 @@ object DivergencePointBuilder {
     /**
      * Emit a HYGIENE DP per hygiene alt. Magnitude is `altProcess -
      * userProcess` measured at the alt's terminal (= the user's anchor
-     * checkpoint after the flip is applied). TESTS_SKIPPED applies the
-     * shared [MIN_PROCESS_DELTA] floor; COMMIT_GAP emits regardless of
-     * magnitude (today it's structurally zero since commit cadence
-     * isn't in the score formula — the DP surfaces the gap and the
-     * magnitude will become meaningful once cadence joins the score).
+     * checkpoint after the flip is applied). No magnitude filter is
+     * applied — both TESTS_SKIPPED and COMMIT_GAP emit unconditionally
+     * (COMMIT_GAP magnitudes are structurally 0 today since cadence
+     * isn't in the score formula yet; downstream consumers apply their
+     * own threshold).
      */
     private fun buildHygiene(
         alts: List<AlternativeTrajectory>,
@@ -212,11 +215,10 @@ object DivergencePointBuilder {
 
             val (title, explanation) = when (info.subKind) {
                 "TESTS_SKIPPED" -> {
-                    if (delta < MIN_PROCESS_DELTA) continue
-                    "Tests skipped here — running them would have scored +${formatDelta(delta)}" to
+                    "Tests skipped here — running them would have scored ${formatDelta(delta)}" to
                         ("You skipped tests at this checkpoint. Running them and " +
                             "treating them as passing would have lifted process score " +
-                            "$userProcess → $altProcess (+${formatDelta(delta)}).")
+                            "$userProcess → $altProcess (${formatDelta(delta)}).")
                 }
                 "COMMIT_GAP" -> {
                     val gap = info.gapLength ?: 0
@@ -247,7 +249,9 @@ object DivergencePointBuilder {
             else -> simpleName.replace(Regex("([a-z])([A-Z])"), "$1 $2")
         }
 
-    private fun formatDelta(d: Double): String = String.format("%.1f", d)
+    /** Signed delta with one decimal: `+3.5`, `0.0`, `-1.2`. */
+    private fun formatDelta(d: Double): String =
+        if (d >= 0) String.format("+%.1f", d) else String.format("%.1f", d)
 
     /**
      * Trim a fully-qualified scope id like

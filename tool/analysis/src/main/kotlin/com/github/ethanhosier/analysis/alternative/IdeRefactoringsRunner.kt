@@ -39,9 +39,6 @@ import java.nio.file.Path
  * Trigger conditions for a candidate [RefactoringStep] (all required):
  *  - [RefactoringStep.wasPerformedByIde] is `false`.
  *  - [RefactoringStep.spec] is non-null and not [RefactoringSpec.Other].
- *  - At least one intermediate unique SHA lies strictly between
- *    `fromSha` and `toSha` — i.e. the user took multiple commits to
- *    land it.
  *
  * Steps that fail to synthesise (dispatch arm missing, [RefactoringClient]
  * returns Failed, or the op produced no textual change) are recorded
@@ -197,9 +194,8 @@ class IdeRefactoringsRunner(
         if (s.wasPerformedByIde) return "performed by IDE (already an automated refactoring)"
         val spec = s.spec ?: return "no typed RefactoringSpec produced by the miner"
         if (spec is RefactoringSpec.Other) return "RefactoringSpec.Other (no RM-typed mapper for this kind)"
-        val fromIdx = shaIndex[s.fromSha] ?: return "fromSha not in event-commits"
-        val toIdx = shaIndex[s.toSha] ?: return "toSha not in event-commits"
-        if (toIdx - fromIdx <= 1) return "fromSha and toSha are adjacent — single-step refactoring"
+        if (s.fromSha !in shaIndex) return "fromSha not in event-commits"
+        if (s.toSha !in shaIndex) return "toSha not in event-commits"
         return null
     }
 

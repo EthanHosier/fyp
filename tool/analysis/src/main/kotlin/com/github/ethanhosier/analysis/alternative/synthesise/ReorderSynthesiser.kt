@@ -350,7 +350,7 @@ private fun walkTrie(
                 }
                 is SpecDispatcher.Result.Ok -> Unit
             }
-            worktreeGit.addAll()
+            worktreeGit.addAllExcept(".project", ".classpath", ".settings")
             if (!worktreeGit.hasStagedChanges()) {
                 prefixOutcomes[prefix] = NodeResult.Failed("apply: no textual change")
                 log("    [depth ${prefix.size} prefix=$prefix specIdx=$specIdx ${specLabel(spec)}]: no textual change after ${applyMs}ms")

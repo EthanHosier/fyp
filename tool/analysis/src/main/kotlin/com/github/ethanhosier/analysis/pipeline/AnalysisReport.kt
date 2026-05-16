@@ -132,9 +132,13 @@ data class DivergencePoint(
      *  user's fromSha rather than the toSha that cancels it out. */
     val stepIndex: Int,
     val kind: DivergenceKind,
-    /** Magnitude for ranking / threshold filtering. Process-score
-     *  delta (alt − user) for ORDERING / IDE_REPLAY; reverted line
-     *  count for REWORK. Always non-negative; sign is implied by kind. */
+    /** Magnitude for ranking and post-hoc threshold filtering. Process-score
+     *  delta `alt − user` for IDE_REPLAY / ORDERING / HYGIENE_TESTS_SKIPPED —
+     *  positive when the alt beat the user, zero when they tied, negative when
+     *  the alt was worse (the synthesised "improvement" actually scored lower).
+     *  Reverted-line count for REWORK (≥ 0). Always 0 for HYGIENE_COMMIT_GAP
+     *  today (cadence isn't in the score formula yet). The builder no longer
+     *  filters by magnitude — consumers apply their own threshold if any. */
     val magnitude: Double,
     /** Short headline (≤80 chars). */
     val title: String,

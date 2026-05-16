@@ -47,10 +47,12 @@ import kotlin.system.exitProcess
  *  - `top5_hit_rate` ∈ [0, 1]: fraction of the top-5 *distinct* step
  *    indices on the baseline that also appear in the perturbed top 5.
  *  - `baseline_size` / `perturbed_size`: total divergence-point counts.
- *    Drops in `perturbed_size` mean the perturbation pushed some points
- *    below the magnitude floor (`DivergencePointBuilder.MIN_PROCESS_DELTA
- *    = 3.0`) rather than just reshuffling — useful to separate
- *    "different order" from "different membership."
+ *    With the magnitude floor removed from `DivergencePointBuilder`,
+ *    these are now driven purely by alt-synthesis success — drops in
+ *    `perturbed_size` should be rare and indicate an alt that failed
+ *    to synthesise under the perturbed weights (e.g. a knock-on through
+ *    `wasPerformedByIde` classification). Use kendall_tau as the
+ *    primary signal of "did the perturbation reshuffle the ranking?"
  *
  * Reading the headline: if τ stays ≈1.0 across all 24 perturbations,
  * the choice of weights is *robust* (a defence). If τ collapses for
@@ -59,10 +61,12 @@ import kotlin.system.exitProcess
  *
  * ## Things to note
  *
- *  - The 3.0 floor in [com.github.ethanhosier.analysis.divergence.DivergencePointBuilder]
- *    is a hard `const val`, not part of [ScoringConfig]. This sweep
- *    therefore tests *weight robustness above the fixed floor*, not
- *    floor robustness.
+ *  - There is no longer a magnitude floor in
+ *    [com.github.ethanhosier.analysis.divergence.DivergencePointBuilder]
+ *    (b03a7ba removed it). Every synthesised alt produces a DP — this
+ *    sweep therefore measures pure rank perturbation, no threshold
+ *    cliffs. Per-kind reporting downstream can apply a post-hoc
+ *    magnitude threshold if needed.
  *  - HYGIENE COMMIT_GAP divergence points are emitted **without** any
  *    magnitude filter (the builder gates them on existence of a hygiene
  *    info entry only). They appear in every perturbation's ranking in

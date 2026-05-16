@@ -52,35 +52,30 @@ import kotlin.system.exitProcess
  *
  * ## How to interpret
  *
- * The *meaningful* read on this output is **`perturbed_size` vs
- * `baseline_size`**, not τ. Each variant zeroes weights, which:
+ * With the magnitude floor removed from `DivergencePointBuilder`, every
+ * synthesised alt produces a DP regardless of magnitude — so
+ * `perturbed_size` no longer drops when weights are zeroed (alt
+ * existence is weight-independent). The meaningful signal is **τ**
+ * (rank correlation) plus the **magnitude distribution** of each
+ * variant's DPs vs the baseline's.
  *
- *  1. Shrinks the alt-vs-user process-score delta (`magnitude`) for
- *     IDE_REPLAY / ORDERING / HYGIENE TESTS_SKIPPED points.
- *  2. If the shrunk magnitude drops below
- *     `DivergencePointBuilder.MIN_PROCESS_DELTA = 3.0`, the point is
- *     dropped from the list entirely.
+ * For headline defence "which terms contribute to the score?" — read
+ * per-fixture magnitudes per variant: `cleanlinessOnly` should have
+ * small/zero magnitudes on penalty-driven divergence points, while
+ * `full` recovers them. Use a downstream aggregation step (notebook,
+ * R, whatever) to compute mean |magnitude| per variant per kind.
  *
- * So `perturbed_size = 1` on `cleanlinessOnly` means "with only
- * cleanliness Δ active, all but one of the production points fell
- * below the floor" — i.e. the absent terms were carrying that signal.
- * Compare the drop between adjacent variants to attribute *which*
- * group of terms surfaced each missing point. This is the headline
- * defence for keeping the hygiene triplet etc.
- *
- * τ and top5_hit_rate are reported for completeness. They will tend
- * to stay near 1.0 on small fixtures because the *surviving* points
- * keep their original ranking. The membership signal is sharper.
+ * τ tells you whether *ordering* changed; magnitude tells you whether
+ * the *strength of the signal* changed. Both matter for the ablation
+ * story.
  *
  * ## Things to note
  *
- *  - REWORK points never drop on weight ablation (magnitude =
- *    reverted-line count, weight-independent). If a session's
- *    divergence list is REWORK-only, every variant will produce
- *    identical output — that's not a calibration win, it's the REWORK
- *    detector firing unconditionally.
- *  - HYGIENE COMMIT_GAP never drops either (no magnitude floor in the
- *    builder). Same caveat.
+ *  - REWORK magnitude is reverted-line count, weight-independent —
+ *    its DPs and magnitudes are identical across every variant. Not a
+ *    calibration win, just the REWORK detector firing unconditionally.
+ *  - HYGIENE COMMIT_GAP magnitude is structurally 0 (cadence isn't in
+ *    the score formula yet), so every variant sees the same 0 there.
  *  - `plusLength == full` today: the production `length` weight is
  *    nonzero and `plusLength` keeps it, so they coincide. The variant
  *    documents intent and acts as a redundant sanity check; revise

@@ -18,17 +18,35 @@ import kotlin.system.exitProcess
  * Phase-2.4 divergence-detection driver. The main injection-style
  * evaluation: for each row in a manifest of recorded sessions, assembles
  * the corresponding Phase-A dump under [ScoringConfig.PRODUCTION] and
- * asks two questions against the ground-truth `target_step`:
+ * asks three questions against the ground-truth `target_step`, each
+ * isolating a distinct stage of the pipeline:
  *
- *  - **Tier 1** — did the synthesiser produce an alt of the right
- *    [DivergenceKind] anchored at `target_step`? (Weight-independent —
- *    alts live on [PhaseAResult] and are computed regardless of the
- *    scoring config.)
- *  - **Tier 2** — did [com.github.ethanhosier.analysis.divergence.DivergencePointBuilder]
- *    flag a divergence point of the right kind within `target_step ± 1`?
- *    (Weight-dependent for IDE_REPLAY / ORDERING / HYGIENE TESTS_SKIPPED
- *    via the magnitude floor; weight-independent for REWORK and HYGIENE
- *    COMMIT_GAP.)
+ *  - **Tier 0 — Detection.** Did the pipeline classify *anything* as
+ *    refactoring-shaped at the target step? Surfaced via a
+ *    [com.github.ethanhosier.analysis.miner.model.RefactoringStep]
+ *    within ±1 of target with `wasPerformedByIde == false`. A Tier-0
+ *    miss is a *capture* failure (the plugin's event stream or the
+ *    miner couldn't see the manual edit at all) — no amount of
+ *    downstream synthesis or scoring can recover it.
+ *  - **Tier 1 — Synthesis.** Did the synthesiser produce an alt of the
+ *    expected [DivergenceKind] anchored at `target_step`? A Tier-0 hit
+ *    but Tier-1 miss means the pipeline saw the manual edit but Eclipse
+ *    JDT (or the matching synth path) couldn't construct the IDE
+ *    counterfactual. This is a tool-coverage issue (missing spec
+ *    mapper, JDT bug, classpath gap, …), independent of scoring.
+ *  - **Tier 2 — Surfacing.** Did the divergence-point builder emit a
+ *    DP of the expected kind within `target_step ± 1`? With the
+ *    magnitude floor lifted from [com.github.ethanhosier.analysis.divergence.DivergencePointBuilder]
+ *    (b03a7ba), Tier 2 is essentially Tier 1 lifted into a user-facing
+ *    artefact — the *magnitude* of the DP carries the suggestion-quality
+ *    signal as a continuous value rather than a hit/miss boolean.
+ *
+ * In addition to the tier hits, every Tier-2 DP's `magnitude` is
+ * recorded (process-score delta `alt − user`; signed). `tier2_alt_better`
+ * is `magnitude > 0`. This lets the methodology chapter define
+ * thresholds post-hoc rather than baking them into the tool: e.g.
+ * "Tier-2 surfacing recall at magnitude ≥ 3" or "fraction of loud
+ * IDE_REPLAY sessions where `alt_better` was true."
  *
  * Each row also runs the three baselines for side-by-side comparison.
  *
@@ -61,16 +79,24 @@ import kotlin.system.exitProcess
  * ## How to interpret
  *
  * Per-kind aggregation is the right granularity (see Things to note).
- * Within each kind:
+ * Within each kind, three stage-specific recalls peel apart different
+ * failure modes:
  *
- *  - **Tier 1 recall** = fraction of rows with `tier1_hit = true`. A
- *    miss here means the synthesiser didn't see the bad pattern at all
- *    — no amount of weight tuning can recover it.
- *  - **Tier 2 recall** = fraction with `tier2_hit = true`. The gap
- *    between Tier 1 and Tier 2 recall is the *surfacing-loss*: alts the
- *    synth saw but the magnitude floor / weight composition filtered
- *    out before they reached the user. This is the metric the
- *    sensitivity / ablation experiments defend.
+ *  - **Tier 0 recall** — capture coverage. Should be ≈ 100 % on loud
+ *    rows of every pattern; misses here flag plugin event-capture bugs.
+ *  - **Tier 1 | Tier 0 (synthesis success rate)** — given the pipeline
+ *    saw the manual edit, how often did Eclipse JDT successfully
+ *    construct the counterfactual? Failures are tool-coverage gaps
+ *    (missing RefactoringSpec mapper, JDT classpath issues, …).
+ *  - **Tier 2 | Tier 1 (surfacing rate)** — given the alt was
+ *    synthesised, how often did the builder emit a DP for it? With the
+ *    magnitude floor lifted, this is now 100 % by construction except
+ *    for kind-specific gates (REWORK below `MIN_REWORK_LINES`). The
+ *    *interesting* signal at this stage is the **magnitude
+ *    distribution** — `tier2_magnitude` and `tier2_alt_better`. A
+ *    well-calibrated detector should have positive magnitudes on
+ *    `loud` rows and near-zero on `subthreshold` rows; an analyst can
+ *    apply any threshold post-hoc.
  *  - **Tier 1 / Tier 2 precision** must be computed against the
  *    [STRENGTH_SUBTHRESHOLD] rows: on those, a `true` is a false
  *    positive. Aggregate FP rate = subthreshold rows with hits ÷
@@ -90,20 +116,25 @@ import kotlin.system.exitProcess
  *
  * ## Things to note
  *
- *  - **COMMIT_GAP is detected unconditionally.** [DivergencePointBuilder]
- *    emits HYGIENE / COMMIT_GAP divergence points without a magnitude
- *    floor (the cadence signal isn't yet in the score formula). So
- *    Tier-2 recall on COMMIT_GAP injections is ~100% by construction
- *    and is **not** evidence of well-calibrated weights — it
- *    demonstrates the synthesiser saw the gap. Per-kind reporting
- *    makes this transparent; aggregate numbers should *not* be used
- *    as the headline.
- *  - **REWORK magnitude is reverted-line count**, weight-independent.
- *    Same disclosure: Tier-2 recall on REWORK is a property of the
- *    REWORK detector, not weight calibration.
+ *  - **No magnitude floor in the builder.** As of b03a7ba, the
+ *    `MIN_PROCESS_DELTA` gate was removed from
+ *    [com.github.ethanhosier.analysis.divergence.DivergencePointBuilder].
+ *    Every synthesised alt now produces a divergence point regardless
+ *    of magnitude. Detection/synthesis are decoupled from
+ *    suggestion-quality at the tool layer; the experiment recovers
+ *    suggestion-quality via `tier2_magnitude` and `tier2_alt_better`.
+ *  - **COMMIT_GAP magnitude is 0 by construction** (cadence isn't
+ *    in the score formula yet). Tier-2 recall ≈ 100 % for COMMIT_GAP
+ *    injections, but `tier2_alt_better` will be `false`. That's the
+ *    transparent picture — Tier-2 hit is evidence the synthesiser saw
+ *    the gap, not that the weights are calibrated.
+ *  - **REWORK magnitude is reverted-line count**, not process-score
+ *    delta. Larger reverts → larger magnitudes, but the column's
+ *    semantics differ from other kinds — interpret per-kind.
  *  - **IDE_REPLAY / ORDERING / HYGIENE TESTS_SKIPPED are the
- *    weight-calibrated kinds.** Headline detector-vs-baseline claims
- *    should be reported per-kind and ideally over these three.
+ *    weight-calibrated kinds.** Their magnitude IS the process-score
+ *    delta. Headline detector-vs-baseline claims should be reported
+ *    per-kind and ideally over these three.
  *  - **`advisor_hit` is always `NA` today** — [TrajectoryAdvisor]
  *    returns [com.github.ethanhosier.analysis.pipeline.AdviceItem]s
  *    that carry no step anchor, so we can't compare advisor output
@@ -122,7 +153,8 @@ object DivergenceExperiment {
 
     private const val HEADER =
         "session_id,pattern,strength,target_step,expected_kind," +
-            "tier1_hit,tier2_hit,endpoint_improved,perstep_hit,advisor_hit," +
+            "tier0_hit,tier1_hit,tier2_hit,tier2_magnitude,tier2_alt_better," +
+            "endpoint_improved,perstep_hit,advisor_hit," +
             "control_fp_count"
 
     private const val STRENGTH_SUBTHRESHOLD = "subthreshold"
@@ -197,12 +229,28 @@ object DivergenceExperiment {
         )
         val report = ReportAssembler.assemble(phaseA, ScoringConfig.PRODUCTION)
 
+        // Tier 0 — detection: did the pipeline classify *something* manual
+        // (or otherwise refactoring-shaped) at the target step? Surfaced via
+        // a RefactoringStep within ±1 with wasPerformedByIde == false.
+        val tier0Hit = report.refactoringSteps.any { step ->
+            !step.wasPerformedByIde &&
+                kotlin.math.abs(step.stepIndex - row.targetStep) <= 1
+        }
+        // Tier 1 — synthesis: an alt of the expected kind exists at target.
         val tier1Hit = report.alternativeTrajectories.any { alt ->
             alt.kind == row.expectedKind && row.targetStep in alt.stepIndexes
         }
-        val tier2Hit = report.divergencePoints.any { dp ->
+        // Tier 2 — surfacing: a divergence point of expected kind fired
+        // within ±1. With the magnitude-floor removed from
+        // DivergencePointBuilder, this is essentially Tier 1 lifted into a
+        // user-facing artefact; the *magnitude* column below carries the
+        // suggestion-quality signal.
+        val tier2Dp = report.divergencePoints.firstOrNull { dp ->
             dp.kind == row.expectedKind && kotlin.math.abs(dp.stepIndex - row.targetStep) <= 1
         }
+        val tier2Hit = tier2Dp != null
+        val tier2Magnitude = tier2Dp?.magnitude
+        val tier2AltBetter = tier2Magnitude?.let { it > 0.0 }
 
         val endpointImproved = Baselines.endpointOnlyImproved(report)
         val perstepHit = Baselines.perStepRegression(report).any {
@@ -227,8 +275,11 @@ object DivergenceExperiment {
             row.strength,
             row.targetStep.toString(),
             row.expectedKind.name,
+            tier0Hit.toString(),
             tier1Hit.toString(),
             tier2Hit.toString(),
+            tier2Magnitude?.let { String.format(java.util.Locale.US, "%.4f", it) } ?: "",
+            tier2AltBetter?.toString() ?: "",
             endpointImproved.toString(),
             perstepHit.toString(),
             advisorHit,
