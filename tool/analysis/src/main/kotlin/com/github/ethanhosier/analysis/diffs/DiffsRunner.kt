@@ -4,6 +4,7 @@ import com.github.ethanhosier.analysis.miner.model.RefactoringLocation
 import com.github.ethanhosier.analysis.miner.model.RefactoringStep
 import com.github.ethanhosier.analysis.model.ReconstructionResult
 import com.github.ethanhosier.analysis.reconstruct.GitRunner
+import kotlinx.serialization.Serializable
 
 /**
  * Produces unified-diff patch strings at two granularities:
@@ -26,6 +27,7 @@ import com.github.ethanhosier.analysis.reconstruct.GitRunner
  */
 class DiffsRunner(private val git: GitRunner) {
 
+    @Serializable
     data class Summary(
         // Keyed by `toSha` of each transition. The seed commit's parent is
         // used as `fromSha` for the first checkpoint; if the seed has no

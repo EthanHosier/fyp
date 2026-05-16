@@ -1,5 +1,6 @@
 package com.github.ethanhosier.analysis.alternative.rework
 
+import kotlinx.serialization.Serializable
 import java.security.MessageDigest
 
 /**
@@ -34,6 +35,7 @@ import java.security.MessageDigest
 object ReworkDetector {
 
     enum class Side { ADDED, REMOVED }
+    @Serializable
     enum class Direction {
         /** User added the chunk at `originatingStep`, removed it at `terminalStep`. */
         ADD_THEN_REMOVE,

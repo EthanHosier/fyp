@@ -8,6 +8,7 @@ import com.github.ethanhosier.analysis.miner.model.RefactoringStep
 import com.github.ethanhosier.analysis.model.ReconstructionResult
 import com.github.ethanhosier.analysis.reconstruct.GitRunner
 import com.github.ethanhosier.analysis.refactoring.RefactoringClient
+import kotlinx.serialization.Serializable
 import java.nio.file.Files
 import java.nio.file.Path
 
@@ -86,6 +87,7 @@ class IdeRefactoringsRunner(
      *    cleanly — the trailing SHA carries the user's leftover edits
      *    layered on top of the last refactoring SHA.
      */
+    @Serializable
     data class SynthesisedGroup(
         val stepIndexes: List<Int>,
         val fromSha: String,
@@ -95,6 +97,7 @@ class IdeRefactoringsRunner(
         val residual: ResidualSummary,
     )
 
+    @Serializable
     data class Summary(
         // Number of candidate groups (post-filter), not steps.
         val candidates: Int,

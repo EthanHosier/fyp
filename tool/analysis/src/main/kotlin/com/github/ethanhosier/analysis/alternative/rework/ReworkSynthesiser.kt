@@ -4,6 +4,7 @@ import com.github.ethanhosier.analysis.diffs.DiffAnalysis
 import com.github.ethanhosier.analysis.metrics.WorktreePool
 import com.github.ethanhosier.analysis.model.ReconstructionResult
 import com.github.ethanhosier.analysis.reconstruct.GitRunner
+import kotlinx.serialization.Serializable
 import java.nio.file.Files
 import java.nio.file.Path
 
@@ -25,12 +26,14 @@ import java.nio.file.Path
  */
 class ReworkSynthesiser {
 
+    @Serializable
     data class Summary(
         val candidates: Int,
         val synthesised: List<SynthesisedRework>,
         val failed: Map<String, String>,
     )
 
+    @Serializable
     data class SynthesisedRework(
         val fromSha: String,
         val userToSha: String,

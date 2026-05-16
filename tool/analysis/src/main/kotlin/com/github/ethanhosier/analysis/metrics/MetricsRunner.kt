@@ -12,6 +12,7 @@ import com.github.ethanhosier.analysis.metrics.tests.GradleTestRunner
 import com.github.ethanhosier.analysis.metrics.tests.TestResult
 import com.github.ethanhosier.analysis.model.ReconstructionResult
 import com.github.ethanhosier.analysis.reconstruct.GitRunner
+import kotlinx.serialization.Serializable
 import java.nio.file.Files
 import java.nio.file.Path
 import java.time.Duration
@@ -47,6 +48,7 @@ class MetricsRunner(
     private val testTimeout: Duration = Duration.ofMinutes(10),
 ) {
 
+    @Serializable
     data class Summary(
         val totalShas: Int,
         val computed: Int,
