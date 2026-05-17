@@ -18,28 +18,44 @@ import kotlin.system.exitProcess
  * Phase-2.4 divergence-detection driver. The main injection-style
  * evaluation: for each row in a manifest of recorded sessions, assembles
  * the corresponding Phase-A dump under [ScoringConfig.PRODUCTION] and
- * asks three questions against the ground-truth `target_step`, each
- * isolating a distinct stage of the pipeline:
+ * asks three questions, each isolating a distinct stage of the pipeline.
+ *
+ * **Step-index anchoring is currently disabled.** The recorded
+ * `step_index` of a divergence point depends on checkpoint cadence —
+ * how many EDIT_BURST flushes the plugin emits between IDE
+ * refactorings — which in turn depends on how quickly the user types,
+ * pauses, and saves. The same logical bad step can land at index 2 in
+ * one recording and index 4 in another. Until the plugin's checkpoint
+ * placement is stabilised (deduplicating in-place rename templates,
+ * normalising debounce against pause patterns), the experiment treats
+ * any DP of the expected kind anywhere in the session as a hit. This
+ * loosens precision but eliminates spurious misses from cadence drift.
+ * Re-introduce `target_step ± 1` anchoring once checkpoint placement
+ * is stable.
  *
  *  - **Tier 0 — Detection.** Did the pipeline classify *anything* as
- *    refactoring-shaped at the target step? Surfaced via a
+ *    refactoring-shaped in the session? Surfaced via any
  *    [com.github.ethanhosier.analysis.miner.model.RefactoringStep]
- *    within ±1 of target with `wasPerformedByIde == false`. A Tier-0
- *    miss is a *capture* failure (the plugin's event stream or the
- *    miner couldn't see the manual edit at all) — no amount of
- *    downstream synthesis or scoring can recover it.
+ *    with `wasPerformedByIde == false`. A Tier-0 miss is a *capture*
+ *    failure (the plugin's event stream or the miner couldn't see the
+ *    manual edit at all) — no amount of downstream synthesis or
+ *    scoring can recover it.
  *  - **Tier 1 — Synthesis.** Did the synthesiser produce an alt of the
- *    expected [DivergenceKind] anchored at `target_step`? A Tier-0 hit
- *    but Tier-1 miss means the pipeline saw the manual edit but Eclipse
- *    JDT (or the matching synth path) couldn't construct the IDE
- *    counterfactual. This is a tool-coverage issue (missing spec
- *    mapper, JDT bug, classpath gap, …), independent of scoring.
+ *    expected [DivergenceKind]? A Tier-0 hit but Tier-1 miss means the
+ *    pipeline saw the manual edit but Eclipse JDT (or the matching
+ *    synth path) couldn't construct the IDE counterfactual. This is a
+ *    tool-coverage issue (missing spec mapper, JDT bug, classpath gap,
+ *    …), independent of scoring.
  *  - **Tier 2 — Surfacing.** Did the divergence-point builder emit a
- *    DP of the expected kind within `target_step ± 1`? With the
+ *    DP of the expected kind? With the
  *    magnitude floor lifted from [com.github.ethanhosier.analysis.divergence.DivergencePointBuilder]
  *    (b03a7ba), Tier 2 is essentially Tier 1 lifted into a user-facing
  *    artefact — the *magnitude* of the DP carries the suggestion-quality
  *    signal as a continuous value rather than a hit/miss boolean.
+ *    (Note: with step-index anchoring disabled, the only difference
+ *    Tier 2 currently captures over Tier 1 is whether a DP record was
+ *    actually emitted from the alt — they coincide for every kind that
+ *    doesn't have a builder-side gate.)
  *
  * In addition to the tier hits, every Tier-2 DP's `magnitude` is
  * recorded (process-score delta `alt − user`; signed). `tier2_alt_better`
@@ -102,10 +118,20 @@ import kotlin.system.exitProcess
  *    positive. Aggregate FP rate = subthreshold rows with hits ÷
  *    subthreshold rows total.
  *  - **`control_fp_count`** — number of divergence points the detector
- *    surfaces on the paired un-injected control session. Counts as
- *    pure false positives; complements the subthreshold FP measurement
- *    (subthreshold = "we did *something* small," control = "we did
- *    nothing at all").
+ *    surfaces on the paired un-injected control session. **Not a
+ *    false-positive count**, despite the column name (kept for
+ *    backward compatibility). A control session is one where no bad
+ *    pattern was *deliberately injected* — it is not a session where
+ *    the trajectory is known to be optimal. A clean recording can
+ *    contain genuine ORDERING / IDE_REPLAY etc. suboptimalities that
+ *    the detector correctly surfaces; counting those as false
+ *    positives would punish the detector for being right. Treat this
+ *    column as a **background DP-density baseline**: how many DPs the
+ *    detector emits per session on un-injected behaviour. Useful as a
+ *    point of comparison for the loud-injection DP density, not as a
+ *    precision metric. Precision should be read off the subthreshold
+ *    rows (above), where the ground truth IS "detector should be
+ *    quiet."
  *  - **Baselines**: `endpoint_improved` collapses to a single boolean
  *    per session and so cannot pinpoint a step; it answers "would a
  *    naïve last-vs-first cleanliness Δ have caught this?". A `true`
@@ -230,23 +256,33 @@ object DivergenceExperiment {
         val report = ReportAssembler.assemble(phaseA, ScoringConfig.PRODUCTION)
 
         // Tier 0 — detection: did the pipeline classify *something* manual
-        // (or otherwise refactoring-shaped) at the target step? Surfaced via
-        // a RefactoringStep within ±1 with wasPerformedByIde == false.
+        // (or otherwise refactoring-shaped) anywhere in the session?
+        //
+        // NOTE: step-index anchoring is temporarily disabled. Checkpoint
+        // boundaries depend on how fast the user types (EDIT_BURST flush
+        // cadence, in-place rename template artefacts, etc.) and can drift
+        // the recorded step index by more than ±1 from where the bad
+        // behaviour "really" occurred. Until checkpoint placement is
+        // stabilised, we only require the right *kind* of evidence to
+        // appear in the session at all. This loosens precision (a hit
+        // elsewhere in the session still counts) but removes false misses
+        // caused by cadence drift.
         val tier0Hit = report.refactoringSteps.any { step ->
-            !step.wasPerformedByIde &&
-                kotlin.math.abs(step.stepIndex - row.targetStep) <= 1
+            !step.wasPerformedByIde
         }
-        // Tier 1 — synthesis: an alt of the expected kind exists at target.
+        // Tier 1 — synthesis: an alt of the expected kind exists anywhere
+        // in the session. See Tier 0 note on step-index anchoring.
         val tier1Hit = report.alternativeTrajectories.any { alt ->
-            alt.kind == row.expectedKind && row.targetStep in alt.stepIndexes
+            alt.kind == row.expectedKind
         }
         // Tier 2 — surfacing: a divergence point of expected kind fired
-        // within ±1. With the magnitude-floor removed from
+        // anywhere in the session. See Tier 0 note on step-index
+        // anchoring. With the magnitude-floor removed from
         // DivergencePointBuilder, this is essentially Tier 1 lifted into a
         // user-facing artefact; the *magnitude* column below carries the
         // suggestion-quality signal.
         val tier2Dp = report.divergencePoints.firstOrNull { dp ->
-            dp.kind == row.expectedKind && kotlin.math.abs(dp.stepIndex - row.targetStep) <= 1
+            dp.kind == row.expectedKind
         }
         val tier2Hit = tier2Dp != null
         val tier2Magnitude = tier2Dp?.magnitude

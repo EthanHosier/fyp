@@ -12,9 +12,9 @@
 
 ## What this session demonstrates
 
-3 consecutive IDE refactors on `LibrarySystem` with NO test runs between them. Then a single test run + commit at the end. HygieneDetector flags the composite anchor at step 3 (the terminal refactor of the untested composite).
+3 consecutive IDE refactors on `LibrarySystem` with NO test runs between them. Each refactor is committed (so the COMMIT_GAP signal stays clean — this session isolates the TESTS_SKIPPED signal). HygieneDetector flags the composite anchor at step 3 (the terminal refactor of the untested composite).
 
-Note: NO step-1 warmup with tests — the whole point is that the user skips tests during the composite. Steps 1-3 are the untested refactors; step 4 runs tests and commits.
+Note: NO step-1 warmup with tests — the whole point is that the user skips tests during the composite. Steps 1-3 are the untested refactors (each committed); step 4 is the catch-up test run.
 
 ## Setup (every session)
 
@@ -36,25 +36,27 @@ Note: NO step-1 warmup with tests — the whole point is that the user skips tes
 3. In IntelliJ: press the "Reload from disk" toolbar icon (or just wait a couple of seconds — the IDE picks up the on-disk reset automatically).
 4. Start the refactoring-trajectory plugin in **record mode**.
 
-## Step 1 — IDE Extract Method (NO TESTS)
+## Step 1 — IDE Extract Method (NO TESTS) — commit only
 
 1. Open `LibrarySystem.java`. In `processReturn` at line 32, select lines 51-56 (the daysLate rate-tier if/if block: `if (daysLate > 7) ... if (daysLate > 30) ...`). **Refactor -> Extract Method** (Cmd-Opt-M). Name: `rateForDays`. Parameter: `daysLate`, `baseRate`. Confirm.
-2. **DO NOT** run tests. **DO NOT** commit. Just save (Cmd-S).
+2. Save (Cmd-S). **DO NOT** run tests.
+3. Terminal: `cd fixtures/library-fixture && git commit -am "extract rateForDays (untested)"`.
 
-## Step 2 — IDE Rename (NO TESTS)
+## Step 2 — IDE Rename (NO TESTS) — commit only
 
 1. Caret on `helperA` method declaration at line 121. **Shift-F6** -> rename to `isOverdueNow`. Confirm.
-2. **DO NOT** run tests. **DO NOT** commit. Save only.
+2. Save only. **DO NOT** run tests.
+3. Terminal: `cd fixtures/library-fixture && git commit -am "rename helperA -> isOverdueNow (untested)"`.
 
 ## Step 3 — IDE Move Method (NO TESTS) — target_step = 3
 
 1. Caret on `validateMember` declaration at line 129. **F6** (Refactor -> Move). Move to `MemberValidator.java`. Confirm.
-2. **DO NOT** run tests. **DO NOT** commit. Save only.
+2. Save only. **DO NOT** run tests.
+3. Terminal: `cd fixtures/library-fixture && git commit -am "move validateMember -> MemberValidator (untested)"`.
 
-## Step 4 — Tests + commit
+## Step 4 — Tests (catch-up)
 
-1. Run all tests on `src/test/java` (Cmd-Shift-F10). Fix any breakage by hand if needed.
-2. Terminal: `git commit -am "3 refactors: rateForDays + rename helperA + move validateMember"`.
+1. Run all tests on `src/test/java` (Cmd-Shift-F10). Fix any breakage by hand if needed; if anything required edits, `git commit -am "fix tests after composite"`.
 
 ## End
 

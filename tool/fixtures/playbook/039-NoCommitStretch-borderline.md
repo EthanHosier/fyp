@@ -45,10 +45,6 @@ Exactly 6 green refactor checkpoints with no commits, single commit at step 7. E
 5. **Step 5**: `LibrarySystem.java` line 121 — `Shift-F6` on `helperA` -> `isOverdueNow`. Save. Tests green. **NO commit.**
 6. **Step 6** — target_step = 6: `LibrarySystem.java` line 125 — `Shift-F6` on `helperB` -> `isPremium`. Save. Tests green. **NO commit yet.**
 
-## Step 7 — Finally commit
-
-1. Terminal: `git commit -am "6 refactors batched"`.
-
 ## End
 
 1. In the plugin: click **End session**. Plugin writes

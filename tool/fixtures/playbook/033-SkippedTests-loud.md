@@ -12,7 +12,7 @@
 
 ## What this session demonstrates
 
-4 IDE refactors back-to-back across `LateFeeCalculator` and `ReportFormatter` with NO test runs between. Final step runs tests + commits. Loud HYGIENE at step 4 (terminal of the untested composite).
+4 IDE refactors back-to-back across `LateFeeCalculator` and `ReportFormatter` with NO test runs between. Each refactor is committed so the COMMIT_GAP signal stays clean — this session isolates the TESTS_SKIPPED signal. Final step runs catch-up tests. Loud HYGIENE at step 4 (terminal of the untested composite).
 
 ## Setup (every session)
 
@@ -34,30 +34,33 @@
 3. In IntelliJ: press the "Reload from disk" toolbar icon (or just wait a couple of seconds — the IDE picks up the on-disk reset automatically).
 4. Start the refactoring-trajectory plugin in **record mode**.
 
-## Step 1 — IDE Rename (NO TESTS)
+## Step 1 — IDE Rename (NO TESTS) — commit only
 
 1. Open `LateFeeCalculator.java`. Caret on `helper` declaration at line 42. **Shift-F6** -> rename to `applyDiscount`. Confirm.
-2. Save only. NO tests. NO commit.
+2. Save only. NO tests.
+3. Terminal: `cd fixtures/library-fixture && git commit -am "rename helper -> applyDiscount (untested)"`.
 
-## Step 2 — IDE Rename (NO TESTS)
+## Step 2 — IDE Rename (NO TESTS) — commit only
 
 1. Caret on `calc1` declaration at line 46. **Shift-F6** -> rename to `feeStandard`. Confirm.
-2. Save only. NO tests. NO commit.
+2. Save only. NO tests.
+3. Terminal: `cd fixtures/library-fixture && git commit -am "rename calc1 -> feeStandard (untested)"`.
 
-## Step 3 — IDE Extract Method (NO TESTS)
+## Step 3 — IDE Extract Method (NO TESTS) — commit only
 
 1. Open `ReportFormatter.java`. In `formatReport`, select lines 14-18 (the header builder up to the empty-loans guard return). **Cmd-Opt-M** -> Extract Method. Name: `buildHeader`. Parameter: `member`. Confirm.
-2. Save only. NO tests. NO commit.
+2. Save only. NO tests.
+3. Terminal: `cd fixtures/library-fixture && git commit -am "extract buildHeader (untested)"`.
 
 ## Step 4 — IDE Rename (NO TESTS) — target_step = 4
 
 1. In `ReportFormatter.java`, caret on local `out` at line 14. **Shift-F6** -> rename to `report`. Confirm.
-2. Save only. NO tests. NO commit YET.
+2. Save only. NO tests.
+3. Terminal: `cd fixtures/library-fixture && git commit -am "rename out -> report (untested)"`.
 
-## Step 5 — Tests + commit
+## Step 5 — Tests (catch-up)
 
-1. Run all tests on `src/test/java`. Fix anything that broke.
-2. Terminal: `git commit -am "4 untested refactors batch"`.
+1. Run all tests on `src/test/java`. Fix anything that broke; if anything required edits, `git commit -am "fix tests after composite"`.
 
 ## End
 

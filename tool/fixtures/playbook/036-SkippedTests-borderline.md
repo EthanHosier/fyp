@@ -1,18 +1,18 @@
-# Session 036 — SkippedTests (subthreshold)
+# Session 036 — SkippedTests (borderline)
 
 **Pattern**: SkippedTests
-**Strength**: subthreshold
+**Strength**: borderline
 **Expected kind**: HYGIENE
 **Target step**: 1
 **Paired control**: 042
 **Manifest row to add after capture**:
 ```
-036,SkippedTests,subthreshold,1,HYGIENE,sessions/036/,042
+036,SkippedTests,borderline,1,HYGIENE,sessions/036/,042
 ```
 
 ## What this session demonstrates
 
-A single IDE refactor with no test run before commit. One refactor cannot form a composite of size >= 2, so HygieneDetector should NOT flag it.
+The minimum-possible untested composite: a single IDE refactor with no test run before commit. HygieneDetector has no composite-size floor, so a size-1 untested composite will still fire — making this the smallest case the TESTS_SKIPPED rule catches. Borderline rather than subthreshold because the detector is binary (no near-floor magnitude axis); there is no honest subthreshold tier for this pattern given the current detector.
 
 ## Setup (every session)
 
@@ -37,8 +37,8 @@ A single IDE refactor with no test run before commit. One refactor cannot form a
 ## Step 1 — Single IDE Rename, no tests (target_step = 1)
 
 1. Open `LibrarySystem.java`. Caret on `helperA` declaration at line 121. **Shift-F6** -> rename to `isOverdueNow`. Confirm.
-2. Save. **DO NOT run tests.**
-3. Terminal: `git commit -am "rename helperA -> isOverdueNow (no tests)"`.
+2. Save (Cmd-S). **DO NOT run tests.**
+3. Terminal: `cd fixtures/library-fixture && git commit -am "rename helperA -> isOverdueNow (untested)"`.
 
 ## End
 

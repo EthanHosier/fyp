@@ -27,3 +27,16 @@ session_id,pattern,strength,target_step,expected_kind,fixture_path,control_sessi
 026,SuboptimalOrdering,subthreshold,3,ORDERING,sessions/026/,042
 027,AddThenRevert,loud,1,REWORK,sessions/027/,045
 028,AddThenRevert,loud,1,REWORK,sessions/028/,045
+029,AddThenRevert,borderline,1,REWORK,sessions/029/,043
+030,AddThenRevert,borderline,1,REWORK,sessions/030/,043
+031,AddThenRevert,subthreshold,1,REWORK,sessions/031/,042
+032,SkippedTests,loud,3,HYGIENE,sessions/032/,043
+033,SkippedTests,loud,4,HYGIENE,sessions/033/,043
+034,SkippedTests,borderline,2,HYGIENE,sessions/034/,042
+035,SkippedTests,borderline,2,HYGIENE,sessions/035/,042
+036,SkippedTests,borderline,1,HYGIENE,sessions/036/,042
+037,NoCommitStretch,loud,7,HYGIENE,sessions/037/,045
+038,NoCommitStretch,loud,8,HYGIENE,sessions/038/,045
+039,NoCommitStretch,borderline,6,HYGIENE,sessions/039/,045
+040,NoCommitStretch,borderline,6,HYGIENE,sessions/040/,045
+041,NoCommitStretch,subthreshold,5,HYGIENE,sessions/041/,042
