@@ -20,3 +20,4 @@ session_id,pattern,strength,target_step,expected_kind,fixture_path,control_sessi
 019,ManualExtractVariable,loud,2,IDE_REPLAY,sessions/019/,043
 020,ManualExtractVariable,borderline,2,IDE_REPLAY,sessions/020/,042
 021,ManualExtractVariable,subthreshold,2,IDE_REPLAY,sessions/021/,042
+022,SuboptimalOrdering,loud,4,ORDERING,sessions/022/,045
