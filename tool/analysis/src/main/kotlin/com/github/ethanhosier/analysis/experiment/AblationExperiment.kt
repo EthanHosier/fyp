@@ -91,39 +91,46 @@ object AblationExperiment {
     private val readJson = Json { ignoreUnknownKeys = true; isLenient = true }
 
     private const val HEADER =
-        "fixture,variant,kendall_tau,top5_hit_rate,baseline_size,perturbed_size"
+        "fixture,variant,active_count,kendall_tau,top5_hit_rate,baseline_size,perturbed_size," +
+            "baseline_saturated_dp_count,perturbed_saturated_dp_count," +
+            "baseline_total_abs_magnitude,perturbed_total_abs_magnitude," +
+            "magnitude_recovery_fraction,mean_abs_magnitude_delta,max_abs_magnitude_delta"
 
-    // Cumulative ablation: each variant zeroes a superset of the
-    // previous variant's zeroed weights. `full` matches PRODUCTION
-    // exactly (and `plusLength` is identical — deliberate sanity row).
-    private val VARIANTS: List<Pair<String, ScoringConfig>> = listOf(
-        "cleanlinessOnly" to ScoringConfig.PRODUCTION.copy(
-            process = ProcessScoreWeights().copy(
-                broken = 0.0,
-                skipTests = 0.0,
-                manualIde = 0.0,
-                commitGap = 0.0,
-                length = 0.0,
-            ),
-        ),
-        "plusBroken" to ScoringConfig.PRODUCTION.copy(
-            process = ProcessScoreWeights().copy(
-                skipTests = 0.0,
-                manualIde = 0.0,
-                commitGap = 0.0,
-                length = 0.0,
-            ),
-        ),
-        "plusHygieneTriplet" to ScoringConfig.PRODUCTION.copy(
-            process = ProcessScoreWeights().copy(
-                length = 0.0,
-            ),
-        ),
-        "plusLength" to ScoringConfig.PRODUCTION.copy(
-            process = ProcessScoreWeights().copy(),
-        ),
-        "full" to ScoringConfig.PRODUCTION,
-    )
+    /**
+     * The six process-score weights we ablate over. Each variant is a
+     * subset of this list — terms in the subset stay at their production
+     * default; terms outside are zeroed. With six knobs the power set
+     * has 2^6 = 64 variants, ranging from `(empty)` (every process term
+     * stripped — pure baseline noise) to `(gain,broken,skipTests,
+     * manualIde,length,commitGap)` (full PRODUCTION).
+     */
+    private val PROCESS_KNOBS: List<Pair<String, (ProcessScoreWeights, Double) -> ProcessScoreWeights>> =
+        listOf(
+            "gain" to { p, v -> p.copy(gain = v) },
+            "broken" to { p, v -> p.copy(broken = v) },
+            "skipTests" to { p, v -> p.copy(skipTests = v) },
+            "manualIde" to { p, v -> p.copy(manualIde = v) },
+            "length" to { p, v -> p.copy(length = v) },
+            "commitGap" to { p, v -> p.copy(commitGap = v) },
+        )
+
+    /** Power-set of [PROCESS_KNOBS] as (variant-name, ScoringConfig) pairs. */
+    private val VARIANTS_POWERSET: List<Pair<String, ScoringConfig>> = run {
+        val n = PROCESS_KNOBS.size
+        (0 until (1 shl n)).map { mask ->
+            val activeNames = mutableListOf<String>()
+            // Start from PRODUCTION defaults; zero each inactive knob.
+            var w = ProcessScoreWeights()
+            for (i in 0 until n) {
+                val (name, copier) = PROCESS_KNOBS[i]
+                val active = (mask shr i) and 1 == 1
+                if (active) activeNames += name else w = copier(w, 0.0)
+            }
+            val label = if (activeNames.isEmpty()) "(none)" else activeNames.joinToString("+")
+            label to ScoringConfig.PRODUCTION.copy(process = w)
+        }
+    }
+
 
     @JvmStatic
     fun main(args: Array<String>) {
@@ -166,21 +173,56 @@ object AblationExperiment {
         )
         val baselineReport = ReportAssembler.assemble(phaseA, ScoringConfig.PRODUCTION)
         val baselineRanking = ranking(baselineReport)
+        val baselineSat = saturatedDpCount(baselineReport)
+        val baselineMags = baselineReport.divergencePoints.map { it.magnitude }
+        val baselineTotalAbs = baselineMags.sumOf { kotlin.math.abs(it) }
         val fixtureName = fixture.nameWithoutExtension
 
         val out = mutableListOf<String>()
-        for ((name, cfg) in VARIANTS) {
+        for ((name, cfg) in VARIANTS_POWERSET) {
             val perturbedReport = ReportAssembler.assemble(phaseA, cfg)
             val perturbedRanking = ranking(perturbedReport)
             val tau = RankingMetrics.kendallTauB(baselineRanking, perturbedRanking)
             val hit = RankingMetrics.topNHitRate(baselineRanking, perturbedRanking, 5)
+            val perturbedSat = saturatedDpCount(perturbedReport)
+            // Pair baseline and perturbed DPs by their position in
+            // `divergencePoints` (pre-sort) — DivergencePointBuilder is
+            // deterministic from PhaseAResult, so the two lists carry the
+            // same DPs in the same order with only `magnitude` changed.
+            val perturbedMags = perturbedReport.divergencePoints.map { it.magnitude }
+            val perturbedTotalAbs = perturbedMags.sumOf { kotlin.math.abs(it) }
+            // If baseline has no magnitude to recover (e.g. a fixture
+            // with only COMMIT_GAP DPs whose magnitudes are structurally
+            // 0), recovery is undefined. Report 1.0 when perturbed also
+            // has zero magnitude (trivially "fully recovered" — the
+            // ablation didn't change anything), 0.0 otherwise (a
+            // perturbed magnitude appeared where the baseline had none,
+            // which would be surprising but possible if a kind-specific
+            // builder gate flips).
+            val recovery = when {
+                baselineTotalAbs > 0.0 -> perturbedTotalAbs / baselineTotalAbs
+                perturbedTotalAbs == 0.0 -> 1.0
+                else -> 0.0
+            }
+            val deltas = baselineMags.zip(perturbedMags) { b, p -> kotlin.math.abs(p - b) }
+            val meanDelta = if (deltas.isEmpty()) 0.0 else deltas.average()
+            val maxDelta = deltas.maxOrNull() ?: 0.0
+            val activeCount = if (name == "(none)") 0 else name.count { it == '+' } + 1
             out += listOf(
                 fixtureName,
                 name,
+                activeCount.toString(),
                 String.format(Locale.US, "%.6f", tau),
                 String.format(Locale.US, "%.6f", hit),
                 baselineRanking.size.toString(),
                 perturbedRanking.size.toString(),
+                baselineSat.toString(),
+                perturbedSat.toString(),
+                String.format(Locale.US, "%.6f", baselineTotalAbs),
+                String.format(Locale.US, "%.6f", perturbedTotalAbs),
+                String.format(Locale.US, "%.6f", recovery),
+                String.format(Locale.US, "%.6f", meanDelta),
+                String.format(Locale.US, "%.6f", maxDelta),
             ).joinToString(",")
         }
         return out
@@ -190,6 +232,31 @@ object AblationExperiment {
         report.divergencePoints
             .sortedByDescending { it.magnitude }
             .map { it.stepIndex }
+
+    /**
+     * Number of divergence points whose terminal user- or alt-process
+     * score is at the [0, 100] clamp boundary. A high count means τ
+     * understates the true impact of an ablation — those DPs have
+     * weight-invariant magnitudes (clipping eats the change), so the
+     * ranking can look stable when it shouldn't.
+     */
+    private fun saturatedDpCount(report: AnalysisReport): Int {
+        val userProcessBySha: Map<String, Int> = report.checkpoints
+            .associate { it.sha to it.derivedMetrics.process.total }
+        var saturated = 0
+        for (dp in report.divergencePoints) {
+            val alts = dp.altTrajectoryIndexes
+                .mapNotNull { report.alternativeTrajectories.getOrNull(it) }
+            val touchesBoundary = alts.any { alt ->
+                val altTerm = alt.altCheckpoints.lastOrNull()?.derivedMetrics?.process?.total
+                val userTerm = userProcessBySha[alt.userToSha]
+                (altTerm != null && (altTerm == 0 || altTerm == 100)) ||
+                    (userTerm != null && (userTerm == 0 || userTerm == 100))
+            }
+            if (touchesBoundary) saturated += 1
+        }
+        return saturated
+    }
 
     private fun requireArg(args: Array<String>, flag: String): String? {
         val idx = args.indexOf(flag)
