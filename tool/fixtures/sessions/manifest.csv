@@ -21,3 +21,9 @@ session_id,pattern,strength,target_step,expected_kind,fixture_path,control_sessi
 020,ManualExtractVariable,borderline,2,IDE_REPLAY,sessions/020/,042
 021,ManualExtractVariable,subthreshold,2,IDE_REPLAY,sessions/021/,042
 022,SuboptimalOrdering,loud,4,ORDERING,sessions/022/,045
+023,SuboptimalOrdering,loud,4,ORDERING,sessions/023/,045
+024,SuboptimalOrdering,borderline,3,ORDERING,sessions/024/,045
+025,SuboptimalOrdering,borderline,3,ORDERING,sessions/025/,045
+026,SuboptimalOrdering,subthreshold,3,ORDERING,sessions/026/,042
+027,AddThenRevert,loud,1,REWORK,sessions/027/,045
+028,AddThenRevert,loud,1,REWORK,sessions/028/,045
