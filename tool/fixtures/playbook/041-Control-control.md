@@ -1,20 +1,20 @@
-# Session 041 — NoCommitStretch (subthreshold)
+# Session 041 — Control (control)
 
-**Pattern**: NoCommitStretch
-**Strength**: subthreshold
-**Expected kind**: HYGIENE
-**Target step**: 5
-**Paired control**: 042
+**Pattern**: Control
+**Strength**: control
+**Expected kinds**: ORDERING
+**Target step**: -1
+**Paired control**: —
 **Manifest row to add after capture**:
 ```
-041,NoCommitStretch,subthreshold,5,HYGIENE,sessions/041/,042
+041,Control,control,-1,ORDERING,sessions/041/,
 ```
 
 ## What this session demonstrates
 
-Only 5 green refactor checkpoints uncommitted before the commit at step 6. Below MIN_COMMIT_GAP (= 6). HygieneDetector should NOT flag.
+5 clean IDE-driven renames on `LibrarySystem` fields and helpers, tests green after each, one commit at the end. No bad-process injection. Originally drafted as `NoCommitStretch (subthreshold)` to probe the COMMIT_GAP floor (`MIN_COMMIT_GAP = 6` → 5 should not fire HYGIENE), but recast as an additional control session: it exercises the same clean-cadence behaviour that the larger controls (042–045) cover, just at a smaller scale. The COMMIT_GAP "subthreshold negative" measurement that this row used to provide is now redundant with the natural absence of COMMIT_GAP DPs across the four controls.
 
-**CRUCIAL**: Stop at 5. Not 6, not 4. NO commits between steps 1 and 5.
+A perfect detector should surface ORDERING alts for the 5 independent IDE refactors (their permutations exist as alternatives), but should NOT surface HYGIENE / REWORK / IDE_REPLAY since no bad behaviour was injected.
 
 ## Setup (every session)
 

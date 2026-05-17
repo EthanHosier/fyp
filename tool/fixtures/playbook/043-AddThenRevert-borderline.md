@@ -1,15 +1,20 @@
-# Session 043 — Control (control)
+# Session 043 — AddThenRevert (borderline)
 
-**Pattern**: Control
-**Strength**: control
-**Expected kind**: none
-**Target step**: -1
-
-(No manifest row.)
+**Pattern**: AddThenRevert
+**Strength**: borderline
+**Expected kinds**: REWORK;ORDERING
+**Target step**: 1
+**Paired control**: 045
+**Manifest row to add after capture**:
+```
+043,AddThenRevert,borderline,1,REWORK;ORDERING,sessions/043/,045
+```
 
 ## What this session demonstrates
 
-Medium clean session: 5 IDE-driven refactors mixing `LibrarySystem` and `ReportFormatter`. Tests after each refactor. Commits grouped logically into 3 commits (every ~2 refactors). Used as the "medium" control for IDE_REPLAY loud and several borderline rows.
+Originally drafted as the "medium" control session (5 IDE refactors mixing `LibrarySystem` and `ReportFormatter`, tests after each, 3 commits grouped logically). The actual recording included a 2-line add-then-revert in `ReportFormatter.formatReport`, sitting exactly at `MIN_REWORK_LINES` — borderline REWORK. The session was reclassified post-recording rather than re-recorded.
+
+A perfect detector should surface REWORK (the 2-line revert) and ORDERING (the IDE refactors are independent and reorderable).
 
 ## Setup (every session)
 
