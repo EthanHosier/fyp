@@ -91,12 +91,18 @@ The headline table is a 6-row × 4-column compact reference:
 
 | Term | Default weight | Cited justification | Ablation Δ recovery (solo, 1-term active) |
 |------|---------------:|---------------------|------------------------------------------:|
-| $W_{\textsc{g}}$ (gain)        | 50 | Cedrim 2017; Paixão 2018           | 0.494 |
-| $W_{\textsc{b}}$ (broken)      | 28 | Paixão 2018; Gautam 2025 (RefactorBench failure-mode #2) | **0.725** |
-| $W_{\textsc{st}}$ (skipTests)  | 14 | Murphy-Hill, Parnin & Black 2012   | 0.597 |
-| $W_{\textsc{mi}}$ (manualIde)  | 11 | *[citation hunt — see Prompt M1]*  | 0.636 |
-| $W_{\textsc{l}}$ (length)      | 11 | Mkaouer 2016; Ouni 2017            | 0.680 |
-| $W_{\textsc{cg}}$ (commitGap)  | 7  | *[citation hunt — see Prompt M2]*  | 0.533 |
+| $W_{\textsc{g}}$ (gain)        | 50 | Cedrim 2017; Paixão 2017           | 0.000 |
+| $W_{\textsc{b}}$ (broken)      | 28 | Paixão 2017; Gautam 2025 (RefactorBench failure-mode #2) | **0.348** |
+| $W_{\textsc{st}}$ (skipTests)  | 14 | Murphy-Hill et al. 2009            | 0.093 |
+| $W_{\textsc{mi}}$ (manualIde)  | 11 | Negara 2013; Vakilian 2012         | **0.357** |
+| $W_{\textsc{l}}$ (length)      | 11 | Harman & Tratt 2007; Mohan & Greer 2019 | **0.342** |
+| $W_{\textsc{cg}}$ (commitGap)  | 7  | Tao & Kim 2015; Di Biase 2019; Herzig 2013; Kudrjavets 2022 | 0.126 |
+
+*Values reflect V2 magnitude semantic (trajectory-final
+process-score delta, uniform across all four divergence kinds) and
+are computed as sum/sum across the 45-fixture corpus rather than
+mean-of-per-fixture-fractions, to avoid the 0/0 = 1.0 inflation
+artifact on fixtures with no DPs.*
 
 The "Ablation Δ recovery" column previews results §5.X — markers
 reward the methodology-to-evaluation cross-reference. Make the
@@ -154,7 +160,7 @@ class structure formally (kind, magnitude, stepIndex, per-kind
 extras). Define magnitude semantics:
 - For ORDERING / MANUAL_REFACTOR / HYGIENE: magnitude = alt's process
   score − user's process score at the anchor checkpoint.
-- For REWORK: magnitude = reverted-line count (weight-independent;
+- *[Historical V1; superseded by V2 trajectory-final delta below.]* For REWORK: magnitude = reverted-line count (weight-independent;
   disclose this asymmetry honestly).
 - $\mathcal{K} = \{\textsc{ordering}, \textsc{manual\_refactor}, \textsc{rework}, \textsc{hygiene}\}$.
 
@@ -240,7 +246,7 @@ surgical patches over the window. `GitRunner.applyDirect` applies
 each, commit, branch-force refs. Atomic per trajectory.
 
 Key correctness point: the surgical replay preserves all
-non-reworked content; the magnitude (reverted-line count) measures
+non-reworked content; under V1 the magnitude was the reverted-line count, but under V2 (current production) it is the trajectory-final process-score delta like the other three kinds; the V2 alt picks up the W_L step-savings bonus because the round-trip work is elided. The reverted-line count measures
 exactly the wasted work, weight-independently.
 
 ### §3.9 HYGIENE synthesisers (½ page)

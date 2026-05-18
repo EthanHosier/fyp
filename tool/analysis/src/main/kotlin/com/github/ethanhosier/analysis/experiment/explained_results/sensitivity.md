@@ -105,8 +105,11 @@ remainder.
 
 If τ had stayed exactly 1.0 across the entire ×0.1–×10 range with zero
 exceptions, a reviewer would reasonably suspect the metric is dominated
-by something weight-independent (REWORK line-count magnitudes,
-COMMIT_GAP DPs that are structurally 0, or saturation). The fact that
+by something weight-independent or by saturation. Under the earlier V1
+semantic this concern was real (REWORK was line-count-magnitude and
+COMMIT_GAP magnitudes were structurally zero at the anchor checkpoint).
+Under V2, all four kinds use trajectory-final process-score deltas, so
+both REWORK and COMMIT_GAP respond to weight changes. The fact that
 **τ does collapse to negative values on 0.4 % of perturbations** —
 all on extreme factors of high-signal process knobs — means the
 weights genuinely participate in the ranking. They just don't dominate
@@ -137,16 +140,25 @@ it within a plausible range.
    1–3 DPs; on a 3-DP ranking, τ = 0.333 means a single pair swap. The
    top-5 hit rate column (always 1.0 here) is the more stable signal
    for the user-facing surface of the detector.
-3. **HYGIENE COMMIT_GAP DPs have structurally zero magnitude** (cadence
-   isn't in the score formula yet). They appear in every perturbation
-   at the same rank-bottom position, contributing to τ stability in a
-   way that's structural rather than calibration-related. A corpus
-   heavy in COMMIT_GAP sessions would show artificially stable τ —
-   this corpus has them but they're not the majority.
-4. **REWORK magnitudes are reverted-line counts, weight-independent.**
-   REWORK DPs are perfectly stable under every perturbation by design,
-   not because the weights are well-chosen. Again, real but not
-   evidence of calibration quality.
+3. **HYGIENE COMMIT_GAP DPs have a discrete magnitude exactly equal
+   to `W_cg`** (= 7 in production). The commit-flip alt breaks the
+   user's $\geq 6$-checkpoint green-refactor stretch into two sub-
+   stretches that each fall below the threshold, so $n_{cg}$ drops
+   from 1 to 0 at trajectory-final and the magnitude is exactly the
+   weight. This means perturbing `W_cg` moves the COMMIT_GAP DPs'
+   magnitudes by a fixed proportion — they respond to weight
+   changes, unlike under the V1 semantic where COMMIT_GAP magnitudes
+   were measured at the anchor (before the event accumulated) and
+   were therefore structurally zero.
+4. **REWORK magnitudes are now trajectory-final process-score deltas
+   (V2 semantic), so they are weight-dependent like the other three
+   kinds.** Under the earlier V1 semantic (REWORK magnitude =
+   reverted-line count) REWORK DPs were perfectly stable under every
+   perturbation by design and inflated τ artifactually. Under V2,
+   REWORK DPs respond to weight changes — particularly to `length`
+   (the W_L step-savings bonus) and `broken` — and the τ stability
+   reported above is therefore a property of the score formula
+   rather than of the magnitude semantic.
 
 These caveats are honest disclosures; none of them change the
 robustness verdict, but they shape what the τ ≈ 1.0 finding *means*.

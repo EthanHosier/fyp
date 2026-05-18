@@ -1,46 +1,64 @@
 #!/bin/bash
 
 # Build script for LaTeX project
-# This script compiles the LaTeX document with bibliography support
+# This script compiles the LaTeX document with bibliography support.
+# By default builds both main.pdf (light) and main_dark.pdf (dark mode).
+# Pass --light or --dark to build only one variant.
 
 set -e  # Exit on error
 
-echo "Building LaTeX document..."
-
-# Check if main.tex exists
-if [ ! -f "main.tex" ]; then
-    echo "Error: main.tex not found!"
-    exit 1
+MODE="both"
+if [ "$1" = "--light" ]; then
+    MODE="light"
+elif [ "$1" = "--dark" ]; then
+    MODE="dark"
 fi
 
-# Try to use latexmk if available (recommended)
-if command -v latexmk &> /dev/null; then
-    echo "Using latexmk..."
-    latexmk -pdf -interaction=nonstopmode main.tex
-    echo "Build complete! Output: main.pdf"
-else
-    echo "latexmk not found, using pdflatex directly..."
-    echo "Running pdflatex (pass 1/3)..."
-    pdflatex -interaction=nonstopmode main.tex
-    
-    if [ -f "bibs/sample.bib" ]; then
-        echo "Running bibtex..."
-        bibtex main
+build_target() {
+    local target="$1"
+    local label="$2"
+
+    if [ ! -f "${target}.tex" ]; then
+        echo "Error: ${target}.tex not found!"
+        exit 1
     fi
-    
-    echo "Running pdflatex (pass 2/3)..."
-    pdflatex -interaction=nonstopmode main.tex
-    
-    echo "Running pdflatex (pass 3/3)..."
-    pdflatex -interaction=nonstopmode main.tex
-    
-    echo "Build complete! Output: main.pdf"
+
+    echo "=== Building ${label} (${target}.pdf) ==="
+
+    if command -v latexmk &> /dev/null; then
+        latexmk -pdf -interaction=nonstopmode "${target}.tex"
+    else
+        pdflatex -interaction=nonstopmode "${target}.tex"
+        if [ -f "bibs/sample.bib" ]; then
+            bibtex "${target}"
+        fi
+        pdflatex -interaction=nonstopmode "${target}.tex"
+        pdflatex -interaction=nonstopmode "${target}.tex"
+    fi
+
+    if [ -f "${target}.pdf" ]; then
+        echo "${label} build complete: ${target}.pdf"
+    else
+        echo "Warning: ${target}.pdf not found after build!"
+    fi
+}
+
+if [ "$MODE" = "both" ] || [ "$MODE" = "light" ]; then
+    build_target "main" "light mode"
 fi
 
-# Open the PDF if it exists
-if [ -f "main.pdf" ]; then
+if [ "$MODE" = "both" ] || [ "$MODE" = "dark" ]; then
+    build_target "main_dark" "dark mode"
+fi
+
+# Open the requested PDF (default to main_dark.pdf in 'both' mode)
+if [ "$MODE" = "light" ] && [ -f "main.pdf" ]; then
     echo "Opening main.pdf..."
     open main.pdf
-else
-    echo "Warning: main.pdf not found after build!"
+elif [ "$MODE" = "dark" ] && [ -f "main_dark.pdf" ]; then
+    echo "Opening main_dark.pdf..."
+    open main_dark.pdf
+elif [ "$MODE" = "both" ] && [ -f "main_dark.pdf" ]; then
+    echo "Opening main_dark.pdf (use \`open main.pdf\` for the light variant)..."
+    open main_dark.pdf
 fi

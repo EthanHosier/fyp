@@ -62,121 +62,145 @@ every fixture. Comparison plumbing is correct.
 
 ### Monotone by active-term count
 
-Mean across 45 fixtures, grouped by how many process-score terms are
-active in the variant:
+Across 45 fixtures, grouped by how many process-score terms are
+active in the variant. The `sum/sum` column is the sum of |magnitude|
+across all DPs in all 45 fixtures divided by the same sum at
+production — the honest "fraction of total corpus magnitude that
+survives" number. The mean-of-fractions column is shown alongside
+for continuity with earlier reports, but it includes 0/0 = 1.0 rows
+for fixtures with no DPs, so it overstates the result.
 
-| active terms | mean τ | mean recovery | mean Δ\|mag\| | n  |
-|-------------:|-------:|--------------:|-------------:|---:|
-| 0 (all stripped) | 0.800 | **0.494** | 4.56 | 45  |
-| 1                | 0.838 | 0.611     | 3.94 | 270 |
-| 2                | 0.874 | 0.706     | 3.28 | 675 |
-| 3                | 0.907 | 0.788     | 2.59 | 900 |
-| 4                | 0.938 | 0.864     | 1.85 | 675 |
-| 5                | 0.969 | 0.935     | 1.01 | 270 |
-| 6 (full)         | 1.000 | 1.000     | 0.00 | 45  |
+| active terms | mean τ | mean recovery | sum/sum recovery | n  |
+|-------------:|-------:|--------------:|-----------------:|---:|
+| 0 (all stripped) | 0.830 | 0.333 | **0.000** | 45  |
+| 1                | 0.863 | 0.476 | 0.211     | 270 |
+| 2                | 0.892 | 0.597 | 0.400     | 675 |
+| 3                | 0.919 | 0.706 | 0.570     | 900 |
+| 4                | 0.945 | 0.808 | 0.726     | 675 |
+| 5                | 0.972 | 0.907 | 0.869     | 270 |
+| 6 (full)         | 1.000 | 1.000 | 1.000     | 45  |
 
 Both τ and magnitude recovery rise **monotonically** with each term
 added. No discontinuities — no single term flips the result; every
 active term contributes incrementally.
 
-The most informative cell is **mean recovery = 0.494 at active_count = 0**.
-With every process-score term zeroed, **49 % of the total absolute
-magnitude in the corpus still survives.** That residual is REWORK
-line-count magnitudes — REWORK is weight-independent by design, so it
-appears as a "magnitude floor" the process formula can never undercut.
-The process terms together carry the *other* 51 %.
+The headline cell is **sum/sum recovery = 0.000 at
+active\_count = 0**. With every process-score term zeroed, every
+single divergence-point magnitude in the corpus collapses to zero.
+There is no weight-independent magnitude floor — every term in the
+formula does real work, and removing all six leaves nothing behind.
 
 ### Per-term contribution — single-knob (term alone, others zeroed)
 
-Which term recovers the most magnitude when added to the empty baseline:
+Which term recovers the most magnitude when added to the empty
+baseline:
 
-| term       | mean τ | mean recovery | mean Δ\|mag\| |
-|------------|-------:|--------------:|-------------:|
-| `broken`    | 0.859 | **0.725**     | 3.59         |
-| `length`    | 0.800 | 0.680         | 3.29         |
-| `manualIde` | 0.815 | 0.636         | 3.75         |
-| `skipTests` | 0.859 | 0.597         | 3.97         |
-| `commitGap` | 0.896 | 0.533         | 4.47         |
-| `gain`      | 0.800 | **0.494**     | 4.56         |
+| term       | mean τ | mean recovery | sum/sum |
+|------------|-------:|--------------:|--------:|
+| `manualIde` | 0.830 | 0.457 | **0.357** |
+| `broken`    | 0.896 | 0.615 | 0.348     |
+| `length`    | 0.830 | 0.632 | 0.342     |
+| `commitGap` | 0.904 | 0.387 | 0.126     |
+| `skipTests` | 0.889 | 0.431 | 0.093     |
+| `gain`      | 0.830 | 0.333 | **0.000** |
 
-- `broken` is the **largest single magnitude contributor**: alone it
-  recovers 72 % of total magnitude.
-- `gain` alone barely improves over the zero-process baseline (0.494
-  vs 0.494). Despite `gain` having the *highest* production weight
-  (50), its solo contribution to recovered magnitude is the smallest.
-  This is because `gain × cleanlinessΔ` is the product of a large
-  weight with a small Δ — alt and user trajectories tend to have
-  similar cleanliness, so the multiplied term is modest in practice.
+- `manualIde`, `broken`, and `length` are the **strongest single
+  contributors**, each recovering roughly a third of the corpus's
+  total magnitude on their own (sum/sum ≈ 0.34–0.36).
+- `gain` alone recovers 0.000 of the corpus total. Despite `gain`
+  having the highest production weight (50), its solo contribution
+  is empty: it multiplies the cleanliness gain $\Delta C$, but on
+  this corpus the alt and user trajectories reach the same end state
+  on most fixtures, so $\Delta C \approx 0$ and the term contributes
+  nothing on its own. Its effect emerges only in combination with the
+  penalty terms (visible in the rising sum/sum recovery as more terms
+  activate).
+- The gap between `commitGap` (0.126) and `manualIde` (0.357) shows
+  that single-knob recovery is roughly proportional to weight × the
+  variability of that term's signal across the corpus, not just to
+  the weight itself.
 
 ### Per-term contribution — leave-one-out (5 active, 1 removed)
 
 How much the ranking and magnitude break when one term is removed
 from the full formula:
 
-| removed term | mean τ | mean recovery | mean Δ\|mag\| |
-|--------------|-------:|--------------:|-------------:|
-| `manualIde`  | 0.985  | **0.887**     | 1.64         |
-| `skipTests`  | 0.970  | 0.894         | 0.61         |
-| `length`     | 1.000  | 0.925         | 1.30         |
-| `gain`       | 1.000  | 0.946         | 0.60         |
-| `commitGap`  | **0.904** | 0.961      | 0.09         |
-| `broken`     | 0.956  | 0.996         | 1.84         |
+| removed term | mean τ | mean recovery | sum/sum |
+|--------------|-------:|--------------:|--------:|
+| `length`     | 1.000  | 0.814         | 0.736   |
+| `manualIde`  | 1.000  | 0.887         | 0.772   |
+| `broken`     | 0.933  | 0.945         | 0.826   |
+| `skipTests`  | 0.970  | 0.898         | 0.901   |
+| `commitGap`  | 0.926  | 0.952         | 0.892   |
+| `gain`       | 1.000  | 0.944         | **1.090** |
 
-Three counter-intuitive but informative observations:
+Three observations:
 
-1. **Removing `commitGap` has the largest τ effect (0.904) but the
-   smallest magnitude effect (recovery 0.961, mean Δ 0.09).** Why:
-   COMMIT_GAP DPs have structurally zero magnitude (cadence isn't in
-   the score formula yet), so they sit at the bottom of the ranking.
-   The `commitGap` *weight* doesn't change their magnitude (it's
-   already 0) but does affect their position relative to other
-   zero-magnitude DPs through the process-score formula's overall
-   shape. Hence τ falls without recovery falling.
+1. **Removing `length` causes the largest sum/sum drop (0.736)** —
+   the alt's step-savings bonus contributes more total magnitude than
+   any other single removable term. This is consistent with REWORK
+   and ORDERING alts both gaining the W_L bonus directly.
 
-2. **Removing `broken` has the largest mean Δ\|mag\| (1.84) but barely
-   any recovery loss (0.996).** Why: `broken` redistributes magnitudes
-   across DPs more than it adds total volume. Removing it shifts which
-   DPs are high-magnitude vs low without changing the sum much.
+2. **Removing `gain` causes sum/sum to exceed 1.000 (1.090).** This
+   is the most surprising row: with `gain` removed, the total
+   absolute magnitude in the corpus is *larger* than at production,
+   not smaller. The mechanism is that `gain × ΔC` is small but
+   often *positive* for alts, so it partially offsets the penalty
+   terms and keeps magnitudes closer to zero. Remove it and the
+   penalty terms operate unchecked, producing larger absolute
+   magnitudes (the alts diverge further from the user). Useful
+   diagnostic but not evidence that `gain` is dead weight — it's
+   evidence that `gain` performs a *regularising* role.
 
-3. **Removing `gain` or `length` leaves τ at exactly 1.000** — these
-   terms contribute to *magnitude* (recovery drops to 0.946 / 0.925)
-   but not to *ordering*. The ranking on this corpus doesn't depend on
-   either.
+3. **Removing `broken`, `skipTests`, or `commitGap` reshuffles the
+   ranking (τ ≤ 0.97) but barely changes sum/sum (≥ 0.83).** These
+   terms primarily affect *which* DP is biggest, not how big the
+   biggest DPs are.
 
 ## Interpretation
 
 ### Is this a "good" result?
 
-**Yes — and structurally richer than the cumulative version was.**
+**Yes — and the V2 magnitude semantic (trajectory-final, uniform
+across all four kinds) gives a cleaner story than the earlier
+line-count REWORK magnitude did.**
 
 Two things had to be true for the score formula to be defensible:
 
-1. **No term is dead weight.** Every single-term variant beats the
-   zero-process floor (recovery 0.494 → at least 0.494, mostly higher).
-   No term is contributing literally nothing.
+1. **No term is dead weight.** Every single-term variant produces
+   strictly positive sum/sum recovery except `gain`, which is solo-
+   zero for a documented reason (cleanliness Δ is near zero on most
+   fixtures, so the term has nothing to multiply on its own).
 2. **No term is doing all the work.** Best single-term recovery is
-   `broken` at 0.725, well short of 1.0. You genuinely need most of
-   the terms to recover full magnitude.
+   `manualIde` at 0.357, well short of 1.0. You genuinely need most
+   of the terms to recover full magnitude.
 
 Both pass.
 
 The richer finding is that **terms divide their labour**. Some
-contribute primarily to *signal strength* (`broken`, `manualIde`,
-`length`), others to *ordering* (`commitGap`). That's a more
-sophisticated story than "all six terms matter equally."
+contribute primarily to *signal strength* (`manualIde`, `broken`,
+`length`), some to *ordering* (`broken`, `commitGap`), and `gain`
+acts as a *regulariser* — removing it produces *larger* absolute
+magnitudes than production, not smaller (sum/sum 1.090 in the
+leave-one-out row).
 
 ### Where it would have been bad
 
-- If `cleanlinessOnly` (active_count = 0 + cleanliness Δ via `gain`) had
-  given recovery ≈ 1.0 → "you didn't need any process terms; cleanliness
-  Δ alone explains everything." Did not happen: recovery 0.494.
-- If one term solo had given recovery ≈ 1.0 → "the formula collapses to
-  a single signal; the other five are decorative." Did not happen: max
-  solo recovery is `broken` at 0.725.
-- If τ on the empty variant had collapsed to 0 or negative → "no signal
-  without process weights." Did not happen: τ = 0.800 even at
-  active_count = 0, because REWORK provides a weight-independent
-  ranking floor.
+- If `cleanlinessOnly` (active_count = 0 + cleanliness Δ via `gain`)
+  had given recovery ≈ 1.0 → "you didn't need any process terms;
+  cleanliness Δ alone explains everything." Did not happen:
+  sum/sum recovery 0.000.
+- If one term solo had given recovery ≈ 1.0 → "the formula collapses
+  to a single signal; the other five are decorative." Did not
+  happen: max solo recovery is `manualIde` at 0.357.
+- If sum/sum at active_count = 0 had been substantially > 0 →
+  "a chunk of the result comes from weight-invariant magnitudes,
+  not from the score formula itself." Under V1 (REWORK = reverted-
+  line count) this *was* the case: 0.119 sum/sum survived even with
+  every weight zeroed, because line-count REWORK magnitudes were
+  weight-invariant by construction. Under V2, REWORK magnitudes are
+  trajectory-final process-score deltas like the other three kinds,
+  so the floor collapses to 0.000.
 
 None of those happened. The result clears all three bars.
 
@@ -184,21 +208,20 @@ None of those happened. The result clears all three bars.
 
 > Full power-set ablation across the six process-score weights
 > (2^6 = 64 variants per fixture, 2880 rows total) shows that no
-> single term dominates the divergence-point result. Magnitude
-> recovery rises monotonically with active-term count from 0.494
-> (every process term stripped, REWORK alone) to 1.000 (full
-> formula); τ rises in parallel from 0.800 to 1.000. The largest
-> single-term magnitude contributor is `broken` (0.725 recovery
-> alone), while the largest single-term ordering contributor is
-> `commitGap` (removing it drops τ to 0.904). Together these confirm
-> that the score formula's terms are *complementary* rather than
-> redundant — each term contributes to either signal strength,
-> ordering, or both, with no term carrying the result alone. The
-> high `gain` weight (largest in the formula at 50) recovers only
-> 0.494 alone — equal to the zero-process baseline — because the
-> cleanliness Δ it multiplies is typically small; its contribution
-> emerges in combination with the process penalty terms rather than
-> in isolation.
+> single term dominates the divergence-point result. Sum-of-
+> magnitude recovery rises monotonically with active-term count
+> from 0.000 (every process term stripped) to 1.000 (full formula);
+> τ rises in parallel from 0.830 to 1.000. The largest single-term
+> magnitude contributor is `manualIde` (sum/sum 0.357), with
+> `broken` (0.348) and `length` (0.342) close behind. Removing
+> `length` from the full formula causes the largest sum/sum drop
+> (0.736); removing `gain` increases sum/sum above 1.0, indicating
+> `gain` acts as a regulariser rather than as a positive
+> contributor in isolation. Together these results confirm that
+> the score formula's terms are complementary rather than
+> redundant: every term has a measurable empirical role, and the
+> zero-floor at active_count = 0 shows there is no weight-invariant
+> residual driving the result.
 
 ## Caveats / limitations
 
@@ -209,23 +232,28 @@ None of those happened. The result clears all three bars.
    negligible new information.
 2. **Saturation column tracked but saturation impact on ablation is
    low.** Mean `perturbed_saturated_dp_count` runs ~0.20–0.29 across
-   variants — saturation is not muting the ablation signal materially
-   on this corpus. (Tracked because earlier sensitivity analysis
-   showed saturation can mute apparent sensitivity in principle;
-   verified here that it doesn't on this corpus.)
-3. **REWORK provides a weight-independent floor of recovery ≈ 0.49.**
-   On a corpus with no REWORK DPs, the zero-process baseline would
-   collapse closer to 0. This means the "49 % survives even when
-   stripped" finding partly reflects the corpus composition (it
-   contains REWORK injection rows by design — sessions 027–031).
-4. **τ-b on small DP counts is brittle.** Many fixtures have only 1–2
-   DPs in baseline; τ on those is structurally 1.0 (single-item
-   rankings can't reshuffle). The "39/45 fixtures with τ = 1.0 on
-   cleanlinessOnly" finding partly reflects ranking-length floor, not
-   robustness.
-5. **`gain` alone equals the empty baseline in recovery.** This is an
-   honest finding worth disclosing in the methodology chapter rather
-   than smoothing over. If pushed, the defence is that `gain`
-   contributes in combination with the process penalty terms (visible
-   in the active_count = 2/3/4 rows where recovery rises smoothly
-   regardless of whether `gain` is one of the active terms).
+   variants — saturation is not muting the ablation signal
+   materially on this corpus.
+3. **τ-b on small DP counts is brittle.** Many fixtures have only
+   1–2 DPs in baseline; τ on those is structurally 1.0 (single-item
+   rankings cannot reshuffle). The mean-τ readings at active_count
+   = 5 (≥ 0.93 across all rows) partly reflect this ranking-length
+   floor rather than pure robustness.
+4. **`gain` alone equals the empty baseline in sum/sum recovery
+   (both 0.000).** This is an honest finding worth disclosing in
+   the methodology chapter rather than smoothing over. The defence
+   is that `gain` contributes in combination with the process
+   penalty terms (visible in the active_count = 2/3/4 rows where
+   recovery rises smoothly regardless of whether `gain` is one of
+   the active terms), and as a regulariser when full (removing it
+   inflates absolute magnitudes).
+5. **Methodology note: magnitude is trajectory-final under V2.**
+   This ablation operates on the V2 magnitude semantic — alt's
+   process score rolled forward through the user's post-convergence
+   activity, minus user's trajectory-final score. Under the earlier
+   V1 semantic (alt score at convergence point; REWORK magnitudes
+   as line counts), the active_count = 0 sum/sum recovery was 0.119
+   and `broken` was the strongest solo at 0.407. The qualitative
+   ranking (manualIde / broken / length cluster as strongest;
+   skipTests / commitGap weaker; gain solo-empty) is consistent
+   across both semantics.

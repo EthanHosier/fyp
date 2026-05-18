@@ -21,7 +21,7 @@ flagged. **Detailed per-section plans will be written separately**
 |---|----------------------------------|---------:|---------------|-------------------------------------------------|
 | 1 | Introduction                     | ½ day    | ✅ **done**    | —                                               |
 | 2 | Background trim + new citations  | 2 days   | ✅ **done**    | —                                               |
-| 3 | Methodology chapter              | 1 week   | pending       | TODO: rater-design paragraph (~½ pg)            |
+| 3 | Methodology chapter              | 1 week   | ✅ **done** (draft) | TODO slot: rater-design paragraph (~½ pg)  |
 | 4 | Tool architecture chapter        | 2 days   | pending       | —                                               |
 | 5 | Experiments + results chapter    | 1 week   | pending       | TODO: expanded-corpus subsection (~½ pg)        |
 | 6 | Threats-to-validity / discussion | 2 days   | pending       | TODO: mitigation paragraph (~⅓ pg)              |

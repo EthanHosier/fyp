@@ -196,8 +196,13 @@ detection — see `plugin-misclassifications.md`).
 ### Where it works
 
 - **REWORK detection is rock-solid.** Perfect precision, perfect
-  recall on injections, and **every fire is a genuine improvement**.
-  The line-count-based magnitude is honest about reverted code.
+  recall on injections. Under the V2 magnitude semantic (trajectory-
+  final process-score delta) most REWORK alts beat the user, but a
+  small minority (3/9) score below the user — the alt elides the
+  wasted work but the post-convergence rate-term denominators can
+  shift in a way that reduces the alt's score. The line count is
+  preserved on the divergence point as a separate field for
+  explanation purposes.
 - **HYGIENE detection is similarly solid.** 100/100/100 across the
   board. Magnitudes reflect skipped-test composite sizes and
   commit-gap lengths.
@@ -263,13 +268,14 @@ real-time refactoring-trajectory analyser.
    "anywhere-in-session," not strict step matching. Strict
    numbers are disclosed in Part 4. Re-enable once plugin cadence
    is stable.
-3. **"Beats user" is computed against `magnitude > 0`.** REWORK
-   uses reverted-line count (always > 0 by gate). HYGIENE
-   COMMIT_GAP has structurally zero magnitude in the current
-   formula, but its detector-side magnitude (assigned by
-   `HygieneDetector` as `gapLength`) is positive — so all HYGIENE
-   DPs read as "beats user." Be transparent that HYGIENE's
-   "beats" is structurally guaranteed, not a calibration win.
+3. **"Beats user" is computed against `magnitude > 0`.** Under V2
+   magnitude semantics, all four kinds use the trajectory-final
+   process-score delta, so a positive magnitude means the
+   counterfactual trajectory genuinely scores higher than the
+   user's. HYGIENE COMMIT_GAP DPs have a discrete magnitude
+   exactly equal to `W_cg` (the commit-flip breaks a 6+ stretch
+   into sub-stretches below the threshold, dropping $n_{cg}$ by 1
+   at trajectory-final).
 4. **`alt_count` for ORDERING (225) is enumeration count, not
    surfaced alts.** Reported here for transparency about the
    synthesiser's reach; the user-facing number is the 29 DPs.

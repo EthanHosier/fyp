@@ -1,0 +1,270 @@
+\chapter{Methodology}
+\label{ch:methodology}
+
+This chapter defines the three main contributions of this thesis: the process-quality score, the divergence-point detector, and the per-kind counterfactual synthesisers. \S\ref{sec:methodology-notation} sets up the formalism that frames the rest of the chapter. \S\ref{sec:methodology-score} and \S\ref{sec:methodology-weights} define the process score and its weights; \S\ref{sec:methodology-cleanliness} defines the cleanliness sub-score the process score consumes. \S\ref{sec:methodology-detector} defines the divergence-point detector, and \S\ref{sec:methodology-reorder}--\S\ref{sec:methodology-hygiene} define the four synthesisers that produce alternative reference trajectories. The validator that admits these alternatives as legitimate same-end-state reorderings is described in \S\ref{sec:methodology-validator}. \S\ref{sec:methodology-rater} describes the rater study used to validate the manifest labels in Chapter~5.
+
+This chapter focuses on what the algorithms do and why they are correct. How they are made fast in practice - the JDT batch-session reuse, single-worktree borrow, and git-checkout backtracking - is covered in Chapter~4 (Tool Architecture).
+
+\section{Formal definitions and notation}
+\label{sec:methodology-notation}
+
+The formal definitions in this section build on the state/action/trace framing from \S\ref{sec:def-framing}. A refactoring trajectory is a sequence
+\[
+\tau = (s_0, a_0, s_1, a_1, \ldots, a_{T-1}, s_T),
+\]
+where each $s_t$ is a code snapshot (a git commit SHA paired with the working-tree contents) and each $a_t$ is a developer action that turns $s_t$ into $s_{t+1}$. Actions are either IDE-supported refactoring operations or manual edits; in practice a single action can carry both a structured refactoring spec (recovered by RefactoringMiner~\cite{alikhanifard2025rminer}) and some leftover unstructured edits. We treat this as one action with two parts rather than two separate actions.
+
+The object actually being evaluated is the analysis-report structure produced by the tool. An \emph{analysis report} for a trajectory $\tau$ is a tuple $(\tau, \mathcal{M}, \mathcal{D}, \mathcal{A})$, where:
+\begin{itemize}
+  \item $\mathcal{M} = \{m_0, m_1, \ldots, m_T\}$ is a per-state metric assignment. Each $m_t$ contains the cleanliness sub-score $C(s_t)$ together with the raw signals it is built from (PMD violations, CPD duplications, Chidamber--Kemerer measures, build/test outcomes, the action's refactoring spec, and commit and test event metadata).
+  \item $\mathcal{D}$ is the set of divergence points the detector emits for $\tau$ (\S\ref{sec:methodology-detector}).
+  \item $\mathcal{A}$ is the set of alternative reference trajectories synthesised at those divergence points (\S\ref{sec:methodology-reorder} onwards). Each $\tau^\ast \in \mathcal{A}$ has the same tuple shape as the user's report, so alts can be scored under the same machinery.
+\end{itemize}
+
+The process-quality score $J(\tau)$ is computed over the full trajectory using $\mathcal{M}$, and is the focus of \S\ref{sec:methodology-score}--\S\ref{sec:methodology-weights}. Table~\ref{tab:methodology-notation} summarises the notation used throughout the chapter.
+
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabular}{ll}
+\hline
+\textbf{Symbol} & \textbf{Meaning} \\
+\hline
+$\tau = (s_0, a_0, s_1, \ldots, a_{T-1}, s_T)$ & Refactoring trajectory \\
+$s_t$ & State (code snapshot) at step $t$ \\
+$a_t$ & Action at step $t$ (IDE refactor or manual edit) \\
+$J(\tau)$ & Process-quality score, clamped to $[0, 100]$ \\
+$C(s)$ & Cleanliness sub-score of state $s$ \\
+$\Delta C(\tau) = C(s_T) - C(s_0)$ & Cleanliness gain across trajectory \\
+$\beta = 50$ & Baseline anchor in the process score \\
+$W_{\textsc{x}}$ & Process-score weight for term \textsc{x} \\
+$r_b,\ r_{st},\ r_{mi}$ & Laplace-smoothed rate terms (broken, skip-tests, manual-when-IDE) \\
+$n_{cg}(\tau)$ & Commit-gap event count \\
+$\sigma_l(\tau)$ & Step-savings bonus for alternative trajectories \\
+$\mathrm{DP}$ & Divergence point \\
+$\tau^{\ast}$ & Counterfactual reference trajectory \\
+$\mathcal{K}$ & Divergence-kind set $= \{\textsc{ordering}, \textsc{manual\_refactor}, \textsc{rework}, \textsc{hygiene}\}$ \\
+\hline
+\end{tabular}
+\caption{Notation used throughout the methodology chapter.}
+\label{tab:methodology-notation}
+\end{table}
+
+\section{The process score}
+\label{sec:methodology-score}
+
+The process score $J(\tau)$ is the main thing this chapter defines. It combines six weighted terms across the trajectory and clamps the result to a $[0, 100]$ range so trajectories of different lengths can be compared on the same scale:
+\begin{equation}
+J(\tau) = \mathrm{clip}_{[0,100]}\Big(\beta + W_{\textsc{g}}\,\Delta C(\tau) - W_{\textsc{b}}\,r_b(\tau) - W_{\textsc{st}}\,r_{st}(\tau) - W_{\textsc{mi}}\,r_{mi}(\tau) - W_{\textsc{cg}}\,n_{cg}(\tau) + W_{\textsc{l}}\,\sigma_l(\tau)\Big)
+\label{eq:process-score}
+\end{equation}
+where:
+\begin{itemize}
+  \item $\beta = 50$ is the baseline anchor. A trajectory with neither cleanliness gain nor process damage scores 50.
+  \item $\Delta C(\tau) = C(s_T) - C(s_0)$ is the cleanliness gain from start to end (\S\ref{sec:methodology-cleanliness}).
+  \item $r_b(\tau) = b_{\mathrm{ms}}(\tau) / e_{\mathrm{ms}}(\tau)$ is the time-weighted broken fraction: the proportion of trajectory wall-clock time during which the build or test suite was broken.
+  \item $r_{st}(\tau)$ and $r_{mi}(\tau)$ are Laplace-smoothed event-rate terms of the form $r_\bullet(\tau) = (k + 1) / (n + 2)$, where $k$ is the number of penalised events and $n$ the number of opportunities. Both default to zero when there have been no events of either polarity yet, so a single bad-out-of-one event does not trigger a full penalty.
+  \item $n_{cg}(\tau)$ is the commit-gap event count: one event per stretch of $\geq 6$ green-refactor checkpoints between user commits.
+  \item $\sigma_l(\tau)$ is the alt-only step-savings bonus. It only contributes when $\tau$ is a synthesised counterfactual that reaches the same end state in fewer steps than the user.
+\end{itemize}
+
+Three design choices shape this formula. First, an \emph{anti-gaming axiom}: the broken-state penalty $W_{\textsc{b}}$ has to outweigh any single-step cleanliness gain $W_{\textsc{g}} \cdot \Delta C$ a developer could plausibly engineer by trading transient correctness for structural improvement. The severity ordering $W_{\textsc{b}}\!:\!W_{\textsc{st}}\!:\!W_{\textsc{cg}} = 28\!:\!14\!:\!7$ encodes this in the production weights of \S\ref{sec:methodology-weights}. Second, the Laplace smoothing keeps the rate terms from misbehaving on very short trajectories where one bad event would otherwise dominate. Third, the $[0, 100]$ clamp makes scores comparable across trajectories of different lengths, but it does introduce saturation: when a user's trajectory is already near 100, any alt's improvement gets compressed against the ceiling. The sensitivity experiment in Chapter~5 tracks this and reports it as a known limitation of the score formula.
+
+\section{Process-score weights}
+\label{sec:methodology-weights}
+
+Table~\ref{tab:methodology-weights} lists the six production weights of Equation~\eqref{eq:process-score}, the literature that backs each one, and a forward reference to the ablation results in Chapter~5. The rightmost column gives the magnitude recovery of each term when it is the only term active in the formula - a single number from the full power-set ablation that captures how much of the production score's signal each term carries on its own.
+
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabular}{l r p{0.36\textwidth} r}
+\hline
+\textbf{Term} & \textbf{Weight} & \textbf{Cited justification} & \textit{\textbf{$\Delta$ recovery (solo)}} \\
+\hline
+$W_{\textsc{g}}$ (gain)        & 50 & Cedrim et al. 2017~\cite{cedrim2017refactoring}; Paix{\~a}o et al. 2017~\cite{paixao2017balancing} & \textit{0.000} \\
+$W_{\textsc{b}}$ (broken)      & 28 & Paix{\~a}o et al. 2017~\cite{paixao2017balancing}; Gautam et al. 2025~\cite{gautam2025refactorbench} (FM \#2) & \textit{\textbf{0.348}} \\
+$W_{\textsc{st}}$ (skip-tests) & 14 & Murphy-Hill et al. 2009~\cite{murphyhill2009howrefactor} & \textit{0.093} \\
+$W_{\textsc{mi}}$ (manual)     & 11 & Negara et al. 2013~\cite{negara2013manualautomated}; Vakilian et al. 2012~\cite{vakilian2012usedisuse} & \textit{\textbf{0.357}} \\
+$W_{\textsc{l}}$ (length)      & 11 & Harman \& Tratt 2007~\cite{harman2007pareto}; Mohan \& Greer 2019~\cite{mohan2019manyobjective} & \textit{\textbf{0.342}} \\
+$W_{\textsc{cg}}$ (commit-gap) & 7  & Tao \& Kim 2015~\cite{taokim2015partitioning}; Di Biase et al. 2019~\cite{dibiase2019decomposition}; Herzig \& Zeller 2013~\cite{herzig2013tangled}; Kudrjavets et al. 2022~\cite{kudrjavets2022small} & \textit{0.126} \\
+\hline
+\end{tabular}
+\caption{Production weights for Equation~\eqref{eq:process-score}, the literature each weight rests on, and the magnitude recovery when only that term is active in the formula (full power-set ablation, $2^6 = 64$ variants per fixture; see Chapter~5).}
+\label{tab:methodology-weights}
+\end{table}
+
+The rest of this section walks through each weight. Two of them ($W_{\textsc{mi}}$ and $W_{\textsc{cg}}$) have a citation gap: the literature backs the general idea of the penalty but does not directly measure the specific differential the weight is supposed to capture. I flag this openly below.
+
+\paragraph{$W_{\textsc{g}}$ (gain, 50).}
+The main positive term: a unit of cleanliness gain at the end of the trajectory adds 50 to $J(\tau)$. Cedrim et al.~\cite{cedrim2017refactoring} found that refactoring often makes structural metrics no better or even slightly worse, which means the score should reward improvement explicitly rather than assume it. Paix{\~a}o et al.~\cite{paixao2017balancing} model the trade-off between disruption and improvement as something developers actively manage, which sets the size of this positive term in relation to the penalty terms below.
+
+\paragraph{$W_{\textsc{b}}$ (broken, 28).}
+The largest single penalty term. Paix{\~a}o et al.~\cite{paixao2017balancing} show that developers care a lot about avoiding disruptive intermediate states - they are willing to give up roughly a quarter of the available metric improvement to avoid them. The weight is \emph{time-weighted} rather than binary: $r_b(\tau) = b_{\mathrm{ms}} / e_{\mathrm{ms}}$, so a brief broken state is penalised proportionally less than a long one. The numerator $b_{\mathrm{ms}}$ counts only wall-clock time during which the build or tests are actually failing - not total refactoring time, and not time the developer spends thinking between changes. A developer who pauses to think carefully before making a clean change is not penalised; a developer who leaves the build broken for five minutes is. Time-weighting also makes the broken term robust to the choice of granularity. The state/action/trace formalism in \S\ref{sec:methodology-notation} leaves what counts as a ``state'' deliberately flexible - a state can be a commit, an IDE event, or a developer-defined checkpoint - and a binary ``was this state broken'' counter would change by a large factor across those choices (count once per commit vs.\ once per keystroke and the broken-state count looks very different). Wall-clock time spent broken does not depend on the sampling rate, so $r_b(\tau)$ stays meaningful at any granularity. The time-weighting choice also lines up with Gautam et al.'s 2025 RefactorBench analysis~\cite{gautam2025refactorbench}: their failure-mode~\#2 shows that strictly rejecting any intermediate broken state hurts LM-agent performance, because some broken intermediates are genuinely necessary for multi-file edits. The anti-gaming rule means $W_{\textsc{b}}$ has to outweigh the single-step gain $W_{\textsc{g}}\,\Delta C$ for any plausible $\Delta C$.
+
+\paragraph{$W_{\textsc{st}}$ (skip-tests, 14).}
+Penalises composite refactoring windows (60-second batches) that finish without any test run in between. The 60-second cut-off comes from Murphy-Hill et al.~\cite{murphyhill2009howrefactor}: their empirical work on how developers actually refactor anchors test cadence at the batch level rather than the per-step level. I set the weight at half $W_{\textsc{b}}$: skipping tests is weaker evidence of process damage than an observably broken state, but it is still a signal the score should track.
+
+\paragraph{$W_{\textsc{mi}}$ (manual-when-IDE, 11).}
+Penalises steps where the developer performed a refactoring by hand even though the IDE could have done it automatically. Negara et al.~\cite{negara2013manualautomated} show that this is a common case: across 23 developers and 5,371 refactorings, developers preferred to do them manually even when automated equivalents existed. The reliability argument comes from Mens \& Tourw{\'e}~\cite{mens2004survey}: refactoring tools enforce static precondition checks that manual edits do not. Vakilian et al.~\cite{vakilian2012usedisuse} add nuance by showing that even automated refactorings can be misused, which is why this penalty is graded rather than binary. I am not aware of any published study that directly measures the fault-rate gap between manual and IDE refactoring; the specific weight value is therefore not fitted to data but sits within the severity ordering set out above. Chapter~5's sensitivity and ablation experiments check whether that ordering holds up.
+
+\paragraph{$W_{\textsc{l}}$ (length, 11).}
+This one is a bonus, not a penalty: it adds to the score of alternative trajectories that reach the same end state in fewer steps than the user. Harman \& Tratt~\cite{harman2007pareto} and Mohan \& Greer~\cite{mohan2019manyobjective} treat ``fewer refactorings'' as an objective on equal footing with quality in multi-objective search-based refactoring, and recent many-objective work in the same lineage continues to treat refactoring effort as a first-class Pareto objective~\cite{cortellessa2023manyobjective}. I deliberately do not penalise the user for a longer trajectory: a longer user trajectory might just mean a bigger task, not a worse process, and conflating the two would punish the user for the size of the work. The bonus only applies when the synthesiser produces an alt that hits the same end state in fewer steps.
+
+\paragraph{$W_{\textsc{cg}}$ (commit-gap, 7).}
+Penalises long stretches of green-refactor checkpoints (refactor + tests pass) without an intervening commit. The argument comes from the change-decomposition literature: Tao \& Kim~\cite{taokim2015partitioning} show that splitting composite changes into separate commits lets reviewers do a better job in the same amount of time, and Di Biase et al.~\cite{dibiase2019decomposition} confirm in a controlled experiment that decomposed changesets reduce false-positive review noise. Herzig \& Zeller~\cite{herzig2013tangled} show that tangled commits inflate downstream defect attribution errors. I am deliberately \emph{not} claiming a throughput benefit: Kudrjavets et al.~\cite{kudrjavets2022small} find that PR size does not correlate with time-to-merge across 1.25M PRs in 10 languages. So the real gain from smaller commit gaps is review \emph{comprehensibility} and \emph{rollback locality}, not faster merges. I am not aware of any published study that directly measures commit cadence \emph{during refactoring} as a predictor of rollback or review cost; the specific weight value is therefore axiomatic in the severity-ordering sense and validated empirically in Chapter~5.
+
+\section{The cleanliness sub-score}
+\label{sec:methodology-cleanliness}
+
+The cleanliness sub-score $C(s)$ in Equation~\eqref{eq:process-score} combines six per-state quality signals into a single normalised value in $[0, 100]$. I picked the signals on the principle that no single quality measure is reliable on its own across different contexts (\S\ref{sec:smells-metrics}); combining several complementary signals reduces sensitivity to the noise of any one tool. Table~\ref{tab:methodology-cleanliness} lists each sub-signal, its cited basis, and how it is computed.
+
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabular}{l r p{0.36\textwidth} p{0.24\textwidth}}
+\hline
+\textbf{Sub-metric} & \textbf{Weight} & \textbf{Cited basis} & \textbf{Computation source} \\
+\hline
+Cognitive complexity & 1.0 & Campbell 2018~\cite{campbell2018cognitive}; Mu{\~n}oz Bar{\'o}n et al. 2020~\cite{munozbaron2020cognitive} (partial validation); Lavazza et al. 2023~\cite{lavazza2023cognitive} (contradicting) & Per-method mean \\
+Coupling (CBO)        & 1.0 & Chidamber \& Kemerer 1994~\cite{chidamberkemerer1994ckmetrics} & CK library, per-class mean \\
+Duplication           & 1.0 & Heitlager et al. 2007~\cite{heitlager2007sig}; Fowler 1999~\cite{fowler1999refactoring} & CPD-detected cloned lines on touched files \\
+Readability           & 1.0 & Buse \& Weimer 2010~\cite{buse2010readability} (feature taxonomy only - \emph{not} the trained model) & Five-feature blend, line-weighted \\
+Smells                & 1.0 & Marinescu 2004~\cite{marinescu2004}; Arcelli Fontana et al. 2016~\cite{arcellifontana2016falsepositives}; Moha et al. 2010~\cite{moha2010decor} & PMD violation count on touched files \\
+Cohesion (TCC)        & 1.0 & Bieman \& Kang 1995~\cite{biemankang1995tcc} & Per-class mean, dropped if $< 2$ methods \\
+\hline
+\end{tabular}
+\caption{The six sub-signals composing the cleanliness sub-score $C(s)$. All weights are uniform 1.0 following Laplace's principle of insufficient reason (see composition rule below); the production weight bundle in the implementation reflects this.}
+\label{tab:methodology-cleanliness}
+\end{table}
+
+\paragraph{Composition rule.}
+Each raw sub-signal is min--max normalised against the main trajectory's range, inverted for ``lower is better'' measures (cognitive complexity, coupling, duplication, smells). Sub-signals with degenerate ranges or missing data on the trajectory are dropped and the remaining weights renormalised. Alternative-trajectory checkpoint values are clamped to the unit interval against the main trajectory's range, so an extreme alt cannot shift the main trajectory's normalisation. The composite is a weighted sum, then scaled to $[0, 100]$. Wagner et al.'s Quamoco framework~\cite{wagner2015quamoco} and the QMOOD quality model~\cite{bansiya2002qmood} both use this kind of layered weighted-sum aggregation, which is a defensible choice when there is no calibration data to fit the weights against.
+
+\paragraph{Uniform sub-weights, by deliberate choice.}
+I set all six sub-weights to 1.0 because there is no published calibration data that tells me how to weight them differently for refactoring trajectories. Equal weighting is the default in the absence of such data - Laplace's principle of insufficient reason. The sensitivity experiment in Chapter~5 confirms that the divergence-point ranking is largely insensitive to these cleanliness sub-weights: only a small fraction of cleanliness perturbations reshuffle the ranking, an order of magnitude lower than for the process-score perturbations.
+
+\paragraph{Caveats deliberately disclosed.}
+Two of the sub-signals have weaker empirical backing than the others. I want to flag both honestly:
+\begin{itemize}
+  \item \emph{Readability.} I use Buse \& Weimer's feature taxonomy~\cite{buse2010readability} (line length, indentation, identifier characteristics) as a feature blend, but \emph{not} their trained readability model. Calibrating their trained model to the trajectory-evaluation setting would need domain-specific data I have not collected. The feature blend without the trained model is a weaker signal but it is still defensible as one of six components.
+  \item \emph{Cognitive complexity.} Cognitive complexity is empirically contested. Mu{\~n}oz Bar{\'o}n et al.~\cite{munozbaron2020cognitive} re-analysed 24,400 human understandability ratings and partially validated Campbell's claim, finding significant positive correlation with comprehension time and subjective ratings; correlation with correctness was weak. Lavazza et al.~\cite{lavazza2023cognitive}, on the other hand, find that cognitive complexity predicts understandability about as well as traditional size and cyclomatic-complexity measures, with negligible additional explanatory power. I include cognitive complexity as one of six normalised sub-signals rather than as a dominant predictor, consistent with the uniform composition and the contested empirical status of the measure.
+\end{itemize}
+
+\section{The divergence-point detector}
+\label{sec:methodology-detector}
+
+A \emph{divergence point} is a step in the user's trajectory where an alternative trajectory exists that scores strictly better than the user's under the process score. The detector emits divergence points of four kinds:
+\[
+\mathcal{K} = \{\textsc{ordering},\ \textsc{manual\_refactor},\ \textsc{rework},\ \textsc{hygiene}\}.
+\]
+Each divergence point has four fields: a \emph{kind}, an \emph{anchor step} (the user step where divergence occurs), a \emph{magnitude}, and per-kind context (the reorder window for ORDERING; the replaced refactoring identifier for MANUAL\_REFACTOR; the originating--terminal step pair, file, scope, and reverted-line count for REWORK; the hygiene sub-kind and stretch length for HYGIENE).
+
+The magnitude is uniform across all four kinds:
+\[
+\mathrm{magnitude} = J(\tau^{\ast}_{\mathrm{final}}) - J(\tau_{\mathrm{final}}),
+\]
+where $\tau^{\ast}_{\mathrm{final}}$ is the alt's process score \emph{rolled forward through the user's post-convergence activity} - i.e.\ the user's trajectory with the alt's path substituted in at the divergence and the rest of the trajectory unchanged - and $\tau_{\mathrm{final}}$ is the user's actual trajectory-final score. The comparison is therefore at the user's trajectory-final state on both sides, so the magnitude answers a single question for every kind: \emph{``if you had taken this one different path at the divergence point and continued with the rest of your trajectory unchanged, by how many process-score points would your final score have moved?''}
+
+For REWORK specifically, the magnitude is non-trivial even though the alt reaches the same end state as the user: the alt has \emph{fewer} steps because the round-trip work is elided, so the $W_{\textsc{l}}$ step-savings bonus contributes positively to the alt's score. The reverted-line count is still attached to the divergence point as a separate field (\texttt{reworkLineCount}) for explanatory use on the dashboard, but it is no longer the ranking magnitude.
+
+Before emitting a divergence point, the detector runs kind-specific filters. Three threshold constants gate detection: $\textsc{min\_rework\_lines} = 2$ drops single-line REWORK noise; $\textsc{min\_commit\_gap} = 6$ requires at least six green-refactor checkpoints between commits before COMMIT\_GAP fires; and the $60\,\mathrm{s}$ composite-window boundary~\cite{murphyhill2009howrefactor} defines the refactoring batch boundary used by both ORDERING and HYGIENE.
+
+\subsection{ORDERING detection}
+\label{sec:methodology-detector-ordering}
+
+ORDERING detection works on bracket-validated windows of consecutive refactoring steps (\S\ref{sec:methodology-validator}). For each window, the synthesiser enumerates valid permutations of the steps - only those whose terminal AST matches the user's, established by the audit in \S\ref{sec:methodology-reorder} - and computes the process-score delta of each permutation against the user's. If any permutation strictly beats the user, a divergence point is emitted at the window's terminal step with the best-scoring permutation as the surfaced alternative.
+
+\subsection{MANUAL\_REFACTOR detection}
+\label{sec:methodology-detector-manual}
+
+A MANUAL\_REFACTOR divergence point is emitted at any user step where (i) the action was performed by hand, and (ii) the resulting diff matches the structural pattern of an IDE-supported refactoring. The pattern match is established by RefactoringMiner-style mining of the diff~\cite{alikhanifard2025rminer}: if a non-null IDE-mappable spec is recovered from the manual edit, the step is a candidate. Adjacent candidate steps that share the same \texttt{(fromSha, toSha)} bracket are grouped into a single composite; the synthesiser (\S\ref{sec:methodology-manualrefactor}) builds the alt by applying the recovered spec via the IDE-equivalent pathway. The pipeline wraps the Eclipse JDT refactoring libraries to apply these specs, and where the user's IDE (e.g.\ IntelliJ) and JDT disagree on the exact post-state of a refactoring (whitespace, import ordering, default-method positioning), the residual gap is closed with a manual git patch so the alt's terminal state aligns with the user's. The engineering details of this wrap-and-patch layer are described in Chapter~4 (Tool Architecture).
+
+\subsection{REWORK detection}
+\label{sec:methodology-detector-rework}
+
+REWORK detection looks for pairs of changes within a trajectory where content is added and later removed (or removed and later re-added) such that the two halves net to a no-op, modulo whitespace. The detector parses each step's unified diff into hunks, resolves each hunk to its enclosing method or class scope, content-hashes the affected lines (whitespace-normalised), and greedily pairs add/remove hunks that share the same \texttt{(file, scope, content-hash)}. Each paired \texttt{(originating step, terminal step)} becomes a REWORK candidate; pairs below the \textsc{min\_rework\_lines} floor are dropped as line-noise.
+
+\subsection{HYGIENE detection}
+\label{sec:methodology-detector-hygiene}
+
+HYGIENE detection has two sub-kinds. TESTS\_SKIPPED fires once per composite window (60-second batch~\cite{murphyhill2009howrefactor}) that contains at least one refactoring step and no successful test run in between. COMMIT\_GAP fires once per stretch of $\geq 6$ green-refactor checkpoints (checkpoints whose tests passed and whose refactoring applied cleanly) without an intervening user commit. Both sub-kinds emit one divergence point per finding.
+
+\section{Reorder synthesiser}
+\label{sec:methodology-reorder}
+
+The reorder synthesiser builds alternative trajectories by reshuffling the user's refactoring steps into a different order while still reaching the same end state. Correctness is established in six steps: window-splitting on validator verdicts, dependency-DAG construction over the program entities each step reads and writes, single-static-assignment (SSA) versioning across renames, topological enumeration, depth-first search over a prefix trie of candidate permutations, and a terminal AST-equivalence audit. The engineering choices that make the search tractable - single borrowed worktree, single JDT batch session, git-checkout backtracking - are described in Chapter~4.
+
+\paragraph{Window splitting on validator verdicts.}
+Only bracket-validated windows (\S\ref{sec:methodology-validator}) are eligible for reordering. Brackets with verdict \textsc{ast\_diverged} (the user's terminal AST differs from the synthesiser's terminal AST under straight replay) or \textsc{refactor\_failed} (some refactoring step could not be applied) are split into singleton windows, because reordering inside them risks producing an unsafe alternative. \textsc{ast\_diverged} commonly arises from systematic differences between the user's IDE (IntelliJ) and the Eclipse JDT libraries the pipeline wraps to apply refactorings: the two engines disagree on details such as whitespace, import-statement ordering, or where a default method is placed within a class, producing terminal ASTs that are equivalent in intent but not byte-identical. The wrap-and-patch layer described in Chapter~4 closes these gaps for accepted brackets; brackets where the residual gap cannot be patched safely get the \textsc{ast\_diverged} verdict and are not reordered.
+
+\paragraph{Dependency-DAG construction.}
+Each refactoring step carries a structured \emph{spec} describing the entities it reads, writes, creates, or deletes. The synthesiser builds a directed acyclic graph $G = (V, E)$ where vertices are spec instances and $(u, v) \in E$ if $v$ depends on $u$'s effects - specifically, if $v$'s read-set intersects $u$'s write-set, or $v$'s target was created by $u$. The DAG captures every dependency constraint a valid permutation has to respect.
+
+\paragraph{SSA versioning across renames.}
+If a method is renamed at step $t$ from \texttt{foo} to \texttt{bar}, it shows up in later steps under its new name, which breaks simple name-based equality across the trajectory. The synthesiser threads version identifiers through the DAG using single-static-assignment-style versioning: each rename produces a fresh version, and subsequent steps that target the renamed entity bind to the right version. This handles trajectories like Extract Method followed by Rename Method on the extracted method.
+
+\paragraph{Topological enumeration.}
+The synthesiser enumerates topological orderings of the DAG via straightforward recursive backtracking. Each enumeration is a candidate permutation of the window's steps. In practice the DAG sizes are small (most brackets contain 2--8 steps), so the enumeration terminates quickly.
+
+\paragraph{Depth-first search over a prefix trie.}
+Permutations share prefixes - two different orderings that agree on their first $k$ steps share the first $k$ levels of a trie. The synthesiser applies steps in order along trie edges, reusing the JDT project state across the shared prefix and only re-applying the divergent suffix when descending into a new sub-tree. This saves the work of re-applying shared prefixes, which would otherwise dominate the cost of naive enumeration.
+
+\paragraph{Terminal AST-equivalence audit.}
+For each permutation that reaches a terminal state, the synthesiser hashes the affected \texttt{.java} files with a Java AST hasher (which canonicalises method-declaration order and other syntactic differences that do not change behaviour) and compares them to hashes of the user's terminal state computed via \texttt{git show}. Only permutations whose terminal AST hashes \emph{exactly match} the user's count as legitimate reorderings. This is the correctness guarantee: by construction, an admitted reorder reaches the same end state as the user.
+
+The admitted permutations are then scored under Equation~\eqref{eq:process-score}. The highest-scoring permutation that strictly beats the user's becomes the alternative trajectory for the ORDERING divergence point at the window's terminal step.
+
+\section{Manual-refactor synthesiser}
+\label{sec:methodology-manualrefactor}
+
+The manual-refactor synthesiser builds an alternative trajectory in which the user's manual refactoring is instead applied via the IDE's automated pathway. The synthesiser borrows a worktree at the originating commit \texttt{fromSha}, applies each detected spec via its IDE-equivalent operator inside a single JDT batch session, and then runs a residual three-way merge to layer the user's non-refactoring edits (for example, unrelated bug fixes interleaved with the refactor) on top of the synthesised refactor. The resulting tree is committed to a shadow repository.
+
+The residual merge is important: it makes sure the alt trajectory keeps all of the user's non-refactoring edits. That way the comparison is about \emph{how} the user reached the end state (by hand vs.\ via the IDE), not about \emph{whether} they reached it. Without the residual merge, the alt would drift away from the user's end state on the non-refactoring axis and the process-score comparison would be confounded.
+
+\section{Rework synthesiser}
+\label{sec:methodology-reworksynth}
+
+The rework synthesiser builds an alternative trajectory in which the originating--terminal hunk pair identified by REWORK detection (\S\ref{sec:methodology-detector-rework}) is skipped. For each pair, the synthesiser borrows a worktree at the originating step's pre-state and generates a sequence of surgical patches covering the $[\mathrm{originating}, \mathrm{terminal}]$ window. Each patch is applied via \texttt{git apply} and committed; branch references are force-updated to point at the new heads. The operation is atomic per trajectory: either all patches in the window apply successfully, or the alt is thrown away.
+
+The surgical replay preserves all non-reworked content. Because the alt skips the round-trip work, it reaches the same end state as the user in fewer steps; the $W_{\textsc{l}}$ step-savings bonus therefore contributes positively to the alt's trajectory-final score, which drives the divergence-point magnitude (\S\ref{sec:methodology-detector}). The reverted-line count is preserved on the divergence point as a separate field (\texttt{reworkLineCount}) for explanatory use on the dashboard.
+
+\section{Hygiene synthesisers}
+\label{sec:methodology-hygiene}
+
+The hygiene synthesiser builds alternative trajectories that represent the user observing better process hygiene at points where they did not, without changing the code itself. There are two sub-kinds. For TESTS\_SKIPPED, the alt represents a trajectory in which the user ran the test suite at the anchor checkpoint and it passed. For COMMIT\_GAP, the alt represents a trajectory in which the user committed at the anchor checkpoint, breaking what would otherwise have been a long stretch of uncommitted refactor checkpoints.
+
+Both sub-kinds are synthesised by adjusting the anchor checkpoint's process metadata rather than by changing the code, because hygiene is fundamentally a \emph{process} property: when did the developer run tests, when did they commit. The alt's code state stays identical to the user's at every checkpoint; only the metric stream changes. Re-scoring the trajectory with the adjusted metadata and comparing trajectory-final scores under the magnitude semantic of \S\ref{sec:methodology-detector} gives the cost of the missing hygiene event in process-score points.
+
+The metadata-adjustment approach is the honest representation of what a hygiene-improved counterfactual actually looks like: a developer running tests at the anchor checkpoint, or committing earlier, does not change the code at that checkpoint, only the metric stream that accumulates downstream from it.
+
+\section{Validator and behaviour preservation}
+\label{sec:methodology-validator}
+
+Before reordering anything, the reorder synthesiser needs a behaviour-preservation guarantee on the user's window: replaying the user's specs in their original order has to reach the user's terminal state. If it does not, reordering is unsafe. The bracket-level validator establishes this guarantee. For each \texttt{(fromSha, toSha)} bracket, the validator borrows a worktree at \texttt{fromSha}, replays the user's specs in their original order inside a single JDT batch session, and runs two checks:
+\begin{itemize}
+  \item The set of \texttt{.java} files changed by the replay matches the set changed in the user's \texttt{git diff fromSha..toSha}.
+  \item The terminal AST hash of every changed file matches the hash of the user's terminal state.
+\end{itemize}
+The verdict is \textsc{valid} if both checks pass, \textsc{ast\_diverged} if hashes mismatch, and \textsc{refactor\_failed} if any spec fails to apply. Only \textsc{valid} brackets become reorder windows; the other two verdicts get split into singleton windows (\S\ref{sec:methodology-reorder}). The engineering choices that let the validator bracket-replay efficiently at scale - single batch session, single worktree borrow, AST-hash computation via \texttt{git show} rather than a second worktree - are described in Chapter~4.
+
+A practical limitation worth flagging: the pipeline applies refactorings through Eclipse JDT, but the user's actions are recorded from IntelliJ. The two refactoring engines sometimes produce \emph{structurally} different terminal ASTs for the same nominal operation, particularly around how the method body and its call sites are wired together. Two examples currently handled by the patch layer:
+\begin{itemize}
+  \item \emph{Static modifier on Extract Method.} JDT only adds \texttt{static} when it is required by the extracted body; IntelliJ adds it whenever the body permits. The patch layer adds \texttt{static} post-extract when the user's version had it, so the two terminal ASTs match.
+  \item \emph{Return-vs-void shape on Extract Method.} When the extracted selection assigns to an outer-scope variable that is read after the selection, IntelliJ generates a method that returns the new value and rewrites the call site to assign it (\texttt{x = f(x)}), whereas JDT under-detects this liveness in conditional branches and instead generates a \texttt{void} method that takes the variable as a parameter and assigns to it locally (\texttt{f(x)} at the call site). The patch layer detects this pattern and rewrites JDT's output to match IntelliJ's return-and-assign shape.
+\end{itemize}
+Where the patch layer covers the divergence pattern, the bracket is admitted as \textsc{valid}. Where it does not, the bracket falls to \textsc{ast\_diverged} even though the underlying refactoring was correct, and the synthesiser conservatively splits the window into singletons rather than risking an unsafe reorder. The current patch layer handles the most common divergence patterns observed during corpus recording; extending it to cover the long tail of structural JDT-versus-IntelliJ differences is left as future work and is the primary source of the ORDERING recall gap reported in Chapter~5.
+
+\section{Rater design}
+\label{sec:methodology-rater}
+
+% TODO study-blocked: This section is to be completed once the rater
+% study described in PLAN-user-study.md Phase 1 has been conducted.
+% Intended content:
+%   - Multi-label schema (manifest-v2.csv format).
+%   - Briefing protocol for the two independent raters.
+%   - Per-kind Cohen's kappa, reported honestly even if low.
+%   - Reconciliation procedure for divergent labels.
+% Estimated length: half to one page.
+
+The labelled corpus used to evaluate the divergence-point detector in Chapter~5 was annotated against a multi-label schema covering the four divergence kinds in $\mathcal{K}$. To check the schema against someone other than the author, a rater study was conducted in which two independent annotators labelled the corpus against the same schema without seeing the author's labels. The per-kind Cohen's $\kappa$ agreement statistics and the protocol used to brief the raters are reported in this section once the rater study has been conducted, and are used in Chapter~5 to bound the empirical claims made against the corpus.

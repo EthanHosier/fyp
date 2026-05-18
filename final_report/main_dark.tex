@@ -1,3 +1,9 @@
+% main_dark.tex — dark-mode variant of main.tex.
+% Shares all chapter inputs with main.tex; differs only in colour scheme.
+%
+% Build: latexmk -pdf -interaction=nonstopmode main_dark.tex
+% Output: main_dark.pdf
+
 \documentclass[a4paper, twoside]{report}
 
 %% Language and font encodings
@@ -16,7 +22,20 @@
 \usepackage{ragged2e}
 \usepackage[font=small,labelfont=it,textfont=it]{caption}
 \usepackage[colorinlistoftodos]{todonotes}
-\usepackage[colorlinks=true, allcolors=blue]{hyperref}
+
+%% Dark mode colour scheme
+\usepackage{xcolor}
+\definecolor{darkbg}{HTML}{1B1B1F}      % near-black page background
+\definecolor{darkfg}{HTML}{E0E0E0}      % light grey body text
+\definecolor{darklink}{HTML}{58A6FF}    % GitHub-dark-style blue for internal links / URLs
+\definecolor{darkcite}{HTML}{A5D6A7}    % muted green for citations
+\definecolor{darkrule}{HTML}{BDBDBD}    % light-grey table rules (inherited from \color)
+
+\pagecolor{darkbg}
+\color{darkfg}
+
+%% hyperref must be loaded last so its colour options resolve correctly
+\usepackage[colorlinks=true, linkcolor=darklink, urlcolor=darklink, citecolor=darkcite]{hyperref}
 
 \newcolumntype{L}[1]{>{\RaggedRight\arraybackslash}p{#1}}
 

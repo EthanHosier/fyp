@@ -164,9 +164,10 @@ This is the dimension that moved most. What's now in place:
   framed as a sharpened chapter claim rather than a tool flaw.
   Markers reward this kind of intellectual honesty heavily.
 - **Per-experiment caveats** in each explained_results.md file —
-  saturation, τ-b small-DP brittleness, REWORK weight-independent
-  magnitudes, cleanliness sub-weights not ablated, plugin
-  misclassifications as upstream not downstream.
+  saturation, τ-b small-DP brittleness, V1-vs-V2 magnitude-semantic
+  history (REWORK was line-count-based under V1, weight-invariant;
+  now trajectory-final delta under V2), cleanliness sub-weights not
+  ablated, plugin misclassifications as upstream not downstream.
 - The v1 review specifically called out "weight justification +
   sensitivity analysis" as missing. Both are now done.
 
