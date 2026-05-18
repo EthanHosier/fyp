@@ -97,7 +97,7 @@ What moved (this is half the rubric so I'll be specific):
      through analysis report → dashboard → experiment driver.
   3. **Per-kind counterfactual synthesisers** — reorder (with the
      JDT `withBatchSession` + AST-hash terminal audit + DFS
-     prefix-trie engineering story), IDE_REPLAY, REWORK,
+     prefix-trie engineering story), MANUAL_REFACTOR, REWORK,
      HYGIENE. Each is a distinct algorithm with tests.
 - **Phase A / Phase B split + injectable ScoringConfig** is genuine
   research infrastructure. Phase A is a deterministic dump of
@@ -130,12 +130,12 @@ What still constrains:
   would help. Currently they're columns in the CSV that need
   surfacing in the chapter.
 - **Two named gaps in detection.** ORDERING recall 0.39 (validator
-  splits manual-edit windows); IDE_REPLAY 4 FPs (plugin
+  splits manual-edit windows); MANUAL_REFACTOR 4 FPs (plugin
   in-place-template capture). Both are documented as deferred with
   per-session root causes — that's the right way to handle them —
   but an examiner could ask "why didn't you fix them?" The answer
   ("the headline finding is already negative on ordering, fixing
-  recall surfaces more zero-magnitude DPs; IDE_REPLAY fix is in a
+  recall surfaces more zero-magnitude DPs; MANUAL_REFACTOR fix is in a
   different module") is defensible but you should rehearse it.
 
 Net: realistic 78–82. This is now an unambiguous upper-2nd / low-1st

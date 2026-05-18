@@ -20,7 +20,7 @@ flagged. **Detailed per-section plans will be written separately**
 | # | Section                          | Estimate | Status        | Study-blocked slot                              |
 |---|----------------------------------|---------:|---------------|-------------------------------------------------|
 | 1 | Introduction                     | ½ day    | ✅ **done**    | —                                               |
-| 2 | Background trim + new citations  | 2 days   | pending       | —                                               |
+| 2 | Background trim + new citations  | 2 days   | ✅ **done**    | —                                               |
 | 3 | Methodology chapter              | 1 week   | pending       | TODO: rater-design paragraph (~½ pg)            |
 | 4 | Tool architecture chapter        | 2 days   | pending       | —                                               |
 | 5 | Experiments + results chapter    | 1 week   | pending       | TODO: expanded-corpus subsection (~½ pg)        |

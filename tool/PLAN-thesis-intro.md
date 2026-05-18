@@ -93,7 +93,7 @@ algorithmic advances" but more like:
   term grounded in cited prior work, validated by sensitivity
   and ablation analysis.
 - A first-class divergence-point detector that classifies
-  divergence into four kinds (ORDERING, IDE_REPLAY, REWORK,
+  divergence into four kinds (ORDERING, MANUAL_REFACTOR, REWORK,
   HYGIENE) and produces a counterfactual reference trajectory
   for each.
 - A 45-session hand-recorded corpus on a purpose-built Java
@@ -423,7 +423,7 @@ chapter):
 | Subject       | LM agents                           | Human developers                   |
 | Evaluation    | Binary pass/fail of AST tests       | Multi-term continuous process score |
 | Analysis      | Qualitative 3-bucket failure coding | Quantitative DP magnitudes per kind |
-| Counterfactual | None                               | Reorder, IDE_REPLAY, REWORK, HYGIENE alts |
+| Counterfactual | None                               | Reorder, MANUAL_REFACTOR, REWORK, HYGIENE alts |
 | Output        | "Did the agent solve the task?"     | "Where did your trajectory diverge from a better one, and by how much?" |
 | Per-kind P/R  | Not present                         | Multi-label confusion matrix, 45 sessions |
 

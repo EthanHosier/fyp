@@ -41,7 +41,7 @@ schema, without seeing the author's labels.
 - **Reconcile** divergent labels. Substantive disagreements
   themselves are findings — note them for the threats-to-validity
   section.
-- **Output:** Cohen's κ per kind (ORDERING, IDE_REPLAY, REWORK,
+- **Output:** Cohen's κ per kind (ORDERING, MANUAL_REFACTOR, REWORK,
   HYGIENE). Reported honestly even if low.
 
 **Why first:** participants learn the schema before recording, so

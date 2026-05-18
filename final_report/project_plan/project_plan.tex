@@ -1,0 +1,17 @@
+\chapter{Project Plan and Timetable (Jan--Jun 2026)}
+\label{ch:plan}
+
+\paragraph{Work completed so far (as of 21 Jan 2026).}
+\begin{itemize}
+  \item Extensive related-work research completed (refactoring definitions, endpoint evaluation, smells/metrics, mining, sequence generation, IDE logging), with an initial Bib\TeX{} file in progress.
+  \item Early drafts written for the Introduction and Background/Related Work chapters
+\end{itemize}
+
+\paragraph{Timeline in 5 phases (Jan $\rightarrow$ end of June).}
+\begin{itemize}
+  \item \textbf{Late Jan--Feb:} define refactoring \emph{episodes} and system outputs (trace format, step definition, required explanations), pick an initial metric (\emph{Metric v0}), and finalise the IDE plugin plan.
+  \item \textbf{Feb--Mar:} implement the IDE plugin and begin collecting a first batch of refactoring episodes/traces using the plugin.
+  \item \textbf{Mar--Apr:} build the offline analysis pipeline (episode $\rightarrow$ feature extraction $\rightarrow$ scoring) and implement baseline explanation outputs (per-step breakdown and ``what got worse/why'' style diagnostics).
+  \item \textbf{Apr--May:} implement reference-trajectory generation (v1) and divergence detection (developer trajectory vs.\ reference trajectory), producing explanations of where/why the paths differ.
+  \item \textbf{May--Jun:} run evaluation (human traces + simulated ``unclean'' variants, with optional open-source mining if feasible), consolidate results, and complete the final report write-up and polishing.
+\end{itemize}

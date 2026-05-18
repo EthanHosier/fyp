@@ -1,0 +1,50 @@
+This is BibTeX, Version 0.99d (TeX Live 2025)
+Capacity: max_strings=200000, hash_size=200000, hash_prime=170003
+The top-level auxiliary file: main.aux
+The style file: unsrt.bst
+Database file #1: bibs/sample.bib
+Warning--empty journal in bouzenia2025trajectories
+Warning--empty title in wang2018traceability
+Warning--empty journal in wang2018traceability
+You've used 35 entries,
+            1791 wiz_defined-function locations,
+            616 strings with 10508 characters,
+and the built_in function-call counts, 7812 in all, are:
+= -- 669
+> -- 381
+< -- 6
++ -- 140
+- -- 105
+* -- 433
+:= -- 1236
+add.period$ -- 112
+call.type$ -- 35
+change.case$ -- 32
+chr.to.int$ -- 0
+cite$ -- 38
+duplicate$ -- 392
+empty$ -- 789
+format.name$ -- 105
+if$ -- 1784
+int.to.chr$ -- 0
+int.to.str$ -- 35
+missing$ -- 35
+newline$ -- 179
+num.names$ -- 35
+pop$ -- 143
+preamble$ -- 1
+purify$ -- 0
+quote$ -- 0
+skip$ -- 190
+stack$ -- 0
+substring$ -- 353
+swap$ -- 100
+text.length$ -- 6
+text.prefix$ -- 0
+top$ -- 0
+type$ -- 0
+warning$ -- 3
+while$ -- 64
+width$ -- 37
+write$ -- 374
+(There were 3 warnings)
