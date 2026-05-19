@@ -72,9 +72,26 @@
 \contentsline {section}{\numberline {3.9}Hygiene synthesisers}{26}{section.3.9}%
 \contentsline {section}{\numberline {3.10}Validator and behaviour preservation}{26}{section.3.10}%
 \contentsline {section}{\numberline {3.11}Rater design}{27}{section.3.11}%
-\contentsline {chapter}{\numberline {4}Project Plan and Timetable (Jan--Jun 2026)}{28}{chapter.4}%
-\contentsline {paragraph}{Work completed so far (as of 21 Jan 2026).}{28}{section*.31}%
-\contentsline {paragraph}{Timeline in 5 phases (Jan $\rightarrow $ end of June).}{28}{section*.32}%
-\contentsline {chapter}{\numberline {5}Evaluation Plan}{29}{chapter.5}%
-\contentsline {chapter}{\numberline {6}Ethical Issues and Data Handling Plan}{30}{chapter.6}%
-\contentsline {chapter}{\numberline {A}First Appendix}{31}{appendix.A}%
+\contentsline {chapter}{\numberline {4}Tool Architecture}{28}{chapter.4}%
+\contentsline {section}{\numberline {4.1}Architecture at a glance}{28}{section.4.1}%
+\contentsline {section}{\numberline {4.2}Event capture}{29}{section.4.2}%
+\contentsline {section}{\numberline {4.3}Shadow repo reconstruction and worktree pool}{29}{section.4.3}%
+\contentsline {paragraph}{Shadow repo reconstruction.}{29}{section*.32}%
+\contentsline {paragraph}{Worktree allocation.}{29}{section*.33}%
+\contentsline {section}{\numberline {4.4}Metrics calculation}{29}{section.4.4}%
+\contentsline {section}{\numberline {4.5}Applying refactorings via Eclipse JDT}{30}{section.4.5}%
+\contentsline {paragraph}{Batch sessions.}{30}{section*.34}%
+\contentsline {paragraph}{Anchor resolution.}{30}{section*.35}%
+\contentsline {section}{\numberline {4.6}Synthesising counterfactual trajectories}{30}{section.4.6}%
+\contentsline {paragraph}{Reorder synthesis.}{30}{section*.36}%
+\contentsline {paragraph}{Manual-refactor synthesis and the wrap-and-patch layer.}{31}{section*.37}%
+\contentsline {paragraph}{Rework synthesis.}{31}{section*.38}%
+\contentsline {paragraph}{Hygiene synthesis.}{32}{section*.39}%
+\contentsline {section}{\numberline {4.7}Pipeline Phases}{32}{section.4.7}%
+\contentsline {section}{\numberline {4.8}Dashboard}{32}{section.4.8}%
+\contentsline {chapter}{\numberline {5}Project Plan and Timetable (Jan--Jun 2026)}{33}{chapter.5}%
+\contentsline {paragraph}{Work completed so far (as of 21 Jan 2026).}{33}{section*.40}%
+\contentsline {paragraph}{Timeline in 5 phases (Jan $\rightarrow $ end of June).}{33}{section*.41}%
+\contentsline {chapter}{\numberline {6}Evaluation Plan}{34}{chapter.6}%
+\contentsline {chapter}{\numberline {7}Ethical Issues and Data Handling Plan}{35}{chapter.7}%
+\contentsline {chapter}{\numberline {A}First Appendix}{36}{appendix.A}%

@@ -334,4 +334,29 @@ Jagdish Bansiya and Carl~G. Davis.
 \newblock A hierarchical model for object-oriented design quality assessment.
 \newblock {\em IEEE Transactions on Software Engineering}, 28(1):4--17, 2002.
 
+\bibitem{eclipse_jdt_faq}
+{Eclipse Foundation}.
+\newblock {JDT/FAQ}.
+\newblock Eclipse Wiki, 2026.
+\newblock Consulted 2026-05-18.
+
+\bibitem{eclipse_jdtls}
+{Eclipse Foundation}.
+\newblock {Eclipse JDT Language Server} ({eclipse.jdt.ls}).
+\newblock Eclipse Foundation project; reference implementation on GitHub, 2026.
+\newblock Newsletter article by Gorkem Ercan et al., Eclipse Newsletter, May
+  2017; reference implementation \texttt{eclipse-jdtls/eclipse.jdt.ls} on
+  GitHub. Consulted 2026-05-18.
+
+\bibitem{wang2025tosem}
+Haibo Wang, Zhuolin Xu, Huaien Zhang, Nikolaos Tsantalis, and Shin~Hwei Tan.
+\newblock Towards understanding refactoring engine bugs.
+\newblock {\em ACM Transactions on Software Engineering and Methodology}, 2025.
+
+\bibitem{wang2025forge}
+Haibo Wang, Zhuolin Xu, and Shin~Hwei Tan.
+\newblock Testing refactoring engine via historical bug report driven {LLM}.
+\newblock In {\em Proceedings of the 2nd ACM International Conference on AI
+  Foundation Models and Software Engineering (FORGE)}. ACM, 2025.
+
 \end{thebibliography}

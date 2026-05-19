@@ -1,4 +1,4 @@
-# Plan: Tool Architecture chapter pass
+# Plan: Tool Architecture chapter pass (v2 - novel-content-first)
 
 ## Context
 
@@ -8,6 +8,26 @@ chapter":
 
 > *"Keep brief; reuse ARCHITECTURE.md. The Phase A / Phase B split
 > is the key engineering claim to surface here, with one diagram."*
+
+**Plan revision (v2) - focus on novel content.** The original v1
+plan gave equal weight to every module / pipeline stage, producing
+a balanced-tour chapter where Phase A / Phase B and the JDT
+engineering sat alongside ~3 pages of routine architecture prose.
+This pass reweights toward the algorithmically novel pieces and
+compresses the routine sections. Four "most interesting" pieces
+get the spotlight:
+
+1. **Refactor synthesis via JDT** - embedded Equinox, batch
+   sessions, wrap-and-patch layer.
+2. **Reorder synthesis via dependency-DAG + prefix-trie + DFS** -
+   the chapter's headline algorithmic section.
+3. **Rework detection: content hashing + line-number translation
+   across non-adjacent SHAs**.
+4. **Shadow git repo reconstruction + worktree pool** (brief).
+
+Phase A / Phase B stays - HONEST_REVIEW_2 specifically named it -
+but compresses from 1.5 pages to 1 page. Plugin and dashboard
+compress to ~1 page combined.
 
 The methodology chapter (now drafted) defers all
 engineering-performance content here, leaving four explicit
@@ -25,9 +45,9 @@ This chapter must define labels those forward-refs land on, then
 the methodology placeholders convert from plain `Chapter~4` to
 `\ref{...}` in the same pass.
 
-**Page budget: 8 target, 10 hard cap.** Tight enough that Phase A/B
-+ JDT engineering get the spotlight without the chapter ballooning
-into a code tour.
+**Page budget: 8 target, 10 hard cap** (unchanged from v1 - the
+reweighting moves pages from §§4.1/4.7/4.8 into §§4.3/4.4/4.5,
+but the total budget stands).
 
 Sources are already in place:
 - **Source-of-truth doc:** `tool/ARCHITECTURE.md` (857 lines,
@@ -55,68 +75,68 @@ this chapter should not mention them at all (not even as deferred
 work). The end-of-pass verification confirms via
 `ls tool/` that the modules are gone.
 
-## Chapter outline (with page budget)
+## Chapter outline (v2 - with page budget)
 
-| § | Section                                                        | Pages |
-|---|----------------------------------------------------------------|------:|
-| 4.1 | Module overview (with diagram)                                | 1.5   |
-| 4.2 | The Phase A / Phase B split (headline engineering claim)      | 1.5   |
-| 4.3 | IDE plugin: event capture and session storage                 | 1     |
-| 4.4 | Analysis pipeline stages                                      | 1     |
-| 4.5 | Refactoring bundle: embedded Eclipse JDT via OSGi             | 1     |
-| 4.6 | The reorder-search engine: worktree borrow, batch session, git-checkout backtracking | 1.5 |
-| 4.7 | The wrap-and-patch layer                                      | 0.5   |
-| 4.8 | Dashboard                                                     | 0.5   |
-| **Total** |                                                          | **~8.5** |
+| § | Section                                                        | Pages | Novel? |
+|---|----------------------------------------------------------------|------:|:------:|
+| 4.1 | Architecture at a glance (diagram + compressed module roles)  | 0.75  | -      |
+| 4.2 | The Phase A / Phase B split                                   | 1     | -      |
+| 4.3 | **Reorder synthesis: spec-effects DAG, SSA versioning, prefix-trie DFS, git-checkout backtracking** | **2** | ★      |
+| 4.4 | **Refactoring application: embedded Equinox, JDT batch sessions, wrap-and-patch** | **1.5** | ★      |
+| 4.5 | **Rework detection and synthesis: content hashing + line-number translation across non-adjacent SHAs** | **1.25** | ★      |
+| 4.6 | Shadow repo reconstruction and worktree pool                  | 0.5   | ★      |
+| 4.7 | Plugin event capture and pipeline overview (compressed)       | 0.75  | -      |
+| 4.8 | Dashboard (paragraph)                                         | 0.25  | -      |
+| **Total** |                                                          | **~8** |        |
 
-## Per-section detail
+Sections marked ★ are the algorithmically novel content the
+chapter focuses on. §§4.3-4.6 combined = ~5.25 pages (versus
+~3.5 in v1); §§4.1/4.7/4.8 combined = ~1.75 pages (versus ~3.5
+in v1).
 
-### §4.1 Module overview (1.5 pages)
+## Per-section detail (v2)
+
+### §4.1 Architecture at a glance (0.75 page)
 
 `\label{ch:architecture}` at the chapter top.
 
-Open with a one-paragraph topic-sentence summary: this thesis's
-tool is a four-module JVM build (`:ide-plugin`, `:analysis`,
-`:refactoring-bundle`, `:shared`) plus a standalone React app
-(`dashboard/`). Each module has a single architectural
-responsibility, and the wire formats between them are explicit
-serialisable types.
-
-Then the headline TikZ figure - see "TikZ diagram approach" below.
-The figure replaces ARCHITECTURE.md's ASCII flow diagram (§1, lines
-29-56).
-
-After the figure, one paragraph per module (5 paragraphs):
+Compressed from v1's 1.5-page module overview. Single
+topic-sentence paragraph identifying the four JVM modules
+(`:ide-plugin`, `:analysis`, `:refactoring-bundle`, `:shared`)
+plus the standalone React app (`dashboard/`), followed by the
+**TikZ dataflow figure** (see "TikZ diagram approach" further
+below). The figure carries most of the orientation weight;
+per-module prose drops to one-sentence bullets:
 
 - **`ide-plugin/`** - IntelliJ plugin recording the session.
-- **`analysis/`** - Kotlin pipeline that ingests the session,
-  reconstructs a shadow git repo, mines refactorings, synthesises
-  alternative trajectories, and emits an `AnalysisReport`.
-- **`refactoring-bundle/`** - headless Eclipse JDT loaded via an
-  embedded Equinox OSGi framework; drives every IDE-style
-  refactoring used in alternative-trajectory synthesis.
-- **`dashboard/`** - React/TypeScript visualisation.
-- **`shared/`** - cross-wire types between plugin and analysis
-  (`Session`, `TraceEvent`, `SessionMetadata`, `FileSnapshot`,
-  `EventType`).
+- **`analysis/`** - Kotlin pipeline; ingests sessions, builds a
+  shadow git repo, mines and synthesises trajectories, emits an
+  `AnalysisReport`.
+- **`refactoring-bundle/`** - headless Eclipse JDT in an embedded
+  Equinox framework; details in §4.4.
+- **`dashboard/`** - React/TypeScript presentation surface;
+  details in §4.8.
+- **`shared/`** - cross-wire types (`Session`, `TraceEvent`,
+  `SessionMetadata`, `FileSnapshot`, `EventType`).
 
-Close §4.1 with a short paragraph on schema sharing: Kotlin
-`@Serializable` types in `shared/` and `analysis/.../metrics/model/`
-are the single source of truth; the dashboard's TypeScript types are
-codegenned via the `:analysis:generateDashboardTypes` Gradle task.
-This is a cross-cutting concern worth naming but not deep-diving.
+One closing sentence on schema codegen: Kotlin `@Serializable`
+types are source-of-truth, TypeScript types are generated via the
+`:analysis:generateDashboardTypes` Gradle task.
 
-### §4.2 The Phase A / Phase B split (1.5 pages)
+### §4.2 The Phase A / Phase B split (1 page)
 
 `\label{sec:arch-phases}`.
 
-The chapter's headline engineering claim. Topic sentence: the
-analysis pipeline is structured as two phases - an **expensive
-Phase A** that produces a serialisable `PhaseAResult`, and a
-**cheap Phase B** that assembles an `AnalysisReport` from the
-`PhaseAResult` plus a `ScoringConfig`.
+Compressed from v1's 1.5 pages. Still a load-bearing claim per
+`HONEST_REVIEW_2.md`, but the page weight is now equal to (rather
+than dominant over) the novel-algorithm sections.
 
-Body covers:
+Topic sentence: the analysis pipeline is structured as two phases
+- an **expensive Phase A** that produces a serialisable
+`PhaseAResult`, and a **cheap Phase B** that assembles an
+`AnalysisReport` from the `PhaseAResult` plus a `ScoringConfig`.
+
+Body:
 - **Phase A** does the costly work: trace normalisation, shadow
   repo reconstruction, RefactoringMiner mining, validator,
   reorder + IDE_REPLAY + REWORK synthesisers, per-checkpoint
@@ -139,255 +159,365 @@ Body covers:
 - **The architectural property that makes the split clean.**
   `ScoringConfig` (the weights of Equation~\ref{eq:process-score})
   enters the pipeline only at the derived-metrics step. Phase A
-  caches the *raw* checkpoint metrics (CK / PMD / CPD /
-  readability / build / test outcomes), not the scored output;
+  caches the *raw* checkpoint metrics, not the scored output;
   Phase B is where weights become process-score numbers. So
   perturbing weights cannot invalidate any Phase A artefact.
 
 Close with a forward-reference to the Chapter~5 experiments that
-exploit this property. Mention - briefly - that the same
-serialisable-checkpoint structure is what lets dashboards iterate
-on the same `PhaseAResult` (the dashboard re-renders directly off
-the assembled report).
+exploit this property. Cut the v1 closing dashboard-iteration
+paragraph; that material moves to §4.8.
 
-### §4.3 IDE plugin: event capture and session storage (1 page)
-
-`\label{sec:arch-plugin}`.
-
-Topic sentence: the IDE plugin's responsibility is to record what
-the developer did at a granularity finer than a git commit.
-
-Body:
-- **Listener architecture.** One paragraph naming the listeners:
-  `EditorEventListener`, `FileEditorListener`, `VfsListener`,
-  `FileSaveListener`, `RefactoringListener` (plus
-  `RefactoringCommandListener` + `RefactoringTemplateListener`
-  variants), `BuildListener`, `TestRunListener`,
-  `ProjectCloseListener`. Cite source paths inline.
-  Each listener subscribes to an IntelliJ message-bus topic and
-  emits a typed `TraceEvent` via the project-level
-  `SessionService`.
-- **Edit burst tracking.** `services/EditBurstTracker.kt`
-  debounces keystroke-level `DocumentEvent`s into one
-  `EDIT_BURST` per file per quiet window. The scheduled flush
-  reads the **in-memory document text**, not the on-disk file -
-  so the recorded snapshot reflects what the user typed,
-  regardless of auto-save / on-save formatters.
-- **Git commit watching.** `services/GitCommitWatcher.kt` is a
-  polling thread, not a reflog watcher: it runs
-  `git log --since=<sessionStart>` once a second and emits one
-  `GIT_COMMIT` event per new SHA. The reflog approach was
-  abandoned because fresh `git init` repos may disable it.
-  Disclose the design rationale honestly.
-- **Session storage.** `SessionService` + `StorageService`:
-  events.jsonl (live append) + session.json (final flush) +
-  initial-src/ (snapshot at session start) under
-  `~/.refactoring-tracer/sessions/<uuid>/`. Multipart POST to the
-  analysis server at session end.
-- **Upload boundary.** The plugin has **no Gradle dependency**
-  on `:analysis`; the only shared types live in `:shared`. This
-  is what lets the analysis HTTP server live anywhere - the
-  plugin only knows the `Session` schema and the
-  `$REFACTORING_TRACER_SERVER_URL/analyze` endpoint.
-
-### §4.4 Analysis pipeline stages (1 page)
-
-`\label{sec:arch-pipeline}`.
-
-Topic sentence: the analysis pipeline is a 12-stage one-shot run
-that ingests a session folder and emits an `AnalysisReport`. The
-stage list is the spine of the architecture; pull-out details for
-the headline algorithms appear in §4.5-§4.7.
-
-A compact stages **table** rather than a long bullet list:
-
-| # | Stage | Output | Detail in |
-|---|-------|--------|-----------|
-| 1 | Load + normalise (`TraceLoader`, `TraceNormalizer`) | ordered event stream | - |
-| 2 | Shadow repo reconstruction (`ShadowRepoBuilder`) | `shadow-repo/` + event-id → SHA map | - |
-| 3 | Refactoring mining (`RefactoringMinerRunner` + `BracketSpecReorderer`) | typed `RefactoringSpec` list | - |
-| 4 | Validation (`RefactoringStepValidator`) | per-step verdicts | §4.6 |
-| 5 | Reorder synthesis (`ReorderSynthesiser`) | alternative trajectories | §4.6 |
-| 6 | Single-step IDE replay (`AlternativeTrajectoryRunner`) | single-step alts | §4.7 |
-| 7 | Metrics (`MetricsRunner`) | per-SHA checkpoint metrics | - |
-| 8 | Diffs (`DiffsRunner` + `PatchFilter`) | unified-diff patches | - |
-| 9 | PMD violation tracking (`PmdTrackingRunner`) | `firstSeenAtSha` / `resolvedAtSha` per violation | - |
-| 10 | CPD duplication tracking (`CpdTrackingRunner`) | clone-group tracking | - |
-| 11 | Derived metrics (`DerivedMetricsRunner`) | cleanliness + process score per checkpoint | §4.2 |
-| 12 | Report assembly (`buildAnalysisReport()`) | `AnalysisReport` | §4.2 |
-
-After the table, a short paragraph naming the two entry points
-(`cli/Main.kt` for local runs; `server/Main.kt` + `AnalyzeRoute.kt`
-for the plugin upload path), and the persistent state both share -
-a single `RefactoringClient` instance instantiated at boot via
-`RefactoringClientFactory`, held for the process lifetime.
-
-Half a paragraph on why Metrics is the only sequential stage: the
-Gradle daemon caches per-project init/index work, so bouncing
-between SHAs in one persistent worktree is faster than fanning out
-to N parallel worktrees. The other stages parallelise freely under
-`WorktreePool`.
-
-### §4.5 Refactoring bundle: embedded Eclipse JDT via OSGi (1 page)
-
-`\label{sec:arch-bundle}`.
-
-Topic sentence: the analysis pipeline applies refactorings via a
-real Eclipse JDT engine running headlessly inside the analysis
-process.
-
-Body:
-- **Why headless JDT.** JDT is the only Java refactoring engine
-  with the breadth (~25 operations covering Extract / Inline /
-  Move / Rename / Pull-Up / Push-Down etc.) and the maturity to
-  serve as ground truth. But JDT was designed to run inside
-  Eclipse, not as a library. The standard headless solution is
-  to host an embedded Equinox OSGi framework.
-- **The OSGi boundary.** `refactoring/RefactoringClient.kt`
-  boots an Equinox `Framework` at analysis startup, loads the
-  bundle JAR, resolves `JdtRefactorer` via reflection, and holds
-  the instance for process lifetime. Per refactoring,
-  `invokeOnBundle(name, paramTypes, args)` invokes the bundle
-  method under a `ReentrantLock` and parses a JSON-serialised
-  outcome. **JSON-as-wire-format** keeps Eclipse classes from
-  crossing the classloader boundary into the analysis host -
-  every bundle-internal type stays inside OSGi.
-- **Locking and serialised access.** `RefactoringClient`
-  wraps every call in `lock.withLock { ... }`. `RefactoringHost`
-  mutates shared cached-project state; fine-grained internal
-  locks would be necessary for parallelism but don't exist. The
-  validator and reorder synthesiser used to run parallel; the
-  parallelism was removed after profiling confirmed the per-call
-  lock serialised everything anyway.
-- **Anchor resolution.** Source-text-based selection is brittle
-  (formatting, identical identifiers). JDT-side ops resolve the
-  target element from a `(line, column, subtreeHash)` triple:
-  line+column are the rough anchor, the subtree hash
-  discriminates ambiguous matches by AST shape.
-  `JavaFileAstHasher` computes the same hash on the host side so
-  spec construction and bundle-side resolution agree.
-
-Forward-cite \S\ref{sec:arch-reorder-engine} for the batch-session
-pattern that amortises JDT project init/index across
-consecutive refactorings.
-
-### §4.6 The reorder-search engine: worktree borrow, batch session, git-checkout backtracking (1.5 pages)
+### §4.3 Reorder synthesis: spec-effects DAG, SSA versioning, prefix-trie DFS, git-checkout backtracking (2 pages)
 
 `\label{sec:arch-reorder-engine}`.
 
-This section carries the methodology chapter's §3.6, §3 preamble,
-and §3.10 forward-refs. Topic sentence: the reorder synthesiser
-needs to apply hundreds of refactoring sequences against a single
-project state; three engineering choices make this tractable.
+**The chapter's headline algorithmic section.** Carries methodology
+§3.6, §3 preamble, and §3.10 forward-refs. Topic sentence: a
+reorder window of $k$ refactoring steps has up to $k!$ candidate
+permutations, and each ordering must be applied against the same
+project state. Four engineering choices turn the search from
+exponential into a worst-case product traversal.
 
-Body:
+Structure as a numbered exposition with one paragraph per stage:
 
-1. **Single borrowed worktree.** A single worktree is borrowed at
-   `windowFromSha` via `WorktreePool.borrow()` for the entire
-   reorder window. Forward edges (`SpecDispatcher.apply` + commit
-   + force per-prefix branch ref `reorder/win<W>/path/<dash-prefix>`)
-   and back edges (`worktreeGit.checkoutDetach(parentSha)`)
-   reuse the same on-disk checkout.
+1. **Spec-effects dependency DAG**
+   (`SpecDependencyAnalyzer.kt`). Each refactoring step declares
+   the `Entity`s it reads, writes, produces, or consumes (full
+   collision table in `alternative/reorder/README.md`). The
+   analyser builds pairwise must-come-before edges; symmetric
+   collisions (produces/produces, consumes/consumes) become
+   *invalidations* rather than edges, because those orderings are
+   unreachable regardless of position. The DAG defines the
+   permutation lattice the search must respect.
 
-2. **Single JDT batch session.** One `client.withBatchSession`
-   is opened for the entire window. The batch session keeps the
-   indexed `IJavaProject` alive across every `invokeOnBundle`
-   call inside the window, so each subsequent refactoring sees a
-   warm project model. The teardown happens in `finally` after
-   the window completes.
+2. **SSA versioning across renames**
+   (`SpecVersioner.kt`). Pre-passes the window and threads a
+   version id through every named entity so that a method renamed
+   from `foo` to `bar` at step 2 is recognised as the *same*
+   logical entity in steps that reference `bar` later. Without
+   SSA, a rename + later-rename-of-bar would look like two
+   independent operations on the same name and produce wrong
+   dependency edges.
 
-3. **Git-checkout backtracking.** Back edges in the DFS use
-   `worktreeGit.checkoutDetach(parentSha)` + `client.refreshProject()`
-   to roll the worktree back to a parent state. The
-   `refreshProject()` call goes through Eclipse's
-   `IResource.refreshLocal(...)` path - the same "files changed
-   under us" pathway IDE users exercise constantly - so JDT
-   re-stats the on-disk files cleanly.
+3. **Topological enumeration with budget**
+   (`TopologicalEnumerator.kt`). Backtracks all valid orderings
+   under an `EnumerationBudget`. The user's actual ordering is
+   filtered out (it's already the reference trace). The budget
+   prevents pathological windows from running away.
 
-Then a short **discarded-alternative paragraph**: an earlier
-attempt used JDT's per-`Change` undo to backtrack. It didn't
-work - per-file JDT caches (working-copy buffers + JavaModel
-element info) didn't reliably invalidate, producing corrupt
-commits on the next forward apply. Git-checkout +
+4. **Prefix-trie DFS with git-checkout backtracking**
+   (`PrefixTrie.kt`). Every alternative ordering is folded into a
+   trie; the DFS walks it so each unique prefix is materialised
+   exactly once. The two key engineering plays are below.
+
+After the four-paragraph algorithmic exposition, drop into the
+**three engineering choices** that make the trie walk fast (these
+are the bits methodology §3.6 + §3.10 forward-ref):
+
+- **Single borrowed worktree.** A single worktree is borrowed at
+  `windowFromSha` via `WorktreePool.borrow()` for the entire
+  reorder window. Forward edges and back edges reuse the same
+  on-disk checkout.
+- **Single JDT batch session.** One `client.withBatchSession`
+  is opened for the entire window. The batch session keeps the
+  indexed `IJavaProject` alive across every `invokeOnBundle`
+  call inside the window, so each subsequent refactoring sees a
+  warm project model. The amortisation is significant:
+  cold-start JDT init/index per refactoring would dominate the
+  search wall-clock.
+- **Git-checkout backtracking.** Back edges in the DFS use
+  `worktreeGit.checkoutDetach(parentSha)` + `client.refreshProject()`
+  to roll the worktree back. The `refreshProject()` call goes
+  through Eclipse's `IResource.refreshLocal(...)` path - the same
+  "files changed under us" pathway IDE users exercise constantly
+  - so JDT re-stats the on-disk files cleanly.
+
+Then the **discarded-alternative paragraph** for the back-edge
+mechanism: an earlier attempt used JDT's per-`Change` undo. It
+didn't work - per-file JDT caches (working-copy buffers +
+JavaModel element info) didn't reliably invalidate, producing
+corrupt commits on the next forward apply. Git-checkout +
 `refreshProject()` is the standard pathway and works.
 
-Then a **prefix-trie amortisation paragraph**: every alternative
-ordering is folded into a `PrefixTrie`
-(`alternative/synthesise/PrefixTrie.kt`); the DFS walks the trie
-so each unique prefix is materialised exactly once. N orderings
-sharing a depth-k prefix pay one apply for those k steps, not
-N×k. This is what turns an exponential search into a
-worst-case-product traversal.
+Close with the **terminal AST-equivalence audit**
+(`JavaFileAstHasher`): at every leaf of the trie, the synthesiser
+hashes the user-changed `.java` set in the worktree and compares
+to the precomputed `windowToSha` hashes. Divergent terminals are
+filtered out of the report (the commits + refs persist in the
+shadow repo for offline forensics). One sentence noting the
+validator (`RefactoringStepValidator`) reuses these three
+engineering choices for bracket replay - that lands methodology
+§3.10's forward-ref - and that the validator computes the user's
+reference AST hashes via `git show` piped into the hasher rather
+than maintaining a second worktree.
 
-Close the section by noting that the validator
-(`RefactoringStepValidator`) reuses the same three engineering
-choices for bracket replay - single worktree, single batch
-session, git reset between brackets - and that the validator can
-compute the user's reference AST hashes via `git show`
-piped into `JavaFileAstHasher` rather than maintaining a second
-worktree. This is what closes methodology §3.10's forward-ref.
+### §4.4 Refactoring application: embedded Equinox, JDT batch sessions, wrap-and-patch (1.5 pages)
 
-### §4.7 The wrap-and-patch layer (0.5 page)
+`\label{sec:arch-jdt}` (umbrella). Inside this section,
+`\label{sec:arch-wrap-patch}` for the wrap-and-patch subsection
+so methodology §3.5.2 and §3.6 window-split forward-refs land
+precisely.
 
-`\label{sec:arch-wrap-patch}`.
+Topic sentence: applying real Java refactorings outside Eclipse
+requires three engineering pieces - hosting JDT in an embedded
+OSGi runtime, amortising its project model across calls, and
+patching over the systematic differences between JDT and
+IntelliJ's terminal output.
 
-Carries methodology §3.5.2 and §3.6 window-split forward-refs.
-Topic sentence: even when IntelliJ and Eclipse JDT agree on the
-*semantics* of a refactoring, they sometimes produce
-different terminal ASTs. The wrap-and-patch layer closes the gap.
+**§4.4.1 Embedded Equinox boundary** (~0.5 page).
+- Why headless JDT: JDT is the only Java refactoring engine with
+  the breadth (~25 operations: Extract / Inline / Move / Rename
+  / Pull-Up / Push-Down etc.) and the maturity to serve as
+  ground truth. JDT was designed to run inside Eclipse; the
+  standard headless solution is to host an embedded Equinox OSGi
+  framework. (Note: A3 research confirmed this pattern has no
+  peer-reviewed documentation - cite Eclipse JDT FAQ + jdt.ls
+  reference implementation.)
+- The OSGi boundary: `refactoring/RefactoringClient.kt` boots an
+  Equinox `Framework` at startup, loads the bundle JAR, resolves
+  `JdtRefactorer` via reflection, holds the instance for process
+  lifetime. Per refactoring, `invokeOnBundle(name, paramTypes,
+  args)` invokes the bundle method under a `ReentrantLock` and
+  parses a JSON-serialised outcome. **JSON-as-wire-format** keeps
+  Eclipse classes from crossing the classloader boundary - every
+  bundle-internal type stays inside OSGi.
+- Anchor resolution: source-text-based selection is brittle.
+  JDT-side ops resolve the target element from a `(line, column,
+  subtreeHash)` triple. `JavaFileAstHasher` computes the same
+  hash on the host side so spec construction and bundle-side
+  resolution agree.
 
-Body identifies two real divergences (verified against the
-codebase - cite the specific files):
+**§4.4.2 Batch-session amortisation** (~0.25 page).
+`RefactoringHost.withBatchSession` keeps the indexed
+`IJavaProject` alive across consecutive `invokeOnBundle` calls
+on the same `projectRoot`. The host-side `client.withBatchSession
+{ body() }` acquires the client lock reentrantly, tells the
+bundle to keep the project cache after each call, runs `body`
+(every inner call sees a warm `IJavaProject`), and tears down
+the cache in `finally`. This is what §4.3 leans on for the
+reorder DFS - one batch session for the whole window means k
+applies pay k × per-call cost instead of k × (init + per-call).
+
+**§4.4.3 The wrap-and-patch layer** (~0.5 page).
+`\label{sec:arch-wrap-patch}`. Even when IntelliJ and Eclipse
+JDT agree on the *semantics* of a refactoring, they sometimes
+produce different terminal ASTs. Two real divergences (verified
+against codebase + git history; cite A1 research findings):
 
 - **`static` modifier divergence.** JDT and IntelliJ disagree on
   whether the post-extract method should carry the `static`
   modifier in certain contexts. Captured in
   `RefactoringSpec.kt`'s `isStatic` comment. The wrap layer
   inspects the user's terminal AST and post-patches the bundle's
-  output to align.
+  output to align. (Cite Wang/Xu/Tan FORGE 2025 for the
+  analogous Make-Static `final`-parameter divergence between
+  the same two engines.)
 - **Return-vs-void shape on Extract Method.** When the extracted
   region contains a `return`, JDT and IntelliJ disagree on
-  whether the new method should return a value (and have its
-  call site assign to a local) or return void (and have its
-  call site bear an inlined return). Captured by commit
-  `6005505 ExtractMethod: post-extract rewrite for void-return +
-  inlined-return shapes`. A small manual git patch closes the
-  delta after the JDT operation completes.
+  whether the new method should return a value (call site
+  assigns to a local) or return void (call site bears an inlined
+  return). Captured by commit `6005505 ExtractMethod: post-extract
+  rewrite for void-return + inlined-return shapes`. A small
+  manual git patch closes the delta after the JDT operation
+  completes.
 
-Honest disclosure paragraph: where the residual gap cannot be
-patched safely, the bracket gets the `AST_DIVERGED` verdict and
-is not reordered - methodology §3.6 explains how this gating
-flows through. The wrap-and-patch layer expands the set of
-brackets the validator can return `VALID` on, but it isn't a
-complete bridge between the two engines.
+Honest disclosure (load-bearing for §3.6 window-split): where
+the residual gap cannot be patched safely, the bracket gets the
+`AST_DIVERGED` verdict and is not reordered. The wrap-and-patch
+layer expands the set of `VALID` brackets but doesn't fully
+bridge the two engines. Cite Wang/Xu/Zhang/Tsantalis/Tan TOSEM
+2025 for the macro claim (Extract-family is 28.76% of
+refactoring-engine bugs; "Incorrect Transformations" is the top
+root cause) and note no peer-reviewed paper documents the
+specific Extract-Method divergences this thesis observes.
 
-### §4.8 Dashboard (0.5 page)
+### §4.5 Rework detection and synthesis: content hashing + line-number translation (1.25 pages)
 
-`\label{sec:arch-dashboard}`.
+`\label{sec:arch-rework}` (new section, not in v1 plan).
 
-Topic sentence: the dashboard is a single-page React/TypeScript
-app that consumes the `AnalysisReport` produced by Phase B and
-renders the IDE-style layout.
+Topic sentence: REWORK detection identifies user steps where a
+chunk of code is added at one step and removed at a later step
+(or vice versa) in the *same* logical scope - but those two
+steps may be separated by many intervening edits that have
+shifted line numbers and rewritten neighbouring content. Two
+engineering pieces make this tractable: content-addressed chunk
+hashing for detection, and a per-file drift tracker for
+synthesis.
 
-Body, condensed:
-- Stack: React 18, TypeScript, Vite, Tailwind, Zustand.
-- **Schema codegen**, not hand-written: Kotlin
-  `@Serializable` types in `analysis/.../metrics/model/` and
-  `shared/.../model/` are source-of-truth; the
-  `:analysis:generateDashboardTypes` Gradle task generates
-  `dashboard/src/generated/report-types.ts`. Any backend schema
-  change must regen frontend types before `npm run typecheck`
-  passes.
-- **Two report-loading paths.** Plugin path: the IntelliJ tool
-  window assigns `window.__REPORT__` and dispatches a
-  `refdash:report-loaded` CustomEvent. Dev path: a bundled
-  `analysis-report.json` is imported at build time. `useReport()`
-  reads from either.
+**§4.5.1 Content-addressed chunk detection** (~0.5 page).
+`ReworkDetector.kt` is a pure function over a list of `StepInput`
+records (each step's unified diff + the touched files'
+pre/post contents). The algorithm:
 
-One sentence noting the dashboard is a *presentation surface*,
+1. **Hunk extraction.** `HunkExtractor.kt` parses each step's
+   unified-diff text into added-runs and removed-runs per file,
+   per hunk.
+2. **Scope resolution.** `EnclosingScopeResolver.kt` walks the
+   pre- or post-state Java source and identifies the
+   method-level (or class-level) scope that contains each run.
+   The scope id (`"file.java#class.method"`) becomes part of the
+   chunk's identity.
+3. **Normalisation and hashing.** Each run's lines are
+   normalised (trim trailing whitespace, drop pure-whitespace
+   lines) and hashed (SHA-256) to a content-addressed chunk key.
+   Normalisation matters: it absorbs cosmetic reformatting
+   between the two appearances of the chunk.
+4. **Greedy pairing within `(file, scopeId, contentHash)`.**
+   Each chunk participates in at most one pair. Earliest
+   originating ↔ earliest later opposite-side. Single-line
+   chunks are filtered out by default
+   (`DEFAULT_MIN_NORMALIZED_LINE_COUNT = 2`) because two identical
+   one-line statements in the same scope are
+   content-indistinguishable and pairing would attribute the
+   wrong instances.
+
+The detection step is **purely pairwise across content hashes** -
+no temporal-locality assumption between originating and terminal
+steps. Two steps separated by 30 intervening edits can pair if
+their hashes match.
+
+**§4.5.2 Drift tracking for surgical synthesis** (~0.5 page).
+Once a `ChunkPair` is identified, the rework alt-trajectory has
+to apply the surgical patch at the originating step and have it
+"translate forward" through all intermediate user edits to land
+correctly at the terminal step. `ReworkDriftTracker.kt` does
+this translation.
+
+The tracker represents per-file divergence between the user's
+tree and the surgically-replayed (alt) tree as a list of
+**zones**:
+
+- **ADDED zone.** `K` user lines starting at `userStartLine`
+  that have no synth equivalent (surgery dropped them at the
+  originating step). User lines past the zone shift by $-K$ in
+  synth coords.
+- **REMOVED zone.** `K` synth lines that have no user equivalent
+  (the user removed them at the originating step but surgery
+  preserved them). User lines at or past the zone shift by $+K$
+  in synth coords.
+
+Zones are registered when surgery happens at step $k'$ and
+cleared when surgery reverses them at the terminal step $k$ (the
+two trees converge again). Between $k'$ and $k$, each
+intermediate step applies hunks to the user tree, and the
+tracker shifts zones whose `userStartLine` is past the applied
+hunk by the hunk's net line delta. This keeps each zone anchored
+at the same *logical content* even as the user tree grows or
+shrinks around it.
+
+**§4.5.3 Closing point** (~0.25 page).
+Pure-Kotlin state machinery, no git or filesystem - which is what
+makes both the detector and the drift tracker easy to unit-test
+exhaustively. The same `ChunkPair` records flow into
+`ReworkAlternativeBuilder` for the actual patch synthesis (cited
+in methodology §3.8) and into `DivergencePoint` records for the
+report.
+
+The reverted-line count surfaced on the dashboard
+(`reworkLineCount`) comes from this section's
+`normalizedLineCount` field, summed per
+`(originatingStep, terminalStep, file, scopeId)`.
+
+### §4.6 Shadow repo reconstruction and worktree pool (0.5 page)
+
+`\label{sec:arch-shadow}` (new section, brief).
+
+Topic sentence: every algorithm in §§4.3-4.5 needs to check out
+historical project states at will. The shadow repo + worktree
+pool are the infrastructure that makes that cheap.
+
+Body:
+- **Shadow repo reconstruction.** `ShadowRepoBuilder.kt` replays
+  the normalised event stream into a fresh git repo under
+  `<sessionDir>/shadow-repo/`, one commit per event.
+  No-op events (e.g. `EDIT_BURST` with zero net diff against the
+  previous snapshot) alias the previous SHA, so the unique-SHA
+  count is typically much smaller than the event count. Output:
+  `ReconstructionResult` carrying the repo path and `eventCommits`
+  (event id → SHA). This is what gives every downstream stage a
+  stable `(fromSha, toSha)` pair to check out.
+- **`WorktreePool.kt`**. A small pool of linked worktrees off the
+  shadow repo. Borrowers (validator, reorder synthesiser,
+  IDE-replay runner) `borrow()` a worktree at a target SHA, run
+  their operation, and return it. Multiple concurrent borrowers
+  use distinct worktrees; the JDT lock in
+  `RefactoringClient.invokeOnBundle` serialises actual bundle
+  calls, so pool parallelism mostly overlaps cheap local work
+  (AST hashing, git diff invocation).
+- The MetricsRunner deliberately bypasses the pool: it pins a
+  single persistent worktree and `git checkout`s sequentially
+  through every SHA, because Gradle daemon caches amortise far
+  better in one worktree than across N. This is the only
+  sequential stage in the pipeline.
+
+### §4.7 Plugin event capture and pipeline overview (0.75 page)
+
+`\label{sec:arch-plugin}`. Compressed from v1's 1 page + the
+analysis pipeline 1-page tour, now combined.
+
+Topic sentence: the recording side and the pipeline-stage tour
+both fit here because neither is the chapter's novel content.
+
+**Plugin event capture** (~0.4 page). One bullet list of the
+listeners (`EditorEventListener`, `FileEditorListener`,
+`VfsListener`, `FileSaveListener`, `RefactoringListener` +
+command/template variants, `BuildListener`, `TestRunListener`,
+`ProjectCloseListener`). Then two short paragraphs on the two
+genuinely interesting engineering choices, with research
+backing:
+
+- **Edit burst tracking.** `EditBurstTracker.kt` debounces
+  keystroke `DocumentEvent`s into one `EDIT_BURST` per file per
+  quiet window. **The flush reads the in-memory document text,
+  not the on-disk file** - so the recorded snapshot reflects
+  what the user typed regardless of auto-save / on-save
+  formatters. (Cite Negara et al. ICSE 2014 for fine-grained
+  event capture; Beller et al. TSE 2019 for multi-IDE plugin
+  architecture; Amann et al. ICPC 2016 for enriched-event-stream
+  design rationale.)
+- **Git commit watching.** `GitCommitWatcher.kt` is a polling
+  thread (one second cadence), not a reflog watcher. The reflog
+  approach was abandoned because fresh `git init` repos may
+  disable it. Honest disclosure of the design rationale.
+
+**Pipeline-stage tour** (~0.35 page). A compact 12-row table
+(same as v1's §4.4):
+
+| # | Stage | Output |
+|---|-------|--------|
+| 1 | Load + normalise (`TraceLoader`, `TraceNormalizer`) | ordered event stream |
+| 2 | Shadow repo reconstruction (`ShadowRepoBuilder`) | shadow-repo + event→SHA map |
+| 3 | Refactoring mining (`RefactoringMinerRunner` + `BracketSpecReorderer`) | typed `RefactoringSpec` list |
+| 4 | Validation (`RefactoringStepValidator`) | per-step verdicts |
+| 5 | Reorder synthesis (`ReorderSynthesiser`) | alt trajectories |
+| 6 | Single-step IDE replay (`AlternativeTrajectoryRunner`) | single-step alts |
+| 7 | Metrics (`MetricsRunner`) | per-SHA checkpoint metrics |
+| 8 | Diffs (`DiffsRunner` + `PatchFilter`) | unified-diff patches |
+| 9 | PMD violation tracking (`PmdTrackingRunner`) | first/resolved-at-SHA |
+| 10 | CPD duplication tracking (`CpdTrackingRunner`) | clone-group tracking |
+| 11 | Derived metrics (`DerivedMetricsRunner`) | cleanliness + process score |
+| 12 | Report assembly (`buildAnalysisReport()`) | `AnalysisReport` |
+
+Two-sentence closing paragraph naming entry points (`cli/Main.kt`
+local; `server/Main.kt` + `AnalyzeRoute.kt` HTTP).
+
+### §4.8 Dashboard (0.25 page)
+
+`\label{sec:arch-dashboard}`. Compressed from v1's 0.5 page to a
+single paragraph + a closing sentence.
+
+The dashboard is a single-page React/TypeScript app
+(React 18 + TypeScript + Vite + Tailwind + Zustand) that consumes
+the `AnalysisReport`. Two report-loading paths: plugin (the
+IntelliJ tool window assigns `window.__REPORT__` and dispatches
+a `refdash:report-loaded` event) and dev (a bundled
+`analysis-report.json` imported at build time, used by
+`useReport.ts`). Schema codegen described in §4.1; no
+hand-written TypeScript types.
+
+One closing sentence: the dashboard is a presentation surface,
 not an engineering contribution - the load-bearing engineering
-of this thesis is in Phase A / Phase B + the JDT reorder engine
-+ the wrap-and-patch layer.
+of this chapter is §§4.3-4.5.
 
 ## TikZ diagram approach (load-bearing figure for §4.1)
 
@@ -426,31 +556,37 @@ Label: `\label{fig:arch-overview}`. Cross-cite from §4.2 and §4.4.
 
 ## Forward-reference wiring (methodology pass)
 
-Once `architecture.tex` defines its labels, convert the four
-methodology forward-refs in `methodology/methodology.tex`:
+Once `architecture.tex` defines its labels, convert the five
+methodology forward-refs in `methodology/methodology.tex`. All
+label targets are defined in v2 - just at different sections than
+v1:
 
-| Line | Current text | Target |
-|------|--------------|--------|
+| Line | Current text | Target (v2) |
+|------|--------------|-------------|
 | 6 | `... is covered in Chapter~4 (Tool Architecture).` | `... is covered in Chapter~\ref{ch:architecture} (\S\ref{sec:arch-reorder-engine}).` |
 | 181 | `... are described in Chapter~4 (Tool Architecture).` | `... are described in \S\ref{sec:arch-wrap-patch}.` |
 | 196 | `... are described in Chapter~4.` | `... are described in \S\ref{sec:arch-reorder-engine}.` |
 | 199 | `The wrap-and-patch layer described in Chapter~4 ...` | `The wrap-and-patch layer described in \S\ref{sec:arch-wrap-patch} ...` |
 | 249 | `... are described in Chapter~4.` | `... are described in \S\ref{sec:arch-reorder-engine}.` |
 
+The `sec:arch-reorder-engine` and `sec:arch-wrap-patch` labels
+now live in §4.3 and §4.4.3 (was §4.6 / §4.7 in v1) - the
+forward-refs still resolve cleanly.
+
 Verify the LaTeX compile produces no unresolved references and
 the rendered chapter cross-refs read naturally.
 
-## Source-material map
+## Source-material map (v2)
 
 | Architecture section | Primary ARCHITECTURE.md source | Primary code |
 |---------------------|--------------------------------|--------------|
-| §4.1 Module overview        | §1 (lines 21-101)         | `settings.gradle.kts`; module `build.gradle.kts` files |
-| §4.2 Phase A / Phase B      | (not in ARCHITECTURE.md; derive from code) | `pipeline/AnalysisPipeline.kt`; `pipeline/PhaseAResult.kt`; `pipeline/ReportAssembler.kt`; `cli/PhaseACli.kt`; `cli/PhaseBCli.kt` |
-| §4.3 IDE plugin             | §2 (lines 105-224)        | `ide-plugin/.../services/`, `.../listeners/`, `.../actions/` |
-| §4.4 Pipeline stages        | §3 (lines 247-343)        | `pipeline/AnalysisPipeline.kt` |
-| §4.5 Refactoring bundle     | §5 (lines 625-707)        | `refactoring/RefactoringClient.kt`, `refactoring/RefactoringClientFactory.kt` |
-| §4.6 Reorder-search engine  | §3.A (lines 344-444)      | `alternative/synthesise/ReorderSynthesiser.kt`, `PrefixTrie.kt`, `alternative/validate/RefactoringStepValidator.kt`, `metrics/WorktreePool.kt` |
-| §4.7 Wrap-and-patch layer   | (not in ARCHITECTURE.md; derive from code + git log) | `RefactoringSpec.kt` (isStatic block); commit `6005505` ExtractMethod post-extract rewrite |
+| §4.1 Architecture at a glance | §1 (lines 21-101)         | `settings.gradle.kts`; module `build.gradle.kts` files |
+| §4.2 Phase A / Phase B     | (not in ARCHITECTURE.md; derive from code) | `pipeline/AnalysisPipeline.kt`; `pipeline/PhaseAResult.kt`; `pipeline/ReportAssembler.kt`; `cli/PhaseACli.kt`; `cli/PhaseBCli.kt` |
+| §4.3 Reorder synthesis      | §3.A (lines 344-444)      | `alternative/synthesise/ReorderSynthesiser.kt`, `PrefixTrie.kt`; `alternative/reorder/SpecDependencyAnalyzer.kt`, `SpecVersioner.kt`, `TopologicalEnumerator.kt`; `alternative/validate/RefactoringStepValidator.kt`; `JavaFileAstHasher.kt`; `metrics/WorktreePool.kt` |
+| §4.4 JDT integration + wrap-and-patch | §5 (lines 625-707) + (derive from code + git log for wrap-and-patch) | `refactoring/RefactoringClient.kt`, `refactoring/RefactoringClientFactory.kt`; `refactoring-bundle/.../JdtRefactorer.kt` + `RefactoringHost.kt`; `RefactoringSpec.kt` (isStatic); commit `6005505` (Extract Method post-extract rewrite) |
+| §4.5 Rework detection + drift | (not in ARCHITECTURE.md; derive from code) | `alternative/rework/ReworkDetector.kt`, `ReworkDriftTracker.kt`, `HunkExtractor.kt`, `EnclosingScopeResolver.kt`, `ReworkAlternativeBuilder.kt` |
+| §4.6 Shadow repo + worktree pool | §3 (lines 247-280)    | `reconstruct/ShadowRepoBuilder.kt`; `metrics/WorktreePool.kt`; `metrics/MetricsRunner.kt` |
+| §4.7 Plugin + pipeline tour | §2 (lines 105-224) + §3 (lines 247-343) | `ide-plugin/.../services/`, `.../listeners/`, `.../actions/`; `pipeline/AnalysisPipeline.kt` |
 | §4.8 Dashboard              | §4 (lines 490-622)        | `dashboard/src/App.tsx`, `dashboard/src/hooks/useReport.ts`, `analysis/.../codegen/` |
 
 ## Critical files
@@ -603,18 +739,24 @@ notation) and results (empirical, with numbers). Defaults:
   reflog-watcher failure in §4.3). Transparency is
   rubric-rewarded.
 
-## Verification
+## Verification (v2)
 
 1. **Compile cleanly.** `cd final_report && bash build.sh`
    produces both `main.pdf` and `main_dark.pdf` with no new
    undefined-citation or unresolved-reference warnings.
 2. **Page count.** Architecture chapter is $\le 10$ pages
    strictly. Target 8.
-3. **All forward-ref labels exist.** `\label{ch:architecture}`,
-   `\label{sec:arch-phases}`, `\label{sec:arch-plugin}`,
-   `\label{sec:arch-pipeline}`, `\label{sec:arch-bundle}`,
-   `\label{sec:arch-reorder-engine}`, `\label{sec:arch-wrap-patch}`,
-   `\label{sec:arch-dashboard}`, `\label{fig:arch-overview}`.
+3. **All forward-ref labels exist.** Updated for v2:
+   `\label{ch:architecture}` (§4.1),
+   `\label{sec:arch-phases}` (§4.2),
+   `\label{sec:arch-reorder-engine}` (§4.3),
+   `\label{sec:arch-jdt}` (§4.4),
+   `\label{sec:arch-wrap-patch}` (§4.4.3 subsection),
+   `\label{sec:arch-rework}` (§4.5),
+   `\label{sec:arch-shadow}` (§4.6),
+   `\label{sec:arch-plugin}` (§4.7),
+   `\label{sec:arch-dashboard}` (§4.8),
+   `\label{fig:arch-overview}` (figure).
 4. **Methodology wiring.** All five `Chapter~4` placeholder
    strings in `methodology.tex` converted to `\ref{...}` per
    the table above.
@@ -627,13 +769,18 @@ notation) and results (empirical, with numbers). Defaults:
    a paragraph could plausibly be argued either way, it
    belongs in methodology.
 8. **Cross-references resolve.** §4.2 cites Chapter~5
-   (results); §4.6 reciprocally cited *from* methodology
+   (results); §4.3 reciprocally cited *from* methodology
    §3.6, §3.10. Use placeholder `Chapter~\ref{ch:results}`
    until that chapter is drafted - the warning is acceptable
    if labelled-but-undefined; convert when the results chapter
    ships.
 9. **Read aloud.** Every section's opening sentence states an
    engineering claim, not a section preamble.
+10. **Novel-content weight check.** §§4.3-4.5 (the three
+    ★-marked sections) account for ≥ 4.5 of the 8 pages.
+    §§4.1/4.7/4.8 combined should not exceed 2 pages. If the
+    routine sections balloon during writing, compress them
+    before letting the chapter creep past 10.
 
 ## What this pass deliberately doesn't do
 
@@ -661,21 +808,26 @@ notation) and results (empirical, with numbers). Defaults:
 - **No future-work / deferred-feature material.** Goes to
   Conclusion chapter (item #7 in master plan).
 
-## Estimated effort
+## Estimated effort (v2)
 
-2 days of focused writeup once Prompts A1 / A2 / A3 have
-returned. Faster than methodology because:
+2-2.5 days of focused writeup; A1/A2/A3 prompts already returned
+(see results blocks further down). Faster than methodology
+because:
 
 - The source-of-truth doc (ARCHITECTURE.md) is already
   populated and currently accurate (modulo the deleted
   metrics-core/metrics-lambda block).
-- Less new prose - several sections are condensations of
-  existing ARCHITECTURE.md sections rather than from-scratch
-  writeups.
-- Fewer citations to verify - methodology had ~17 new bib
-  entries; this chapter likely lands 3-5.
+- Two of the three ★ sections (§4.3 reorder, §4.4 JDT) port
+  from existing ARCHITECTURE.md material with the new emphasis
+  woven in; only §4.5 (rework) is from-scratch writeup against
+  `ReworkDetector.kt` + `ReworkDriftTracker.kt`.
+- Citations already inventoried (8 primary entries: 3 from A1
+  + 3 from A2 + 2 from A3).
 - The TikZ figure is the one piece of new visual work; budget
   half a day for it.
+
+The reweighting from v1 doesn't cost extra time - it's the same
+total prose budget, just redistributed.
 
 ---
 

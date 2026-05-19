@@ -52,13 +52,13 @@ if [ "$MODE" = "both" ] || [ "$MODE" = "dark" ]; then
 fi
 
 # Open the requested PDF (default to main_dark.pdf in 'both' mode)
-if [ "$MODE" = "light" ] && [ -f "main.pdf" ]; then
-    echo "Opening main.pdf..."
-    open main.pdf
-elif [ "$MODE" = "dark" ] && [ -f "main_dark.pdf" ]; then
-    echo "Opening main_dark.pdf..."
-    open main_dark.pdf
-elif [ "$MODE" = "both" ] && [ -f "main_dark.pdf" ]; then
-    echo "Opening main_dark.pdf (use \`open main.pdf\` for the light variant)..."
-    open main_dark.pdf
-fi
+#if [ "$MODE" = "light" ] && [ -f "main.pdf" ]; then
+#    echo "Opening main.pdf..."
+#    open main.pdf
+#elif [ "$MODE" = "dark" ] && [ -f "main_dark.pdf" ]; then
+#    echo "Opening main_dark.pdf..."
+#    open main_dark.pdf
+#elif [ "$MODE" = "both" ] && [ -f "main_dark.pdf" ]; then
+#    echo "Opening main_dark.pdf (use \`open main.pdf\` for the light variant)..."
+#    open main_dark.pdf
+#fi

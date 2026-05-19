@@ -277,22 +277,59 @@
 \newlabel{sec:methodology-validator}{{3.10}{26}{Validator and behaviour preservation}{section.3.10}{}}
 \@writefile{toc}{\contentsline {section}{\numberline {3.11}Rater design}{27}{section.3.11}\protected@file@percent }
 \newlabel{sec:methodology-rater}{{3.11}{27}{Rater design}{section.3.11}{}}
-\@writefile{toc}{\contentsline {chapter}{\numberline {4}Project Plan and Timetable (Jan--Jun 2026)}{28}{chapter.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {chapter}{\numberline {4}Tool Architecture}{28}{chapter.4}\protected@file@percent }
 \@writefile{lof}{\addvspace {10\p@ }}
 \@writefile{lot}{\addvspace {10\p@ }}
-\newlabel{ch:plan}{{4}{28}{Project Plan and Timetable (Jan--Jun 2026)}{chapter.4}{}}
-\@writefile{toc}{\contentsline {paragraph}{Work completed so far (as of 21 Jan 2026).}{28}{section*.31}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Timeline in 5 phases (Jan $\rightarrow $ end of June).}{28}{section*.32}\protected@file@percent }
-\@writefile{toc}{\contentsline {chapter}{\numberline {5}Evaluation Plan}{29}{chapter.5}\protected@file@percent }
+\newlabel{ch:architecture}{{4}{28}{Tool Architecture}{chapter.4}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {4.1}Architecture at a glance}{28}{section.4.1}\protected@file@percent }
+\newlabel{sec:arch-overview}{{4.1}{28}{Architecture at a glance}{section.4.1}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {4.1}{\ignorespaces High-level dataflow between the recording side (IDE plugin), the analysis pipeline, the embedded Eclipse JDT engine, and the dashboard. The shadow repo holds every reconstructed state -- both user checkpoints and synthesised alternatives -- as git commits in a per-session repository.}}{28}{figure.caption.31}\protected@file@percent }
+\newlabel{fig:arch-overview}{{4.1}{28}{High-level dataflow between the recording side (IDE plugin), the analysis pipeline, the embedded Eclipse JDT engine, and the dashboard. The shadow repo holds every reconstructed state -- both user checkpoints and synthesised alternatives -- as git commits in a per-session repository}{figure.caption.31}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {4.2}Event capture}{29}{section.4.2}\protected@file@percent }
+\newlabel{sec:arch-events}{{4.2}{29}{Event capture}{section.4.2}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {4.3}Shadow repo reconstruction and worktree pool}{29}{section.4.3}\protected@file@percent }
+\newlabel{sec:arch-shadow}{{4.3}{29}{Shadow repo reconstruction and worktree pool}{section.4.3}{}}
+\@writefile{toc}{\contentsline {paragraph}{Shadow repo reconstruction.}{29}{section*.32}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Worktree allocation.}{29}{section*.33}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {4.4}Metrics calculation}{29}{section.4.4}\protected@file@percent }
+\newlabel{sec:arch-metrics}{{4.4}{29}{Metrics calculation}{section.4.4}{}}
+\citation{eclipse_jdt_faq}
+\citation{eclipse_jdtls}
+\@writefile{toc}{\contentsline {section}{\numberline {4.5}Applying refactorings via Eclipse JDT}{30}{section.4.5}\protected@file@percent }
+\newlabel{sec:arch-jdt}{{4.5}{30}{Applying refactorings via Eclipse JDT}{section.4.5}{}}
+\@writefile{toc}{\contentsline {paragraph}{Batch sessions.}{30}{section*.34}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Anchor resolution.}{30}{section*.35}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {4.6}Synthesising counterfactual trajectories}{30}{section.4.6}\protected@file@percent }
+\newlabel{sec:arch-synthesis}{{4.6}{30}{Synthesising counterfactual trajectories}{section.4.6}{}}
+\newlabel{sec:arch-reorder-engine}{{4.6}{30}{Reorder synthesis}{section*.36}{}}
+\@writefile{toc}{\contentsline {paragraph}{Reorder synthesis.}{30}{section*.36}\protected@file@percent }
+\citation{alikhanifard2025rminer}
+\citation{wang2025tosem}
+\citation{wang2025forge}
+\newlabel{sec:arch-wrap-patch}{{4.6}{31}{Manual-refactor synthesis and the wrap-and-patch layer}{section*.37}{}}
+\@writefile{toc}{\contentsline {paragraph}{Manual-refactor synthesis and the wrap-and-patch layer.}{31}{section*.37}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Rework synthesis.}{31}{section*.38}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Hygiene synthesis.}{32}{section*.39}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {4.7}Pipeline Phases}{32}{section.4.7}\protected@file@percent }
+\newlabel{sec:arch-phases}{{4.7}{32}{Pipeline Phases}{section.4.7}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {4.8}Dashboard}{32}{section.4.8}\protected@file@percent }
+\newlabel{sec:arch-dashboard}{{4.8}{32}{Dashboard}{section.4.8}{}}
+\@writefile{toc}{\contentsline {chapter}{\numberline {5}Project Plan and Timetable (Jan--Jun 2026)}{33}{chapter.5}\protected@file@percent }
 \@writefile{lof}{\addvspace {10\p@ }}
 \@writefile{lot}{\addvspace {10\p@ }}
-\newlabel{ch:eval-plan}{{5}{29}{Evaluation Plan}{chapter.5}{}}
-\@writefile{toc}{\contentsline {chapter}{\numberline {6}Ethical Issues and Data Handling Plan}{30}{chapter.6}\protected@file@percent }
+\newlabel{ch:plan}{{5}{33}{Project Plan and Timetable (Jan--Jun 2026)}{chapter.5}{}}
+\@writefile{toc}{\contentsline {paragraph}{Work completed so far (as of 21 Jan 2026).}{33}{section*.40}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Timeline in 5 phases (Jan $\rightarrow $ end of June).}{33}{section*.41}\protected@file@percent }
+\@writefile{toc}{\contentsline {chapter}{\numberline {6}Evaluation Plan}{34}{chapter.6}\protected@file@percent }
+\@writefile{lof}{\addvspace {10\p@ }}
+\@writefile{lot}{\addvspace {10\p@ }}
+\newlabel{ch:eval-plan}{{6}{34}{Evaluation Plan}{chapter.6}{}}
+\@writefile{toc}{\contentsline {chapter}{\numberline {7}Ethical Issues and Data Handling Plan}{35}{chapter.7}\protected@file@percent }
 \@writefile{lof}{\addvspace {10\p@ }}
 \@writefile{lot}{\addvspace {10\p@ }}
 \bibstyle{unsrt}
 \bibdata{bibs/sample}
-\@writefile{toc}{\contentsline {chapter}{\numberline {A}First Appendix}{31}{appendix.A}\protected@file@percent }
+\@writefile{toc}{\contentsline {chapter}{\numberline {A}First Appendix}{36}{appendix.A}\protected@file@percent }
 \@writefile{lof}{\addvspace {10\p@ }}
 \@writefile{lot}{\addvspace {10\p@ }}
 \bibcite{opdyke1992refactoring}{1}
@@ -347,4 +384,8 @@
 \bibcite{biemankang1995tcc}{50}
 \bibcite{wagner2015quamoco}{51}
 \bibcite{bansiya2002qmood}{52}
-\gdef \@abspage@last{37}
+\bibcite{eclipse_jdt_faq}{53}
+\bibcite{eclipse_jdtls}{54}
+\bibcite{wang2025tosem}{55}
+\bibcite{wang2025forge}{56}
+\gdef \@abspage@last{42}
