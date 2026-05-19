@@ -1,165 +1,205 @@
-# Plan: User study — independent labellers + multi-recorder + feedback
+# Plan: User-study data collection + new codebase fixture
 
 ## Context
 
-The current 45-session corpus is hand-recorded and hand-labelled by
-a single investigator. Three methodological gaps follow:
+The results chapter is rigorous on internal-validity questions (sensitivity, ablation) but weak on external validity. Three weaknesses a hostile reviewer will land on:
 
-1. **Same-author labelling** — no inter-rater agreement number on
-   the manifest schema.
-2. **Single-investigator recording** — all sessions reflect one
-   person's typing speed / commit cadence.
-3. **No "is this useful?" data** — rubric rewards human evaluation
-   at the 70 %+ band.
+1. **Self-evaluation problem.** The 45 sessions in `fixtures/sessions/` were recorded, designed (playbooks), and labelled (manifest-v2.csv) by the same person. Cohen's $\kappa$ from an independent rater is the standard fix.
+2. **Controlled-injection inflation.** Mean-rank-1.00 prominence is structurally inflated by one-dominant-injection-per-session playbook design. Sessions recorded by independent participants on a different codebase give a real external-validity number.
+3. **Two known engineering gaps still in the corpus.** IDE_REPLAY precision sits at $0.80$ end-to-end, attributed to plugin `TemplateManagerListener` / move-method envelope errors on sessions $025/032/037/039$. The fix is in-scope and pushes end-to-end IDE_REPLAY precision to $1.00$.
 
-This study addresses all three with the same 2 participants, so
-onboarding cost amortises. Goal: ship in 2 weeks, integrate
-findings into the methodology + threats-to-validity sections of
-the thesis. **Hard time-box: 2 weeks then pivot back to writeup.**
+Additional supervisor ask: AI-agent process-score comparison alongside humans. Free win: behavioural-change signal (do participants reduce flagged behaviours across their 6-session trajectory?) replaces the unworkable pre/post score-improvement claim discussed earlier.
 
-## Participants
+This plan covers everything that needs to come out of the user-study phase plus the new codebase fixture those sessions run against, in the order they must happen.
 
-- **n = 2**, recruited from fellow MEng students or supervisor's
-  group. Pick reliability over fit — two people who will turn up
-  beats four who might.
-- Time commitment per participant: ~10 hours total over 2 weeks.
+## Hard ordering constraints (cannot be reshuffled)
 
-## Three phases (in this order)
+1. **Blind labelling MUST precede any participant exposure to the tool.** Once a rater has seen tool output, their labels are contaminated by the tool's framing.
+2. **New fixture MUST be different domain from `library-fixture/`.** A participant who happens to know the existing library fixture would have within-codebase transfer; new domain rules that out.
+3. **Plugin envelope fix MUST happen before the 4 false-positive sessions are re-recorded.** Otherwise the re-records reproduce the same problem.
+4. **Participants MUST be unfamiliar with the project.** Briefing reveals playbook prompts only, never the tool's divergence kinds or recommendation framing.
 
-### Phase 1 — Independent labelling pass
+## Order of operations
 
-Participants label all 45 sessions against the `manifest-v2.csv`
-schema, without seeing the author's labels.
+### Phase 0 -- Engineering + corpus refresh (1-2 days, can start now)
 
-- **Brief on schema** (~30 min each): walk through DivergenceKind
-  definitions, the multi-label `expected_kinds` semantics, examples
-  of each pattern.
-- **Materials provided per session:** `events.jsonl`, the
-  playbook markdown, dashboard analysis-report viewer access.
-- **Independent labelling:** ~5–10 min per session × 45 = 4–8 hrs
-  per labeller. Done on their own time.
-- **Reconcile** divergent labels. Substantive disagreements
-  themselves are findings — note them for the threats-to-validity
-  section.
-- **Output:** Cohen's κ per kind (ORDERING, MANUAL_REFACTOR, REWORK,
-  HYGIENE). Reported honestly even if low.
+- Patch the plugin event-capture envelope in `ide-plugin/.../listeners/` so in-place rename templates (`TemplateManagerListener`) and move-method document mutations fire inside `REFACTORING_STARTED` / `REFACTORING_FINISHED`.
+- Re-record sessions $025, 032, 037, 039$ against the patched plugin. Same playbook prompts; same baseline tag.
+- Re-run `fixtures/bulk-phase-a.sh` on the 45-session corpus.
+- Update precision/recall numbers in `final_report/results/results.tex` (IDE_REPLAY precision rises to $1.00$, scoped-out fixes paragraph drops the plugin-instrumentation entry).
 
-**Why first:** participants learn the schema before recording, so
-their recordings reflect schema understanding rather than
-intuition.
+### Phase 1 -- New codebase fixture (1 day)
 
-### Phase 2 — Multi-recorder mini-corpus
+Path: `tool/fixtures/user-study-fixture/` (parallels `tool/fixtures/library-fixture/`).
 
-Each participant records 3 sessions against `library-fixture-v1`.
+- Domain: order-processing system (chosen to be entirely disjoint from a library/loan domain). Suggested top-level classes: `OrderService`, `Cart`, `PaymentProcessor`, `InventoryManager`, `Notifier`, `OrderValidator`, plus DTOs.
+- Size: ~600--900 LOC main + ~200--300 LOC tests. Roughly parallel to `library-fixture/` (which is ~10 source files, Gradle Java build).
+- Gradle Java project with passing test suite at the baseline tag.
+- Intentional refactoring opportunities seeded into the baseline (matching the kinds the tool detects):
+  - Duplicate validation logic between `OrderService` and `Cart` (Extract Method / Extract Class)
+  - Long `processOrder` method in `OrderService` (Extract Method)
+  - Poorly-named methods (`doIt`, `handle`, `process`) for rename
+  - `Notifier` reaches deep into `Order` internals (Move Method / feature envy)
+  - Dead conditional branch in `PaymentProcessor` (cleanup)
+- Freeze at git tag `user-study-baseline-v1` (parallels Phase 3.2 of the existing fixture).
 
-- **Plugin onboarding** (~1 hr each): pre-build a packaged plugin
-  JAR / zip distribution before the session — do not let them
-  build from source. Block out a 1-hour install call per person.
-- **Playbook selection:** 3 sessions per participant covering
-  different patterns (one ManualExtractMethod, one
-  AddThenRevert, one Control suggested — but pick to maximise
-  diversity).
-- **Recording:** ~1 hr per participant (with mistakes / restarts).
-  You're available on screen-share for the first session.
-- **Validation:** `events.jsonl` non-empty, plugin captured the
-  intended pattern, run Phase A.
-- **Cross-label:** each labeller labels the *other*'s 3 sessions
-  (you label them too as third opinion). Compute 3-rater agreement
-  on this subset.
-- **Re-run** divergence experiment on the expanded 51-session
-  corpus. Report whether per-kind precision/recall holds.
+### Phase 2 -- What-not-how playbook (0.5 day)
 
-### Phase 3 — Qualitative feedback session
+Path: `tool/fixtures/user-study-playbook/`, one `.md` per session, naming `S01-...md` through `S06-...md`.
 
-45 min structured interview with each participant, recorded with
-consent.
+- 6 sessions per participant, each ~20--30 minutes target.
+- Each session has 3--5 abstract task prompts that state WHAT to change but never HOW:
+  - "The validation logic in `Cart` and `OrderService` is duplicated; eliminate the duplication."
+  - "The `processOrder` method is doing too much; split it into smaller responsibilities."
+  - "Several methods are poorly named; rename them to descriptive equivalents."
+- **No** mention of: refactoring tool, commit cadence, test runs, hygiene flags, divergence kinds.
+- **No** controlled-injection structure. These sessions do not carry pre-declared `expected_kinds`; they are not used to extend the 45-session precision/recall numbers.
+- Difficulty ramp: S01 small/local task, S06 multi-class refactor.
 
-**Prepared questions** (same order, both participants):
+### Phase 3 -- Participant protocol document (0.5 day)
 
-1. On session X, the tool flagged divergence point Y. Did you
-   expect it would? Why or why not?
-2. Look at the alternative trajectory for DP Y — would you
-   actually use it in a real refactoring session?
-3. What's confusing about the dashboard?
-4. Is there a kind of bad-process behaviour you'd expect this to
-   catch that it doesn't?
-5. On a 1–5 scale, how useful is this for a real refactoring
-   session?
-6. Open: anything else?
+Path: `tool/fixtures/user-study-fixture/PROTOCOL.md` (parallels `tool/fixtures/sessions/PROTOCOL.md`, which is 94 lines).
 
-**Output:** verbatim quotes (transcribed from recording) +
-1–5 usability ratings + any common themes across the two.
+- Briefing: project domain, IDE setup, plugin install, where to find each session's prompt, where the tool feedback appears, how to start/end a session.
+- Explicitly omits: divergence kinds the tool detects, examples of what counts as "bad" process, anything that primes the participant toward the tool's worldview.
+- Session-end micro-survey (2 questions): "Which recommendation, if any, did you find most useful?"; "Did you intend to change anything in your next session?"
 
-## Ethics
+### Phase 4 -- Recruit (parallel with Phases 1--3)
 
-- Submit institutional low-risk form on **Day 1**. Work on plugin
-  packaging while it's pending.
-- Consent form covering: recording of feedback session, data
-  retention, anonymisation in writeup.
-- Anonymise participants in the thesis (P1, P2).
+- Target: 2 confirmed participants, possibly 3, plus 1 separate blind rater.
+- **Profile is homogeneous: all 4th-year MEng Imperial Computing students.** This is what's realistically available and worth being explicit about in the writeup.
+- Implication for the behavioural-change signal: baseline process quality will be high (these participants will likely already commit reasonably, run tests, use the refactor tool), so the per-kind reduction across sessions $N \to N+1$ may be small or null. The chapter should frame the population honestly and treat a muted signal as a finding, not a failure.
+- Implication for the external-validity claim: the writeup should land "independent senior CS students" rather than "real-world professional developers". The thesis's main external-validity gain remains real -- different people, different codebase, no playbook prior -- but should not be oversold.
+- Implication for the qualitative interview (Phase 7): technically-informed participants are likely to give richer, more specific feedback. Lean into this.
+- The blind rater should NOT also be a participant (because they would need to stay tool-naive after labelling).
+- Budget per participant: ~30 min onboarding + 6 \times ~25 min sessions + ~25 min Phase 7 interview = roughly 4 hours total.
 
-## Schedule (2-week time-box)
+### Phase 5 -- Blind labelling of existing 45 sessions (1--2 days, HARD GATE)
 
-| Day  | What                                                              |
-|------|-------------------------------------------------------------------|
-| 1    | Submit ethics form. Recruit + confirm 2 participants.             |
-| 1–2  | Package plugin as installable JAR/zip.                            |
-| 3    | Brief both on schema (~30 min each).                              |
-| 4–7  | Participants label 45 sessions on their own time.                 |
-| 8    | Compute κ. Reconcile genuinely divergent labels.                  |
-| 9    | Plugin onboarding call (1 hr each).                               |
-| 10   | Recording session (1 hr each).                                    |
-| 11   | Validate sessions + Phase A + cross-label.                        |
-| 12   | Re-run divergence experiment on expanded corpus.                  |
-| 13   | Qualitative feedback session (45 min each).                       |
-| 14   | Write up: methodology + threats-to-validity + results paragraphs. |
+This MUST complete before the blind rater or any participant sees the tool's analysis report.
 
-## Deliverables (for thesis integration)
+- Brief blind rater on the multi-label schema from `methodology.tex` §\ref{sec:methodology-rater}. Show them the session-recording artefacts (events.jsonl, session.json, screen recording if available) and the schema. Do NOT show them: the playbook prompts, the existing manifest-v2 labels, the tool's analysis report, or any dashboard view.
+- They label all 45 sessions against `expected_kinds`.
+- Compute Cohen's $\kappa$~\cite{cohen1960kappa, landis1977kappa} per kind against the user's labels. Report $\kappa$ alongside raw agreement counts (per-kind cell counts will be small).
+- If $\kappa$ is low on any kind, run a short reconciliation pass and document it honestly; do not retroactively edit labels to inflate $\kappa$.
 
-- **Methodology chapter addition:** one paragraph on the
-  multi-rater design (Phase 1) + the mini multi-recorder corpus
-  (Phase 2) + qualitative protocol (Phase 3).
-- **Results chapter addition:** Cohen's κ table per kind +
-  precision/recall on expanded corpus + qualitative themes +
-  verbatim quotes.
-- **Threats-to-validity rewrite:** lead with what was mitigated,
-  then what remains (still single-fixture, still Java-only,
-  still small n on multi-recorder subset).
+### Phase 6 -- Participant sessions (1--2 weeks elapsed, depending on participant availability)
 
-## Critical files to update post-study
+- Each participant does 6 sessions on `user-study-fixture/`, with tool feedback shown at the end of every session from session 1.
+- Capture per session (automatic via plugin pipeline):
+  - `events.jsonl`
+  - `session.json`
+  - `initial-src.zip`
+  - `analysis-report.json` (Phase A + Phase B output)
+  - Plus: manual record of session-end micro-survey response.
+  - Plus: optional screen recording for Phase 7 review.
+- After every session, the participant sees their analysis report (dashboard) and can take whatever they want from it into the next session.
+- No control / no-tool condition; no causal "tool improved scores" claim.
 
-- `/Users/ethanhosier/Desktop/random/fyp/tool/analysis/src/main/kotlin/com/github/ethanhosier/analysis/experiment/explained_results/divergence.md`
-  — add multi-recorder validation subsection + κ table.
-- `/Users/ethanhosier/Desktop/random/fyp/tool/fixtures/sessions/manifest-v2.csv`
-  — extend with new sessions (e.g., 046–051).
-- Thesis methodology / results / threats-to-validity sections (not
-  yet written).
+### Phase 7 -- Phase 3 qualitative interviews (1 day)
 
-## What this study deliberately does **not** do
+- 20--30 min semi-structured interview per participant after their 6th session.
+- Recorded, transcribed, then 3--5 verbatim quotes extracted per participant.
+- Question themes:
+  - Did the tool's recommendations match your own sense of what was suboptimal?
+  - Which kinds (manual-refactor, hygiene, rework, ordering) felt most actionable? Least?
+  - Did you change behaviour across the 6 sessions because of a recommendation? Which one?
+  - Any recommendation that felt outright wrong or nit-picky?
 
-- **No 5-recorder corpus expansion.** Out of scope — time cost
-  too high relative to mark return given current writeup pressure.
-- **No external baseline integration** (Refactoring Navigator,
-  ReSynth). Out of scope; flag as future work.
-- **No multi-fixture expansion.** Out of scope; flag as future
-  work.
+### Phase 8 -- Agent comparison (deferred; capture mechanism TBD)
+
+In scope for the thesis, but the capture mechanism is deferred -- assumed solvable when the time comes. High-level intent:
+
+- Pick one coding agent and disclose (which agent, which date, which model version).
+- Agent executes the same what-not-how playbook prompts on `user-study-fixture/`.
+- Capture the agent's session in a form the Phase A pipeline can ingest. Mechanism (driving IntelliJ vs. synthesised event stream vs. something else) decided when this phase is started.
+- Run Phase A. Report process-score distribution + per-kind divergence-point counts alongside the human distribution.
+- Expectation: agent's failure modes likely differ qualitatively from human failure modes -- the comparison's shape is the finding, not a single number.
+
+### Phase 9 -- Analysis + writeup (1--2 days)
+
+New section in `final_report/results/results.tex`, inserted after §\ref{sec:results-divergence} and before §\ref{sec:results-headline}:
+
+- `\section{User study}` `\label{sec:results-userstudy}` with four subsections:
+  - **Inter-rater reliability.** Cohen's $\kappa$ per kind, raw agreement counts, brief disagreement analysis.
+  - **External validity on independent participant sessions.** Per-kind precision/recall on the participant corpus; explicit comparison against the 45-session numbers; honest discussion of where the numbers move. Population scoped honestly as "independent senior CS students", with explicit acknowledgement that generalisation to professional developers is out of scope for this thesis.
+  - **Behavioural change across the 6-session trajectory.** For each recommendation kind flagged in session $N$, the per-participant rate in session $N+1$. Descriptive trends only; no causal claim. Muted signal (if observed) framed as a baseline-already-strong finding rather than a failed result.
+  - **Agent comparison.** Process-score and per-kind divergence-point distribution; qualitative comparison of human vs agent failure modes.
+- New short subsection in §\ref{sec:results-divergence} caveats: link to inter-rater $\kappa$.
+- `\paragraph{Phase 3 qualitative feedback.}` interleaved into the user-study section: 3--5 verbatim quotes attributed by participant ID, brief reading of each.
+- Update injection-prominence caveat to reference real-world (participant) prominence numbers.
+- Update §\ref{sec:results-scoped-out}: drop the plugin-instrumentation paragraph (now closed); keep the ordering-recall paragraph (still scoped out, finding-strengthening).
+
+## What gets collected per session
+
+**Participant session (×6 per participant, ×2--3 participants):**
+- `events.jsonl`, `session.json`, `initial-src.zip` (auto-captured by plugin)
+- `analysis-report.json` (Phase A + B output)
+- Session-end 2-question micro-survey (manual)
+- Optional: screen recording for Phase 7 review
+
+**Per participant (one-off):**
+- Phase 7 interview transcript + extracted quotes
+- Engagement-trajectory analysis (derived from the 6 session reports)
+
+**Per blind-rater pass:**
+- Per-session labels against the schema (matches manifest-v2.csv column structure)
+- Per-kind Cohen's $\kappa$ computation (one number per divergence kind)
+
+**Agent run (one-off):**
+- Session artefacts (same format as participant sessions)
+- Analysis report
+- Disclosure note (agent name, date, model version)
+
+## Critical files
+
+**To create:**
+- `tool/fixtures/user-study-fixture/` (Gradle Java project, mirrors `library-fixture/`)
+- `tool/fixtures/user-study-fixture/PROTOCOL.md`
+- `tool/fixtures/user-study-playbook/S01-...md` ... `S06-...md`
+- `tool/fixtures/user-study-sessions/` (output dir; per-participant subdirs)
+- `tool/scripts/blind-rater-kappa.kt` or `.py` (Cohen's $\kappa$ computation)
+- Agent-capture path: TBD when Phase 8 is started.
+
+**To edit:**
+- `tool/ide-plugin/.../listeners/RefactoringListener.kt` (or the move-method / template-manager listener equivalents) -- envelope fix
+- `final_report/results/results.tex` -- new §\ref{sec:results-userstudy} section + IDE_REPLAY number updates + scoped-out paragraph rewrite + injection-prominence caveat update
+- `final_report/methodology/methodology.tex` -- short mention of inter-rater protocol in §\ref{sec:methodology-rater} if not already there
+- `final_report/bibs/sample.bib` -- ensure Cohen 1960 + Landis-Koch 1977 cited
+
+**Read-only references:**
+- `tool/fixtures/library-fixture/` (parallel structure for the new fixture)
+- `tool/fixtures/sessions/PROTOCOL.md` (parallel structure for the new protocol)
+- `tool/fixtures/playbook/` (parallel structure for the new playbook, but content is different: what-not-how rather than scripted-injection)
+- `tool/fixtures/sessions/manifest-v2.csv` (column structure for blind-rater labels)
+- `final_report/methodology/methodology.tex` §\ref{sec:methodology-rater} (schema definition)
 
 ## Verification
 
-- Phase 1: κ computed and reported per kind. Even κ = 0.5
-  (moderate agreement) is acceptable and reportable.
-- Phase 2: per-kind precision/recall on expanded corpus lies
-  within ±10 % of the original 45-session numbers, or differences
-  are explained.
-- Phase 3: at least 4 of 5 numeric ratings collected + 2+ verbatim
-  quotes per question.
+- **Phase 0**: Phase A re-run on 45 sessions completes; IDE_REPLAY precision rises to $1.00$; results.tex compiles cleanly with updated numbers.
+- **Phase 1--3**: `user-study-fixture/` builds + tests pass at `user-study-baseline-v1` tag; PROTOCOL.md + 6 playbook files exist and read coherently for a project-naive reader.
+- **Phase 5**: per-kind Cohen's $\kappa$ computed; target $\kappa > 0.6$ on at least 3 of 4 kinds (rework / hygiene likely strongest; ordering may be lower because per-cell counts are small). Lower $\kappa$ reported honestly.
+- **Phase 6**: each participant session produces a valid analysis report; engagement trajectory computable without manual intervention.
+- **Phase 7**: interview transcripts captured + at least 3 usable quotes per participant.
+- **Phase 8**: agent process-score + per-kind divergence numbers reported alongside human distribution.
+- **Phase 9**: `final_report/build.sh` produces both `main.pdf` and `main_dark.pdf` cleanly; all cross-references resolve; new §\ref{sec:results-userstudy} fits within the chapter's existing page budget or extends it by no more than 2 pages.
 
-## Risks and mitigations
+## Minimum-viable subset (if time/recruitment slips)
 
-| Risk                                          | Mitigation                                                    |
-|-----------------------------------------------|---------------------------------------------------------------|
-| Participant flakes mid-study                  | Pick rock-solid recruits. Don't start until both confirm.     |
-| Plugin install fails on their machine         | Pre-build a packaged distribution. Don't ship build-from-src. |
-| Recording captures wrong pattern              | Be on screen-share for the first session per person.          |
-| κ comes back low (e.g. <0.5)                  | Report honestly. Discuss schema ambiguity as a finding.       |
-| Time slips past 2 weeks                       | Hard pivot back to writeup. Use what you have.                |
+In rough order of marginal value, drop from the bottom if time runs out:
+
+1. Blind rater + Cohen's $\kappa$ on existing 45 sessions. (Highest value. Single-rater. ~1--2 days. No new code.)
+2. Plugin envelope fix + re-record the 4 false-positive sessions. (Pushes IDE_REPLAY precision $0.80 \to 1.00$. ~1--2 days.)
+3. Independent participant sessions on new fixture. (Real external-validity. ~1--2 weeks elapsed.)
+4. Phase 7 qualitative interviews. (Cheap once participants are recruited.)
+5. Agent comparison. (Supervisor ask; doable in 1--2 days; lower priority than the human-side fixes for thesis defence.)
+
+The thesis can ship a substantially stronger results chapter on items 1+2 alone if items 3--5 prove infeasible.
+
+## Ethics + operational notes (carried forward from earlier draft)
+
+- Submit institutional low-risk ethics form on Day 1; work on plugin packaging while it is pending.
+- Consent form covering: recording of feedback session, data retention, anonymisation in writeup.
+- Anonymise participants in the thesis (P1, P2, P3).
+- Pre-build a packaged plugin JAR / zip distribution before participant onboarding; do not let participants build from source.
+- Be on screen-share for each participant's first session; subsequent sessions can run independently.

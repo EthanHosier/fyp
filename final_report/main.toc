@@ -89,9 +89,31 @@
 \contentsline {paragraph}{Hygiene synthesis.}{32}{section*.39}%
 \contentsline {section}{\numberline {4.7}Pipeline Phases}{32}{section.4.7}%
 \contentsline {section}{\numberline {4.8}Dashboard}{32}{section.4.8}%
-\contentsline {chapter}{\numberline {5}Project Plan and Timetable (Jan--Jun 2026)}{33}{chapter.5}%
-\contentsline {paragraph}{Work completed so far (as of 21 Jan 2026).}{33}{section*.40}%
-\contentsline {paragraph}{Timeline in 5 phases (Jan $\rightarrow $ end of June).}{33}{section*.41}%
-\contentsline {chapter}{\numberline {6}Evaluation Plan}{34}{chapter.6}%
-\contentsline {chapter}{\numberline {7}Ethical Issues and Data Handling Plan}{35}{chapter.7}%
-\contentsline {chapter}{\numberline {A}First Appendix}{36}{appendix.A}%
+\contentsline {chapter}{\numberline {5}Experiments and Results}{33}{chapter.5}%
+\contentsline {section}{\numberline {5.1}Sensitivity sweep}{33}{section.5.1}%
+\contentsline {paragraph}{Design.}{33}{section*.40}%
+\contentsline {paragraph}{Distribution.}{34}{section*.41}%
+\contentsline {paragraph}{Sources of ranking instability.}{34}{section*.43}%
+\contentsline {paragraph}{Saturation check.}{34}{section*.45}%
+\contentsline {paragraph}{Caveats.}{34}{section*.46}%
+\contentsline {section}{\numberline {5.2}Ablation sweep}{35}{section.5.2}%
+\contentsline {paragraph}{Design.}{35}{section*.47}%
+\contentsline {paragraph}{Sanity check.}{35}{section*.48}%
+\contentsline {paragraph}{Monotone by active-term count.}{35}{section*.49}%
+\contentsline {paragraph}{Per-term single-knob recovery.}{35}{section*.51}%
+\contentsline {paragraph}{Per-term leave-one-out recovery.}{36}{section*.53}%
+\contentsline {paragraph}{Caveats.}{36}{section*.55}%
+\contentsline {section}{\numberline {5.3}Divergence experiment}{37}{section.5.3}%
+\contentsline {paragraph}{Detection accuracy.}{37}{section*.56}%
+\contentsline {paragraph}{Detection quality.}{37}{section*.58}%
+\contentsline {paragraph}{Injection prominence.}{38}{section*.60}%
+\contentsline {paragraph}{Step-anchor recall under strict matching.}{38}{section*.62}%
+\contentsline {paragraph}{Baselines and absolute magnitudes.}{38}{section*.64}%
+\contentsline {paragraph}{Caveats.}{39}{section*.66}%
+\contentsline {section}{\numberline {5.4}Headline finding: reordering rarely helps on commuting windows}{39}{section.5.4}%
+\contentsline {section}{\numberline {5.5}Scoped-out fixes}{40}{section.5.5}%
+\contentsline {chapter}{\numberline {6}Project Plan and Timetable (Jan--Jun 2026)}{41}{chapter.6}%
+\contentsline {paragraph}{Work completed so far (as of 21 Jan 2026).}{41}{section*.67}%
+\contentsline {paragraph}{Timeline in 5 phases (Jan $\rightarrow $ end of June).}{41}{section*.68}%
+\contentsline {chapter}{\numberline {7}Ethical Issues and Data Handling Plan}{42}{chapter.7}%
+\contentsline {chapter}{\numberline {A}First Appendix}{43}{appendix.A}%
