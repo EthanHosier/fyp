@@ -280,7 +280,14 @@ sealed interface RefactoringSpec {
         @Serializable @SerialName("Existing")
         data class Existing(val oldName: String, val newName: String, val newType: String) : ChangeSignatureParameter
         @Serializable @SerialName("Added")
-        data class Added(val name: String, val type: String, val defaultValue: String) : ChangeSignatureParameter
+        data class Added(
+            val name: String,
+            // Renamed in JSON to avoid colliding with kotlinx.serialization's
+            // default sealed-class discriminator ("type"). Kept as `type` in
+            // Kotlin so existing call sites compile unchanged.
+            @SerialName("paramType") val type: String,
+            val defaultValue: String,
+        ) : ChangeSignatureParameter
     }
 
     @Serializable @SerialName("ChangeMethodSignature")

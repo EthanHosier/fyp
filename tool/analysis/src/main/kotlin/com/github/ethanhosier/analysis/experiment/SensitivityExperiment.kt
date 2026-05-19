@@ -47,10 +47,12 @@ import kotlin.system.exitProcess
  *  - `top5_hit_rate` ∈ [0, 1]: fraction of the top-5 *distinct* step
  *    indices on the baseline that also appear in the perturbed top 5.
  *  - `baseline_size` / `perturbed_size`: total divergence-point counts.
- *    Drops in `perturbed_size` mean the perturbation pushed some points
- *    below the magnitude floor (`DivergencePointBuilder.MIN_PROCESS_DELTA
- *    = 3.0`) rather than just reshuffling — useful to separate
- *    "different order" from "different membership."
+ *    With the magnitude floor removed from `DivergencePointBuilder`,
+ *    these are now driven purely by alt-synthesis success — drops in
+ *    `perturbed_size` should be rare and indicate an alt that failed
+ *    to synthesise under the perturbed weights (e.g. a knock-on through
+ *    `wasPerformedByIde` classification). Use kendall_tau as the
+ *    primary signal of "did the perturbation reshuffle the ranking?"
  *
  * Reading the headline: if τ stays ≈1.0 across all 24 perturbations,
  * the choice of weights is *robust* (a defence). If τ collapses for
@@ -59,10 +61,12 @@ import kotlin.system.exitProcess
  *
  * ## Things to note
  *
- *  - The 3.0 floor in [com.github.ethanhosier.analysis.divergence.DivergencePointBuilder]
- *    is a hard `const val`, not part of [ScoringConfig]. This sweep
- *    therefore tests *weight robustness above the fixed floor*, not
- *    floor robustness.
+ *  - There is no longer a magnitude floor in
+ *    [com.github.ethanhosier.analysis.divergence.DivergencePointBuilder]
+ *    (b03a7ba removed it). Every synthesised alt produces a DP — this
+ *    sweep therefore measures pure rank perturbation, no threshold
+ *    cliffs. Per-kind reporting downstream can apply a post-hoc
+ *    magnitude threshold if needed.
  *  - HYGIENE COMMIT_GAP divergence points are emitted **without** any
  *    magnitude filter (the builder gates them on existence of a hygiene
  *    info entry only). They appear in every perturbation's ranking in
@@ -82,7 +86,8 @@ object SensitivityExperiment {
     private val readJson = Json { ignoreUnknownKeys = true; isLenient = true }
 
     private const val HEADER =
-        "fixture,group,weight,factor,kendall_tau,top5_hit_rate,baseline_size,perturbed_size"
+        "fixture,group,weight,factor,kendall_tau,top5_hit_rate,baseline_size,perturbed_size," +
+            "baseline_saturated_dp_count,perturbed_saturated_dp_count"
 
     // Data-driven sweep table: name + a (ScoringConfig, factor) ->
     // ScoringConfig perturbation that scales only the named weight.
@@ -107,7 +112,7 @@ object SensitivityExperiment {
         clean("cohesion") { c, f -> c.copy(cohesion = c.cohesion * f) },
     )
 
-    private val FACTORS = listOf(0.5, 1.5)
+    private val FACTORS = listOf(0.1, 0.25, 0.5, 0.75, 1.25, 1.5, 2.0, 4.0, 10.0)
 
     private fun proc(
         name: String,
@@ -160,6 +165,7 @@ object SensitivityExperiment {
         )
         val baselineReport = ReportAssembler.assemble(phaseA, ScoringConfig.PRODUCTION)
         val baselineRanking = ranking(baselineReport)
+        val baselineSat = saturatedDpCount(baselineReport)
         val fixtureName = fixture.nameWithoutExtension
 
         val out = mutableListOf<String>()
@@ -170,6 +176,7 @@ object SensitivityExperiment {
                 val perturbedRanking = ranking(perturbedReport)
                 val tau = RankingMetrics.kendallTauB(baselineRanking, perturbedRanking)
                 val hit = RankingMetrics.topNHitRate(baselineRanking, perturbedRanking, 5)
+                val perturbedSat = saturatedDpCount(perturbedReport)
                 out += listOf(
                     fixtureName,
                     knob.group,
@@ -179,6 +186,8 @@ object SensitivityExperiment {
                     String.format(Locale.US, "%.6f", hit),
                     baselineRanking.size.toString(),
                     perturbedRanking.size.toString(),
+                    baselineSat.toString(),
+                    perturbedSat.toString(),
                 ).joinToString(",")
             }
         }
@@ -189,6 +198,33 @@ object SensitivityExperiment {
         report.divergencePoints
             .sortedByDescending { it.magnitude }
             .map { it.stepIndex }
+
+    /**
+     * Number of divergence points whose terminal user- or alt-process
+     * score sits at the [0, 100] clamp boundary. A high count means τ
+     * understates true sensitivity — those DPs have weight-invariant
+     * magnitudes (clipping eats the perturbation), so the ranking can
+     * look stable when it shouldn't. A DP is counted as saturated if
+     * **any** of its referenced alts' terminal score OR the matching
+     * user-terminal score is at 0 or 100.
+     */
+    private fun saturatedDpCount(report: AnalysisReport): Int {
+        val userProcessBySha: Map<String, Int> = report.checkpoints
+            .associate { it.sha to it.derivedMetrics.process.total }
+        var saturated = 0
+        for (dp in report.divergencePoints) {
+            val alts = dp.altTrajectoryIndexes
+                .mapNotNull { report.alternativeTrajectories.getOrNull(it) }
+            val touchesBoundary = alts.any { alt ->
+                val altTerm = alt.altCheckpoints.lastOrNull()?.derivedMetrics?.process?.total
+                val userTerm = userProcessBySha[alt.userToSha]
+                (altTerm != null && (altTerm == 0 || altTerm == 100)) ||
+                    (userTerm != null && (userTerm == 0 || userTerm == 100))
+            }
+            if (touchesBoundary) saturated += 1
+        }
+        return saturated
+    }
 
     private fun requireArg(args: Array<String>, flag: String): String? {
         val idx = args.indexOf(flag)

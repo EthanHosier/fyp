@@ -12,7 +12,9 @@
 
 ## What this session demonstrates
 
-2-step window: move a method first, then rename it. Better order: rename first, then move — because rename-while-still-in-source-class touches fewer locations than rename-after-move. Borderline gap.
+2-step window: move `LateFeeCalculator.calc2(Loan loan)` into `Loan` as an instance method first, then rename it. Better order: rename first, then move — because rename-while-still-in-source-class touches fewer locations than rename-after-move. Borderline gap.
+
+(Previously this session targeted `LibrarySystem.validateMember` -> `MemberValidator`, but: (a) IntelliJ's `Refactor -> Move Instance Method` only offers destinations that are parameter types or instance-field types of the source class, so `MemberValidator` never appears in the dropdown; (b) `validateMember`'s body calls `fooBar(...)` — a `LibrarySystem` method — so moving it forces JDT to pass `sys` through as an extra parameter, which then breaks the `validateMember(null)` test case (`null.validateMember(sys)` doesn't compile). `LateFeeCalculator.calc2(Loan loan)` is dependency-free, has `Loan` as a parameter so IntelliJ offers it as a destination, and has a single in-class caller (`sumAll`) that JDT rewires cleanly to `loan.calc2()`.)
 
 ## Setup (every session)
 
@@ -36,21 +38,23 @@
 
 ## Step 1 — Warmup
 
-1. Open `LibrarySystem.java`. Caret on `members` field at line 16. **Shift-F6** -> rename to `memberIndex`. Confirm.
+1. Open `LateFeeCalculator.java`. Caret on the local variable `base` at line 19 (inside `calculateFee`). Press **Shift-F6** -> rename to `tier1Base`. Confirm.
 2. Save. Run tests. Expect green.
-3. Terminal: `git commit -am "warmup: rename members -> memberIndex"`.
+3. Terminal: `cd fixtures/library-fixture && git commit -am "warmup: rename base -> tier1Base"`.
 
 ## Step 2 — IDE Move Method (suboptimal first)
 
-1. Caret on `validateMember` declaration at `LibrarySystem.java` line 129. **F6** (Refactor -> Move). Move to `MemberValidator.java`. Confirm.
-2. Save. Run tests. Expect green.
-3. Terminal: `git commit -am "move validateMember -> MemberValidator"`.
+1. Open `LateFeeCalculator.java`. Caret on the `calc2(Loan loan)` declaration at line 51. Press **F6** (Refactor -> Move Instance Method).
+2. In the wizard, the destination dropdown lists candidates (parameter types + instance-field types of `LateFeeCalculator`). Pick **`Loan loan`**. Accept defaults; confirm.
+3. IntelliJ converts `calc2(Loan loan)` into an instance method `Loan.calc2()` and rewires the only caller (`sumAll` in `LateFeeCalculator`) to `loan.calc2()`.
+4. Save. Run tests. Expect green.
+5. Terminal: `cd fixtures/library-fixture && git commit -am "move calc2 into Loan"`.
 
 ## Step 3 — IDE Rename (terminal step; target_step = 3)
 
-1. Caret on the moved `validateMember` method (now in `MemberValidator.java`). **Shift-F6** -> rename to `validateFull`. Confirm. All callers update across the project.
+1. Caret on the moved `calc2` method (now declared in `Loan.java`). Press **Shift-F6** -> rename to `feeBucketTwo`. Confirm. IntelliJ updates the call in `LateFeeCalculator.sumAll`.
 2. Save. Run tests. Expect green.
-3. Terminal: `git commit -am "rename validateMember -> validateFull"`.
+3. Terminal: `cd fixtures/library-fixture && git commit -am "rename calc2 -> feeBucketTwo"`.
 
 ## End
 

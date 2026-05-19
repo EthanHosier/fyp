@@ -12,7 +12,7 @@
 
 ## What this session demonstrates
 
-Same borderline shape as 034 but on `ReportFormatter`. 2 refactors, no tests in between.
+Same borderline shape as 034 but on `ReportFormatter`. 2 refactors, no tests in between. Each refactor is committed so the COMMIT_GAP signal stays clean — this session isolates the TESTS_SKIPPED signal.
 
 ## Setup (every session)
 
@@ -34,20 +34,21 @@ Same borderline shape as 034 but on `ReportFormatter`. 2 refactors, no tests in 
 3. In IntelliJ: press the "Reload from disk" toolbar icon (or just wait a couple of seconds — the IDE picks up the on-disk reset automatically).
 4. Start the refactoring-trajectory plugin in **record mode**.
 
-## Step 1 — IDE Rename (NO TESTS)
+## Step 1 — IDE Rename (NO TESTS) — commit only
 
 1. Open `ReportFormatter.java`. Caret on `singleCallWrapper` declaration at line 54. **Shift-F6** -> rename to `loanLabel`. Confirm.
-2. Save only. NO tests. NO commit.
+2. Save only. NO tests.
+3. Terminal: `cd fixtures/library-fixture && git commit -am "rename singleCallWrapper -> loanLabel (untested)"`.
 
 ## Step 2 — IDE Extract Method (NO TESTS) — target_step = 2
 
 1. In `ReportFormatter.formatReport`, select lines 14-15 (`out.append("Report for ").append(member.getName()).append("\n");`). **Cmd-Opt-M** -> Extract Method. Name: `appendHeader`. Parameter: `out`, `member`. Confirm.
-2. Save only. NO tests. NO commit YET.
+2. Save only. NO tests.
+3. Terminal: `cd fixtures/library-fixture && git commit -am "extract appendHeader (untested)"`.
 
-## Step 3 — Tests + commit
+## Step 3 — Tests (catch-up)
 
-1. Run all tests. Expect green.
-2. Terminal: `git commit -am "2 untested refactors: rename + extract"`.
+1. Run all tests. Expect green; if anything required edits, `git commit -am "fix tests after composite"`.
 
 ## End
 

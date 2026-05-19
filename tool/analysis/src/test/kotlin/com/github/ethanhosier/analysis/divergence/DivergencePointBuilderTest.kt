@@ -166,7 +166,10 @@ class DivergencePointBuilderTest {
     }
 
     @Test
-    fun `IDE_REPLAY below process threshold drops the DP`() {
+    fun `IDE_REPLAY emits a DP regardless of magnitude — small positive delta`() {
+        // The magnitude floor was removed from DivergencePointBuilder so that
+        // detection / synthesis / surfacing are decoupled from suggestion-quality
+        // at the tool layer. Downstream consumers apply their own threshold.
         val users = listOf(userCp("u0", 50), userCp("u1", 60))
         val alt = AlternativeTrajectory(
             kind = DivergenceKind.IDE_REPLAY,
@@ -183,7 +186,33 @@ class DivergencePointBuilderTest {
             userCheckpoints = users,
         )
 
-        assertTrue(dps.isEmpty())
+        assertEquals(1, dps.size)
+        assertEquals(DivergenceKind.IDE_REPLAY, dps[0].kind)
+        assertEquals(1.0, dps[0].magnitude)
+    }
+
+    @Test
+    fun `IDE_REPLAY emits a DP with negative magnitude when alt scores worse`() {
+        // Surfacing now also includes alts that scored *worse* than the user,
+        // so the experiment can analyse the full distribution post-hoc.
+        val users = listOf(userCp("u0", 50), userCp("u1", 80))
+        val alt = AlternativeTrajectory(
+            kind = DivergenceKind.IDE_REPLAY,
+            stepIndexes = listOf(0),
+            fromSha = "u0",
+            userToSha = "u1",
+            branchRefs = listOf("br"),
+            specs = listOf(extractMethodSpec()),
+            altCheckpoints = listOf(altCp("a0", 70)),
+        )
+
+        val dps = DivergencePointBuilder.build(
+            alts = listOf(alt),
+            userCheckpoints = users,
+        )
+
+        assertEquals(1, dps.size)
+        assertEquals(-10.0, dps[0].magnitude)
     }
 
     @Test

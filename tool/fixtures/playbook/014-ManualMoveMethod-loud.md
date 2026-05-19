@@ -12,7 +12,9 @@
 
 ## What this session demonstrates
 
-User manually moves `LibrarySystem.validateMember` (lines 129-136) into `MemberValidator` and rewires external callers by hand. Should have been `Refactor -> Move`. Loud IDE_REPLAY anchor.
+User manually moves `LibrarySystem.helperA(Loan)` into `Loan` as an instance method (`Loan.helperA()`) and rewires the 4 in-class call sites by hand instead of using `Refactor -> Move Instance Method`. helperA is called from 4 sites *inside LibrarySystem* — `processReturn`, `bulkLendBooks`, `findOverdueLoans`, and `fooBar` — so the move forces a visible cross-method cascade of updates. Loud IDE_REPLAY anchor.
+
+(Previously this session targeted `validateMember`, but that method has no internal callers in LibrarySystem and only one external caller in `Main.java` — a weak "loud" example. `helperA` gives the strongest cross-method cascade available in the fixture.)
 
 ## Setup (every session)
 
@@ -42,13 +44,36 @@ User manually moves `LibrarySystem.validateMember` (lines 129-136) into `MemberV
 
 ## Step 2 — Manual Move Method (the bad step)
 
-1. In `LibrarySystem.java`, **manually** select the entire `validateMember` method body (lines 129-136). Press **Cmd-X**.
-2. Open `MemberValidator.java`. Paste (Cmd-V) the method below the existing `validate` method, around line 22 (before the closing brace of the class).
-3. By hand, rename the pasted method (do NOT use Shift-F6; just retype) — leave it as `validateMember` for now, or retype to `validate2`. Adjust by hand: remove the `fooBar(...)` call inside it because `fooBar` doesn't exist in `MemberValidator` scope.
-4. Add a `MemberValidator validator = new MemberValidator();` field to `LibrarySystem.java` if needed for callers, or simply construct one inline at each caller.
-5. Find all callers of `validateMember` in the project (use Cmd-F to grep textually). Replace `validateMember(m)` with `new MemberValidator().validateMember(m)` (or appropriate) by hand at every caller. Check `LibrarySystemTest.java`.
-6. Save all. Run tests. Expect green.
-7. Terminal: `git commit -am "manual move: validateMember -> MemberValidator"`.
+1. In `LibrarySystem.java`, locate the `helperA(Loan loan)` declaration (around line 121). **Manually** select all 3 lines:
+   ```java
+       public boolean helperA(Loan loan) {
+           return loan.isOverdue(LocalDate.now());
+       }
+   ```
+   Press **Cmd-X** to cut. (Do NOT use `Refactor -> Move Instance Method` — that would be the IDE-driven equivalent.)
+
+2. Open `Loan.java`. Place the caret on the blank line before the final `}` of the `Loan` class (around line 40). Press **Cmd-V** to paste.
+
+3. **Manually** edit the pasted method to convert it from a static-shaped helper into an instance method:
+   ```java
+       public boolean helperA() {
+           return isOverdue(LocalDate.now());
+       }
+   ```
+   - Delete the `Loan loan` parameter.
+   - Delete the `loan.` prefix on the `isOverdue` call.
+
+4. Back in `LibrarySystem.java`, update the 4 internal call sites by hand. Use **Cmd-F** to find `helperA(` in the file (DO NOT use Refactor → Rename, DO NOT use Find/Replace across files — type each replacement at the call site). Replacements:
+   - Line ~46 inside `processReturn`: `helperA(loan)` → `loan.helperA()`
+   - Line ~112 inside `bulkLendBooks`: `helperA(ln)` → `ln.helperA()`
+   - Line ~141 inside `findOverdueLoans`: `helperA(loan)` → `loan.helperA()`
+   - Line ~157 inside `fooBar`: `helperA(loan)` → `loan.helperA()`
+
+5. Save all open files (Cmd-S in each, or Cmd-Shift-S for "Save All").
+
+6. Run all tests (Cmd-Shift-F10 on `src/test/java`). Expect green. If a test fails, fix the wiring by hand — do NOT undo and use the IDE refactor.
+
+7. Commit: `cd fixtures/library-fixture && git commit -am "manual move: helperA into Loan"`.
 
 ## End
 

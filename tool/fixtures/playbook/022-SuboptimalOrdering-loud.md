@@ -12,7 +12,9 @@
 
 ## What this session demonstrates
 
-A 3-step IDE-driven refactor window on `LibrarySystem.fooBar` performed in the suboptimal order **rename -> extract -> move**. The better order is **extract -> rename -> move** (extracting before renaming means the helper inherits the cleaner name; renaming before moving means the move target receives the right name). The synthesiser permutes the 3-step window and finds the better permutation. The terminal step (move) is `target_step = 4` (step 1 warmup + 3 ordered steps).
+A 3-step IDE-driven refactor window on `LibrarySystem.fooBar` performed in the suboptimal order **rename -> extract -> change-signature**. The better order is **extract -> rename -> change-signature** (extracting before renaming means the helper inherits the cleaner name and the change-signature lands on the smaller, focused method body rather than the un-extracted one). The synthesiser permutes the 3-step window and finds the better permutation. The terminal step (change signature) is `target_step = 4` (step 1 warmup + 3 ordered steps).
+
+(Previously this session ended with `Refactor -> Move Method` on `processOverdue`. That breaks because step 3's extract creates a *private* helper (`appendOverdueLoans`) inside `LibrarySystem`, which the move-to-`ReportFormatter` can't either drag along or reach across class boundaries. Replacing the move with a `Change Signature` keeps every step in-class and applyable in any permutation — matches session 023's safe 3-step structure.)
 
 ## Setup (every session)
 
@@ -53,11 +55,16 @@ A 3-step IDE-driven refactor window on `LibrarySystem.fooBar` performed in the s
 3. Save. Run tests. Expect green.
 4. Terminal: `git commit -am "extract appendOverdueLoans"`.
 
-## Step 4 — IDE Move Method (terminal step; target_step = 4)
+## Step 4 — IDE Change Signature (terminal step; target_step = 4)
 
-1. Caret on the `processOverdue` method declaration (still in `LibrarySystem.java`). Press **F6** (Refactor -> Move). Move to `ReportFormatter.java`. In the wizard, accept defaults; IntelliJ will rewire callers to `reportFormatter.processOverdue(...)`.
-2. Save. Run tests. Expect green.
-3. Terminal: `git commit -am "move processOverdue -> ReportFormatter"`.
+1. Caret on the `processOverdue` method declaration. Press **Cmd-F6** (Refactor -> Change Signature).
+2. In the wizard, add a third parameter:
+   - Type: `int`
+   - Name: `limit`
+   - Default value: `100`
+3. (Optional, only if convenient in the dialog) Edit the method body via the dialog or after-confirm to reference `limit` somewhere benign, e.g. `if (limit <= 0) return "";` at the top — purely so the parameter isn't unused. IntelliJ updates every caller of `processOverdue` to pass the default `100` automatically.
+4. Save. Run tests. Expect green.
+5. Terminal: `cd fixtures/library-fixture && git commit -am "change signature: processOverdue(memberId, today, limit)"`.
 
 ## End
 

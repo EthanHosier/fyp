@@ -45,10 +45,6 @@ Same shape as 039 (6 refactors, no commits, commit at step 7) but with a differe
 5. **Step 5**: `LateFeeCalculator.java` line 42 — `Shift-F6` on `helper` -> `applyDiscount`. Save. Tests green. **NO commit.**
 6. **Step 6** — target_step = 6: `LateFeeCalculator.java` line 19 — `Cmd-Opt-V` on `0.25 * daysOver` -> `tier1Surcharge`. Save. Tests green. **NO commit yet.**
 
-## Step 7 — Finally commit
-
-1. Terminal: `git commit -am "6 refactors batched (formatter+fee)"`.
-
 ## End
 
 1. In the plugin: click **End session**. Plugin writes

@@ -1,0 +1,135 @@
+\chapter{Tool Architecture}
+\label{ch:architecture}
+
+This chapter describes the engineering side of the tool. The methodology chapter argued for why each algorithm is correct; this chapter argues for why each one is fast. It walks through the pipeline in order: event capture in the plugin (\S\ref{sec:arch-events}), shadow-repo reconstruction and worktree allocation (\S\ref{sec:arch-shadow}), per-checkpoint metrics calculation (\S\ref{sec:arch-metrics}), the Eclipse JDT refactoring engine that every synthesiser leans on (\S\ref{sec:arch-jdt}), and the four counterfactual-trajectory synthesis strategies (\S\ref{sec:arch-synthesis}). The split of the pipeline into an expensive offline phase and a cheap replay phase is described in \S\ref{sec:arch-phases}, and the dashboard that consumes the resulting report in \S\ref{sec:arch-dashboard}.
+
+\section{Architecture at a glance}
+\label{sec:arch-overview}
+
+The tool consists of four JVM modules (\texttt{:ide-plugin}, \texttt{:analysis}, \texttt{:refactoring-bundle}, \texttt{:shared}) plus a standalone React/TypeScript dashboard (\texttt{dashboard/}):
+
+\begin{itemize}
+  \item \texttt{ide-plugin/} -- an IntelliJ plugin that records the developer's session as a stream of typed events and uploads it to the analysis server.
+  \item \texttt{analysis/} -- the Kotlin pipeline; it ingests sessions, reconstructs a shadow git repo, mines and synthesises trajectories, computes per-checkpoint metrics, and emits an \texttt{AnalysisReport}.
+  \item \texttt{refactoring-bundle/} -- a headless Eclipse JDT distribution wrapped in an embedded Equinox OSGi framework; the analysis module talks to it across the OSGi class\-loader boundary (details in \S\ref{sec:arch-wrap-patch}).
+  \item \texttt{dashboard/} -- a React/TypeScript single-page app that renders the \texttt{AnalysisReport} (details in \S\ref{sec:arch-dashboard}).
+  \item \texttt{shared/} -- cross-wire types (\texttt{Session}, \texttt{TraceEvent}, \texttt{SessionMetadata}, \texttt{FileSnapshot}, \texttt{EventType}) used on both the plugin and the analysis side.
+\end{itemize}
+
+Figure~\ref{fig:arch-overview} shows the dataflow at a glance.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+  font=\small,
+  box/.style={draw, rounded corners=2pt, minimum width=2.5cm, minimum height=1.0cm, align=center, inner sep=4pt},
+  shadow/.style={draw, dashed, rounded corners=2pt, minimum width=2.3cm, minimum height=0.8cm, align=center, inner sep=3pt},
+  arrow/.style={-{Latex[length=2mm]}, thick},
+  dasharrow/.style={-{Latex[length=2mm]}, thick, dashed},
+  biarrow/.style={{Latex[length=2mm]}-{Latex[length=2mm]}, thick},
+]
+
+  \node[box] (plugin) at (0, 0) {\texttt{ide-plugin}\\(IntelliJ)};
+  \node[box] (analysis) at (5, 0) {\texttt{analysis}\\(Kotlin pipeline)};
+  \node[box] (bundle) at (11, 0) {\texttt{refactoring-}\\\texttt{bundle} (JDT)};
+
+  \node[shadow] (shadow) at (5, -1.8) {\texttt{shadow-repo/}\\(per session)};
+
+  \node[box] (dashboard) at (0, -3.6) {\texttt{dashboard}\\(React)};
+
+  \draw[arrow] (plugin) -- node[above, font=\scriptsize] {Session events}
+                                (analysis);
+  \draw[biarrow] (analysis) -- node[above, font=\scriptsize] {in-process via OSGi}
+                                  (bundle);
+
+  \draw[dasharrow] (analysis) -- node[right, font=\scriptsize] {shadow git commits + refs} (shadow);
+
+  \draw[arrow] (analysis.south west) to[bend right=20]
+                                  node[left, font=\scriptsize, pos=0.5] {Analysis Report}
+                                  (dashboard.north east);
+
+\end{tikzpicture}
+\caption{High-level dataflow between the recording side (IDE plugin), the analysis pipeline, the embedded Eclipse JDT engine, and the dashboard. The shadow repo holds every reconstructed state -- both user checkpoints and synthesised alternatives -- as git commits in a per-session repository.}
+\label{fig:arch-overview}
+\end{figure}
+
+\section{Event capture}
+\label{sec:arch-events}
+
+The Intellij plugin is responsible for capture the Intellij events which are emitted during the user's refactoring process. The captured event types cover editor activity (files opened, closed, saved, modified, renamed, moved), refactoring activity (refactoring start / finish), build activity (build start / finish), test activity (test-run start / finish with pass and fail counts), git activity (one event per new commit observed in the underlying repository), and the session lifecycle.
+
+Editor activity is the noisiest source, so keystroke-level events are not emitted directly. A debouncing layer accumulates keystrokes into an \emph{edit burst}: when a quiet window elapses without further typing, a single burst event is emitted carrying the file's post-edit contents and the structured set of program elements touched.
+
+Although a handful of the fine-grained file-level events (file open, save, and similar) are not consumed by any downstream stage, they are recorded because their capture is essentially free at the plugin layer, and they remain obvious candidates for future work on navigation patterns, file dwell time, and read-versus-edit behaviour.
+
+\section{Shadow repo reconstruction and worktree pool}
+\label{sec:arch-shadow}
+
+Analysing a user's trajectory requires the ability to reconstruct, and cheaply check out, the exact state of the codebase at any point during the session. This is made possible by the Shadow Repo and Worktree Pool
+
+\paragraph{Shadow repo reconstruction.}
+The shadow repo is built by replaying the normalised event stream into a fresh per-session git repository, one commit per state-bearing event. The baseline commit is the initial source snapshot taken at session start; each subsequent event that carries file changes applies its snapshots to the working tree, stages them, and commits. No-op events -- those that carry no file changes, or whose staged diff is blank-line-only -- map to the previous SHA without producing an empty commit, so the unique-SHA count is typically much smaller than the event count. The output is a per-event map from event id to SHA, which gives every downstream stage a stable (from-SHA, to-SHA) pair to check out.
+
+\paragraph{Worktree allocation.}
+Borrowers -- the validator, the reorder synthesiser, the IDE-replay runner -- ask for a fresh worktree at a target SHA, run their operation, and release it back when done. Fresh-per-borrow rather than reuse-across-SHAs is deliberate: it guarantees no leftover build artefacts, stale Gradle cache, or other cross-SHA pollution between consecutive borrows.
+
+\section{Metrics calculation}
+\label{sec:arch-metrics}
+
+For every unique state in the shadow repo the pipeline computes a checkpoint metric record: the build and test outcome, the cleanliness signals (PMD violations, CPD duplications, code readability, and Chidamber--Kemerer structural measures), and the file-level diff against the previous checkpoint.
+
+The build and test outcomes are produced by checking the project state out into a worktree and invoking the project's own Gradle build and test tasks against it, recording for each checkpoint whether the build succeeded and whether the test suite passed. This is the stage that dominates the wall-clock cost of the pipeline; everything else is essentially free. Two engineering choices on the build side bring this cost down. First, all checkpoints share a single persistent worktree (the only stage that bypasses the fresh-per-borrow rule of \S\ref{sec:arch-shadow}), and the pipeline walks the unique SHAs in order using detached checkouts to switch between them. The build directory of that worktree is preserved across SHAs, so the Gradle daemon, the Gradle build cache, and incremental compilation all have prior state to reuse on the next checkpoint. Second, an earlier design fanned this work out across multiple fresh worktrees in parallel; on the corpus sessions this lost to the single-worktree-with-reuse approach by roughly $2\times$, because daemon warmup and cache reuse dominate fan-out at this scale.
+
+The static-analysis signals are tracked across checkpoints rather than just computed per checkpoint. Each PMD violation and CPD clone group is threaded through the unified diffs so the report can identify when a violation was first introduced, when it was resolved, and which checkpoint transition is responsible. This is what lets the dashboard show, for any refactoring step, the smells it introduced or eliminated.
+
+\section{Applying refactorings via Eclipse JDT}
+\label{sec:arch-jdt}
+
+Synthesising counterfactual trajectories requires actually applying refactorings to the code, not just describing them. Eclipse JDT is the only Java refactoring engine with both the breadth (extract, inline, move, rename, pull-up, push-down, and so on) and the maturity to serve as ground truth for an analysis pipeline. JDT was designed to run inside an Eclipse workbench, however; the supported route to use it elsewhere is to host an embedded Equinox OSGi framework in the same JVM and load the JDT bundles into it. The Eclipse JDT FAQ~\cite{eclipse_jdt_faq} distinguishes two headless paths: bare-classpath usage for parser and AST features, and a runtime-workbench (i.e.\ Equinox-hosted) deployment for anything workspace-dependent. Refactorings, which depend on a workspace-resident project model, fall in the second category. The reference implementation of this pattern maintained by the Eclipse Foundation is the Eclipse JDT Language Server~\cite{eclipse_jdtls}, characterised by its maintainers as ``a small, headless Eclipse JDT distribution''. To the author's knowledge, no peer-reviewed paper documents the embedded-Equinox-in-a-non-Eclipse-JVM pattern; it is treated as engineering plumbing.
+
+\paragraph{Batch sessions.}
+JDT keeps an indexed project model in memory. Building that model from scratch -- parsing every source file, building the classpath and type-binding caches -- takes on the order of a second for a small fixture, and tearing it down and rebuilding between refactorings would dominate the wall-clock cost of any window that applies more than a handful of operations. The pipeline therefore wraps a whole window of refactorings in a single \emph{batch session}: the project model is initialised once at the start of the window, held warm across every call inside it, and torn down at the end. Each individual refactoring inside the batch sees a fully indexed model and pays only the per-call cost.
+
+\paragraph{Anchor resolution.}
+A refactoring needs to know what to operate on -- ``the method at line 42, column 8'' -- but raw source coordinates are brittle, since any prior edit in the same file shifts subsequent line numbers. The pipeline addresses each target by a triple of line, column, and a canonical hash of the surrounding AST subtree. The hash makes the selection robust to formatting changes and to whole-file line shifts: even if line 42 has become line 47, the subtree at the original location can still be located by hash. The same canonical hash is computed on both the host side, when constructing the refactoring spec, and on the JDT side, when resolving the target, so the two agree on which AST node is meant.
+
+\section{Synthesising counterfactual trajectories}
+\label{sec:arch-synthesis}
+
+For each divergence point the detector emits, the pipeline synthesises a counterfactual reference trajectory: an alternative path between the same start and end states that scores higher under the process metric.
+
+\paragraph{Reorder synthesis.}
+\label{sec:arch-reorder-engine}
+A reorder window of $k$ refactoring steps has up to $k!$ candidate orderings, and each ordering has to be applied against the same starting project state to check whether it reaches the user's terminal AST (the methodology-level account is in \S\ref{sec:methodology-reorder}). The synthesiser does not enumerate $k!$ orderings naively. It first builds a directed acyclic graph of must-come-before edges between the steps, derived from the reads, writes, produces, and consumes effects each refactoring spec declares, so the search is restricted to orderings the dependency lattice admits. It then folds every admissible ordering into a prefix trie and walks the trie depth-first: each forward edge applies one refactoring; each back edge rolls the worktree to the parent commit. Two orderings that agree on their first $j$ steps share the first $j$ trie nodes, so each unique prefix is materialised exactly once no matter how many leaves reuse it.
+
+At each leaf of the trie -- the terminal state of one full ordering -- the synthesiser hashes the touched files' ASTs into a canonical form and compares those hashes against the user's terminal AST hashes, which are precomputed from the user's own trajectory at the start of the window. The hashing collapses cosmetic differences (whitespace, comment positioning, formatting variation) so two ASTs that are structurally identical produce the same hash. An ordering whose terminal hashes match the user's is admitted as an end-state-equivalent alternative; one whose hashes do not match is discarded, since it produced a different end state even though every step in it was a valid refactoring application. This is what distinguishes the admitted alternatives from merely-plausible-looking ones.
+
+Three engineering choices make this search tractable at corpus scale. First, the whole window runs against a single borrowed worktree, so forward edges, back edges, and the final AST audit all reuse the same on-disk checkout rather than paying the cost of a fresh worktree per ordering. Second, the whole window also runs inside a single JDT batch session (\S\ref{sec:arch-jdt}), so every refactoring inside it sees a warm project model and pays only the per-call cost. Third, back edges in the search roll the worktree back via a detached git checkout and then ask the JDT engine to re-stat its files via the same ``files changed under us'' pathway an IDE user exercises constantly.
+
+\paragraph{Manual-refactor synthesis and the wrap-and-patch layer.}
+\label{sec:arch-wrap-patch}
+A manual-refactor divergence point names a step where the user performed by hand what the IDE could have done in one operation (\S\ref{sec:methodology-manualrefactor}).
+
+Identifying these steps requires first identifying the manual refactorings themselves, which is non-trivial: IDE-driven refactorings arrive pre-tagged in the captured event stream, but a manual refactoring is just a series of edit bursts whose net effect happens to constitute a structured refactoring. The pipeline recovers them by running RefactoringMiner~\cite{alikhanifard2025rminer} -- a standard tool that detects refactorings between two code states by AST-level structural matching -- over a sliding window of commit pairs in the shadow repo. The window matters because a manual refactoring may unfold across several intermediate edit bursts, each of which on its own looks like an unrelated change; only by widening the window to cover the full span does the refactoring become visible to the miner. Each detected refactoring is then cross-checked against the captured event stream: a detection whose window contains a matching IDE-emitted refactoring event is recorded as IDE-driven, and one whose window contains no such event is flagged as manual.
+
+Once a manual refactoring is identified, the synthesiser builds the counterfactual by applying that refactoring through the JDT engine. The engineering complication is that the user records sessions in IntelliJ but the pipeline applies refactorings via JDT, and the two engines sometimes produce different terminal ASTs even when they agree on a refactoring's semantics. A wrap-and-patch layer closes the residual gap. Two concrete divergences observed during corpus recording: JDT only adds the \texttt{static} modifier to an extracted method when the body requires it, while IntelliJ adds it whenever the body permits; and JDT under-detects outer-scope-variable liveness in conditional branches, producing a void-returning method where IntelliJ would produce a value-returning one. A host-side post-pass detects each pattern and rewrites the bundle's output to match. Where the residual gap cannot be patched safely, the bracket is marked as diverged and not reordered: the wrap-and-patch layer expands the set of admissible brackets but does not fully bridge the two engines. A complementary empirical study~\cite{wang2025tosem} of 518 refactoring-engine bugs across Eclipse JDT, IntelliJ, and NetBeans found Extract-family refactorings to be the dominant bug class (28.76\% of bugs studied), and the closest documented inter-engine divergence~\cite{wang2025forge} is the Make-Static \texttt{final}-parameter disagreement between the same two engines.
+
+\paragraph{Rework synthesis.}
+A rework divergence point names two steps where the user added a chunk of code at one step and removed it at a later step (or vice versa) within the same logical scope (\S\ref{sec:methodology-reworksynth}). Detection is content-addressed: each diff hunk is hashed against a normalised view of its contents (trailing whitespace trimmed, blank-line-only lines dropped), and chunks with matching hash and matching enclosing scope are paired greedily across the session. Two steps separated by many intervening edits will pair if their hashes match; there is no temporal-locality assumption between the originating and terminal steps.
+
+Synthesis then applies a surgical patch at the originating step that skips the round-trip work, and replays the user's intermediate edits on top. The complication is that those intermediate edits have shifted line numbers around the chunk, so the terminal-step surgery has to translate its line coordinates from the user's tree (where the chunk reappears) to the synthesised tree (where the chunk was never written, so the file is several lines shorter). A per-file drift tracker maintains the divergence between the two trees as a set of zones; each intermediate user hunk shifts every zone past it by the hunk's net line delta, so each zone stays anchored at the same logical content as the user's tree grows or shrinks around it.
+
+After surgery, some of the intermediate checkpoints have no remaining content of their own -- their only change was the wasted work the surgery has now excised -- and others are left holding only cosmetic residue, such as blank-line edits that surrounded the reworked chunk. Empty checkpoints are dropped from the alt trajectory entirely rather than being committed as no-op steps; checkpoints whose surviving change is purely whitespace are folded into the preceding checkpoint. Both moves shorten the alt's step count, which lifts its process score directly through the step-savings term defined in \S\ref{sec:methodology-score}.
+
+\paragraph{Hygiene synthesis.}
+A hygiene divergence point names a process issue rather than a code issue: tests were skipped on a checkpoint that needed them, or the user stretched a long run of green-refactor checkpoints without committing (\S\ref{sec:methodology-hygiene}). The synthesised counterfactual does not change the code at all; it flips the relevant process flag on the anchor checkpoint and re-scores the trajectory. The alternative trajectory's code is identical to the user's at every step; only the metric stream differs. The resulting magnitude is the cost of the missing hygiene event in process-score points, measured directly against the same scoring formula that produced the user's score.
+
+\section{Pipeline Phases}
+\label{sec:arch-phases}
+
+The pipeline is split into two phases. The first covers every stage above -- event ingestion, shadow-repo reconstruction, metrics calculation, and synthesis -- and takes a few minutes per session, dominated by the build and test runs of \S\ref{sec:arch-metrics}. Its output is a serialisable record of every raw signal the next phase needs. The second takes that record together with a choice of weights for the process-score formula and produces the final analysis report; it does no I/O, runs no expensive analyses, and finishes in milliseconds. The architectural value of the split is that the score formula's weights enter only in the second phase, so perturbing them cannot invalidate any of the cached output from the first. The sensitivity experiment of Chapter~\ref{ch:results} exploits this directly: it runs $12 \times 9 \times 45 = 4{,}860$ scoring configurations against the same cached intermediate output in roughly $2.6$ seconds of wall-clock time, because each configuration only re-runs the second phase.
+
+\section{Dashboard}
+\label{sec:arch-dashboard}
+
+The dashboard is a single-page web app that consumes the analysis report and presents the session interactively. The trajectory chart plots the user's process score over time, with the synthesised alternative trajectories overlaid as comparison lines so the developer can see how each counterfactual would have scored against their own. Clicking on a refactoring step opens a detail panel showing what the step did, which smells it introduced or eliminated, and which code-quality metrics shifted across it. Divergence points appear as flagged moments on the trajectory, each one a click-through to the counterfactual that scored higher. A separate panel summarises the highest-impact suggestions for the session as a whole, so the developer has both a per-step view and a session-level takeaway.

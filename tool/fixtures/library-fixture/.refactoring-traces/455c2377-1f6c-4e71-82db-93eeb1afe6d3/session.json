@@ -1,0 +1,333 @@
+{
+    "metadata": {
+        "sessionId": "455c2377-1f6c-4e71-82db-93eeb1afe6d3",
+        "name": "test session 025",
+        "projectName": "library-fixture",
+        "projectPath": "/Users/ethanhosier/Desktop/random/fyp/tool/fixtures/library-fixture",
+        "branch": "recording",
+        "commitHash": "7ac6afa",
+        "startTime": 1779214779361,
+        "endTime": 1779214843639,
+        "ideVersion": "IntelliJ IDEA 2025.2.6.1",
+        "pluginVersion": "dev"
+    },
+    "events": [
+        {
+            "id": "945959cc-2f44-4ed0-8f42-7078827e92fc",
+            "type": "SESSION_STARTED",
+            "timestamp": 1779214779361,
+            "sessionId": "455c2377-1f6c-4e71-82db-93eeb1afe6d3",
+            "changedFiles": [],
+            "relatedFiles": [],
+            "payload": {}
+        },
+        {
+            "id": "30b9f353-c52f-4501-900a-6ea6118acdaf",
+            "type": "REFACTORING_STARTED",
+            "timestamp": 1779214789684,
+            "sessionId": "455c2377-1f6c-4e71-82db-93eeb1afe6d3",
+            "changedFiles": [],
+            "relatedFiles": [],
+            "payload": {
+                "refactoringId": "refactoring.rename"
+            }
+        },
+        {
+            "id": "514f5a02-86c4-424e-be45-74f3ec0c8b07",
+            "type": "REFACTORING_FINISHED",
+            "timestamp": 1779214795530,
+            "sessionId": "455c2377-1f6c-4e71-82db-93eeb1afe6d3",
+            "changedFiles": [
+                {
+                    "path": "/Users/ethanhosier/Desktop/random/fyp/tool/fixtures/library-fixture/src/main/java/org/library/LateFeeCalculator.java",
+                    "contents": "package org.library;\n\nimport java.time.LocalDate;\n\nimport org.library.Member.MemberType;\n\npublic class LateFeeCalculator {\n\n    public double calculateFee(Loan loan, Member member, LocalDate today) {\n        if (loan == null || member == null) return 0.0;\n        long daysLate = loan.daysOverdue(today);\n        if (daysLate <= 0) return 0.0;\n        double fee = 0.0;\n        switch (member.getType()) {\n            case STANDARD:\n            case PREMIUM:\n            case STAFF:\n                if (daysLate <= 3) {\n                    double tier1Base = 0.25 * daysLate;\n                    fee = tier1Base * (member.getType() == MemberType.PREMIUM ? 0.5 : member.getType() == MemberType.STAFF ? 0.7 : 1.0);\n                    fee = helper(fee);\n                } else if (daysLate <= 7) {\n                    double base = 0.25 * 3 + 0.50 * (daysLate - 3);\n                    fee = base * (member.getType() == MemberType.PREMIUM ? 0.5 : member.getType() == MemberType.STAFF ? 0.7 : 1.0);\n                    fee = helper(fee);\n                } else if (daysLate <= 30) {\n                    double base = 0.25 * 3 + 0.50 * 4 + 0.75 * (daysLate - 7);\n                    fee = base * (member.getType() == MemberType.PREMIUM ? 0.5 : member.getType() == MemberType.STAFF ? 0.7 : 1.0);\n                    fee = fee + 1.0;\n                } else {\n                    double base = 0.25 * 3 + 0.50 * 4 + 0.75 * 23 + 1.25 * (daysLate - 30);\n                    fee = base * (member.getType() == MemberType.PREMIUM ? 0.5 : member.getType() == MemberType.STAFF ? 0.7 : 1.0);\n                    fee = fee + 5.0;\n                }\n                break;\n        }\n        if (fee < 0) fee = 0.0;\n        fee = Math.round(fee * 100.0) / 100.0;\n        return fee;\n    }\n\n    public double helper(double base) {\n        return base + 0.0;\n    }\n\n    public double calc1(Loan loan) {\n        if (loan == null) return 0.0;\n        return helper(0.25);\n    }\n\n    public double calc2(Loan loan) {\n        if (loan == null) return 0.0;\n        return 0.50 * 2.0;\n    }\n\n    public double calc3(Loan loan) {\n        if (loan == null) return 0.0;\n        return 0.75 * 3.0;\n    }\n\n    public double sumAll(Loan loan) {\n        return calc1(loan) + calc2(loan) + calc3(loan) + helper(0.10);\n    }\n}\n",
+                    "changeType": "MODIFIED",
+                    "previousPath": null,
+                    "touchedMembers": []
+                }
+            ],
+            "relatedFiles": [],
+            "payload": {
+                "refactoringId": "refactoring.rename",
+                "outcome": "committed"
+            }
+        },
+        {
+            "id": "d5654353-f6fa-4fce-983b-79c11d54b40d",
+            "type": "FILE_SAVED",
+            "timestamp": 1779214796796,
+            "sessionId": "455c2377-1f6c-4e71-82db-93eeb1afe6d3",
+            "changedFiles": [],
+            "relatedFiles": [
+                "/Users/ethanhosier/Desktop/random/fyp/tool/fixtures/library-fixture/src/main/java/org/library/LateFeeCalculator.java"
+            ],
+            "payload": {}
+        },
+        {
+            "id": "717d5d07-f4c4-487f-8984-7c268b4c5a17",
+            "type": "FILE_SAVED",
+            "timestamp": 1779214806817,
+            "sessionId": "455c2377-1f6c-4e71-82db-93eeb1afe6d3",
+            "changedFiles": [],
+            "relatedFiles": [
+                "/Users/ethanhosier/Desktop/random/fyp/tool/fixtures/library-fixture/src/main/java/org/library/LateFeeCalculator.java"
+            ],
+            "payload": {}
+        },
+        {
+            "id": "323aa8eb-0edc-4869-8d0e-8da6b8e253ab",
+            "type": "FILE_SAVED",
+            "timestamp": 1779214806821,
+            "sessionId": "455c2377-1f6c-4e71-82db-93eeb1afe6d3",
+            "changedFiles": [],
+            "relatedFiles": [
+                "/Users/ethanhosier/Desktop/random/fyp/tool/fixtures/library-fixture/src/main/java/org/library/Loan.java"
+            ],
+            "payload": {}
+        },
+        {
+            "id": "4d0bdfcf-5591-4620-81fe-a0d1ae97987b",
+            "type": "EDIT_BURST",
+            "timestamp": 1779214806065,
+            "sessionId": "455c2377-1f6c-4e71-82db-93eeb1afe6d3",
+            "changedFiles": [
+                {
+                    "path": "/Users/ethanhosier/Desktop/random/fyp/tool/fixtures/library-fixture/src/main/java/org/library/LateFeeCalculator.java",
+                    "contents": "package org.library;\n\nimport java.time.LocalDate;\n\nimport org.library.Member.MemberType;\n\npublic class LateFeeCalculator {\n\n    public double calculateFee(Loan loan, Member member, LocalDate today) {\n        if (loan == null || member == null) return 0.0;\n        long daysLate = loan.daysOverdue(today);\n        if (daysLate <= 0) return 0.0;\n        double fee = 0.0;\n        switch (member.getType()) {\n            case STANDARD:\n            case PREMIUM:\n            case STAFF:\n                if (daysLate <= 3) {\n                    double tier1Base = 0.25 * daysLate;\n                    fee = tier1Base * (member.getType() == MemberType.PREMIUM ? 0.5 : member.getType() == MemberType.STAFF ? 0.7 : 1.0);\n                    fee = helper(fee);\n                } else if (daysLate <= 7) {\n                    double base = 0.25 * 3 + 0.50 * (daysLate - 3);\n                    fee = base * (member.getType() == MemberType.PREMIUM ? 0.5 : member.getType() == MemberType.STAFF ? 0.7 : 1.0);\n                    fee = helper(fee);\n                } else if (daysLate <= 30) {\n                    double base = 0.25 * 3 + 0.50 * 4 + 0.75 * (daysLate - 7);\n                    fee = base * (member.getType() == MemberType.PREMIUM ? 0.5 : member.getType() == MemberType.STAFF ? 0.7 : 1.0);\n                    fee = fee + 1.0;\n                } else {\n                    double base = 0.25 * 3 + 0.50 * 4 + 0.75 * 23 + 1.25 * (daysLate - 30);\n                    fee = base * (member.getType() == MemberType.PREMIUM ? 0.5 : member.getType() == MemberType.STAFF ? 0.7 : 1.0);\n                    fee = fee + 5.0;\n                }\n                break;\n        }\n        if (fee < 0) fee = 0.0;\n        fee = Math.round(fee * 100.0) / 100.0;\n        return fee;\n    }\n\n    public double helper(double base) {\n        return base + 0.0;\n    }\n\n    public double calc1(Loan loan) {\n        if (loan == null) return 0.0;\n        return helper(0.25);\n    }\n\n    public double calc3(Loan loan) {\n        if (loan == null) return 0.0;\n        return 0.75 * 3.0;\n    }\n\n    public double sumAll(Loan loan) {\n        return calc1(loan) + loan.calc2() + calc3(loan) + helper(0.10);\n    }\n}\n",
+                    "changeType": "MODIFIED",
+                    "previousPath": null,
+                    "touchedMembers": [
+                        {
+                            "className": "org.library.LateFeeCalculator",
+                            "methodSignature": "calc2(Loan)"
+                        },
+                        {
+                            "className": "org.library.LateFeeCalculator",
+                            "methodSignature": "sumAll(Loan)"
+                        },
+                        {
+                            "className": "org.library.LateFeeCalculator",
+                            "methodSignature": null
+                        },
+                        {
+                            "className": "org.library.LateFeeCalculator",
+                            "methodSignature": "calc3(Loan)"
+                        }
+                    ]
+                },
+                {
+                    "path": "/Users/ethanhosier/Desktop/random/fyp/tool/fixtures/library-fixture/src/main/java/org/library/Loan.java",
+                    "contents": "package org.library;\n\nimport java.time.LocalDate;\n\npublic class Loan {\n    private final String id;\n    private final String bookId;\n    private final String memberId;\n    private final LocalDate lentDate;\n    private final LocalDate dueDate;\n    private boolean returned;\n\n    public Loan(String id, String bookId, String memberId, LocalDate lentDate, LocalDate dueDate) {\n        this.id = id;\n        this.bookId = bookId;\n        this.memberId = memberId;\n        this.lentDate = lentDate;\n        this.dueDate = dueDate;\n        this.returned = false;\n    }\n\n    public String getId() { return id; }\n    public String getBookId() { return bookId; }\n    public String getMemberId() { return memberId; }\n    public LocalDate getLentDate() { return lentDate; }\n    public LocalDate getDueDate() { return dueDate; }\n\n    public boolean isReturned() { return returned; }\n    public void markReturned() { this.returned = true; }\n\n    public boolean isOverdue(LocalDate today) {\n        if (returned) return false;\n        return today.isAfter(dueDate);\n    }\n\n    public long daysOverdue(LocalDate today) {\n        if (!isOverdue(today)) return 0L;\n        return java.time.temporal.ChronoUnit.DAYS.between(dueDate, today);\n    }\n\n    public double calc2() {\n        if (this == null) return 0.0;\n        return 0.50 * 2.0;\n    }\n}\n",
+                    "changeType": "MODIFIED",
+                    "previousPath": null,
+                    "touchedMembers": [
+                        {
+                            "className": "org.library.Loan",
+                            "methodSignature": "calc2()"
+                        },
+                        {
+                            "className": "org.library.Loan",
+                            "methodSignature": null
+                        }
+                    ]
+                }
+            ],
+            "relatedFiles": [],
+            "payload": {
+                "charsInserted": "105",
+                "charsDeleted": "113",
+                "fileCount": "2"
+            }
+        },
+        {
+            "id": "36ab22a0-9182-4d74-b23e-018575f7e4b0",
+            "type": "FILE_UNFOCUSED",
+            "timestamp": 1779214811926,
+            "sessionId": "455c2377-1f6c-4e71-82db-93eeb1afe6d3",
+            "changedFiles": [],
+            "relatedFiles": [
+                "/Users/ethanhosier/Desktop/random/fyp/tool/fixtures/library-fixture/src/main/java/org/library/LateFeeCalculator.java"
+            ],
+            "payload": {}
+        },
+        {
+            "id": "546e385e-9015-42c0-b116-f70aab6c787b",
+            "type": "FILE_FOCUSED",
+            "timestamp": 1779214811926,
+            "sessionId": "455c2377-1f6c-4e71-82db-93eeb1afe6d3",
+            "changedFiles": [],
+            "relatedFiles": [
+                "/Users/ethanhosier/Desktop/random/fyp/tool/fixtures/library-fixture/src/main/java/org/library/Loan.java"
+            ],
+            "payload": {}
+        },
+        {
+            "id": "38c56acd-f46f-4e54-92a5-97e48ad6268f",
+            "type": "FILE_OPENED",
+            "timestamp": 1779214811928,
+            "sessionId": "455c2377-1f6c-4e71-82db-93eeb1afe6d3",
+            "changedFiles": [],
+            "relatedFiles": [
+                "/Users/ethanhosier/Desktop/random/fyp/tool/fixtures/library-fixture/src/main/java/org/library/Loan.java"
+            ],
+            "payload": {}
+        },
+        {
+            "id": "9d706b46-5659-4577-80b5-f8b76b5a7b71",
+            "type": "EDIT_BURST",
+            "timestamp": 1779214838612,
+            "sessionId": "455c2377-1f6c-4e71-82db-93eeb1afe6d3",
+            "changedFiles": [
+                {
+                    "path": "/Users/ethanhosier/Desktop/random/fyp/tool/fixtures/library-fixture/src/main/java/org/library/Loan.java",
+                    "contents": "package org.library;\n\nimport java.time.LocalDate;\n\npublic class Loan {\n    private final String id;\n    private final String bookId;\n    private final String memberId;\n    private final LocalDate lentDate;\n    private final LocalDate dueDate;\n    private boolean returned;\n\n    public Loan(String id, String bookId, String memberId, LocalDate lentDate, LocalDate dueDate) {\n        this.id = id;\n        this.bookId = bookId;\n        this.memberId = memberId;\n        this.lentDate = lentDate;\n        this.dueDate = dueDate;\n        this.returned = false;\n    }\n\n    public String getId() { return id; }\n    public String getBookId() { return bookId; }\n    public String getMemberId() { return memberId; }\n    public LocalDate getLentDate() { return lentDate; }\n    public LocalDate getDueDate() { return dueDate; }\n\n    public boolean isReturned() { return returned; }\n    public void markReturned() { this.returned = true; }\n\n    public boolean isOverdue(LocalDate today) {\n        if (returned) return false;\n        return today.isAfter(dueDate);\n    }\n\n    public long daysOverdue(LocalDate today) {\n        if (!isOverdue(today)) return 0L;\n        return java.time.temporal.ChronoUnit.DAYS.between(dueDate, today);\n    }\n\n    public double calc2() {\n        if (this == null) return 0.0;\n        return 0.50 * 2.0;\n    }\n}\n",
+                    "changeType": "MODIFIED",
+                    "previousPath": null,
+                    "touchedMembers": [
+                        {
+                            "className": "org.library.Loan",
+                            "methodSignature": "calc2()"
+                        },
+                        {
+                            "className": "org.library.Loan",
+                            "methodSignature": "<unnamed>()"
+                        },
+                        {
+                            "className": "org.library.Loan",
+                            "methodSignature": "f()"
+                        },
+                        {
+                            "className": "org.library.Loan",
+                            "methodSignature": "fe()"
+                        },
+                        {
+                            "className": "org.library.Loan",
+                            "methodSignature": "fee()"
+                        },
+                        {
+                            "className": "org.library.Loan",
+                            "methodSignature": "feeB()"
+                        },
+                        {
+                            "className": "org.library.Loan",
+                            "methodSignature": "feeBu()"
+                        },
+                        {
+                            "className": "org.library.Loan",
+                            "methodSignature": "feeBuc()"
+                        },
+                        {
+                            "className": "org.library.Loan",
+                            "methodSignature": "feeBuck()"
+                        },
+                        {
+                            "className": "org.library.Loan",
+                            "methodSignature": "feeBucke()"
+                        },
+                        {
+                            "className": "org.library.Loan",
+                            "methodSignature": "feeBucket()"
+                        },
+                        {
+                            "className": "org.library.Loan",
+                            "methodSignature": "feeBucketT()"
+                        },
+                        {
+                            "className": "org.library.Loan",
+                            "methodSignature": "feeBucketTw()"
+                        },
+                        {
+                            "className": "org.library.Loan",
+                            "methodSignature": "feeBucketTwo()"
+                        }
+                    ]
+                }
+            ],
+            "relatedFiles": [],
+            "payload": {
+                "charsInserted": "16",
+                "charsDeleted": "16",
+                "fileCount": "1"
+            }
+        },
+        {
+            "id": "5148bbf8-fe57-41cf-900c-1dd9771cafe2",
+            "type": "REFACTORING_STARTED",
+            "timestamp": 1779214838710,
+            "sessionId": "455c2377-1f6c-4e71-82db-93eeb1afe6d3",
+            "changedFiles": [],
+            "relatedFiles": [],
+            "payload": {
+                "refactoringId": "refactoring.inplace.rename"
+            }
+        },
+        {
+            "id": "75c510e0-25f3-438d-b635-5824383ebffb",
+            "type": "REFACTORING_FINISHED",
+            "timestamp": 1779214838739,
+            "sessionId": "455c2377-1f6c-4e71-82db-93eeb1afe6d3",
+            "changedFiles": [
+                {
+                    "path": "/Users/ethanhosier/Desktop/random/fyp/tool/fixtures/library-fixture/src/main/java/org/library/Loan.java",
+                    "contents": "package org.library;\n\nimport java.time.LocalDate;\n\npublic class Loan {\n    private final String id;\n    private final String bookId;\n    private final String memberId;\n    private final LocalDate lentDate;\n    private final LocalDate dueDate;\n    private boolean returned;\n\n    public Loan(String id, String bookId, String memberId, LocalDate lentDate, LocalDate dueDate) {\n        this.id = id;\n        this.bookId = bookId;\n        this.memberId = memberId;\n        this.lentDate = lentDate;\n        this.dueDate = dueDate;\n        this.returned = false;\n    }\n\n    public String getId() { return id; }\n    public String getBookId() { return bookId; }\n    public String getMemberId() { return memberId; }\n    public LocalDate getLentDate() { return lentDate; }\n    public LocalDate getDueDate() { return dueDate; }\n\n    public boolean isReturned() { return returned; }\n    public void markReturned() { this.returned = true; }\n\n    public boolean isOverdue(LocalDate today) {\n        if (returned) return false;\n        return today.isAfter(dueDate);\n    }\n\n    public long daysOverdue(LocalDate today) {\n        if (!isOverdue(today)) return 0L;\n        return java.time.temporal.ChronoUnit.DAYS.between(dueDate, today);\n    }\n\n    public double feeBucketTwo() {\n        if (this == null) return 0.0;\n        return 0.50 * 2.0;\n    }\n}\n",
+                    "changeType": "MODIFIED",
+                    "previousPath": null,
+                    "touchedMembers": [
+                        {
+                            "className": "org.library.Loan",
+                            "methodSignature": "feeBucketTwo()"
+                        }
+                    ]
+                },
+                {
+                    "path": "/Users/ethanhosier/Desktop/random/fyp/tool/fixtures/library-fixture/src/main/java/org/library/LateFeeCalculator.java",
+                    "contents": "package org.library;\n\nimport java.time.LocalDate;\n\nimport org.library.Member.MemberType;\n\npublic class LateFeeCalculator {\n\n    public double calculateFee(Loan loan, Member member, LocalDate today) {\n        if (loan == null || member == null) return 0.0;\n        long daysLate = loan.daysOverdue(today);\n        if (daysLate <= 0) return 0.0;\n        double fee = 0.0;\n        switch (member.getType()) {\n            case STANDARD:\n            case PREMIUM:\n            case STAFF:\n                if (daysLate <= 3) {\n                    double tier1Base = 0.25 * daysLate;\n                    fee = tier1Base * (member.getType() == MemberType.PREMIUM ? 0.5 : member.getType() == MemberType.STAFF ? 0.7 : 1.0);\n                    fee = helper(fee);\n                } else if (daysLate <= 7) {\n                    double base = 0.25 * 3 + 0.50 * (daysLate - 3);\n                    fee = base * (member.getType() == MemberType.PREMIUM ? 0.5 : member.getType() == MemberType.STAFF ? 0.7 : 1.0);\n                    fee = helper(fee);\n                } else if (daysLate <= 30) {\n                    double base = 0.25 * 3 + 0.50 * 4 + 0.75 * (daysLate - 7);\n                    fee = base * (member.getType() == MemberType.PREMIUM ? 0.5 : member.getType() == MemberType.STAFF ? 0.7 : 1.0);\n                    fee = fee + 1.0;\n                } else {\n                    double base = 0.25 * 3 + 0.50 * 4 + 0.75 * 23 + 1.25 * (daysLate - 30);\n                    fee = base * (member.getType() == MemberType.PREMIUM ? 0.5 : member.getType() == MemberType.STAFF ? 0.7 : 1.0);\n                    fee = fee + 5.0;\n                }\n                break;\n        }\n        if (fee < 0) fee = 0.0;\n        fee = Math.round(fee * 100.0) / 100.0;\n        return fee;\n    }\n\n    public double helper(double base) {\n        return base + 0.0;\n    }\n\n    public double calc1(Loan loan) {\n        if (loan == null) return 0.0;\n        return helper(0.25);\n    }\n\n    public double calc3(Loan loan) {\n        if (loan == null) return 0.0;\n        return 0.75 * 3.0;\n    }\n\n    public double sumAll(Loan loan) {\n        return calc1(loan) + loan.feeBucketTwo() + calc3(loan) + helper(0.10);\n    }\n}\n",
+                    "changeType": "MODIFIED",
+                    "previousPath": null,
+                    "touchedMembers": [
+                        {
+                            "className": "org.library.LateFeeCalculator",
+                            "methodSignature": "sumAll(Loan)"
+                        }
+                    ]
+                }
+            ],
+            "relatedFiles": [],
+            "payload": {
+                "refactoringId": "refactoring.inplace.rename",
+                "outcome": "done"
+            }
+        },
+        {
+            "id": "66a5d478-38f5-4fff-9c8c-c376c6cecd7b",
+            "type": "FILE_SAVED",
+            "timestamp": 1779214838983,
+            "sessionId": "455c2377-1f6c-4e71-82db-93eeb1afe6d3",
+            "changedFiles": [],
+            "relatedFiles": [
+                "/Users/ethanhosier/Desktop/random/fyp/tool/fixtures/library-fixture/src/main/java/org/library/LateFeeCalculator.java"
+            ],
+            "payload": {}
+        },
+        {
+            "id": "ebd10c52-6644-4cae-b0d7-bfe0a2b1d011",
+            "type": "FILE_SAVED",
+            "timestamp": 1779214838988,
+            "sessionId": "455c2377-1f6c-4e71-82db-93eeb1afe6d3",
+            "changedFiles": [],
+            "relatedFiles": [
+                "/Users/ethanhosier/Desktop/random/fyp/tool/fixtures/library-fixture/src/main/java/org/library/Loan.java"
+            ],
+            "payload": {}
+        },
+        {
+            "id": "e443787c-9962-4658-8a5f-f1cefbefd2c6",
+            "type": "SESSION_ENDED",
+            "timestamp": 1779214843639,
+            "sessionId": "455c2377-1f6c-4e71-82db-93eeb1afe6d3",
+            "changedFiles": [],
+            "relatedFiles": [],
+            "payload": {}
+        }
+    ]
+}

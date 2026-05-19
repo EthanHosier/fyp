@@ -113,8 +113,14 @@ function DetailRow({
 }
 
 function formatMagnitude(dp: DivergencePointVM): string {
+  // REWORK: prefer the line-count detail for display readability;
+  // fall back to magnitude in process-score points (the V2 magnitude
+  // semantic is trajectory-final delta, so the fallback never says
+  // "X lines" when X is actually score points).
   if (dp.kind === "REWORK") {
-    return `${dp.reworkLineCount ?? dp.magnitude} lines`
+    return dp.reworkLineCount != null
+      ? `${dp.reworkLineCount} lines reverted`
+      : `${dp.magnitude >= 0 ? "+" : ""}${dp.magnitude.toFixed(1)} process points`
   }
   return `+${dp.magnitude.toFixed(1)} process points`
 }

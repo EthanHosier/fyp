@@ -26,6 +26,7 @@ import gr.uom.java.xmi.diff.MoveAndRenameAttributeRefactoring
 import gr.uom.java.xmi.diff.MoveAndRenameClassRefactoring
 import gr.uom.java.xmi.diff.MoveAttributeRefactoring
 import gr.uom.java.xmi.diff.MoveClassRefactoring
+import gr.uom.java.xmi.diff.MoveOperationRefactoring
 import gr.uom.java.xmi.diff.PullUpAttributeRefactoring
 import gr.uom.java.xmi.diff.PullUpOperationRefactoring
 import gr.uom.java.xmi.diff.PushDownAttributeRefactoring
@@ -56,11 +57,19 @@ import java.nio.file.Path
  * single unified pass gives one list of refactoring steps, which is what
  * the dashboard renders as primary chart points.
  *
- * Algorithm (sliding window):
- *  - Grow `R` forward from `L = checkpoint 0`.
- *  - On the first non-empty detection between `(L, R)`, shrink `L` forward
- *    while the canonical-keyed detection set stays equal — locking onto
- *    the tightest window `[L*, R]`.
+ * Algorithm (sliding window — both sides):
+ *  - Grow `R` forward from `L = checkpoint 0` until `RM(L, R)` is non-empty.
+ *  - **Extend `R`** forward while the canonical-keyed detection set stays
+ *    equal — pushes the window's right edge to the latest checkpoint that
+ *    still carries the same refactoring. Without this, partial-refactoring
+ *    workflows like "delete method first, then inline call sites" lock
+ *    the window at the first checkpoint where RM sees the inline, leaving
+ *    later in-progress checkpoints out and forcing the synth's residual
+ *    3-way merge to revert the IDE-applied refactoring back to the user's
+ *    intermediate broken state.
+ *  - **Shrink `L`** forward while the same set holds — locks onto the
+ *    latest L that still represents the pre-refactoring state. Cheaper
+ *    synth (smaller chunk to apply) and tighter residual.
  *  - Emit one [RefactoringStep] per detection, then restart with `L = R`.
  *
  * RM is invoked via [GitHistoryRefactoringMinerImpl.detectAtDirectories]
@@ -86,6 +95,14 @@ class RefactoringMinerRunner(
 
         val shaToTimestamp = firstTimestampPerSha(trace, reconstruction)
         val idePerformedShas = shasWithIdeRefactoring(trace, reconstruction)
+        val userCommitShas = shasWithUserCommit(trace, reconstruction)
+        // SHAs that are intentional landing points — never extend the
+        // detection window across them. IDE-performed checkpoints carry
+        // a wasPerformedByIde attribution that extending past would
+        // silently re-attribute to manual editing; user commits are the
+        // user's "I'm done with this chunk" markers and the next stretch
+        // of work is logically a separate refactoring.
+        val windowBoundaries: Set<String> = idePerformedShas + userCommitShas
 
         // Pool size = 2 per concurrent RM call; the sliding window is
         // sequential here (probe walks dominate), so parallelism × 2
@@ -108,19 +125,73 @@ class RefactoringMinerRunner(
                 }
 
                 val targetKeys = detections.map(::canonicalKey).toSet()
+
+                // Extend R forward while the same detection set holds.
+                // Catches workflows where the user lands the visible
+                // signal of the refactoring early (e.g. deletes the
+                // inlined method before finishing call-site bodies)
+                // and then takes several more checkpoints to settle
+                // — without this, the window locks at the first
+                // checkpoint where RM sees the refactoring and the
+                // synth's residual has to revert the alt back to a
+                // half-done intermediate.
+                var rExtIdx = rIdx
+                var latestDetections = detections
+                while (rExtIdx + 1 < checkpoints.size) {
+                    // Stop at intentional landing points — never absorb
+                    // an IDE-performed checkpoint or a user commit into
+                    // a window whose initial R didn't include it.
+                    if (checkpoints[rExtIdx] in windowBoundaries) break
+                    val nextSha = checkpoints[rExtIdx + 1]
+                    val nextDetections = runRM(pool, lSha, nextSha)
+                    val nextKeys = nextDetections.map(::canonicalKey).toSet()
+                    if (nextKeys != targetKeys) break
+                    rExtIdx++
+                    latestDetections = nextDetections
+                }
+                val tightestRSha = checkpoints[rExtIdx]
+
                 var tightestLSha = lSha
                 var probeIdx = lIdx + 1
-                while (probeIdx < rIdx) {
+                while (probeIdx < rExtIdx) {
                     val probeSha = checkpoints[probeIdx]
-                    val probeKeys = runRM(pool, probeSha, rSha).map(::canonicalKey).toSet()
+                    val probeKeys = runRM(pool, probeSha, tightestRSha).map(::canonicalKey).toSet()
                     if (probeKeys == targetKeys) {
                         tightestLSha = probeSha
                         probeIdx++
                     } else break
                 }
 
-                val toCheckpointIndex = rIdx
-                val timestamp = shaToTimestamp[rSha] ?: 0L
+                // Settle the refactoring forward: walk past the
+                // canonical-key window using a coarser key (type +
+                // declaration anchor) to find the latest checkpoint
+                // where this is still the same logical operation. RM
+                // detection stays anchored at (tightestLSha, tightestRSha)
+                // — `settledSha` is a separate concept for the synth's
+                // residual target. Stops at the same window boundaries
+                // (IDE-performed / commit checkpoints).
+                val coarseTargetKeys = latestDetections.map(::coarseKey).toSet()
+                var settledIdx = rExtIdx
+                while (settledIdx + 1 < checkpoints.size) {
+                    if (checkpoints[settledIdx] in windowBoundaries) break
+                    val probeSha = checkpoints[settledIdx + 1]
+                    val probeCoarse = runRM(pool, tightestLSha, probeSha)
+                        .map(::coarseKey)
+                        .toSet()
+                    if (probeCoarse != coarseTargetKeys) break
+                    settledIdx++
+                }
+                val settledSha = checkpoints[settledIdx]
+
+                // From here on, use the extended-R detections so the
+                // emitted step is keyed off the *final* refactored
+                // state (positions, signatures, anchors) rather than
+                // the first-detected one. Important for spec
+                // resolution: refactoring locations report ranges in
+                // the to-side; using the latest R gives the alt-synth
+                // accurate target ranges to replay.
+                val toCheckpointIndex = rExtIdx
+                val timestamp = shaToTimestamp[tightestRSha] ?: 0L
                 // Borrow the pre-refactoring worktree once for the whole
                 // detection batch so position-anchored specs can resolve
                 // their AST-subtree hashes from the source at fromSha.
@@ -134,19 +205,20 @@ class RefactoringMinerRunner(
                     // order is not applyable in general; the reorderer
                     // converts it into a sequence the validator + reorder
                     // synth + alt-traj runner can replay sequentially.
-                    val resolvedSpecs = detections.map { toSpec(it, anchors) }
+                    val resolvedSpecs = latestDetections.map { toSpec(it, anchors) }
                     val permutation = BracketSpecReorderer.reorder(resolvedSpecs)
                     for (idx in permutation) {
-                        val d = detections[idx]
+                        val d = latestDetections[idx]
                         steps.add(
                             RefactoringStep(
                                 stepIndex = steps.size,
                                 fromSha = tightestLSha,
-                                toSha = rSha,
+                                toSha = tightestRSha,
                                 toCheckpointIndex = toCheckpointIndex,
                                 timestamp = timestamp,
                                 refactoring = toDetected(d),
-                                wasPerformedByIde = rSha in idePerformedShas,
+                                wasPerformedByIde = tightestRSha in idePerformedShas,
+                                settledSha = settledSha,
                                 spec = resolvedSpecs[idx],
                             ),
                         )
@@ -155,8 +227,8 @@ class RefactoringMinerRunner(
                     pool.release(anchorWorktree)
                 }
 
-                lIdx = rIdx
-                rIdx++
+                lIdx = rExtIdx
+                rIdx = rExtIdx + 1
             }
         }
 
@@ -304,6 +376,32 @@ class RefactoringMinerRunner(
             fieldName = r.originalAttribute.name,
             destinationTypeFqn = r.targetClassName,
         )
+
+        // Move Method — JDT's MoveInstanceMethod refactoring rewires the
+        // method into the type of one of its parameters (or instance
+        // fields). RM detects the move structurally; we recover the
+        // target-parameter name by matching parameter types against the
+        // moved operation's new className (FQN or simple). If no
+        // parameter's type matches (e.g. a static-shaped move via a
+        // wholly new field), fall through to Other so the synth skips
+        // rather than guesses.
+        is MoveOperationRefactoring -> {
+            val sourceFqn = r.originalOperation.className
+            val destFqn = r.movedOperation.className
+            val destSimple = destFqn.substringAfterLast('.')
+            val target = r.originalOperation.parameterDeclarationList
+                .firstOrNull { p ->
+                    val typeStr = p.type?.toString() ?: ""
+                    typeStr == destFqn || typeStr == destSimple
+                }
+                ?.variableName
+            if (target == null) RefactoringSpec.Other
+            else RefactoringSpec.MoveInstanceMethod(
+                sourceTypeFqn = sourceFqn,
+                methodName = r.originalOperation.name,
+                targetName = target,
+            )
+        }
 
         is ExtractOperationRefactoring -> {
             // RM's leftSide() returns BOTH the extracted code-fragments
@@ -659,6 +757,25 @@ class RefactoringMinerRunner(
         return "${r.refactoringType.displayName}|L=$left|R=$right"
     }
 
+    /**
+     * Coarse-grained identity for use in [run]'s extend-R / shrink-L
+     * window probes. Strips per-call-site CodeRanges and keys only on
+     * the refactoring's type + the first left-side CodeRange — which
+     * is the *declaration* of the affected element (the inlined
+     * method, the renamed attribute, etc.) and so stays stable as the
+     * refactoring's consequential edits accumulate across multiple
+     * checkpoints. With [canonicalKey] alone, a user manually inlining
+     * call sites one EDIT_BURST at a time produces a sequence of
+     * detections whose right-side ranges grow as more sites land,
+     * which makes the window-extension predicate ("are the keys
+     * equal?") spuriously false at every checkpoint and locks the
+     * window at the first detection.
+     */
+    private fun coarseKey(r: Refactoring): String {
+        val firstLeft = r.leftSide().firstOrNull()?.let(::codeRangeKey) ?: ""
+        return "${r.refactoringType.displayName}|L0=$firstLeft"
+    }
+
     private fun codeRangeKey(c: CodeRange): String =
         "${c.filePath}:${c.startLine}-${c.endLine} [${c.codeElementType}] ${c.codeElement}"
 
@@ -673,6 +790,28 @@ class RefactoringMinerRunner(
         val out = HashSet<String>()
         for (event in trace.events) {
             if (event.type != EventType.REFACTORING_FINISHED) continue
+            val sha = mapping[event.id] ?: continue
+            out.add(sha)
+        }
+        return out
+    }
+
+    /**
+     * SHAs whose events include a `GIT_COMMIT` — i.e. checkpoints the
+     * user intentionally landed as a commit (not just an EDIT_BURST
+     * checkpoint). Treated as window-extension boundaries: the
+     * detection window should not cross a deliberate commit, since
+     * commits are the user's semantic "I'm done with this" markers
+     * and the next stretch of work is its own logical refactoring.
+     */
+    private fun shasWithUserCommit(
+        trace: Trace,
+        reconstruction: ReconstructionResult,
+    ): Set<String> {
+        val mapping = reconstruction.eventCommits.mapping
+        val out = HashSet<String>()
+        for (event in trace.events) {
+            if (event.type != EventType.GIT_COMMIT) continue
             val sha = mapping[event.id] ?: continue
             out.add(sha)
         }

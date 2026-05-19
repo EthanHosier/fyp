@@ -12,7 +12,7 @@
 
 ## What this session demonstrates
 
-2 IDE refactors on `LibrarySystem` back-to-back, no tests between. Then tests + commit. Borderline (exactly 2 refactors in the composite — at the composite-size floor).
+2 IDE refactors on `LibrarySystem` back-to-back, no tests between. Each refactor is committed so the COMMIT_GAP signal stays clean — this session isolates the TESTS_SKIPPED signal. Borderline (exactly 2 refactors in the composite — at the composite-size floor).
 
 ## Setup (every session)
 
@@ -34,20 +34,21 @@
 3. In IntelliJ: press the "Reload from disk" toolbar icon (or just wait a couple of seconds — the IDE picks up the on-disk reset automatically).
 4. Start the refactoring-trajectory plugin in **record mode**.
 
-## Step 1 — IDE Rename (NO TESTS)
+## Step 1 — IDE Rename (NO TESTS) — commit only
 
 1. Open `LibrarySystem.java`. Caret on `helperA` declaration at line 121. **Shift-F6** -> rename to `isOverdueNow`. Confirm.
-2. Save only. NO tests. NO commit.
+2. Save only. NO tests.
+3. Terminal: `cd fixtures/library-fixture && git commit -am "rename helperA -> isOverdueNow (untested)"`.
 
 ## Step 2 — IDE Rename (NO TESTS) — target_step = 2
 
 1. Caret on `helperB` declaration at line 125 (or wherever it now sits). **Shift-F6** -> rename to `isPremium`. Confirm.
-2. Save only. NO tests. NO commit YET.
+2. Save only. NO tests.
+3. Terminal: `cd fixtures/library-fixture && git commit -am "rename helperB -> isPremium (untested)"`.
 
-## Step 3 — Tests + commit
+## Step 3 — Tests (catch-up)
 
-1. Run all tests on `src/test/java`. Expect green.
-2. Terminal: `git commit -am "2 untested refactors: rename helperA/helperB"`.
+1. Run all tests on `src/test/java`. Expect green; if anything required edits, `git commit -am "fix tests after composite"`.
 
 ## End
 
