@@ -6,7 +6,7 @@ The results chapter is rigorous on internal-validity questions (sensitivity, abl
 
 1. **Self-evaluation problem.** The 45 sessions in `fixtures/sessions/` were recorded, designed (playbooks), and labelled (manifest-v2.csv) by the same person. Cohen's $\kappa$ from an independent rater is the standard fix.
 2. **Controlled-injection inflation.** Mean-rank-1.00 prominence is structurally inflated by one-dominant-injection-per-session playbook design. Sessions recorded by independent participants on a different codebase give a real external-validity number.
-3. **Two known engineering gaps still in the corpus.** IDE_REPLAY precision sits at $0.80$ end-to-end, attributed to plugin `TemplateManagerListener` / move-method envelope errors on sessions $025/032/037/039$. The fix is in-scope and pushes end-to-end IDE_REPLAY precision to $1.00$.
+3. **Two known engineering gaps still in the corpus** (one now closed). IDE_REPLAY precision previously sat at $0.80$ end-to-end, attributed to plugin envelope errors on sessions $025/032/037/039$. This gap has now been closed (PR #62, merge `8daecbf`): end-to-end IDE_REPLAY precision is $1.00$ on the refreshed corpus. The second gap (ORDERING recall via `splitOnInvalid`) remains deliberately deferred.
 
 Additional supervisor ask: AI-agent process-score comparison alongside humans. Free win: behavioural-change signal (do participants reduce flagged behaviours across their 6-session trajectory?) replaces the unworkable pre/post score-improvement claim discussed earlier.
 
@@ -23,10 +23,12 @@ This plan covers everything that needs to come out of the user-study phase plus 
 
 ### Phase 0 -- Engineering + corpus refresh (1-2 days, can start now)
 
-- Patch the plugin event-capture envelope in `ide-plugin/.../listeners/` so in-place rename templates (`TemplateManagerListener`) and move-method document mutations fire inside `REFACTORING_STARTED` / `REFACTORING_FINISHED`.
-- Re-record sessions $025, 032, 037, 039$ against the patched plugin. Same playbook prompts; same baseline tag.
-- Re-run `fixtures/bulk-phase-a.sh` on the 45-session corpus.
-- Update precision/recall numbers in `final_report/results/results.tex` (IDE_REPLAY precision rises to $1.00$, scoped-out fixes paragraph drops the plugin-instrumentation entry).
+- [x] Patch the plugin event-capture envelope in `ide-plugin/.../listeners/` so move-method document mutations and other command-only refactorings fire inside `REFACTORING_STARTED` / `REFACTORING_FINISHED`. (Shipped via PR #62, merge commit `8daecbf`. Implementation: `RefactoringCommandListener.commandStarted` synthesises an envelope when the IntelliJ command name matches a known refactoring; the platform listener stays the source of truth where it fires.)
+- [x] Re-record sessions $025, 032, 037, 039$ against the patched plugin. Same playbook prompts; same baseline tag. All four now produce $0$ IDE_REPLAY divergence points.
+- [x] Re-run Phase A on the 4 re-recorded sessions (other 41 sessions unchanged so reports are still valid).
+- [x] Re-run the corpus-wide precision/recall aggregation across all 45 analysis-reports. Headline: precision = 1.00 on all four kinds (ORDERING, IDE_REPLAY, REWORK, HYGIENE).
+- [x] Update precision/recall numbers in `final_report/results/results.tex` (IDE_REPLAY precision rises to $1.00$, scoped-out fixes paragraph rewritten as deferred-then-closed). Also updated: `PLAN-thesis-experiments.md`, `divergence.md`, `plugin-misclassifications.md`.
+- [x] Document the rework-detector adjacent-envelope limitation in `results.tex` (wide-synth envelope can emit a synth event next to a platform event for the same logical operation; rework's between-node comparison occasionally reads this as adjacent rework — metric-design limitation, not a trace-correctness bug). On the current corpus this produced zero rework FPs (precision still 1.00).
 
 ### Phase 1 -- New codebase fixture (1 day)
 
@@ -189,7 +191,7 @@ New section in `final_report/results/results.tex`, inserted after §\ref{sec:res
 In rough order of marginal value, drop from the bottom if time runs out:
 
 1. Blind rater + Cohen's $\kappa$ on existing 45 sessions. (Highest value. Single-rater. ~1--2 days. No new code.)
-2. Plugin envelope fix + re-record the 4 false-positive sessions. (Pushes IDE_REPLAY precision $0.80 \to 1.00$. ~1--2 days.)
+2. ~~Plugin envelope fix + re-record the 4 false-positive sessions. (Pushes IDE_REPLAY precision $0.80 \to 1.00$. ~1--2 days.)~~ **DONE** — shipped in PR #62.
 3. Independent participant sessions on new fixture. (Real external-validity. ~1--2 weeks elapsed.)
 4. Phase 7 qualitative interviews. (Cheap once participants are recruited.)
 5. Agent comparison. (Supervisor ask; doable in 1--2 days; lower priority than the human-side fixes for thesis defence.)

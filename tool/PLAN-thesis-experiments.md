@@ -72,7 +72,7 @@ forward-refs resolve cleanly.
 | 5.2 | Ablation sweep (power-set non-redundancy + per-term roles)     | 2.5   |
 | 5.3 | Divergence experiment (precision/recall/quality vs. ground truth) | 3.5   |
 | 5.4 | Headline finding: reordering rarely helps on commuting windows | 1     |
-| 5.5 | Scoped-out fixes (ORDERING gate + IDE_REPLAY plugin capture)   | 1     |
+| 5.5 | Scoped-out fixes (ORDERING gate + IDE_REPLAY plugin capture, CLOSED) | 1 |
 | **Total** |                                                          | **~11** |
 
 A 14-page hard cap leaves ~3 pages of contingency, used in this
@@ -304,10 +304,14 @@ Subsection structure (4 paragraphs + 3 tables + 1 figure):
 
 The opening claim sentence: *"Against 45 recorded sessions with
 hand-labelled ground truth, the divergence-point detector achieves
-perfect precision on three of four kinds (REWORK 1.00, HYGIENE
-1.00, ORDERING 1.00), 0.80 precision on IDE_REPLAY (all four
-false positives traced to documented plugin-capture bugs), and
-ranks every caught injection at top-1 in its session."*
+perfect precision on all four kinds (REWORK 1.00, HYGIENE 1.00,
+ORDERING 1.00, IDE_REPLAY 1.00), and ranks every caught injection
+at top-1 in its session."* (The IDE_REPLAY precision figure
+previously sat at 0.80 with four plugin-instrumentation false
+positives; this gap was closed in PR #62 by extending the plugin's
+`RefactoringCommandListener` to synthesise envelopes around
+IntelliJ commands the platform `RefactoringEventListener` is
+silent for. See §5.5 for the deferred-fixes history.)
 
 Subsection structure (6 paragraphs + 4 tables + 1 figure):
 
@@ -323,16 +327,18 @@ Subsection structure (6 paragraphs + 4 tables + 1 figure):
 
    | kind        | precision | recall (injection only) | recall (any expected) |
    |-------------|----------:|------------------------:|----------------------:|
-   | ORDERING    | 1.00      | 0.40                    | 0.39                  |
-   | IDE_REPLAY  | 0.80      | 0.76                    | 0.76                  |
+   | ORDERING    | 1.00      | 0.40                    | 0.36                  |
+   | IDE_REPLAY  | 1.00      | 0.76                    | 0.76                  |
    | REWORK      | 1.00      | 1.00                    | 1.00                  |
    | HYGIENE     | 1.00      | 1.00                    | 1.00                  |
 
-   Land the four findings from `divergence.md`: REWORK + HYGIENE
-   perfect on both axes; IDE_REPLAY 4 FPs all traceable to
-   sessions 025/032/037/039 plugin bugs (cross-ref to §5.5 and
-   `plugin-misclassifications.md`); ORDERING perfect precision +
-   0.39 recall driven by the `splitOnInvalid` validator gate
+   Land the findings from `divergence.md`: precision is perfect
+   on all four kinds; REWORK + HYGIENE perfect on both axes;
+   IDE_REPLAY's previously-documented four plugin-instrumentation
+   FPs on sessions 025/032/037/039 have been closed by the
+   plugin envelope synthesis fix (cross-ref to §5.5 for the
+   deferral-then-closure history); ORDERING perfect precision +
+   0.36 recall driven by the `splitOnInvalid` validator gate
    (forward-ref to §5.5 for the deferral rationale).
 
 3. **Part 2 — Detection quality table** (Table 5.7). Port
@@ -344,6 +350,11 @@ Subsection structure (6 paragraphs + 4 tables + 1 figure):
    | HYGIENE     |  13 |              13 |         13 | **100 %**      | 10 points     |
    | IDE_REPLAY  |  22 |              22 |         16 | **72.7 %**     | 23 points     |
    | ORDERING    |  29 |             225 |          7 | **24.1 %**     | 9 points      |
+
+   > **TODO**: IDE_REPLAY row predates the PR #62 envelope fix
+   > and includes the 4 closed plugin-instrumentation FPs.
+   > Re-derive DP-level counts from the refreshed `corpus/` JSONs
+   > before quoting in the chapter.
 
    Three findings (verbatim from `divergence.md`): REWORK and
    HYGIENE never propose a useless alt — every DP is real
@@ -383,17 +394,18 @@ Subsection structure (6 paragraphs + 4 tables + 1 figure):
 
    Honest framing: *"we measured the cost of cadence drift
    directly and chose the looser anywhere-in-session policy on
-   those numbers."* The cause is plugin checkpoint cadence — same
-   in-place rename / Move Method envelope detection issues that
-   cause the IDE_REPLAY FPs (cross-ref to §5.5). Re-enabling
-   strict anchoring is plugin-side future work.
+   those numbers."* The cause is plugin checkpoint cadence
+   (broader than the IDE_REPLAY envelope fix in PR #62, which
+   only closed the per-operation envelope gap, not the
+   per-step checkpoint cadence). Re-enabling strict anchoring is
+   plugin-side future work.
 
 6. **Per-kind precision/recall bar chart figure** (Figure 5.3).
    Grouped bar chart: 4 kinds × {precision, recall, beats-fraction}
    = 12 bars. Generated from `/tmp/divergence-results.csv` via
    `fixtures/aggregate-divergence.sh`. The visual lands the
-   per-kind asymmetry — REWORK/HYGIENE wall-of-100, IDE_REPLAY
-   strong-with-known-flaw, ORDERING precision-without-recall.
+   per-kind asymmetry — REWORK/HYGIENE/IDE_REPLAY wall-of-100
+   on precision, ORDERING precision-without-recall.
 
 7. **Part 5 — Baselines and absolute magnitudes** (Table 5.10).
    Port verbatim:
@@ -418,10 +430,16 @@ Subsection structure (6 paragraphs + 4 tables + 1 figure):
      COMMIT_GAP DPs have discrete magnitude exactly $W_{cg}$.
    - alt_count = 225 for ORDERING is enumeration count, not
      surfaced alts (29 DPs).
-   - Plugin misclassifications are upstream root cause for
-     IDE_REPLAY FPs; the chapter classifies them as detector
-     FPs in the confusion matrix but names the upstream cause
-     here and in §5.5.
+   - Rework-detector adjacent-envelope limitation. The plugin
+     envelope fix (PR #62) synthesises an envelope for
+     refactoring commands the platform listener is silent for;
+     for dialog/template-based refactorings (Extract Variable
+     etc.) this can place a synth envelope next to a platform
+     envelope describing the same logical operation. The rework
+     detector's between-refactor-nodes comparison can read this
+     as adjacent rework. On the current corpus this did not
+     produce any rework FPs (precision still 1.00) but the
+     chapter should flag it as a metric-design limitation.
 
 9. **Expanded-corpus paragraph (STUDY-BLOCKED TODO SLOT)** (~½
    page if it lands). Per `PLAN-user-study.md` Phase 1 and Phase
@@ -507,18 +525,25 @@ the "transparency builds credibility" frame from
    gate is a cosmetic improvement that doesn't move the
    substantive finding.
 
-2. **IDE_REPLAY precision 0.80 — plugin event capture.** Port
-   verbatim, with explicit cross-reference to
-   `plugin-misclassifications.md`. The gap: 4 FPs (sessions 025,
-   032, 037, 039), all traceable to in-place rename templates and
-   Move Method envelope issues in the plugin's
-   `TemplateManagerListener` / `MoveInstanceMethod` wiring. Why
-   not fixed: root cause sits in plugin instrumentation, not the
-   detector. Detector-only precision (excluding plugin-capture
-   errors) is **1.00**; the 0.80 number is the honest end-to-end
-   number with both layers of failure attributed to the detector
-   in the confusion matrix. Plugin-side fix is scoped as separate
-   follow-up work in a different module.
+2. **IDE_REPLAY precision 0.80 — plugin event capture — CLOSED.**
+   Port the closure story rather than the original deferral.
+   Previously 4 FPs (sessions 025, 032, 037, 039), root-caused to
+   IntelliJ commands whose document mutations either bypassed the
+   platform `RefactoringEventListener` (Move Method, Change Method
+   Signature) or fired under a refactoringId the analyser's
+   name-matching did not bridge to RefactoringMiner's vocabulary
+   (Extract/Introduce/Inline). Fix shipped in PR #62 (merge
+   commit `8daecbf`): `RefactoringCommandListener` now overrides
+   `commandStarted` and synthesises a refactoring envelope when
+   the IntelliJ command name matches a known refactoring phrase;
+   affected sessions re-recorded against the patched plugin.
+   Corpus-wide IDE_REPLAY precision rises from 0.80 to 1.00 with
+   no other precision/recall regressions. Residual limitation:
+   for dialog/template-based refactorings a synth envelope can
+   appear adjacent to a platform envelope describing the same
+   logical operation; the rework detector's between-node
+   comparison can read this as adjacent rework, but did not
+   produce any rework FPs on the current corpus.
 
 Closing paragraph: *"Both gaps are well-localised, well-documented,
 and orthogonal to the chapter's core claims. The honest version of

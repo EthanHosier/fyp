@@ -1,17 +1,31 @@
-# Known plugin misclassifications
+# Known plugin misclassifications — CLOSED (historical reference)
 
-Sessions where the recorded `refactoringSteps` list contains steps with
-`wasPerformedByIde = false` even though the user *did* perform the
-operation via an IntelliJ refactoring. These are **plugin-side
-detection bugs**, not real manual edits — so the "perfect detector"
-ground truth labels in `manifest-v2.csv` do **not** include
-`IDE_REPLAY` for them.
+> **Status (2026-05-20):** The misclassifications documented below
+> were closed in PR #62 (merge commit `8daecbf`) by extending
+> `RefactoringCommandListener` to override `commandStarted` and
+> synthesise a refactoring envelope around IntelliJ commands the
+> platform `RefactoringEventListener` is silent for (Move Method,
+> Change Method Signature) or fires under a refactoringId the
+> analyser's name-matching does not bridge to RefactoringMiner's
+> vocabulary (Extract/Introduce/Inline operations). Sessions 025,
+> 032, 037, 039 have been re-recorded against the patched plugin
+> and now produce zero IDE_REPLAY false positives. Corpus-wide
+> IDE_REPLAY precision rises from 0.80 to 1.00. The original
+> per-session diagnostics below are kept as a historical record
+> of the bug surface and the root-cause analysis.
 
-Recorded here so the misclassifications aren't mistaken for genuine
+Sessions where the original recorded `refactoringSteps` list
+contained steps with `wasPerformedByIde = false` even though the
+user *did* perform the operation via an IntelliJ refactoring.
+These were **plugin-side detection bugs**, not real manual edits —
+the "perfect detector" ground truth labels in `manifest-v2.csv` do
+**not** include `IDE_REPLAY` for them.
+
+Recorded so the misclassifications aren't mistaken for genuine
 manual-edit ground truth during future label audits or chapter
 writeup.
 
-## Sessions affected
+## Sessions affected (original diagnostics, pre-PR-#62)
 
 ### 025 — SuboptimalOrdering (borderline)
 

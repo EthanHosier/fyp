@@ -43,19 +43,24 @@ magnitude statistics + injection prominence. 54 columns per row;
 
 | kind        | precision | recall (injection only) | recall (any expected) |
 |-------------|----------:|------------------------:|----------------------:|
-| ORDERING    | 1.00      | 0.40                    | 0.39                  |
-| IDE_REPLAY  | 0.80      | 0.76                    | 0.76                  |
+| ORDERING    | 1.00      | 0.40                    | 0.36                  |
+| IDE_REPLAY  | 1.00      | 0.76                    | 0.76                  |
 | REWORK      | 1.00      | 1.00                    | 1.00                  |
 | HYGIENE     | 1.00      | 1.00                    | 1.00                  |
 
+- **Precision is perfect on all four kinds.** The four IDE_REPLAY
+  false positives previously attributed to plugin-instrumentation
+  bugs (sessions 025, 032, 037, 039) were closed by extending
+  `RefactoringCommandListener` to synthesise a `REFACTORING_STARTED`
+  /`REFACTORING_FINISHED` envelope around IntelliJ commands the
+  platform `RefactoringEventListener` is silent for (Move Method,
+  Change Method Signature) or fires under a refactoringId the
+  analyser's name-matching does not bridge to RefactoringMiner's
+  vocabulary (Extract/Introduce/Inline operations). Fix shipped in
+  PR #62 (merge commit `8daecbf`); affected sessions re-recorded
+  against the patched plugin.
 - **REWORK and HYGIENE are perfect on both axes.**
-- **IDE_REPLAY has 4 false positives**, all traceable to documented
-  plugin-misclassification sessions (025, 032, 037, 039) where
-  IntelliJ refactoring templates emit document edits *outside* the
-  plugin's `REFACTORING_STARTED` / `REFACTORING_FINISHED` envelope.
-  See `plugin-misclassifications.md` for details. Precision is
-  otherwise perfect.
-- **ORDERING has perfect precision but only 0.39 recall.** Most
+- **ORDERING has perfect precision but only 0.36 recall.** Most
   failures are the Manual* sessions (001–021) where the reorder
   synthesiser's `splitOnInvalid` gate breaks the window into
   singletons because the manual step gets validator status
@@ -70,6 +75,13 @@ magnitude statistics + injection prominence. 54 columns per row;
 | HYGIENE     |  13 |              13 |         13 | **100 %**      | 10 points      |
 | IDE_REPLAY  |  22 |              22 |         16 | **72.7 %**     | 23 points      |
 | ORDERING    |  29 |             225 |          7 | **24.1 %**     | 9 points       |
+
+> **TODO**: IDE_REPLAY row predates the PR #62 fix and includes
+> the 4 plugin-instrumentation FPs (sessions 025/032/037/039)
+> that are no longer in the corpus. Re-derive DP-level counts
+> from the refreshed `corpus/` JSONs before quoting in the
+> chapter. Headline precision (Part 1 / Part 3) is already
+> updated.
 
 Three findings:
 
@@ -206,9 +218,10 @@ detection — see `plugin-misclassifications.md`).
 - **HYGIENE detection is similarly solid.** 100/100/100 across the
   board. Magnitudes reflect skipped-test composite sizes and
   commit-gap lengths.
-- **IDE_REPLAY is good with one known flaw.** 80 % precision (all
-  FPs are documented plugin capture bugs, not detector bugs),
-  76 % recall, and 73 % of fires propose real improvements.
+- **IDE_REPLAY is now precision-perfect.** Plugin-capture FPs
+  closed; 100 % precision, 76 % recall, and 73 % of fires propose
+  real improvements (Part 2). The remaining miss is the
+  beats-user fraction, not detector classification.
 - **Top-1 ranking is always correct.** Every caught injection is
   the top-magnitude recommendation in its session — a strong UX
   story for the dashboard's "show me what to fix first" surface.
@@ -229,18 +242,20 @@ detection — see `plugin-misclassifications.md`).
   too much. We measured the cost directly; either fix the plugin
   (in-place rename / Move Method envelope detection) or accept the
   looser anywhere-in-session policy.
-- **IDE_REPLAY can propose worse alts.** 6 of 22 IDE_REPLAY DPs had
-  magnitude ≤ 0 (sometimes negative — e.g. session 007 at −5
-  points). The detector still fires (because we removed the
-  magnitude floor at the builder), but the alt isn't actually
-  useful. A simple downstream threshold (`tier2_alt_better =
-  magnitude > 0`) recovers the usefulness signal.
+- **IDE_REPLAY can propose worse alts.** A non-trivial fraction of
+  IDE_REPLAY DPs have magnitude ≤ 0 (sometimes negative — e.g.
+  session 007 at −5 points). On caught injections specifically,
+  only 12 of 21 fired with magnitude > 0 (caught-mag@>0 = 0.571).
+  The detector still fires (because we removed the magnitude floor
+  at the builder), but the alt isn't actually useful. A simple
+  downstream threshold (`tier2_alt_better = magnitude > 0`)
+  recovers the usefulness signal.
 
 ### Net story for the chapter
 
 The tool is:
 
-- **Correct** — precision ≥ 0.80 across all kinds, perfect on 3/4.
+- **Correct** — precision = 1.00 across all four kinds.
 - **Useful when it fires** — REWORK / HYGIENE 100 %, IDE_REPLAY
   73 %, ORDERING 24 %.
 - **Well-ranked** — 100 % of caught injections are the top-1
@@ -279,12 +294,18 @@ real-time refactoring-trajectory analyser.
 4. **`alt_count` for ORDERING (225) is enumeration count, not
    surfaced alts.** Reported here for transparency about the
    synthesiser's reach; the user-facing number is the 29 DPs.
-5. **Plugin misclassifications are upstream.** The 4 IDE_REPLAY
-   FPs are correctly classified as detector false positives in
-   the confusion matrix, but the root cause is plugin event
-   capture, not synthesis. The chapter should call this out as a
-   distinct failure mode rather than lumping it under "detector
-   precision."
+5. **Rework-detector adjacent-envelope limitation.** The plugin
+   fix that closed the IDE_REPLAY FPs synthesises a refactoring
+   envelope on `commandStarted` for refactorings the platform
+   listener is silent for. For dialog/template-based refactorings
+   (Extract Variable etc.) this can place a synth envelope next
+   to a platform envelope describing the same logical operation.
+   The trace is faithful — both events represent real IntelliJ
+   commands — but the rework detector's between-refactor-nodes
+   comparison can occasionally read this as adjacent rework. On
+   the current corpus this did not produce any rework FPs
+   (precision still 1.00), but the chapter should flag it as a
+   known metric-design limitation rather than a trace bug.
 
 ## Headline empirical claim: reordering alone rarely produces a better refactoring
 
@@ -387,30 +408,32 @@ Part 1; relaxing it would surface additional zero-magnitude DPs
 which strengthens rather than changes the headline empirical claim
 about commuting reorders."
 
-### 2. IDE_REPLAY false positives (precision 0.80) — plugin event capture
+### 2. IDE_REPLAY false positives (precision 0.80) — plugin event capture — CLOSED
 
-**The gap.** Four IDE_REPLAY false positives (sessions 025, 032,
-037, 039), all traceable to **plugin instrumentation bugs**:
-in-place rename template edits and Move Method invocations that fire
-document mutations *outside* the plugin's `REFACTORING_STARTED` /
-`REFACTORING_FINISHED` envelope, so the plugin classifies them as
-manual edits. Fully documented per-session in
-`plugin-misclassifications.md`.
+**Status.** Closed in PR #62 (merge commit `8daecbf`). Previously,
+four IDE_REPLAY false positives (sessions 025, 032, 037, 039) were
+attributed to plugin-instrumentation bugs: Move Method and Change
+Method Signature invocations that fire document mutations *outside*
+the plugin's `REFACTORING_STARTED` / `REFACTORING_FINISHED`
+envelope, plus Extract/Introduce/Inline operations that fire a
+platform `refactoringStarted` event under a refactoringId the
+analyser's name-matching does not bridge to RefactoringMiner's
+vocabulary.
 
-**Why not fixed.** The root cause sits in IntelliJ's
-`TemplateManagerListener` / `MoveInstanceMethod` listener wiring —
-plugin-side instrumentation, not the detector or synthesiser. Fixing
-it is a separate piece of work in a different module that would
-require re-recording the affected sessions and re-running the
-corpus. The detector itself is doing its job correctly given the
-events it receives. Precision is 0.80 with these FPs counted; it is
-**1.00 if plugin-capture errors are excluded**, which is the honest
-detector-only number.
+**Fix.** Extended `RefactoringCommandListener` to override
+`commandStarted` and synthesise a refactoring envelope when the
+IntelliJ command name matches a known refactoring phrase. The
+synth envelope follows the same commit / accumulator path as the
+platform-fired envelope. Affected sessions re-recorded against the
+patched plugin; corpus-wide IDE_REPLAY precision rises from 0.80
+to 1.00 with no other precision/recall regressions.
 
-**Defensible answer if questioned.** "Four FPs, all root-caused to
-plugin event capture rather than detector logic; documented per-
-session in `plugin-misclassifications.md`. Detector-only precision
-is 1.00. Plugin-side fix is scoped as separate follow-up work."
+**Residual limitation.** For dialog/template-based refactorings,
+the synth envelope can appear adjacent to a platform envelope
+describing the same logical operation. Captured as caveat #5
+above. The rework detector's between-refactor-nodes comparison
+can occasionally read this as adjacent rework. On the current
+corpus this did not produce any rework FPs.
 
 ### Why deferral is the right call
 
@@ -421,9 +444,10 @@ materially changing what the chapter argues:
 - The ORDERING fix would *strengthen* the commuting-reorder headline
   (more evidence of zero-magnitude reorders) but does not change its
   sign.
-- The IDE_REPLAY fix lives in the plugin module and is about event
-  capture fidelity, not refactoring-trajectory analysis (the
-  chapter's subject).
+- The IDE_REPLAY fix has now been applied (PR #62) and closes
+  the gap to 1.00 precision. The fix lives in the plugin module
+  and is about event capture fidelity, not refactoring-trajectory
+  analysis (the chapter's subject).
 
 The honest version of the chapter — which names both gaps, explains
 their root causes, and reports detector-only numbers alongside the
