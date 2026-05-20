@@ -79,6 +79,31 @@ class RefactoringBurstCoordinator(private val project: Project) {
     }
 
     /**
+     * Open an envelope for refactoring operations that don't fire
+     * `RefactoringEventListener.refactoringStarted` (e.g. Change Method Signature,
+     * some Move operations). Called from [RefactoringCommandListener.commandStarted]
+     * when the command name matches a known refactoring. The envelope is opened
+     * already marked as awaiting `commandFinished`, so the matching `commandFinished`
+     * closes it via [emitOnCommandFinish]. Document mutations during the command
+     * are folded in via the accumulator, exactly as for platform-fired refactorings.
+     */
+    fun beginSynthesisedRefactoring(refactoringId: String) {
+        synchronized(lock) {
+            if (activeRefactoringId != null) return
+            project.service<EditBurstTracker>().flushAllPending()
+            activeRefactoringId = refactoringId
+            activeBeforeData = null
+            pendingAfterData = null
+            awaitingCommandFinish = true
+            accumulator.clear()
+        }
+        project.service<SessionService>().addEvent(
+            EventType.REFACTORING_STARTED,
+            payload = mapOf("refactoringId" to refactoringId, "synthesised" to "true"),
+        )
+    }
+
+    /**
      * Called from [com.github.ethanhosier.ideplugin.listeners.RefactoringListener]
      * at `refactoringDone`. Stashes [afterData] and marks the refactoring as
      * waiting for its enclosing command to finish — actual emission happens in
