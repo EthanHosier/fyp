@@ -37,9 +37,4 @@ public class Loan {
         if (!isOverdue(today)) return 0L;
         return java.time.temporal.ChronoUnit.DAYS.between(dueDate, today);
     }
-
-    public double feeBucketTwo() {
-        if (this == null) return 0.0;
-        return 0.50 * 2.0;
-    }
 }

@@ -16,8 +16,8 @@ public class LateFeeCalculator {
             case PREMIUM:
             case STAFF:
                 if (daysLate <= 3) {
-                    double tier1Base = 0.25 * daysLate;
-                    fee = tier1Base * (member.getType() == MemberType.PREMIUM ? 0.5 : member.getType() == MemberType.STAFF ? 0.7 : 1.0);
+                    double base = 0.25 * daysLate;
+                    fee = base * (member.getType() == MemberType.PREMIUM ? 0.5 : member.getType() == MemberType.STAFF ? 0.7 : 1.0);
                     fee = helper(fee);
                 } else if (daysLate <= 7) {
                     double base = 0.25 * 3 + 0.50 * (daysLate - 3);
@@ -48,12 +48,17 @@ public class LateFeeCalculator {
         return helper(0.25);
     }
 
+    public double calc2(Loan loan) {
+        if (loan == null) return 0.0;
+        return 0.50 * 2.0;
+    }
+
     public double calc3(Loan loan) {
         if (loan == null) return 0.0;
         return 0.75 * 3.0;
     }
 
     public double sumAll(Loan loan) {
-        return calc1(loan) + loan.feeBucketTwo() + calc3(loan) + helper(0.10);
+        return calc1(loan) + calc2(loan) + calc3(loan) + helper(0.10);
     }
 }
