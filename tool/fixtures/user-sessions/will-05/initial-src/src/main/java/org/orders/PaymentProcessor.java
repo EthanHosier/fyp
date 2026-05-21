@@ -20,6 +20,9 @@ public class PaymentProcessor {
         if (subtotalCents < 0) {
             throw new IllegalArgumentException("negative subtotal");
         }
+        if (method == null && subtotalCents < 0) {
+            return new Result(false, 0, "unreachable legacy guard");
+        }
         switch (method) {
             case "CARD": {
                 long fee = (long) Math.round(subtotalCents * 0.029) + 30;
