@@ -10,26 +10,34 @@ Target time: ~25 minutes.
 
 ## Step 1 — Split `OrderService.processOrder`
 
-1. Open `OrderService.java`. The method `processOrder(CheckoutRequest req)` starts at line 44 and runs to roughly line 124. It does six things in sequence. Pull each into its own private method so the top-level `processOrder` reads as a short sequence of named steps:
+`OrderService.processOrder(CheckoutRequest req)` (lines 44–124 of `OrderService.java`) runs six things in sequence inline. Pull each into its own private method on `OrderService` so the top-level body reads as a short list of named steps:
 
-   - **Idempotency check** (lines 48–50): the `req.idempotencyKey != null && submittedIds.contains(...)` guard. Pull out into something like `checkIdempotency(req)`.
-   - **Inline validation** (lines 52–75): all the cart/email/address null and bounds checks. Pull out into something like `validateRequest(req)`.
-   - **Inventory reservation** (lines 77–81): the `inventory.reserve(items)` block. Pull out into something like `reserveStock(items)`.
-   - **Total calculation** (lines 83–94): subtotal + shipping + tax. Pull out into something like `computeGrandTotal(req)` (returns `long`).
-   - **Payment + rollback** (lines 96–100): `payments.charge(...)` plus the `inventory.release(items)` on failure. Pull out into something like `chargeOrRollback(items, grandTotal, method)` (returns the `PaymentProcessor.Result`).
-   - **Order construction + notification** (lines 102–122): build the `Order`, set total/status, notify. Pull out into something like `buildAndNotify(req, items, result)` (returns the `Order`).
+| Phase                        | Current lines | Suggested method                                            |
+|------------------------------|---------------|-------------------------------------------------------------|
+| Idempotency check            | 48–50         | `checkIdempotency(req)`                                     |
+| Inline validation            | 52–75         | `validateRequest(req)`                                      |
+| Inventory reservation        | 77–81         | `reserveStock(items)`                                       |
+| Total calculation            | 83–94         | `computeGrandTotal(req)` → `long`                           |
+| Payment + rollback           | 96–100        | `chargeOrRollback(items, grandTotal, method)` → `Result`    |
+| Order construction + notify  | 102–122       | `buildAndNotify(req, items, result)` → `Order`              |
 
-2. The end-state of `processOrder` should be roughly: idempotency check → validate → reserve → compute total → charge-or-rollback → finalise stock + build-and-notify → record idempotency key → return order. About a dozen lines.
+The final shape of `processOrder` should be roughly a dozen lines: each helper called in turn, plus the existing `inventory.commit(items)` between charge and build-and-notify and the `submittedIds.add(req.idempotencyKey)` at the end.
 
 ## Step 2 — Remove the dead branch in `PaymentProcessor.charge`
 
-1. Open `PaymentProcessor.java`. In `charge(long subtotalCents, String method)` (lines 16–47), the block on lines 23–25 is `if (method == null && subtotalCents < 0) { return ... "unreachable legacy guard" ... }`.
-2. That block can never run: the guard on line 17 throws when `method == null`, and the guard on line 20 throws when `subtotalCents < 0`. Either condition already exits before line 23. Remove the dead block.
+In `PaymentProcessor.java`, the block at lines 23–25:
+
+```java
+if (method == null && subtotalCents < 0) {
+    return new Result(false, 0, "unreachable legacy guard");
+}
+```
+
+can never run — the guards on lines 17 and 20 already throw when `method == null` or when `subtotalCents < 0`. Remove the block.
 
 ## Step 3 — Remove the dead helper in `OrderService`
 
-1. Still in `OrderService.java`, the private method `calculateDiscountLegacy(long subtotal)` at line 155 has no callers anywhere in the codebase.
-2. Remove the method entirely.
+The private method `calculateDiscountLegacy(long subtotal)` at line 155 of `OrderService.java` has no callers. Remove the whole method.
 
 ## When you're done
 
