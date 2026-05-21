@@ -114,10 +114,10 @@
 \contentsline {paragraph}{Inter-rater reliability.}{40}{section*.67}%
 \contentsline {paragraph}{Descriptive findings on the participant corpus.}{41}{section*.69}%
 \contentsline {paragraph}{Behavioural trajectory across the six-session arc.}{42}{section*.71}%
-\contentsline {section}{\numberline {5.5}Headline finding: reordering rarely helps on commuting windows}{42}{section.5.5}%
-\contentsline {section}{\numberline {5.6}Scoped-out fixes}{43}{section.5.6}%
-\contentsline {chapter}{\numberline {6}Project Plan and Timetable (Jan--Jun 2026)}{45}{chapter.6}%
-\contentsline {paragraph}{Work completed so far (as of 21 Jan 2026).}{45}{section*.73}%
-\contentsline {paragraph}{Timeline in 5 phases (Jan $\rightarrow $ end of June).}{45}{section*.74}%
-\contentsline {chapter}{\numberline {7}Ethical Issues and Data Handling Plan}{46}{chapter.7}%
-\contentsline {chapter}{\numberline {A}First Appendix}{47}{appendix.A}%
+\contentsline {section}{\numberline {5.5}Headline finding: reordering rarely helps on commuting windows}{44}{section.5.5}%
+\contentsline {section}{\numberline {5.6}Scoped-out fixes}{45}{section.5.6}%
+\contentsline {chapter}{\numberline {6}Project Plan and Timetable (Jan--Jun 2026)}{46}{chapter.6}%
+\contentsline {paragraph}{Work completed so far (as of 21 Jan 2026).}{46}{section*.76}%
+\contentsline {paragraph}{Timeline in 5 phases (Jan $\rightarrow $ end of June).}{46}{section*.77}%
+\contentsline {chapter}{\numberline {7}Ethical Issues and Data Handling Plan}{47}{chapter.7}%
+\contentsline {chapter}{\numberline {A}First Appendix}{48}{appendix.A}%

@@ -21,6 +21,8 @@
 \contentsline {table}{\numberline {5.11}{\ignorespaces Per-kind Cohen's $\kappa $ on the 45-session corpus between the author and the two independent raters and between the two independent raters. Ordering and IDE-replay are perfect on every pair; rework and hygiene reach substantial-to-almost-perfect agreement on every pair under Landis and Koch's interpretation thresholds.}}{41}{table.caption.68}%
 \contentsline {table}{\numberline {5.12}{\ignorespaces Per-session divergence-point counts across the 12-session participant corpus. Both participants registered $0$ divergence points on session S04 (the cross-class duplication consolidation prompt); the remaining sessions exercise all four kinds in proportions broadly consistent with the 45-session corpus.}}{41}{table.caption.70}%
 \contentsline {table}{\numberline {5.13}{\ignorespaces Per-kind divergence-point trajectory across the six-session arc, summed across both participants. IDE-replay and hygiene show a downward trajectory consistent with self-reported behavioural change; ordering and rework are episodic, firing on the sessions whose prompts inherently involve them.}}{42}{table.caption.72}%
+\contentsline {table}{\numberline {5.14}{\ignorespaces Per-kind divergence-point totals for the agent over six sessions on the user-study fixture, against the combined two-participant human total reported in Table~\ref {tab:results-userstudy-trajectory}.}}{43}{table.caption.74}%
+\contentsline {table}{\numberline {5.15}{\ignorespaces Agent per-session divergence-point trajectory and final-checkpoint process scores, mirroring Table~\ref {tab:results-userstudy-trajectory} for the human cohort.}}{43}{table.caption.75}%
 \addvspace {10\p@ }
 \addvspace {10\p@ }
 \addvspace {10\p@ }

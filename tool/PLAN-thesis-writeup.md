@@ -21,9 +21,9 @@ flagged. **Detailed per-section plans will be written separately**
 |---|----------------------------------|---------:|---------------|-------------------------------------------------|
 | 1 | Introduction                     | ½ day    | ✅ **done**    | —                                               |
 | 2 | Background trim + new citations  | 2 days   | ✅ **done**    | —                                               |
-| 3 | Methodology chapter              | 1 week   | ✅ **done** (draft) | TODO slot: rater-design paragraph (~½ pg)  |
-| 4 | Tool architecture chapter        | 2 days   | pending       | —                                               |
-| 5 | Experiments + results chapter    | 1 week   | pending       | TODO: expanded-corpus subsection (~½ pg)        |
+| 3 | Methodology chapter              | 1 week   | ✅ **done**    | ~~TODO slot: rater-design paragraph (~½ pg)~~ — landed |
+| 4 | Tool architecture chapter        | 2 days   | ✅ **done**    | —                                               |
+| 5 | Experiments + results chapter    | 1 week   | ✅ **done**    | ~~TODO: expanded-corpus subsection (~½ pg)~~ — shipped as full §5.4 User study (4 sub-blocks, ~5 pp incl. agent comparison) |
 | 6 | Threats-to-validity / discussion | 2 days   | pending       | TODO: mitigation paragraph (~⅓ pg)              |
 | 7 | Conclusion + future work         | 1 day    | pending       | TODO: user-study findings bullet (~¼ pg)        |
 | 8 | Bibliography audit               | ½ day    | pending       | —                                               |
@@ -31,6 +31,20 @@ flagged. **Detailed per-section plans will be written separately**
 
 **Total: ~3.5 weeks of focused writeup, study-dependent inserts
 total ~1.5 pages across 4 slots.**
+
+**Update (post-user-study):** the expanded-corpus slot landed
+larger than the original ½-page budget — `\section{User study}`
+came in at ~5 pages with four sub-blocks (inter-rater reliability,
+descriptive findings on the participant corpus, behavioural
+trajectory across the six-session arc, agent comparison). The
+agent-comparison sub-block was Phase 8 of `PLAN-user-study.md` and
+was originally a one-sentence stub deferred to future work; it now
+ships as a full subsection with two new tables. The methodology
+rater-design TODO has now landed too (a ½-page section covering
+schema, briefing/blinding protocol, κ as Landis-Koch interpretation,
+reconciliation policy, with the empirical numbers carried in the
+results-chapter table). The threats-to-validity and conclusion
+TODOs are still open.
 
 ## Per-section quick-scope notes
 
@@ -42,25 +56,35 @@ total ~1.5 pages across 4 slots.**
    work on developer-process logging / refactoring-trajectory
    analysis, full typo + formality pass.
 
-3. **Methodology chapter** (highest leverage). Order:
+3. **Methodology chapter** — ✅ **done.** Order:
    state/action/trace framing → process score with cited weights
    + ablation single-term recovery numbers → cleanliness sub-score
    → DivergencePoint detector per kind → per-kind synthesisers
-   (incl. JDT `withBatchSession` engineering story).
-   **TODO slot near end:** rater-design paragraph.
+   (incl. JDT `withBatchSession` engineering story) → rater design.
+   ~~TODO slot near end: rater-design paragraph.~~ — landed as
+   `\section{Rater design}` covering schema, briefing/blinding
+   protocol, Cohen's κ + Landis-Koch interpretation, and the
+   "don't retro-edit labels" reconciliation policy with sessions
+   024 / 043 as the concrete case. Empirical numbers stay in the
+   results chapter; methodology section is the framing.
 
-4. **Tool architecture** — port `ARCHITECTURE.md` to LaTeX, one
-   diagram, surface Phase A / Phase B split as the engineering
-   contribution.
+4. **Tool architecture** — ✅ **done.** Ported to LaTeX as 8
+   sections (architecture at a glance, event capture, shadow-repo
+   reconstruction and worktree pool, metrics calculation, applying
+   refactorings via Eclipse JDT, synthesising counterfactual
+   trajectories, pipeline phases, dashboard). Phase A / Phase B
+   split surfaced as the engineering contribution.
 
-5. **Experiments + results** — three subsections from
+5. **Experiments + results** — ✅ **done.** Three subsections from
    `explained_results/{sensitivity, ablation, divergence}.md` near
-   verbatim. Generate figures while numbers are fresh. End the
-   chapter with the reordering-rarely-helps headline + scoped-out
-   fixes section.
-   **TODO slot at end of divergence subsection:** expanded-corpus
-   (κ per kind, multi-recorder precision/recall delta, verbatim
-   quotes).
+   verbatim, the reordering-rarely-helps headline, the scoped-out
+   fixes section (now updated for the PR #62 IDE_REPLAY closure),
+   and a new `\section{User study}` covering Cohen's κ on the
+   45-session corpus, per-session descriptive findings on the
+   12-session participant corpus, behavioural trajectory, and the
+   agent-comparison subsection. ~~TODO slot at end of divergence
+   subsection: expanded-corpus (κ per kind, multi-recorder
+   precision/recall delta, verbatim quotes).~~ — landed.
 
 6. **Threats-to-validity / discussion** — consolidate
    per-experiment caveats from the four `explained_results/*.md`
@@ -96,17 +120,28 @@ being written from scratch:
 
 ## What's blocked by the user study (the 4 TODO slots)
 
-1. **Methodology chapter** — rater-design paragraph (Phase 1 of
-   `PLAN-user-study.md`).
-2. **Experiments + results chapter** — expanded-corpus subsection
+1. ~~**Methodology chapter** — rater-design paragraph (Phase 1 of
+   `PLAN-user-study.md`).~~ **✅ Done.** Landed as
+   `\section{Rater design}` in `methodology.tex` covering schema,
+   briefing/blinding protocol, κ + Landis-Koch interpretation,
+   reconciliation policy with sessions 024 / 043 as the concrete
+   case. Cross-refs from §5.3 detection-accuracy and §5.4
+   inter-rater-reliability both resolve cleanly.
+2. ~~**Experiments + results chapter** — expanded-corpus subsection
    (κ per kind, multi-recorder precision/recall delta on the new
-   6 sessions, verbatim quotes from feedback).
+   6 sessions, verbatim quotes from feedback).~~ **✅ Done.**
+   Landed as the full `\section{User study}` with four sub-blocks
+   (inter-rater κ on the 45-session corpus, descriptive findings
+   on the 12-session participant corpus, behavioural trajectory,
+   agent comparison). All three new tables in §5.4 in place; PDF
+   builds clean.
 3. **Threats-to-validity** — mitigation paragraph leading the
-   section.
-4. **Conclusion** — user-study findings bullet.
+   section. _Still open. κ + multi-recorder data both available._
+4. **Conclusion** — user-study findings bullet. _Still open. Data
+   available._
 
-Total: ~1.5 pages across the thesis. Everything else proceeds
-independently.
+Total slots done: 2 of 4. Of the remaining two, all underlying
+data is in hand; they are writing-only tasks.
 
 ## Note on per-section plans
 
