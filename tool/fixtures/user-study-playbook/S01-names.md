@@ -8,13 +8,20 @@ Target time: ~25 minutes.
 2. In IntelliJ, click the "Reload from disk" toolbar button (or wait a few seconds).
 3. Start plugin recording.
 
-## Prompts
+## Step 1 — `InventoryManager.doIt`
 
-1. In `InventoryManager.java`, rename the method `doIt(String sku, int n)` to something that describes what it does — it increments the reserved-quantity entry for a sku.
-2. In `Notifier.java`, rename the method `handle(Order order)` — it sends a shipment-notification message to the customer.
-3. In `ShippingCalculator.java`, rename the method `process(Order order)` — it computes the shipping fee for an order. (The two-argument `process(int weightGrams, String postcode)` overload should be renamed consistently.)
+1. Open `InventoryManager.java`. The private method `doIt(String sku, int n)` is at line 64 — it adds `n` to the reserved-quantity entry for `sku`.
+2. Rename it to something that describes that (e.g. `addReservation`). Make sure the single call site at line 33 (inside `reserve(...)`) ends up consistent.
 
-Work through them in any order.
+## Step 2 — `Notifier.handle`
+
+1. Open `Notifier.java`. The public method `handle(Order order)` is at line 31 — it sends a shipment-notification message to the customer.
+2. Rename it to something that describes that (e.g. `notifyShipped`).
+
+## Step 3 — `ShippingCalculator.process`
+
+1. Open `ShippingCalculator.java`. There are two overloads of `process` (lines 5 and 9) — they compute the shipping fee.
+2. Rename both overloads to something that describes that (e.g. `calculateShippingFee`). The single call site in `OrderService.processOrder` (around line 91, `shipping.process(...)`) should end up consistent.
 
 ## When you're done
 

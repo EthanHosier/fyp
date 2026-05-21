@@ -8,13 +8,20 @@ Target time: ~25 minutes.
 2. In IntelliJ, click the "Reload from disk" toolbar button (or wait a few seconds).
 3. Start plugin recording.
 
-## Prompts
+## Step 1 — `Order.getShippingLabel` and `Order.getBillingLabel`
 
-1. In `Order.java`, the methods `getShippingLabel()` and `getBillingLabel()` produce strings in nearly the same way (name + street + city + postcode). Eliminate the duplication so the two methods share a single formatting helper.
-2. In `PaymentProcessor.java`, the body of `charge(long subtotalCents, String method)` handles CARD, CASH, and VOUCHER inline. Pull each branch out into its own method so the top-level `charge` reads as a short dispatch.
-3. If time remains: do the same exercise on `PaymentProcessor.refund(long amountCents, String method)`.
+1. Open `Order.java`. The methods `getShippingLabel()` (line 62) and `getBillingLabel()` (line 70) build their strings the same way: customer name, then street, then "city + space + postcode".
+2. Pull the shared formatting into a single helper on `Order` (e.g. a `formatAddress(name, street, city, postcode)` method) and have both `getShippingLabel` and `getBillingLabel` call it.
 
-Work through them in any order.
+## Step 2 — `PaymentProcessor.charge`
+
+1. Open `PaymentProcessor.java`. The body of `charge(long subtotalCents, String method)` (lines 16–47) handles the CARD, CASH, and VOUCHER branches inline.
+2. Pull each branch out into its own private method (e.g. `chargeCard(subtotalCents)`, `chargeCash(subtotalCents)`, `chargeVoucher(subtotalCents)`). The top-level `charge` should end up as a short dispatch (guards + a switch / if-else over `method` that returns the appropriate helper's result).
+
+## Step 3 — `PaymentProcessor.refund`
+
+1. In the same file, `refund(long amountCents, String method)` (lines 58–75) has the same shape as `charge` — branches over `method` inline.
+2. Pull each branch out the same way you did for `charge` (e.g. `refundCard(amountCents)`, `refundCash(amountCents)`, `refundVoucher(amountCents)`).
 
 ## When you're done
 

@@ -8,18 +8,26 @@ Target time: ~25 minutes.
 2. In IntelliJ, click the "Reload from disk" toolbar button (or wait a few seconds).
 3. Start plugin recording.
 
-## Prompts
+## Step 1 — Find the three copies
 
-1. The same validation rules — empty cart, non-positive quantity, negative price, missing customer email, missing shipping street / city / postcode — appear in three places:
-   - `Cart.validate()` (private, called from `Cart.checkout()`),
-   - `OrderValidator.validate(...)`,
-   - the long inline block at the top of `OrderService.processOrder(...)`.
+There are three near-identical validation blocks in the codebase. Open each file and skim its validation logic so you can see they're the same rules:
 
-   Make those rules live in one place rather than three.
-2. Decide whether the single home should be `Cart`, `OrderValidator`, or somewhere else, and update the other two call sites to use it.
-3. Walk through each existing caller and confirm that the validation it used to trigger still fires the same way after your change.
+- `Cart.validate()` in `Cart.java` (lines 60–73) — private, called from `Cart.checkout()`.
+- `OrderValidator.validate(...)` in `OrderValidator.java` (lines 7–32) — public.
+- The inline block at the start of `OrderService.processOrder` in `OrderService.java` (lines 53–75) — runs before any other work.
 
-Work through them in any order.
+All three check the same things: cart non-empty, each line item has positive qty + non-negative price, customer email non-blank, shipping street / city / postcode non-blank.
+
+## Step 2 — Consolidate
+
+1. Pick `OrderValidator.validate(Cart, String, String, String, String)` as the single home for those rules. Make sure it covers every check that the three current sites cover (it already mostly does).
+2. In `Cart.java`, replace the body of `Cart.validate()` with a call into `OrderValidator` (or remove `Cart.validate()` entirely and update `Cart.checkout()` to call `OrderValidator` instead).
+3. In `OrderService.java`, delete the inline validation block at the start of `processOrder` (lines 53–75) and replace it with a single call to `validator.validate(req.cart, req.customerEmail, req.shippingStreet, req.shippingCity, req.shippingPostcode)`.
+
+## Step 3 — Sanity-check the call sites
+
+1. The private `OrderService.validate(...)` method (lines 128–153) is now also unused — remove it.
+2. Walk through every public entry point that used to validate (`Cart.checkout()`, `OrderService.processOrder`) and confirm the same rules still fire on the same inputs.
 
 ## When you're done
 

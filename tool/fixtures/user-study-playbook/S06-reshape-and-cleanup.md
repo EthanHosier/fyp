@@ -8,13 +8,28 @@ Target time: ~25 minutes.
 2. In IntelliJ, click the "Reload from disk" toolbar button (or wait a few seconds).
 3. Start plugin recording.
 
-## Prompts
+## Step 1 — Split `OrderService.processOrder`
 
-1. `OrderService.processOrder(CheckoutRequest req)` is ~85 lines doing six things in sequence: idempotency check, inline validation, inventory reservation, total calculation (subtotal + shipping + tax), payment + rollback, and finally order construction + notification. Pull each phase into its own private method so the top-level `processOrder` reads as a short sequence of named steps.
-2. In `PaymentProcessor.charge(long subtotalCents, String method)` there is an `if (method == null && subtotalCents < 0)` block that can never run (the two earlier guards already throw when `method == null` or when `subtotalCents < 0`). Remove it.
-3. In `OrderService.java`, the private method `calculateDiscountLegacy(long subtotal)` is never called from anywhere. Remove it.
+1. Open `OrderService.java`. The method `processOrder(CheckoutRequest req)` starts at line 44 and runs to roughly line 124. It does six things in sequence. Pull each into its own private method so the top-level `processOrder` reads as a short sequence of named steps:
 
-Work through them in any order.
+   - **Idempotency check** (lines 48–50): the `req.idempotencyKey != null && submittedIds.contains(...)` guard. Pull out into something like `checkIdempotency(req)`.
+   - **Inline validation** (lines 52–75): all the cart/email/address null and bounds checks. Pull out into something like `validateRequest(req)`.
+   - **Inventory reservation** (lines 77–81): the `inventory.reserve(items)` block. Pull out into something like `reserveStock(items)`.
+   - **Total calculation** (lines 83–94): subtotal + shipping + tax. Pull out into something like `computeGrandTotal(req)` (returns `long`).
+   - **Payment + rollback** (lines 96–100): `payments.charge(...)` plus the `inventory.release(items)` on failure. Pull out into something like `chargeOrRollback(items, grandTotal, method)` (returns the `PaymentProcessor.Result`).
+   - **Order construction + notification** (lines 102–122): build the `Order`, set total/status, notify. Pull out into something like `buildAndNotify(req, items, result)` (returns the `Order`).
+
+2. The end-state of `processOrder` should be roughly: idempotency check → validate → reserve → compute total → charge-or-rollback → finalise stock + build-and-notify → record idempotency key → return order. About a dozen lines.
+
+## Step 2 — Remove the dead branch in `PaymentProcessor.charge`
+
+1. Open `PaymentProcessor.java`. In `charge(long subtotalCents, String method)` (lines 16–47), the block on lines 23–25 is `if (method == null && subtotalCents < 0) { return ... "unreachable legacy guard" ... }`.
+2. That block can never run: the guard on line 17 throws when `method == null`, and the guard on line 20 throws when `subtotalCents < 0`. Either condition already exits before line 23. Remove the dead block.
+
+## Step 3 — Remove the dead helper in `OrderService`
+
+1. Still in `OrderService.java`, the private method `calculateDiscountLegacy(long subtotal)` at line 155 has no callers anywhere in the codebase.
+2. Remove the method entirely.
 
 ## When you're done
 
