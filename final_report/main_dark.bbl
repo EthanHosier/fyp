@@ -400,6 +400,16 @@ Erik {\v{S}}trumbelj and Igor Kononenko.
   contributions.
 \newblock {\em Knowledge and Information Systems}, 41(3):647--665, 2014.
 
+\bibitem{cohen1960kappa}
+Jacob Cohen.
+\newblock A coefficient of agreement for nominal scales.
+\newblock {\em Educational and Psychological Measurement}, 20(1):37--46, 1960.
+
+\bibitem{landis1977kappa}
+J.~Richard Landis and Gary~G. Koch.
+\newblock The measurement of observer agreement for categorical data.
+\newblock {\em Biometrics}, 33(1):159--174, 1977.
+
 \bibitem{mens2007graph}
 Tom Mens, Gabriele Taentzer, and Olga Runge.
 \newblock Analysing refactoring dependencies using graph transformation.

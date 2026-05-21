@@ -1,0 +1,202 @@
+{
+    "metadata": {
+        "sessionId": "1dbb5a19-38f3-44c2-8359-030f7b78f290",
+        "name": "04-agent",
+        "projectName": "user-study-fixture",
+        "projectPath": "/Users/ethanhosier/Desktop/random/fyp/tool/fixtures/user-study-fixture",
+        "branch": "recording",
+        "commitHash": "d08c49d",
+        "startTime": 1779396586255,
+        "endTime": 1779396657159,
+        "ideVersion": "IntelliJ IDEA 2025.2.6.1",
+        "pluginVersion": "dev"
+    },
+    "events": [
+        {
+            "id": "b5d0da1c-fbfe-480a-a4fd-7fe031bf37d1",
+            "type": "SESSION_STARTED",
+            "timestamp": 1779396586255,
+            "sessionId": "1dbb5a19-38f3-44c2-8359-030f7b78f290",
+            "changedFiles": [],
+            "relatedFiles": [],
+            "payload": {}
+        },
+        {
+            "id": "82a0c94d-b365-4b39-8c8b-cae79301a381",
+            "type": "FILE_MODIFIED_EXTERNAL",
+            "timestamp": 1779396616678,
+            "sessionId": "1dbb5a19-38f3-44c2-8359-030f7b78f290",
+            "changedFiles": [
+                {
+                    "path": "/Users/ethanhosier/Desktop/random/fyp/tool/fixtures/user-study-fixture/src/main/java/org/orders/OrderService.java",
+                    "contents": "package org.orders;\n\nimport java.time.Instant;\nimport java.util.HashSet;\nimport java.util.List;\nimport java.util.Set;\nimport java.util.UUID;\n\npublic class OrderService {\n\n    private final InventoryManager inventory;\n    private final PaymentProcessor payments;\n    private final ShippingCalculator shipping;\n    private final Notifier notifier;\n    private final OrderValidator validator;\n    private final Set<String> submittedIds = new HashSet<>();\n\n    public OrderService(InventoryManager inventory,\n                        PaymentProcessor payments,\n                        ShippingCalculator shipping,\n                        Notifier notifier,\n                        OrderValidator validator) {\n        this.inventory = inventory;\n        this.payments = payments;\n        this.shipping = shipping;\n        this.notifier = notifier;\n        this.validator = validator;\n    }\n\n    public static class CheckoutRequest {\n        public Cart cart;\n        public String customerEmail;\n        public String customerName;\n        public String shippingStreet;\n        public String shippingCity;\n        public String shippingPostcode;\n        public String billingStreet;\n        public String billingCity;\n        public String billingPostcode;\n        public String paymentMethod;\n        public String idempotencyKey;\n    }\n\n    public Order processOrder(CheckoutRequest req) {\n        if (req == null) {\n            throw new IllegalArgumentException(\"request is null\");\n        }\n        if (req.idempotencyKey != null && submittedIds.contains(req.idempotencyKey)) {\n            throw new IllegalStateException(\"duplicate submission\");\n        }\n\n        if (req.cart == null || req.cart.isEmpty()) {\n            throw new IllegalStateException(\"cart is empty\");\n        }\n        for (LineItem li : req.cart.snapshot()) {\n            if (li.getQty() <= 0) {\n                throw new IllegalStateException(\"non-positive qty for sku \" + li.getSku());\n            }\n            if (li.getUnitPriceCents() < 0) {\n                throw new IllegalStateException(\"negative price for sku \" + li.getSku());\n            }\n        }\n        if (req.customerEmail == null || req.customerEmail.isBlank()) {\n            throw new IllegalStateException(\"missing customer email\");\n        }\n        if (req.shippingStreet == null || req.shippingStreet.isBlank()) {\n            throw new IllegalStateException(\"missing shipping street\");\n        }\n        if (req.shippingCity == null || req.shippingCity.isBlank()) {\n            throw new IllegalStateException(\"missing shipping city\");\n        }\n        if (req.shippingPostcode == null || req.shippingPostcode.isBlank()) {\n            throw new IllegalStateException(\"missing shipping postcode\");\n        }\n\n        List<LineItem> items = req.cart.snapshot();\n        boolean reserved = inventory.reserve(items);\n        if (!reserved) {\n            throw new IllegalStateException(\"insufficient stock\");\n        }\n\n        long subtotal = req.cart.subtotalCents();\n        long shippingCents;\n        if (req.cart.totalWeightGrams() < 500) {\n            shippingCents = 299;\n        } else if (req.cart.totalWeightGrams() < 2000) {\n            shippingCents = 599;\n        } else {\n            shippingCents = 1299;\n        }\n        long shippingFromCalc = shipping.process(req.cart.totalWeightGrams(), req.shippingPostcode);\n        long preTax = subtotal + shippingFromCalc;\n        long tax = (long) Math.round(preTax * 0.2);\n        long grandTotal = preTax + tax;\n\n        PaymentProcessor.Result result = payments.charge(grandTotal, req.paymentMethod);\n        if (!result.success) {\n            inventory.release(items);\n            throw new IllegalStateException(\"payment failed: \" + result.message);\n        }\n\n        inventory.commit(items);\n\n        String billingStreet = req.billingStreet != null ? req.billingStreet : req.shippingStreet;\n        String billingCity = req.billingCity != null ? req.billingCity : req.shippingCity;\n        String billingPostcode = req.billingPostcode != null ? req.billingPostcode : req.shippingPostcode;\n\n        Order order = new Order(\n                UUID.randomUUID().toString(),\n                req.customerEmail,\n                req.customerName,\n                req.shippingStreet, req.shippingCity, req.shippingPostcode,\n                billingStreet, billingCity, billingPostcode,\n                items,\n                Instant.now()\n        );\n        order.setTotalCents(result.chargedCents);\n        order.setStatus(OrderStatus.PAID);\n\n        notifier.notifyCustomer(order);\n\n        if (req.idempotencyKey != null) {\n            submittedIds.add(req.idempotencyKey);\n        }\n        return order;\n    }\n\n    private void validate(Cart cart, String customerEmail,\n                          String shippingStreet, String shippingCity, String shippingPostcode) {\n        if (cart == null || cart.isEmpty()) {\n            throw new IllegalStateException(\"cart is empty\");\n        }\n        for (LineItem li : cart.snapshot()) {\n            if (li.getQty() <= 0) {\n                throw new IllegalStateException(\"non-positive qty for sku \" + li.getSku());\n            }\n            if (li.getUnitPriceCents() < 0) {\n                throw new IllegalStateException(\"negative price for sku \" + li.getSku());\n            }\n        }\n        if (customerEmail == null || customerEmail.isBlank()) {\n            throw new IllegalStateException(\"missing customer email\");\n        }\n        if (shippingStreet == null || shippingStreet.isBlank()) {\n            throw new IllegalStateException(\"missing shipping street\");\n        }\n        if (shippingCity == null || shippingCity.isBlank()) {\n            throw new IllegalStateException(\"missing shipping city\");\n        }\n        if (shippingPostcode == null || shippingPostcode.isBlank()) {\n            throw new IllegalStateException(\"missing shipping postcode\");\n        }\n    }\n\n    private long calculateDiscountLegacy(long subtotal) {\n        if (subtotal > 50_000) {\n            return (long) Math.round(subtotal * 0.05);\n        }\n        if (subtotal > 20_000) {\n            return (long) Math.round(subtotal * 0.02);\n        }\n        return 0;\n    }\n}\n",
+                    "changeType": "MODIFIED",
+                    "previousPath": null,
+                    "touchedMembers": []
+                }
+            ],
+            "relatedFiles": [],
+            "payload": {}
+        },
+        {
+            "id": "145ae97f-93e2-4337-9d7c-498d182c2403",
+            "type": "EDIT_BURST",
+            "timestamp": 1779396616682,
+            "sessionId": "1dbb5a19-38f3-44c2-8359-030f7b78f290",
+            "changedFiles": [
+                {
+                    "path": "/Users/ethanhosier/Desktop/random/fyp/tool/fixtures/user-study-fixture/src/main/java/org/orders/OrderService.java",
+                    "contents": "package org.orders;\n\nimport java.time.Instant;\nimport java.util.HashSet;\nimport java.util.List;\nimport java.util.Set;\nimport java.util.UUID;\n\npublic class OrderService {\n\n    private final InventoryManager inventory;\n    private final PaymentProcessor payments;\n    private final ShippingCalculator shipping;\n    private final Notifier notifier;\n    private final OrderValidator validator;\n    private final Set<String> submittedIds = new HashSet<>();\n\n    public OrderService(InventoryManager inventory,\n                        PaymentProcessor payments,\n                        ShippingCalculator shipping,\n                        Notifier notifier,\n                        OrderValidator validator) {\n        this.inventory = inventory;\n        this.payments = payments;\n        this.shipping = shipping;\n        this.notifier = notifier;\n        this.validator = validator;\n    }\n\n    public static class CheckoutRequest {\n        public Cart cart;\n        public String customerEmail;\n        public String customerName;\n        public String shippingStreet;\n        public String shippingCity;\n        public String shippingPostcode;\n        public String billingStreet;\n        public String billingCity;\n        public String billingPostcode;\n        public String paymentMethod;\n        public String idempotencyKey;\n    }\n\n    public Order processOrder(CheckoutRequest req) {\n        if (req == null) {\n            throw new IllegalArgumentException(\"request is null\");\n        }\n        if (req.idempotencyKey != null && submittedIds.contains(req.idempotencyKey)) {\n            throw new IllegalStateException(\"duplicate submission\");\n        }\n\n        validator.validate(req.cart, req.customerEmail, req.shippingStreet, req.shippingCity, req.shippingPostcode);\n\n        List<LineItem> items = req.cart.snapshot();\n        boolean reserved = inventory.reserve(items);\n        if (!reserved) {\n            throw new IllegalStateException(\"insufficient stock\");\n        }\n\n        long subtotal = req.cart.subtotalCents();\n        long shippingCents;\n        if (req.cart.totalWeightGrams() < 500) {\n            shippingCents = 299;\n        } else if (req.cart.totalWeightGrams() < 2000) {\n            shippingCents = 599;\n        } else {\n            shippingCents = 1299;\n        }\n        long shippingFromCalc = shipping.process(req.cart.totalWeightGrams(), req.shippingPostcode);\n        long preTax = subtotal + shippingFromCalc;\n        long tax = (long) Math.round(preTax * 0.2);\n        long grandTotal = preTax + tax;\n\n        PaymentProcessor.Result result = payments.charge(grandTotal, req.paymentMethod);\n        if (!result.success) {\n            inventory.release(items);\n            throw new IllegalStateException(\"payment failed: \" + result.message);\n        }\n\n        inventory.commit(items);\n\n        String billingStreet = req.billingStreet != null ? req.billingStreet : req.shippingStreet;\n        String billingCity = req.billingCity != null ? req.billingCity : req.shippingCity;\n        String billingPostcode = req.billingPostcode != null ? req.billingPostcode : req.shippingPostcode;\n\n        Order order = new Order(\n                UUID.randomUUID().toString(),\n                req.customerEmail,\n                req.customerName,\n                req.shippingStreet, req.shippingCity, req.shippingPostcode,\n                billingStreet, billingCity, billingPostcode,\n                items,\n                Instant.now()\n        );\n        order.setTotalCents(result.chargedCents);\n        order.setStatus(OrderStatus.PAID);\n\n        notifier.notifyCustomer(order);\n\n        if (req.idempotencyKey != null) {\n            submittedIds.add(req.idempotencyKey);\n        }\n        return order;\n    }\n\n    private void validate(Cart cart, String customerEmail,\n                          String shippingStreet, String shippingCity, String shippingPostcode) {\n        if (cart == null || cart.isEmpty()) {\n            throw new IllegalStateException(\"cart is empty\");\n        }\n        for (LineItem li : cart.snapshot()) {\n            if (li.getQty() <= 0) {\n                throw new IllegalStateException(\"non-positive qty for sku \" + li.getSku());\n            }\n            if (li.getUnitPriceCents() < 0) {\n                throw new IllegalStateException(\"negative price for sku \" + li.getSku());\n            }\n        }\n        if (customerEmail == null || customerEmail.isBlank()) {\n            throw new IllegalStateException(\"missing customer email\");\n        }\n        if (shippingStreet == null || shippingStreet.isBlank()) {\n            throw new IllegalStateException(\"missing shipping street\");\n        }\n        if (shippingCity == null || shippingCity.isBlank()) {\n            throw new IllegalStateException(\"missing shipping city\");\n        }\n        if (shippingPostcode == null || shippingPostcode.isBlank()) {\n            throw new IllegalStateException(\"missing shipping postcode\");\n        }\n    }\n\n    private long calculateDiscountLegacy(long subtotal) {\n        if (subtotal > 50_000) {\n            return (long) Math.round(subtotal * 0.05);\n        }\n        if (subtotal > 20_000) {\n            return (long) Math.round(subtotal * 0.02);\n        }\n        return 0;\n    }\n}\n",
+                    "changeType": "MODIFIED",
+                    "previousPath": null,
+                    "touchedMembers": [
+                        {
+                            "className": "org.orders.OrderService",
+                            "methodSignature": "processOrder(CheckoutRequest)"
+                        }
+                    ]
+                }
+            ],
+            "relatedFiles": [],
+            "payload": {
+                "charsInserted": "0",
+                "charsDeleted": "982",
+                "fileCount": "1"
+            }
+        },
+        {
+            "id": "778cc82d-6666-4a37-91ab-e854591a91c1",
+            "type": "TEST_RUN_STARTED",
+            "timestamp": 1779396621444,
+            "sessionId": "1dbb5a19-38f3-44c2-8359-030f7b78f290",
+            "changedFiles": [],
+            "relatedFiles": [],
+            "payload": {
+                "suite": "[root]"
+            }
+        },
+        {
+            "id": "f9f08395-80e8-4853-8246-dbd790b49149",
+            "type": "TEST_RUN_FINISHED",
+            "timestamp": 1779396622462,
+            "sessionId": "1dbb5a19-38f3-44c2-8359-030f7b78f290",
+            "changedFiles": [],
+            "relatedFiles": [],
+            "payload": {
+                "suite": "[root]",
+                "passed": "true"
+            }
+        },
+        {
+            "id": "129e2890-b35f-431a-88a7-43ba8b52a20b",
+            "type": "GIT_COMMIT",
+            "timestamp": 1779396623469,
+            "sessionId": "1dbb5a19-38f3-44c2-8359-030f7b78f290",
+            "changedFiles": [],
+            "relatedFiles": [],
+            "payload": {
+                "sha": "8fd19d9a32c43adba5b0b89495dbc6584f6390d6",
+                "parentSha": "d08c49dec278d58533e7ee6220ad35612e4f3226",
+                "authorTimestamp": "1779396622000",
+                "message": "replace inline validation with OrderValidator call in processOrder"
+            }
+        },
+        {
+            "id": "f8bef62e-0aa7-4bd4-a84a-389f0ab893af",
+            "type": "FILE_MODIFIED_EXTERNAL",
+            "timestamp": 1779396630830,
+            "sessionId": "1dbb5a19-38f3-44c2-8359-030f7b78f290",
+            "changedFiles": [
+                {
+                    "path": "/Users/ethanhosier/Desktop/random/fyp/tool/fixtures/user-study-fixture/src/main/java/org/orders/OrderService.java",
+                    "contents": "package org.orders;\n\nimport java.time.Instant;\nimport java.util.HashSet;\nimport java.util.List;\nimport java.util.Set;\nimport java.util.UUID;\n\npublic class OrderService {\n\n    private final InventoryManager inventory;\n    private final PaymentProcessor payments;\n    private final ShippingCalculator shipping;\n    private final Notifier notifier;\n    private final OrderValidator validator;\n    private final Set<String> submittedIds = new HashSet<>();\n\n    public OrderService(InventoryManager inventory,\n                        PaymentProcessor payments,\n                        ShippingCalculator shipping,\n                        Notifier notifier,\n                        OrderValidator validator) {\n        this.inventory = inventory;\n        this.payments = payments;\n        this.shipping = shipping;\n        this.notifier = notifier;\n        this.validator = validator;\n    }\n\n    public static class CheckoutRequest {\n        public Cart cart;\n        public String customerEmail;\n        public String customerName;\n        public String shippingStreet;\n        public String shippingCity;\n        public String shippingPostcode;\n        public String billingStreet;\n        public String billingCity;\n        public String billingPostcode;\n        public String paymentMethod;\n        public String idempotencyKey;\n    }\n\n    public Order processOrder(CheckoutRequest req) {\n        if (req == null) {\n            throw new IllegalArgumentException(\"request is null\");\n        }\n        if (req.idempotencyKey != null && submittedIds.contains(req.idempotencyKey)) {\n            throw new IllegalStateException(\"duplicate submission\");\n        }\n\n        validator.validate(req.cart, req.customerEmail, req.shippingStreet, req.shippingCity, req.shippingPostcode);\n\n        List<LineItem> items = req.cart.snapshot();\n        boolean reserved = inventory.reserve(items);\n        if (!reserved) {\n            throw new IllegalStateException(\"insufficient stock\");\n        }\n\n        long subtotal = req.cart.subtotalCents();\n        long shippingCents;\n        if (req.cart.totalWeightGrams() < 500) {\n            shippingCents = 299;\n        } else if (req.cart.totalWeightGrams() < 2000) {\n            shippingCents = 599;\n        } else {\n            shippingCents = 1299;\n        }\n        long shippingFromCalc = shipping.process(req.cart.totalWeightGrams(), req.shippingPostcode);\n        long preTax = subtotal + shippingFromCalc;\n        long tax = (long) Math.round(preTax * 0.2);\n        long grandTotal = preTax + tax;\n\n        PaymentProcessor.Result result = payments.charge(grandTotal, req.paymentMethod);\n        if (!result.success) {\n            inventory.release(items);\n            throw new IllegalStateException(\"payment failed: \" + result.message);\n        }\n\n        inventory.commit(items);\n\n        String billingStreet = req.billingStreet != null ? req.billingStreet : req.shippingStreet;\n        String billingCity = req.billingCity != null ? req.billingCity : req.shippingCity;\n        String billingPostcode = req.billingPostcode != null ? req.billingPostcode : req.shippingPostcode;\n\n        Order order = new Order(\n                UUID.randomUUID().toString(),\n                req.customerEmail,\n                req.customerName,\n                req.shippingStreet, req.shippingCity, req.shippingPostcode,\n                billingStreet, billingCity, billingPostcode,\n                items,\n                Instant.now()\n        );\n        order.setTotalCents(result.chargedCents);\n        order.setStatus(OrderStatus.PAID);\n\n        notifier.notifyCustomer(order);\n\n        if (req.idempotencyKey != null) {\n            submittedIds.add(req.idempotencyKey);\n        }\n        return order;\n    }\n\n    private void validate(Cart cart, String customerEmail,\n                          String shippingStreet, String shippingCity, String shippingPostcode) {\n        if (cart == null || cart.isEmpty()) {\n            throw new IllegalStateException(\"cart is empty\");\n        }\n        for (LineItem li : cart.snapshot()) {\n            if (li.getQty() <= 0) {\n                throw new IllegalStateException(\"non-positive qty for sku \" + li.getSku());\n            }\n            if (li.getUnitPriceCents() < 0) {\n                throw new IllegalStateException(\"negative price for sku \" + li.getSku());\n            }\n        }\n        if (customerEmail == null || customerEmail.isBlank()) {\n            throw new IllegalStateException(\"missing customer email\");\n        }\n        if (shippingStreet == null || shippingStreet.isBlank()) {\n            throw new IllegalStateException(\"missing shipping street\");\n        }\n        if (shippingCity == null || shippingCity.isBlank()) {\n            throw new IllegalStateException(\"missing shipping city\");\n        }\n        if (shippingPostcode == null || shippingPostcode.isBlank()) {\n            throw new IllegalStateException(\"missing shipping postcode\");\n        }\n    }\n\n    private long calculateDiscountLegacy(long subtotal) {\n        if (subtotal > 50_000) {\n            return (long) Math.round(subtotal * 0.05);\n        }\n        if (subtotal > 20_000) {\n            return (long) Math.round(subtotal * 0.02);\n        }\n        return 0;\n    }\n}\n",
+                    "changeType": "MODIFIED",
+                    "previousPath": null,
+                    "touchedMembers": []
+                }
+            ],
+            "relatedFiles": [],
+            "payload": {}
+        },
+        {
+            "id": "d83253e7-f827-41df-a2d7-975999e757e6",
+            "type": "EDIT_BURST",
+            "timestamp": 1779396630834,
+            "sessionId": "1dbb5a19-38f3-44c2-8359-030f7b78f290",
+            "changedFiles": [
+                {
+                    "path": "/Users/ethanhosier/Desktop/random/fyp/tool/fixtures/user-study-fixture/src/main/java/org/orders/OrderService.java",
+                    "contents": "package org.orders;\n\nimport java.time.Instant;\nimport java.util.HashSet;\nimport java.util.List;\nimport java.util.Set;\nimport java.util.UUID;\n\npublic class OrderService {\n\n    private final InventoryManager inventory;\n    private final PaymentProcessor payments;\n    private final ShippingCalculator shipping;\n    private final Notifier notifier;\n    private final OrderValidator validator;\n    private final Set<String> submittedIds = new HashSet<>();\n\n    public OrderService(InventoryManager inventory,\n                        PaymentProcessor payments,\n                        ShippingCalculator shipping,\n                        Notifier notifier,\n                        OrderValidator validator) {\n        this.inventory = inventory;\n        this.payments = payments;\n        this.shipping = shipping;\n        this.notifier = notifier;\n        this.validator = validator;\n    }\n\n    public static class CheckoutRequest {\n        public Cart cart;\n        public String customerEmail;\n        public String customerName;\n        public String shippingStreet;\n        public String shippingCity;\n        public String shippingPostcode;\n        public String billingStreet;\n        public String billingCity;\n        public String billingPostcode;\n        public String paymentMethod;\n        public String idempotencyKey;\n    }\n\n    public Order processOrder(CheckoutRequest req) {\n        if (req == null) {\n            throw new IllegalArgumentException(\"request is null\");\n        }\n        if (req.idempotencyKey != null && submittedIds.contains(req.idempotencyKey)) {\n            throw new IllegalStateException(\"duplicate submission\");\n        }\n\n        validator.validate(req.cart, req.customerEmail, req.shippingStreet, req.shippingCity, req.shippingPostcode);\n\n        List<LineItem> items = req.cart.snapshot();\n        boolean reserved = inventory.reserve(items);\n        if (!reserved) {\n            throw new IllegalStateException(\"insufficient stock\");\n        }\n\n        long subtotal = req.cart.subtotalCents();\n        long shippingCents;\n        if (req.cart.totalWeightGrams() < 500) {\n            shippingCents = 299;\n        } else if (req.cart.totalWeightGrams() < 2000) {\n            shippingCents = 599;\n        } else {\n            shippingCents = 1299;\n        }\n        long shippingFromCalc = shipping.process(req.cart.totalWeightGrams(), req.shippingPostcode);\n        long preTax = subtotal + shippingFromCalc;\n        long tax = (long) Math.round(preTax * 0.2);\n        long grandTotal = preTax + tax;\n\n        PaymentProcessor.Result result = payments.charge(grandTotal, req.paymentMethod);\n        if (!result.success) {\n            inventory.release(items);\n            throw new IllegalStateException(\"payment failed: \" + result.message);\n        }\n\n        inventory.commit(items);\n\n        String billingStreet = req.billingStreet != null ? req.billingStreet : req.shippingStreet;\n        String billingCity = req.billingCity != null ? req.billingCity : req.shippingCity;\n        String billingPostcode = req.billingPostcode != null ? req.billingPostcode : req.shippingPostcode;\n\n        Order order = new Order(\n                UUID.randomUUID().toString(),\n                req.customerEmail,\n                req.customerName,\n                req.shippingStreet, req.shippingCity, req.shippingPostcode,\n                billingStreet, billingCity, billingPostcode,\n                items,\n                Instant.now()\n        );\n        order.setTotalCents(result.chargedCents);\n        order.setStatus(OrderStatus.PAID);\n\n        notifier.notifyCustomer(order);\n\n        if (req.idempotencyKey != null) {\n            submittedIds.add(req.idempotencyKey);\n        }\n        return order;\n    }\n\n    private long calculateDiscountLegacy(long subtotal) {\n        if (subtotal > 50_000) {\n            return (long) Math.round(subtotal * 0.05);\n        }\n        if (subtotal > 20_000) {\n            return (long) Math.round(subtotal * 0.02);\n        }\n        return 0;\n    }\n}\n",
+                    "changeType": "MODIFIED",
+                    "previousPath": null,
+                    "touchedMembers": [
+                        {
+                            "className": "org.orders.OrderService",
+                            "methodSignature": "validate(Cart, String, String, String, String)"
+                        },
+                        {
+                            "className": "org.orders.OrderService",
+                            "methodSignature": null
+                        },
+                        {
+                            "className": "org.orders.OrderService",
+                            "methodSignature": "calculateDiscountLegacy(long)"
+                        }
+                    ]
+                }
+            ],
+            "relatedFiles": [],
+            "payload": {
+                "charsInserted": "0",
+                "charsDeleted": "1218",
+                "fileCount": "1"
+            }
+        },
+        {
+            "id": "16b5b597-6309-466c-989f-072e9b6af95e",
+            "type": "TEST_RUN_STARTED",
+            "timestamp": 1779396634869,
+            "sessionId": "1dbb5a19-38f3-44c2-8359-030f7b78f290",
+            "changedFiles": [],
+            "relatedFiles": [],
+            "payload": {
+                "suite": "[root]"
+            }
+        },
+        {
+            "id": "22b3d233-d5d7-44f2-b7d6-30f919760912",
+            "type": "TEST_RUN_FINISHED",
+            "timestamp": 1779396635739,
+            "sessionId": "1dbb5a19-38f3-44c2-8359-030f7b78f290",
+            "changedFiles": [],
+            "relatedFiles": [],
+            "payload": {
+                "suite": "[root]",
+                "passed": "true"
+            }
+        },
+        {
+            "id": "3f4067ce-058c-4250-9e67-35947ff9b210",
+            "type": "GIT_COMMIT",
+            "timestamp": 1779396635818,
+            "sessionId": "1dbb5a19-38f3-44c2-8359-030f7b78f290",
+            "changedFiles": [],
+            "relatedFiles": [],
+            "payload": {
+                "sha": "f5a876115daa8e11722d2172a65e56b822bc654b",
+                "parentSha": "8fd19d9a32c43adba5b0b89495dbc6584f6390d6",
+                "authorTimestamp": "1779396635000",
+                "message": "remove unused private OrderService.validate"
+            }
+        },
+        {
+            "id": "7caaf78c-1bf2-4c29-bd3a-64df2bbf2758",
+            "type": "SESSION_ENDED",
+            "timestamp": 1779396657159,
+            "sessionId": "1dbb5a19-38f3-44c2-8359-030f7b78f290",
+            "changedFiles": [],
+            "relatedFiles": [],
+            "payload": {}
+        }
+    ]
+}

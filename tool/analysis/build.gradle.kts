@@ -220,6 +220,16 @@ tasks.register<JavaExec>("divergence") {
     classpath = sourceSets["main"].runtimeClasspath
 }
 
+// Phase-8 agent-comparison helper: render an analysis-report.json's
+// divergence points as a markdown summary that can be injected into a
+// coding agent's prompt before its next session.
+tasks.register<JavaExec>("feedbackForAgent") {
+    group = "verification"
+    description = "Render an analysis-report.json's divergence points as agent-readable markdown feedback."
+    mainClass.set("com.github.ethanhosier.analysis.experiment.FeedbackForAgent")
+    classpath = sourceSets["main"].runtimeClasspath
+}
+
 tasks.register<JavaExec>("generateDashboardTypes") {
     group = "build"
     description = "Generates TypeScript types for the React dashboard from AnalysisReport."

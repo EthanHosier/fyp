@@ -1,0 +1,625 @@
+{
+    "metadata": {
+        "sessionId": "d4329ee4-8ae7-47bf-b387-33766609647f",
+        "name": "03-yukie",
+        "projectName": "user-study-fixture",
+        "projectPath": "/Users/ethanhosier/Desktop/random/fyp/tool/fixtures/user-study-fixture",
+        "branch": "recording",
+        "commitHash": "54818d4",
+        "startTime": 1779377611782,
+        "endTime": 1779377989415,
+        "ideVersion": "IntelliJ IDEA 2025.2.6.1",
+        "pluginVersion": "dev"
+    },
+    "events": [
+        {
+            "id": "66f8d4a9-f209-4bda-be46-947bc3334f6a",
+            "type": "SESSION_STARTED",
+            "timestamp": 1779377611782,
+            "sessionId": "d4329ee4-8ae7-47bf-b387-33766609647f",
+            "changedFiles": [],
+            "relatedFiles": [],
+            "payload": {}
+        },
+        {
+            "id": "9d4d4adc-015c-4225-b7c0-9acfa98452e7",
+            "type": "FILE_UNFOCUSED",
+            "timestamp": 1779377622386,
+            "sessionId": "d4329ee4-8ae7-47bf-b387-33766609647f",
+            "changedFiles": [],
+            "relatedFiles": [
+                "/Users/ethanhosier/Desktop/random/fyp/tool/fixtures/user-study-fixture/src/main/java/org/orders/ShippingCalculator.java"
+            ],
+            "payload": {}
+        },
+        {
+            "id": "8d173a37-6b73-4cee-82a0-3b727859ac91",
+            "type": "FILE_FOCUSED",
+            "timestamp": 1779377622386,
+            "sessionId": "d4329ee4-8ae7-47bf-b387-33766609647f",
+            "changedFiles": [],
+            "relatedFiles": [
+                "/Users/ethanhosier/Desktop/random/fyp/tool/fixtures/user-study-fixture/src/main/java/org/orders/Order.java"
+            ],
+            "payload": {}
+        },
+        {
+            "id": "6f3b3708-02d6-47d6-8e38-4020cdaf71f5",
+            "type": "FILE_OPENED",
+            "timestamp": 1779377622387,
+            "sessionId": "d4329ee4-8ae7-47bf-b387-33766609647f",
+            "changedFiles": [],
+            "relatedFiles": [
+                "/Users/ethanhosier/Desktop/random/fyp/tool/fixtures/user-study-fixture/src/main/java/org/orders/Order.java"
+            ],
+            "payload": {}
+        },
+        {
+            "id": "afc5000c-ae66-4e05-95d4-336bea8f0c83",
+            "type": "REFACTORING_STARTED",
+            "timestamp": 1779377677337,
+            "sessionId": "d4329ee4-8ae7-47bf-b387-33766609647f",
+            "changedFiles": [],
+            "relatedFiles": [],
+            "payload": {
+                "refactoringId": "refactoring.extract.method"
+            }
+        },
+        {
+            "id": "a2582304-56fe-419d-81ec-9865d616188a",
+            "type": "REFACTORING_FINISHED",
+            "timestamp": 1779377707417,
+            "sessionId": "d4329ee4-8ae7-47bf-b387-33766609647f",
+            "changedFiles": [
+                {
+                    "path": "/Users/ethanhosier/Desktop/random/fyp/tool/fixtures/user-study-fixture/src/main/java/org/orders/Order.java",
+                    "contents": "package org.orders;\n\nimport java.time.Instant;\nimport java.util.ArrayList;\nimport java.util.Collections;\nimport java.util.List;\n\npublic class Order {\n    private final String id;\n    private final String customerEmail;\n    private final String customerName;\n    private final String shippingStreet;\n    private final String shippingCity;\n    private final String shippingPostcode;\n    private final String billingStreet;\n    private final String billingCity;\n    private final String billingPostcode;\n    private final List<LineItem> items;\n    private final Instant createdAt;\n    private OrderStatus status;\n    private long totalCents;\n\n    public Order(\n            String id,\n            String customerEmail,\n            String customerName,\n            String shippingStreet, String shippingCity, String shippingPostcode,\n            String billingStreet, String billingCity, String billingPostcode,\n            List<LineItem> items,\n            Instant createdAt\n    ) {\n        this.id = id;\n        this.customerEmail = customerEmail;\n        this.customerName = customerName;\n        this.shippingStreet = shippingStreet;\n        this.shippingCity = shippingCity;\n        this.shippingPostcode = shippingPostcode;\n        this.billingStreet = billingStreet;\n        this.billingCity = billingCity;\n        this.billingPostcode = billingPostcode;\n        this.items = new ArrayList<>(items);\n        this.createdAt = createdAt;\n        this.status = OrderStatus.PENDING;\n    }\n\n    public String getId() { return id; }\n    public String getCustomerEmail() { return customerEmail; }\n    public String getCustomerName() { return customerName; }\n    public String getShippingStreet() { return shippingStreet; }\n    public String getShippingCity() { return shippingCity; }\n    public String getShippingPostcode() { return shippingPostcode; }\n    public String getBillingStreet() { return billingStreet; }\n    public String getBillingCity() { return billingCity; }\n    public String getBillingPostcode() { return billingPostcode; }\n    public List<LineItem> getItems() { return Collections.unmodifiableList(items); }\n    public Instant getCreatedAt() { return createdAt; }\n    public OrderStatus getStatus() { return status; }\n    public void setStatus(OrderStatus status) { this.status = status; }\n    public long getTotalCents() { return totalCents; }\n    public void setTotalCents(long totalCents) { this.totalCents = totalCents; }\n\n    public String getShippingLabel() {\n        StringBuilder sb = new StringBuilder();\n        sb.append(customerName).append(\"\\n\");\n        sb.append(shippingStreet).append(\"\\n\");\n        sb.append(shippingCity).append(\" \").append(shippingPostcode);\n        return sb.toString();\n    }\n\n    public String getBillingLabel() {\n        StringBuilder sb = new StringBuilder();\n        sb.append(customerName).append(\"\\n\");\n        sb.append(billingStreet).append(\"\\n\");\n        sb.append(billingCity).append(\" \").append(billingPostcode);\n        return sb.toString();\n    }\n\n    public int totalWeightGrams() {\n        int total = 0;\n        for (LineItem item : items) {\n            total += item.totalWeightGrams();\n        }\n        return total;\n    }\n}\n",
+                    "changeType": "MODIFIED",
+                    "previousPath": null,
+                    "touchedMembers": []
+                }
+            ],
+            "relatedFiles": [],
+            "payload": {
+                "refactoringId": "refactoring.extract.method",
+                "outcome": "superseded"
+            }
+        },
+        {
+            "id": "ffd04f2a-2cd3-4049-adc5-978fada6cf4f",
+            "type": "REFACTORING_STARTED",
+            "timestamp": 1779377707417,
+            "sessionId": "d4329ee4-8ae7-47bf-b387-33766609647f",
+            "changedFiles": [],
+            "relatedFiles": [],
+            "payload": {
+                "refactoringId": "refactoring.extract.method"
+            }
+        },
+        {
+            "id": "7b18fd7e-9e61-41ed-8bf5-b85f8867ec6c",
+            "type": "REFACTORING_FINISHED",
+            "timestamp": 1779377720193,
+            "sessionId": "d4329ee4-8ae7-47bf-b387-33766609647f",
+            "changedFiles": [
+                {
+                    "path": "/Users/ethanhosier/Desktop/random/fyp/tool/fixtures/user-study-fixture/src/main/java/org/orders/Order.java",
+                    "contents": "package org.orders;\n\nimport java.time.Instant;\nimport java.util.ArrayList;\nimport java.util.Collections;\nimport java.util.List;\n\npublic class Order {\n    private final String id;\n    private final String customerEmail;\n    private final String customerName;\n    private final String shippingStreet;\n    private final String shippingCity;\n    private final String shippingPostcode;\n    private final String billingStreet;\n    private final String billingCity;\n    private final String billingPostcode;\n    private final List<LineItem> items;\n    private final Instant createdAt;\n    private OrderStatus status;\n    private long totalCents;\n\n    public Order(\n            String id,\n            String customerEmail,\n            String customerName,\n            String shippingStreet, String shippingCity, String shippingPostcode,\n            String billingStreet, String billingCity, String billingPostcode,\n            List<LineItem> items,\n            Instant createdAt\n    ) {\n        this.id = id;\n        this.customerEmail = customerEmail;\n        this.customerName = customerName;\n        this.shippingStreet = shippingStreet;\n        this.shippingCity = shippingCity;\n        this.shippingPostcode = shippingPostcode;\n        this.billingStreet = billingStreet;\n        this.billingCity = billingCity;\n        this.billingPostcode = billingPostcode;\n        this.items = new ArrayList<>(items);\n        this.createdAt = createdAt;\n        this.status = OrderStatus.PENDING;\n    }\n\n    public String getId() { return id; }\n    public String getCustomerEmail() { return customerEmail; }\n    public String getCustomerName() { return customerName; }\n    public String getShippingStreet() { return shippingStreet; }\n    public String getShippingCity() { return shippingCity; }\n    public String getShippingPostcode() { return shippingPostcode; }\n    public String getBillingStreet() { return billingStreet; }\n    public String getBillingCity() { return billingCity; }\n    public String getBillingPostcode() { return billingPostcode; }\n    public List<LineItem> getItems() { return Collections.unmodifiableList(items); }\n    public Instant getCreatedAt() { return createdAt; }\n    public OrderStatus getStatus() { return status; }\n    public void setStatus(OrderStatus status) { this.status = status; }\n    public long getTotalCents() { return totalCents; }\n    public void setTotalCents(long totalCents) { this.totalCents = totalCents; }\n\n    public String getShippingLabel() {\n        return formatAdress();\n    }\n\n    private String formatAdress() {\n        StringBuilder sb = new StringBuilder();\n        sb.append(customerName).append(\"\\n\");\n        sb.append(shippingStreet).append(\"\\n\");\n        sb.append(shippingCity).append(\" \").append(shippingPostcode);\n        return sb.toString();\n    }\n\n    public String getBillingLabel() {\n        StringBuilder sb = new StringBuilder();\n        sb.append(customerName).append(\"\\n\");\n        sb.append(billingStreet).append(\"\\n\");\n        sb.append(billingCity).append(\" \").append(billingPostcode);\n        return sb.toString();\n    }\n\n    public int totalWeightGrams() {\n        int total = 0;\n        for (LineItem item : items) {\n            total += item.totalWeightGrams();\n        }\n        return total;\n    }\n}\n",
+                    "changeType": "MODIFIED",
+                    "previousPath": null,
+                    "touchedMembers": []
+                }
+            ],
+            "relatedFiles": [],
+            "payload": {
+                "refactoringId": "refactoring.extract.method",
+                "outcome": "committed"
+            }
+        },
+        {
+            "id": "6a4a2a51-9996-4171-b910-f6d7b6bbb772",
+            "type": "EDIT_BURST",
+            "timestamp": 1779377733346,
+            "sessionId": "d4329ee4-8ae7-47bf-b387-33766609647f",
+            "changedFiles": [
+                {
+                    "path": "/Users/ethanhosier/Desktop/random/fyp/tool/fixtures/user-study-fixture/src/main/java/org/orders/Order.java",
+                    "contents": "package org.orders;\n\nimport java.time.Instant;\nimport java.util.ArrayList;\nimport java.util.Collections;\nimport java.util.List;\n\npublic class Order {\n    private final String id;\n    private final String customerEmail;\n    private final String customerName;\n    private final String shippingStreet;\n    private final String shippingCity;\n    private final String shippingPostcode;\n    private final String billingStreet;\n    private final String billingCity;\n    private final String billingPostcode;\n    private final List<LineItem> items;\n    private final Instant createdAt;\n    private OrderStatus status;\n    private long totalCents;\n\n    public Order(\n            String id,\n            String customerEmail,\n            String customerName,\n            String shippingStreet, String shippingCity, String shippingPostcode,\n            String billingStreet, String billingCity, String billingPostcode,\n            List<LineItem> items,\n            Instant createdAt\n    ) {\n        this.id = id;\n        this.customerEmail = customerEmail;\n        this.customerName = customerName;\n        this.shippingStreet = shippingStreet;\n        this.shippingCity = shippingCity;\n        this.shippingPostcode = shippingPostcode;\n        this.billingStreet = billingStreet;\n        this.billingCity = billingCity;\n        this.billingPostcode = billingPostcode;\n        this.items = new ArrayList<>(items);\n        this.createdAt = createdAt;\n        this.status = OrderStatus.PENDING;\n    }\n\n    public String getId() { return id; }\n    public String getCustomerEmail() { return customerEmail; }\n    public String getCustomerName() { return customerName; }\n    public String getShippingStreet() { return shippingStreet; }\n    public String getShippingCity() { return shippingCity; }\n    public String getShippingPostcode() { return shippingPostcode; }\n    public String getBillingStreet() { return billingStreet; }\n    public String getBillingCity() { return billingCity; }\n    public String getBillingPostcode() { return billingPostcode; }\n    public List<LineItem> getItems() { return Collections.unmodifiableList(items); }\n    public Instant getCreatedAt() { return createdAt; }\n    public OrderStatus getStatus() { return status; }\n    public void setStatus(OrderStatus status) { this.status = status; }\n    public long getTotalCents() { return totalCents; }\n    public void setTotalCents(long totalCents) { this.totalCents = totalCents; }\n\n    public String getShippingLabel() {\n        return formatAdress(shippingStreet, shippingCity, shippingPostcode);\n    }\n\n    private String formatAdress(String shippingStreet, String shippingCity, String shippingPostcode) {\n        StringBuilder sb = new StringBuilder();\n        sb.append(customerName).append(\"\\n\");\n        sb.append(shippingStreet).append(\"\\n\");\n        sb.append(shippingCity).append(\" \").append(shippingPostcode);\n        return sb.toString();\n    }\n\n    public String getBillingLabel() {\n        return formatAdress(billingStreet, billingCity, billingPostcode);\n    }\n\n    public int totalWeightGrams() {\n        int total = 0;\n        for (LineItem item : items) {\n            total += item.totalWeightGrams();\n        }\n        return total;\n    }\n}\n",
+                    "changeType": "MODIFIED",
+                    "previousPath": null,
+                    "touchedMembers": [
+                        {
+                            "className": "org.orders.Order",
+                            "methodSignature": "getShippingLabel()"
+                        },
+                        {
+                            "className": "org.orders.Order",
+                            "methodSignature": "formatAdress(String, String, String)"
+                        },
+                        {
+                            "className": "org.orders.Order",
+                            "methodSignature": "getBillingLabel()"
+                        },
+                        {
+                            "className": "org.orders.Order",
+                            "methodSignature": null
+                        },
+                        {
+                            "className": "org.orders.Order",
+                            "methodSignature": "totalWeightGrams()"
+                        }
+                    ]
+                }
+            ],
+            "relatedFiles": [],
+            "payload": {
+                "charsInserted": "200",
+                "charsDeleted": "252",
+                "fileCount": "1"
+            }
+        },
+        {
+            "id": "436d9d08-77bb-42db-b953-352af68c36a5",
+            "type": "FILE_UNFOCUSED",
+            "timestamp": 1779377775993,
+            "sessionId": "d4329ee4-8ae7-47bf-b387-33766609647f",
+            "changedFiles": [],
+            "relatedFiles": [
+                "/Users/ethanhosier/Desktop/random/fyp/tool/fixtures/user-study-fixture/src/main/java/org/orders/Order.java"
+            ],
+            "payload": {}
+        },
+        {
+            "id": "4b5d10bb-b74d-49a9-bd04-53475d4f19e4",
+            "type": "FILE_FOCUSED",
+            "timestamp": 1779377775993,
+            "sessionId": "d4329ee4-8ae7-47bf-b387-33766609647f",
+            "changedFiles": [],
+            "relatedFiles": [
+                "/Users/ethanhosier/Desktop/random/fyp/tool/fixtures/user-study-fixture/src/main/java/org/orders/PaymentProcessor.java"
+            ],
+            "payload": {}
+        },
+        {
+            "id": "e9bcebbf-bffa-4455-9789-f696cbecff6b",
+            "type": "FILE_OPENED",
+            "timestamp": 1779377775994,
+            "sessionId": "d4329ee4-8ae7-47bf-b387-33766609647f",
+            "changedFiles": [],
+            "relatedFiles": [
+                "/Users/ethanhosier/Desktop/random/fyp/tool/fixtures/user-study-fixture/src/main/java/org/orders/PaymentProcessor.java"
+            ],
+            "payload": {}
+        },
+        {
+            "id": "a64ee8b0-7df4-48f5-8e9c-79eb07f82920",
+            "type": "REFACTORING_STARTED",
+            "timestamp": 1779377833216,
+            "sessionId": "d4329ee4-8ae7-47bf-b387-33766609647f",
+            "changedFiles": [],
+            "relatedFiles": [],
+            "payload": {
+                "refactoringId": "refactoring.extract.method"
+            }
+        },
+        {
+            "id": "8eb3ebc6-ca22-47c4-b0e6-cfde50fbe918",
+            "type": "REFACTORING_FINISHED",
+            "timestamp": 1779377846613,
+            "sessionId": "d4329ee4-8ae7-47bf-b387-33766609647f",
+            "changedFiles": [
+                {
+                    "path": "/Users/ethanhosier/Desktop/random/fyp/tool/fixtures/user-study-fixture/src/main/java/org/orders/PaymentProcessor.java",
+                    "contents": "package org.orders;\n\npublic class PaymentProcessor {\n\n    public static class Result {\n        public final boolean success;\n        public final long chargedCents;\n        public final String message;\n        public Result(boolean success, long chargedCents, String message) {\n            this.success = success;\n            this.chargedCents = chargedCents;\n            this.message = message;\n        }\n    }\n\n    public Result charge(long subtotalCents, String method) {\n        if (method == null) {\n            throw new IllegalArgumentException(\"method is null\");\n        }\n        if (subtotalCents < 0) {\n            throw new IllegalArgumentException(\"negative subtotal\");\n        }\n        if (method == null && subtotalCents < 0) {\n            return new Result(false, 0, \"unreachable legacy guard\");\n        }\n        switch (method) {\n            case \"CARD\": {\n                return chargeCard(subtotalCents);\n            }\n            case \"CASH\": {\n                long charged = subtotalCents;\n                return new Result(true, charged, \"cash collected\");\n            }\n            case \"VOUCHER\": {\n                if (subtotalCents > 50_000) {\n                    return new Result(false, 0, \"voucher cap exceeded\");\n                }\n                return new Result(true, 0, \"voucher applied\");\n            }\n            default:\n                throw new IllegalArgumentException(\"unknown payment method: \" + method);\n        }\n    }\n\n    private static Result chargeCard(long subtotalCents) {\n        long fee = (long) Math.round(subtotalCents * 0.029) + 30;\n        long charged = subtotalCents + fee;\n        if (charged > 10_000_000) {\n            return new Result(false, 0, \"card limit exceeded\");\n        }\n        return new Result(true, charged, \"card charged\");\n    }\n\n    public Result refund(long amountCents, String method) {\n        if (method == null) {\n            throw new IllegalArgumentException(\"method is null\");\n        }\n        if (amountCents < 0) {\n            throw new IllegalArgumentException(\"negative refund\");\n        }\n        switch (method) {\n            case \"CARD\":\n                return new Result(true, amountCents, \"card refunded\");\n            case \"CASH\":\n                return new Result(true, amountCents, \"cash refunded\");\n            case \"VOUCHER\":\n                return new Result(true, 0, \"voucher refund n/a\");\n            default:\n                throw new IllegalArgumentException(\"unknown payment method: \" + method);\n        }\n    }\n}\n",
+                    "changeType": "MODIFIED",
+                    "previousPath": null,
+                    "touchedMembers": []
+                }
+            ],
+            "relatedFiles": [],
+            "payload": {
+                "refactoringId": "refactoring.extract.method",
+                "outcome": "committed"
+            }
+        },
+        {
+            "id": "ac6bde78-a0dd-4b28-b34c-7a4474dd983a",
+            "type": "EDIT_BURST",
+            "timestamp": 1779377846632,
+            "sessionId": "d4329ee4-8ae7-47bf-b387-33766609647f",
+            "changedFiles": [
+                {
+                    "path": "/Users/ethanhosier/Desktop/random/fyp/tool/fixtures/user-study-fixture/src/main/java/org/orders/PaymentProcessor.java",
+                    "contents": "package org.orders;\n\npublic class PaymentProcessor {\n\n    public static class Result {\n        public final boolean success;\n        public final long chargedCents;\n        public final String message;\n        public Result(boolean success, long chargedCents, String message) {\n            this.success = success;\n            this.chargedCents = chargedCents;\n            this.message = message;\n        }\n    }\n\n    public Result charge(long subtotalCents, String method) {\n        if (method == null) {\n            throw new IllegalArgumentException(\"method is null\");\n        }\n        if (subtotalCents < 0) {\n            throw new IllegalArgumentException(\"negative subtotal\");\n        }\n        if (method == null && subtotalCents < 0) {\n            return new Result(false, 0, \"unreachable legacy guard\");\n        }\n        switch (method) {\n            case \"CARD\": {\n                return chargeCard(subtotalCents);\n            }\n            case \"CASH\": {\n                long charged = subtotalCents;\n                return new Result(true, charged, \"cash collected\");\n            }\n            case \"VOUCHER\": {\n                if (subtotalCents > 50_000) {\n                    return new Result(false, 0, \"voucher cap exceeded\");\n                }\n                return new Result(true, 0, \"voucher applied\");\n            }\n            default:\n                throw new IllegalArgumentException(\"unknown payment method: \" + method);\n        }\n    }\n\n    private static Result chargeCard(long subtotalCents) {\n        long fee = (long) Math.round(subtotalCents * 0.029) + 30;\n        long charged = subtotalCents + fee;\n        if (charged > 10_000_000) {\n            return new Result(false, 0, \"card limit exceeded\");\n        }\n        return new Result(true, charged, \"card charged\");\n    }\n\n    public Result refund(long amountCents, String method) {\n        if (method == null) {\n            throw new IllegalArgumentException(\"method is null\");\n        }\n        if (amountCents < 0) {\n            throw new IllegalArgumentException(\"negative refund\");\n        }\n        switch (method) {\n            case \"CARD\":\n                return new Result(true, amountCents, \"card refunded\");\n            case \"CASH\":\n                return new Result(true, amountCents, \"cash refunded\");\n            case \"VOUCHER\":\n                return new Result(true, 0, \"voucher refund n/a\");\n            default:\n                throw new IllegalArgumentException(\"unknown payment method: \" + method);\n        }\n    }\n}\n",
+                    "changeType": "MODIFIED",
+                    "previousPath": null,
+                    "touchedMembers": [
+                        {
+                            "className": "org.orders.PaymentProcessor",
+                            "methodSignature": "charge(long, String)"
+                        }
+                    ]
+                }
+            ],
+            "relatedFiles": [],
+            "payload": {
+                "charsInserted": "33",
+                "charsDeleted": "33",
+                "fileCount": "1"
+            }
+        },
+        {
+            "id": "c757c46d-c431-41c7-b0b5-efa36410c84e",
+            "type": "FILE_SAVED",
+            "timestamp": 1779377857884,
+            "sessionId": "d4329ee4-8ae7-47bf-b387-33766609647f",
+            "changedFiles": [],
+            "relatedFiles": [
+                "/Users/ethanhosier/Desktop/random/fyp/tool/fixtures/user-study-fixture/src/main/java/org/orders/PaymentProcessor.java"
+            ],
+            "payload": {}
+        },
+        {
+            "id": "b66c7479-c145-4d6d-a8fb-599ec3e4e283",
+            "type": "FILE_SAVED",
+            "timestamp": 1779377857891,
+            "sessionId": "d4329ee4-8ae7-47bf-b387-33766609647f",
+            "changedFiles": [],
+            "relatedFiles": [
+                "/Users/ethanhosier/Desktop/random/fyp/tool/fixtures/user-study-fixture/src/main/java/org/orders/Order.java"
+            ],
+            "payload": {}
+        },
+        {
+            "id": "b0fb17a2-62b6-457c-b506-f6f0cc0179f7",
+            "type": "REFACTORING_STARTED",
+            "timestamp": 1779377865625,
+            "sessionId": "d4329ee4-8ae7-47bf-b387-33766609647f",
+            "changedFiles": [],
+            "relatedFiles": [],
+            "payload": {
+                "refactoringId": "refactoring.extract.method"
+            }
+        },
+        {
+            "id": "4a329297-7630-44c6-b413-84d9bd3e30e5",
+            "type": "REFACTORING_FINISHED",
+            "timestamp": 1779377869046,
+            "sessionId": "d4329ee4-8ae7-47bf-b387-33766609647f",
+            "changedFiles": [
+                {
+                    "path": "/Users/ethanhosier/Desktop/random/fyp/tool/fixtures/user-study-fixture/src/main/java/org/orders/PaymentProcessor.java",
+                    "contents": "package org.orders;\n\npublic class PaymentProcessor {\n\n    public static class Result {\n        public final boolean success;\n        public final long chargedCents;\n        public final String message;\n        public Result(boolean success, long chargedCents, String message) {\n            this.success = success;\n            this.chargedCents = chargedCents;\n            this.message = message;\n        }\n    }\n\n    public Result charge(long subtotalCents, String method) {\n        if (method == null) {\n            throw new IllegalArgumentException(\"method is null\");\n        }\n        if (subtotalCents < 0) {\n            throw new IllegalArgumentException(\"negative subtotal\");\n        }\n        if (method == null && subtotalCents < 0) {\n            return new Result(false, 0, \"unreachable legacy guard\");\n        }\n        switch (method) {\n            case \"CARD\": {\n                return chargeCard(subtotalCents);\n            }\n            case \"CASH\": {\n                return chargeCash(subtotalCents);\n            }\n            case \"VOUCHER\": {\n                if (subtotalCents > 50_000) {\n                    return new Result(false, 0, \"voucher cap exceeded\");\n                }\n                return new Result(true, 0, \"voucher applied\");\n            }\n            default:\n                throw new IllegalArgumentException(\"unknown payment method: \" + method);\n        }\n    }\n\n    private static Result chargeCash(long subtotalCents) {\n        long charged = subtotalCents;\n        return new Result(true, charged, \"cash collected\");\n    }\n\n    private static Result chargeCard(long subtotalCents) {\n        long fee = (long) Math.round(subtotalCents * 0.029) + 30;\n        long charged = subtotalCents + fee;\n        if (charged > 10_000_000) {\n            return new Result(false, 0, \"card limit exceeded\");\n        }\n        return new Result(true, charged, \"card charged\");\n    }\n\n    public Result refund(long amountCents, String method) {\n        if (method == null) {\n            throw new IllegalArgumentException(\"method is null\");\n        }\n        if (amountCents < 0) {\n            throw new IllegalArgumentException(\"negative refund\");\n        }\n        switch (method) {\n            case \"CARD\":\n                return new Result(true, amountCents, \"card refunded\");\n            case \"CASH\":\n                return new Result(true, amountCents, \"cash refunded\");\n            case \"VOUCHER\":\n                return new Result(true, 0, \"voucher refund n/a\");\n            default:\n                throw new IllegalArgumentException(\"unknown payment method: \" + method);\n        }\n    }\n}\n",
+                    "changeType": "MODIFIED",
+                    "previousPath": null,
+                    "touchedMembers": []
+                }
+            ],
+            "relatedFiles": [],
+            "payload": {
+                "refactoringId": "refactoring.extract.method",
+                "outcome": "committed"
+            }
+        },
+        {
+            "id": "54b94948-c107-414a-9297-18ebb31ade25",
+            "type": "EDIT_BURST",
+            "timestamp": 1779377869061,
+            "sessionId": "d4329ee4-8ae7-47bf-b387-33766609647f",
+            "changedFiles": [
+                {
+                    "path": "/Users/ethanhosier/Desktop/random/fyp/tool/fixtures/user-study-fixture/src/main/java/org/orders/PaymentProcessor.java",
+                    "contents": "package org.orders;\n\npublic class PaymentProcessor {\n\n    public static class Result {\n        public final boolean success;\n        public final long chargedCents;\n        public final String message;\n        public Result(boolean success, long chargedCents, String message) {\n            this.success = success;\n            this.chargedCents = chargedCents;\n            this.message = message;\n        }\n    }\n\n    public Result charge(long subtotalCents, String method) {\n        if (method == null) {\n            throw new IllegalArgumentException(\"method is null\");\n        }\n        if (subtotalCents < 0) {\n            throw new IllegalArgumentException(\"negative subtotal\");\n        }\n        if (method == null && subtotalCents < 0) {\n            return new Result(false, 0, \"unreachable legacy guard\");\n        }\n        switch (method) {\n            case \"CARD\": {\n                return chargeCard(subtotalCents);\n            }\n            case \"CASH\": {\n                return chargeCash(subtotalCents);\n            }\n            case \"VOUCHER\": {\n                if (subtotalCents > 50_000) {\n                    return new Result(false, 0, \"voucher cap exceeded\");\n                }\n                return new Result(true, 0, \"voucher applied\");\n            }\n            default:\n                throw new IllegalArgumentException(\"unknown payment method: \" + method);\n        }\n    }\n\n    private static Result chargeCash(long subtotalCents) {\n        long charged = subtotalCents;\n        return new Result(true, charged, \"cash collected\");\n    }\n\n    private static Result chargeCard(long subtotalCents) {\n        long fee = (long) Math.round(subtotalCents * 0.029) + 30;\n        long charged = subtotalCents + fee;\n        if (charged > 10_000_000) {\n            return new Result(false, 0, \"card limit exceeded\");\n        }\n        return new Result(true, charged, \"card charged\");\n    }\n\n    public Result refund(long amountCents, String method) {\n        if (method == null) {\n            throw new IllegalArgumentException(\"method is null\");\n        }\n        if (amountCents < 0) {\n            throw new IllegalArgumentException(\"negative refund\");\n        }\n        switch (method) {\n            case \"CARD\":\n                return new Result(true, amountCents, \"card refunded\");\n            case \"CASH\":\n                return new Result(true, amountCents, \"cash refunded\");\n            case \"VOUCHER\":\n                return new Result(true, 0, \"voucher refund n/a\");\n            default:\n                throw new IllegalArgumentException(\"unknown payment method: \" + method);\n        }\n    }\n}\n",
+                    "changeType": "MODIFIED",
+                    "previousPath": null,
+                    "touchedMembers": [
+                        {
+                            "className": "org.orders.PaymentProcessor",
+                            "methodSignature": "charge(long, String)"
+                        }
+                    ]
+                }
+            ],
+            "relatedFiles": [],
+            "payload": {
+                "charsInserted": "33",
+                "charsDeleted": "33",
+                "fileCount": "1"
+            }
+        },
+        {
+            "id": "09dc6a2e-c654-4d9c-a464-4ab534150e80",
+            "type": "REFACTORING_STARTED",
+            "timestamp": 1779377880524,
+            "sessionId": "d4329ee4-8ae7-47bf-b387-33766609647f",
+            "changedFiles": [],
+            "relatedFiles": [],
+            "payload": {
+                "refactoringId": "refactoring.extract.method"
+            }
+        },
+        {
+            "id": "1ac36014-0c20-48d9-9c73-28da9e485161",
+            "type": "REFACTORING_FINISHED",
+            "timestamp": 1779377888450,
+            "sessionId": "d4329ee4-8ae7-47bf-b387-33766609647f",
+            "changedFiles": [
+                {
+                    "path": "/Users/ethanhosier/Desktop/random/fyp/tool/fixtures/user-study-fixture/src/main/java/org/orders/PaymentProcessor.java",
+                    "contents": "package org.orders;\n\npublic class PaymentProcessor {\n\n    public static class Result {\n        public final boolean success;\n        public final long chargedCents;\n        public final String message;\n        public Result(boolean success, long chargedCents, String message) {\n            this.success = success;\n            this.chargedCents = chargedCents;\n            this.message = message;\n        }\n    }\n\n    public Result charge(long subtotalCents, String method) {\n        if (method == null) {\n            throw new IllegalArgumentException(\"method is null\");\n        }\n        if (subtotalCents < 0) {\n            throw new IllegalArgumentException(\"negative subtotal\");\n        }\n        if (method == null && subtotalCents < 0) {\n            return new Result(false, 0, \"unreachable legacy guard\");\n        }\n        switch (method) {\n            case \"CARD\": {\n                return chargeCard(subtotalCents);\n            }\n            case \"CASH\": {\n                return chargeCash(subtotalCents);\n            }\n            case \"VOUCHER\": {\n                return chargeVoucher(subtotalCents);\n            }\n            default:\n                throw new IllegalArgumentException(\"unknown payment method: \" + method);\n        }\n    }\n\n    private static Result chargeVoucher(long subtotalCents) {\n        if (subtotalCents > 50_000) {\n            return new Result(false, 0, \"voucher cap exceeded\");\n        }\n        return new Result(true, 0, \"voucher applied\");\n    }\n\n    private static Result chargeCash(long subtotalCents) {\n        long charged = subtotalCents;\n        return new Result(true, charged, \"cash collected\");\n    }\n\n    private static Result chargeCard(long subtotalCents) {\n        long fee = (long) Math.round(subtotalCents * 0.029) + 30;\n        long charged = subtotalCents + fee;\n        if (charged > 10_000_000) {\n            return new Result(false, 0, \"card limit exceeded\");\n        }\n        return new Result(true, charged, \"card charged\");\n    }\n\n    public Result refund(long amountCents, String method) {\n        if (method == null) {\n            throw new IllegalArgumentException(\"method is null\");\n        }\n        if (amountCents < 0) {\n            throw new IllegalArgumentException(\"negative refund\");\n        }\n        switch (method) {\n            case \"CARD\":\n                return new Result(true, amountCents, \"card refunded\");\n            case \"CASH\":\n                return new Result(true, amountCents, \"cash refunded\");\n            case \"VOUCHER\":\n                return new Result(true, 0, \"voucher refund n/a\");\n            default:\n                throw new IllegalArgumentException(\"unknown payment method: \" + method);\n        }\n    }\n}\n",
+                    "changeType": "MODIFIED",
+                    "previousPath": null,
+                    "touchedMembers": []
+                }
+            ],
+            "relatedFiles": [],
+            "payload": {
+                "refactoringId": "refactoring.extract.method",
+                "outcome": "committed"
+            }
+        },
+        {
+            "id": "a49e4bf5-c9ca-45a1-8d65-766a4a1d432e",
+            "type": "EDIT_BURST",
+            "timestamp": 1779377888471,
+            "sessionId": "d4329ee4-8ae7-47bf-b387-33766609647f",
+            "changedFiles": [
+                {
+                    "path": "/Users/ethanhosier/Desktop/random/fyp/tool/fixtures/user-study-fixture/src/main/java/org/orders/PaymentProcessor.java",
+                    "contents": "package org.orders;\n\npublic class PaymentProcessor {\n\n    public static class Result {\n        public final boolean success;\n        public final long chargedCents;\n        public final String message;\n        public Result(boolean success, long chargedCents, String message) {\n            this.success = success;\n            this.chargedCents = chargedCents;\n            this.message = message;\n        }\n    }\n\n    public Result charge(long subtotalCents, String method) {\n        if (method == null) {\n            throw new IllegalArgumentException(\"method is null\");\n        }\n        if (subtotalCents < 0) {\n            throw new IllegalArgumentException(\"negative subtotal\");\n        }\n        if (method == null && subtotalCents < 0) {\n            return new Result(false, 0, \"unreachable legacy guard\");\n        }\n        switch (method) {\n            case \"CARD\": {\n                return chargeCard(subtotalCents);\n            }\n            case \"CASH\": {\n                return chargeCash(subtotalCents);\n            }\n            case \"VOUCHER\": {\n                return chargeVoucher(subtotalCents);\n            }\n            default:\n                throw new IllegalArgumentException(\"unknown payment method: \" + method);\n        }\n    }\n\n    private static Result chargeVoucher(long subtotalCents) {\n        if (subtotalCents > 50_000) {\n            return new Result(false, 0, \"voucher cap exceeded\");\n        }\n        return new Result(true, 0, \"voucher applied\");\n    }\n\n    private static Result chargeCash(long subtotalCents) {\n        long charged = subtotalCents;\n        return new Result(true, charged, \"cash collected\");\n    }\n\n    private static Result chargeCard(long subtotalCents) {\n        long fee = (long) Math.round(subtotalCents * 0.029) + 30;\n        long charged = subtotalCents + fee;\n        if (charged > 10_000_000) {\n            return new Result(false, 0, \"card limit exceeded\");\n        }\n        return new Result(true, charged, \"card charged\");\n    }\n\n    public Result refund(long amountCents, String method) {\n        if (method == null) {\n            throw new IllegalArgumentException(\"method is null\");\n        }\n        if (amountCents < 0) {\n            throw new IllegalArgumentException(\"negative refund\");\n        }\n        switch (method) {\n            case \"CARD\":\n                return new Result(true, amountCents, \"card refunded\");\n            case \"CASH\":\n                return new Result(true, amountCents, \"cash refunded\");\n            case \"VOUCHER\":\n                return new Result(true, 0, \"voucher refund n/a\");\n            default:\n                throw new IllegalArgumentException(\"unknown payment method: \" + method);\n        }\n    }\n}\n",
+                    "changeType": "MODIFIED",
+                    "previousPath": null,
+                    "touchedMembers": [
+                        {
+                            "className": "org.orders.PaymentProcessor",
+                            "methodSignature": "charge(long, String)"
+                        }
+                    ]
+                }
+            ],
+            "relatedFiles": [],
+            "payload": {
+                "charsInserted": "36",
+                "charsDeleted": "36",
+                "fileCount": "1"
+            }
+        },
+        {
+            "id": "9c8a24e5-ef1e-4a57-a65a-ed87ef23250b",
+            "type": "REFACTORING_STARTED",
+            "timestamp": 1779377942769,
+            "sessionId": "d4329ee4-8ae7-47bf-b387-33766609647f",
+            "changedFiles": [],
+            "relatedFiles": [],
+            "payload": {
+                "refactoringId": "refactoring.extract.method"
+            }
+        },
+        {
+            "id": "d645e713-360b-4007-bc2a-465479ee9f81",
+            "type": "REFACTORING_FINISHED",
+            "timestamp": 1779377945586,
+            "sessionId": "d4329ee4-8ae7-47bf-b387-33766609647f",
+            "changedFiles": [
+                {
+                    "path": "/Users/ethanhosier/Desktop/random/fyp/tool/fixtures/user-study-fixture/src/main/java/org/orders/PaymentProcessor.java",
+                    "contents": "package org.orders;\n\npublic class PaymentProcessor {\n\n    public static class Result {\n        public final boolean success;\n        public final long chargedCents;\n        public final String message;\n        public Result(boolean success, long chargedCents, String message) {\n            this.success = success;\n            this.chargedCents = chargedCents;\n            this.message = message;\n        }\n    }\n\n    public Result charge(long subtotalCents, String method) {\n        if (method == null) {\n            throw new IllegalArgumentException(\"method is null\");\n        }\n        if (subtotalCents < 0) {\n            throw new IllegalArgumentException(\"negative subtotal\");\n        }\n        if (method == null && subtotalCents < 0) {\n            return new Result(false, 0, \"unreachable legacy guard\");\n        }\n        switch (method) {\n            case \"CARD\": {\n                return chargeCard(subtotalCents);\n            }\n            case \"CASH\": {\n                return chargeCash(subtotalCents);\n            }\n            case \"VOUCHER\": {\n                return chargeVoucher(subtotalCents);\n            }\n            default:\n                throw new IllegalArgumentException(\"unknown payment method: \" + method);\n        }\n    }\n\n    private static Result chargeVoucher(long subtotalCents) {\n        if (subtotalCents > 50_000) {\n            return new Result(false, 0, \"voucher cap exceeded\");\n        }\n        return new Result(true, 0, \"voucher applied\");\n    }\n\n    private static Result chargeCash(long subtotalCents) {\n        long charged = subtotalCents;\n        return new Result(true, charged, \"cash collected\");\n    }\n\n    private static Result chargeCard(long subtotalCents) {\n        long fee = (long) Math.round(subtotalCents * 0.029) + 30;\n        long charged = subtotalCents + fee;\n        if (charged > 10_000_000) {\n            return new Result(false, 0, \"card limit exceeded\");\n        }\n        return new Result(true, charged, \"card charged\");\n    }\n\n    public Result refund(long amountCents, String method) {\n        if (method == null) {\n            throw new IllegalArgumentException(\"method is null\");\n        }\n        if (amountCents < 0) {\n            throw new IllegalArgumentException(\"negative refund\");\n        }\n        switch (method) {\n            case \"CARD\":\n                return refundCard(amountCents);\n            case \"CASH\":\n                return new Result(true, amountCents, \"cash refunded\");\n            case \"VOUCHER\":\n                return new Result(true, 0, \"voucher refund n/a\");\n            default:\n                throw new IllegalArgumentException(\"unknown payment method: \" + method);\n        }\n    }\n\n    private static Result refundCard(long amountCents) {\n        return new Result(true, amountCents, \"card refunded\");\n    }\n}\n",
+                    "changeType": "MODIFIED",
+                    "previousPath": null,
+                    "touchedMembers": []
+                }
+            ],
+            "relatedFiles": [],
+            "payload": {
+                "refactoringId": "refactoring.extract.method",
+                "outcome": "committed"
+            }
+        },
+        {
+            "id": "9e5942db-30ca-4a8d-aeb6-2cef314534a8",
+            "type": "EDIT_BURST",
+            "timestamp": 1779377945604,
+            "sessionId": "d4329ee4-8ae7-47bf-b387-33766609647f",
+            "changedFiles": [
+                {
+                    "path": "/Users/ethanhosier/Desktop/random/fyp/tool/fixtures/user-study-fixture/src/main/java/org/orders/PaymentProcessor.java",
+                    "contents": "package org.orders;\n\npublic class PaymentProcessor {\n\n    public static class Result {\n        public final boolean success;\n        public final long chargedCents;\n        public final String message;\n        public Result(boolean success, long chargedCents, String message) {\n            this.success = success;\n            this.chargedCents = chargedCents;\n            this.message = message;\n        }\n    }\n\n    public Result charge(long subtotalCents, String method) {\n        if (method == null) {\n            throw new IllegalArgumentException(\"method is null\");\n        }\n        if (subtotalCents < 0) {\n            throw new IllegalArgumentException(\"negative subtotal\");\n        }\n        if (method == null && subtotalCents < 0) {\n            return new Result(false, 0, \"unreachable legacy guard\");\n        }\n        switch (method) {\n            case \"CARD\": {\n                return chargeCard(subtotalCents);\n            }\n            case \"CASH\": {\n                return chargeCash(subtotalCents);\n            }\n            case \"VOUCHER\": {\n                return chargeVoucher(subtotalCents);\n            }\n            default:\n                throw new IllegalArgumentException(\"unknown payment method: \" + method);\n        }\n    }\n\n    private static Result chargeVoucher(long subtotalCents) {\n        if (subtotalCents > 50_000) {\n            return new Result(false, 0, \"voucher cap exceeded\");\n        }\n        return new Result(true, 0, \"voucher applied\");\n    }\n\n    private static Result chargeCash(long subtotalCents) {\n        long charged = subtotalCents;\n        return new Result(true, charged, \"cash collected\");\n    }\n\n    private static Result chargeCard(long subtotalCents) {\n        long fee = (long) Math.round(subtotalCents * 0.029) + 30;\n        long charged = subtotalCents + fee;\n        if (charged > 10_000_000) {\n            return new Result(false, 0, \"card limit exceeded\");\n        }\n        return new Result(true, charged, \"card charged\");\n    }\n\n    public Result refund(long amountCents, String method) {\n        if (method == null) {\n            throw new IllegalArgumentException(\"method is null\");\n        }\n        if (amountCents < 0) {\n            throw new IllegalArgumentException(\"negative refund\");\n        }\n        switch (method) {\n            case \"CARD\":\n                return refundCard(amountCents);\n            case \"CASH\":\n                return new Result(true, amountCents, \"cash refunded\");\n            case \"VOUCHER\":\n                return new Result(true, 0, \"voucher refund n/a\");\n            default:\n                throw new IllegalArgumentException(\"unknown payment method: \" + method);\n        }\n    }\n\n    private static Result refundCard(long amountCents) {\n        return new Result(true, amountCents, \"card refunded\");\n    }\n}\n",
+                    "changeType": "MODIFIED",
+                    "previousPath": null,
+                    "touchedMembers": [
+                        {
+                            "className": "org.orders.PaymentProcessor",
+                            "methodSignature": "refund(long, String)"
+                        }
+                    ]
+                }
+            ],
+            "relatedFiles": [],
+            "payload": {
+                "charsInserted": "31",
+                "charsDeleted": "31",
+                "fileCount": "1"
+            }
+        },
+        {
+            "id": "fed6636e-4c56-44ec-8379-c2e755ce1bb5",
+            "type": "REFACTORING_STARTED",
+            "timestamp": 1779377955639,
+            "sessionId": "d4329ee4-8ae7-47bf-b387-33766609647f",
+            "changedFiles": [],
+            "relatedFiles": [],
+            "payload": {
+                "refactoringId": "refactoring.extract.method"
+            }
+        },
+        {
+            "id": "efcf4b7a-2ed2-482c-979b-ec96f92d3e15",
+            "type": "REFACTORING_FINISHED",
+            "timestamp": 1779377962540,
+            "sessionId": "d4329ee4-8ae7-47bf-b387-33766609647f",
+            "changedFiles": [
+                {
+                    "path": "/Users/ethanhosier/Desktop/random/fyp/tool/fixtures/user-study-fixture/src/main/java/org/orders/PaymentProcessor.java",
+                    "contents": "package org.orders;\n\npublic class PaymentProcessor {\n\n    public static class Result {\n        public final boolean success;\n        public final long chargedCents;\n        public final String message;\n        public Result(boolean success, long chargedCents, String message) {\n            this.success = success;\n            this.chargedCents = chargedCents;\n            this.message = message;\n        }\n    }\n\n    public Result charge(long subtotalCents, String method) {\n        if (method == null) {\n            throw new IllegalArgumentException(\"method is null\");\n        }\n        if (subtotalCents < 0) {\n            throw new IllegalArgumentException(\"negative subtotal\");\n        }\n        if (method == null && subtotalCents < 0) {\n            return new Result(false, 0, \"unreachable legacy guard\");\n        }\n        switch (method) {\n            case \"CARD\": {\n                return chargeCard(subtotalCents);\n            }\n            case \"CASH\": {\n                return chargeCash(subtotalCents);\n            }\n            case \"VOUCHER\": {\n                return chargeVoucher(subtotalCents);\n            }\n            default:\n                throw new IllegalArgumentException(\"unknown payment method: \" + method);\n        }\n    }\n\n    private static Result chargeVoucher(long subtotalCents) {\n        if (subtotalCents > 50_000) {\n            return new Result(false, 0, \"voucher cap exceeded\");\n        }\n        return new Result(true, 0, \"voucher applied\");\n    }\n\n    private static Result chargeCash(long subtotalCents) {\n        long charged = subtotalCents;\n        return new Result(true, charged, \"cash collected\");\n    }\n\n    private static Result chargeCard(long subtotalCents) {\n        long fee = (long) Math.round(subtotalCents * 0.029) + 30;\n        long charged = subtotalCents + fee;\n        if (charged > 10_000_000) {\n            return new Result(false, 0, \"card limit exceeded\");\n        }\n        return new Result(true, charged, \"card charged\");\n    }\n\n    public Result refund(long amountCents, String method) {\n        if (method == null) {\n            throw new IllegalArgumentException(\"method is null\");\n        }\n        if (amountCents < 0) {\n            throw new IllegalArgumentException(\"negative refund\");\n        }\n        switch (method) {\n            case \"CARD\":\n                return refundCard(amountCents);\n            case \"CASH\":\n                return refundCash(amountCents);\n            case \"VOUCHER\":\n                return new Result(true, 0, \"voucher refund n/a\");\n            default:\n                throw new IllegalArgumentException(\"unknown payment method: \" + method);\n        }\n    }\n\n    private static Result refundCash(long amountCents) {\n        return new Result(true, amountCents, \"cash refunded\");\n    }\n\n    private static Result refundCard(long amountCents) {\n        return new Result(true, amountCents, \"card refunded\");\n    }\n}\n",
+                    "changeType": "MODIFIED",
+                    "previousPath": null,
+                    "touchedMembers": []
+                }
+            ],
+            "relatedFiles": [],
+            "payload": {
+                "refactoringId": "refactoring.extract.method",
+                "outcome": "committed"
+            }
+        },
+        {
+            "id": "37c707f7-9868-4640-bcf8-acee2dd56773",
+            "type": "EDIT_BURST",
+            "timestamp": 1779377962558,
+            "sessionId": "d4329ee4-8ae7-47bf-b387-33766609647f",
+            "changedFiles": [
+                {
+                    "path": "/Users/ethanhosier/Desktop/random/fyp/tool/fixtures/user-study-fixture/src/main/java/org/orders/PaymentProcessor.java",
+                    "contents": "package org.orders;\n\npublic class PaymentProcessor {\n\n    public static class Result {\n        public final boolean success;\n        public final long chargedCents;\n        public final String message;\n        public Result(boolean success, long chargedCents, String message) {\n            this.success = success;\n            this.chargedCents = chargedCents;\n            this.message = message;\n        }\n    }\n\n    public Result charge(long subtotalCents, String method) {\n        if (method == null) {\n            throw new IllegalArgumentException(\"method is null\");\n        }\n        if (subtotalCents < 0) {\n            throw new IllegalArgumentException(\"negative subtotal\");\n        }\n        if (method == null && subtotalCents < 0) {\n            return new Result(false, 0, \"unreachable legacy guard\");\n        }\n        switch (method) {\n            case \"CARD\": {\n                return chargeCard(subtotalCents);\n            }\n            case \"CASH\": {\n                return chargeCash(subtotalCents);\n            }\n            case \"VOUCHER\": {\n                return chargeVoucher(subtotalCents);\n            }\n            default:\n                throw new IllegalArgumentException(\"unknown payment method: \" + method);\n        }\n    }\n\n    private static Result chargeVoucher(long subtotalCents) {\n        if (subtotalCents > 50_000) {\n            return new Result(false, 0, \"voucher cap exceeded\");\n        }\n        return new Result(true, 0, \"voucher applied\");\n    }\n\n    private static Result chargeCash(long subtotalCents) {\n        long charged = subtotalCents;\n        return new Result(true, charged, \"cash collected\");\n    }\n\n    private static Result chargeCard(long subtotalCents) {\n        long fee = (long) Math.round(subtotalCents * 0.029) + 30;\n        long charged = subtotalCents + fee;\n        if (charged > 10_000_000) {\n            return new Result(false, 0, \"card limit exceeded\");\n        }\n        return new Result(true, charged, \"card charged\");\n    }\n\n    public Result refund(long amountCents, String method) {\n        if (method == null) {\n            throw new IllegalArgumentException(\"method is null\");\n        }\n        if (amountCents < 0) {\n            throw new IllegalArgumentException(\"negative refund\");\n        }\n        switch (method) {\n            case \"CARD\":\n                return refundCard(amountCents);\n            case \"CASH\":\n                return refundCash(amountCents);\n            case \"VOUCHER\":\n                return new Result(true, 0, \"voucher refund n/a\");\n            default:\n                throw new IllegalArgumentException(\"unknown payment method: \" + method);\n        }\n    }\n\n    private static Result refundCash(long amountCents) {\n        return new Result(true, amountCents, \"cash refunded\");\n    }\n\n    private static Result refundCard(long amountCents) {\n        return new Result(true, amountCents, \"card refunded\");\n    }\n}\n",
+                    "changeType": "MODIFIED",
+                    "previousPath": null,
+                    "touchedMembers": [
+                        {
+                            "className": "org.orders.PaymentProcessor",
+                            "methodSignature": "refund(long, String)"
+                        }
+                    ]
+                }
+            ],
+            "relatedFiles": [],
+            "payload": {
+                "charsInserted": "31",
+                "charsDeleted": "31",
+                "fileCount": "1"
+            }
+        },
+        {
+            "id": "3ee7e536-6152-406a-a7ea-90d08624fcbf",
+            "type": "REFACTORING_STARTED",
+            "timestamp": 1779377966364,
+            "sessionId": "d4329ee4-8ae7-47bf-b387-33766609647f",
+            "changedFiles": [],
+            "relatedFiles": [],
+            "payload": {
+                "refactoringId": "refactoring.extract.method"
+            }
+        },
+        {
+            "id": "8eefee35-f409-4f77-b8fc-663b550a6ebb",
+            "type": "REFACTORING_FINISHED",
+            "timestamp": 1779377969960,
+            "sessionId": "d4329ee4-8ae7-47bf-b387-33766609647f",
+            "changedFiles": [
+                {
+                    "path": "/Users/ethanhosier/Desktop/random/fyp/tool/fixtures/user-study-fixture/src/main/java/org/orders/PaymentProcessor.java",
+                    "contents": "package org.orders;\n\npublic class PaymentProcessor {\n\n    public static class Result {\n        public final boolean success;\n        public final long chargedCents;\n        public final String message;\n        public Result(boolean success, long chargedCents, String message) {\n            this.success = success;\n            this.chargedCents = chargedCents;\n            this.message = message;\n        }\n    }\n\n    public Result charge(long subtotalCents, String method) {\n        if (method == null) {\n            throw new IllegalArgumentException(\"method is null\");\n        }\n        if (subtotalCents < 0) {\n            throw new IllegalArgumentException(\"negative subtotal\");\n        }\n        if (method == null && subtotalCents < 0) {\n            return new Result(false, 0, \"unreachable legacy guard\");\n        }\n        switch (method) {\n            case \"CARD\": {\n                return chargeCard(subtotalCents);\n            }\n            case \"CASH\": {\n                return chargeCash(subtotalCents);\n            }\n            case \"VOUCHER\": {\n                return chargeVoucher(subtotalCents);\n            }\n            default:\n                throw new IllegalArgumentException(\"unknown payment method: \" + method);\n        }\n    }\n\n    private static Result chargeVoucher(long subtotalCents) {\n        if (subtotalCents > 50_000) {\n            return new Result(false, 0, \"voucher cap exceeded\");\n        }\n        return new Result(true, 0, \"voucher applied\");\n    }\n\n    private static Result chargeCash(long subtotalCents) {\n        long charged = subtotalCents;\n        return new Result(true, charged, \"cash collected\");\n    }\n\n    private static Result chargeCard(long subtotalCents) {\n        long fee = (long) Math.round(subtotalCents * 0.029) + 30;\n        long charged = subtotalCents + fee;\n        if (charged > 10_000_000) {\n            return new Result(false, 0, \"card limit exceeded\");\n        }\n        return new Result(true, charged, \"card charged\");\n    }\n\n    public Result refund(long amountCents, String method) {\n        if (method == null) {\n            throw new IllegalArgumentException(\"method is null\");\n        }\n        if (amountCents < 0) {\n            throw new IllegalArgumentException(\"negative refund\");\n        }\n        switch (method) {\n            case \"CARD\":\n                return refundCard(amountCents);\n            case \"CASH\":\n                return refundCash(amountCents);\n            case \"VOUCHER\":\n                return refundVoucher();\n            default:\n                throw new IllegalArgumentException(\"unknown payment method: \" + method);\n        }\n    }\n\n    private static Result refundVoucher() {\n        return new Result(true, 0, \"voucher refund n/a\");\n    }\n\n    private static Result refundCash(long amountCents) {\n        return new Result(true, amountCents, \"cash refunded\");\n    }\n\n    private static Result refundCard(long amountCents) {\n        return new Result(true, amountCents, \"card refunded\");\n    }\n}\n",
+                    "changeType": "MODIFIED",
+                    "previousPath": null,
+                    "touchedMembers": []
+                }
+            ],
+            "relatedFiles": [],
+            "payload": {
+                "refactoringId": "refactoring.extract.method",
+                "outcome": "committed"
+            }
+        },
+        {
+            "id": "a9dfd26d-95d9-4501-833f-dbcbaffd4380",
+            "type": "EDIT_BURST",
+            "timestamp": 1779377969980,
+            "sessionId": "d4329ee4-8ae7-47bf-b387-33766609647f",
+            "changedFiles": [
+                {
+                    "path": "/Users/ethanhosier/Desktop/random/fyp/tool/fixtures/user-study-fixture/src/main/java/org/orders/PaymentProcessor.java",
+                    "contents": "package org.orders;\n\npublic class PaymentProcessor {\n\n    public static class Result {\n        public final boolean success;\n        public final long chargedCents;\n        public final String message;\n        public Result(boolean success, long chargedCents, String message) {\n            this.success = success;\n            this.chargedCents = chargedCents;\n            this.message = message;\n        }\n    }\n\n    public Result charge(long subtotalCents, String method) {\n        if (method == null) {\n            throw new IllegalArgumentException(\"method is null\");\n        }\n        if (subtotalCents < 0) {\n            throw new IllegalArgumentException(\"negative subtotal\");\n        }\n        if (method == null && subtotalCents < 0) {\n            return new Result(false, 0, \"unreachable legacy guard\");\n        }\n        switch (method) {\n            case \"CARD\": {\n                return chargeCard(subtotalCents);\n            }\n            case \"CASH\": {\n                return chargeCash(subtotalCents);\n            }\n            case \"VOUCHER\": {\n                return chargeVoucher(subtotalCents);\n            }\n            default:\n                throw new IllegalArgumentException(\"unknown payment method: \" + method);\n        }\n    }\n\n    private static Result chargeVoucher(long subtotalCents) {\n        if (subtotalCents > 50_000) {\n            return new Result(false, 0, \"voucher cap exceeded\");\n        }\n        return new Result(true, 0, \"voucher applied\");\n    }\n\n    private static Result chargeCash(long subtotalCents) {\n        long charged = subtotalCents;\n        return new Result(true, charged, \"cash collected\");\n    }\n\n    private static Result chargeCard(long subtotalCents) {\n        long fee = (long) Math.round(subtotalCents * 0.029) + 30;\n        long charged = subtotalCents + fee;\n        if (charged > 10_000_000) {\n            return new Result(false, 0, \"card limit exceeded\");\n        }\n        return new Result(true, charged, \"card charged\");\n    }\n\n    public Result refund(long amountCents, String method) {\n        if (method == null) {\n            throw new IllegalArgumentException(\"method is null\");\n        }\n        if (amountCents < 0) {\n            throw new IllegalArgumentException(\"negative refund\");\n        }\n        switch (method) {\n            case \"CARD\":\n                return refundCard(amountCents);\n            case \"CASH\":\n                return refundCash(amountCents);\n            case \"VOUCHER\":\n                return refundVoucher();\n            default:\n                throw new IllegalArgumentException(\"unknown payment method: \" + method);\n        }\n    }\n\n    private static Result refundVoucher() {\n        return new Result(true, 0, \"voucher refund n/a\");\n    }\n\n    private static Result refundCash(long amountCents) {\n        return new Result(true, amountCents, \"cash refunded\");\n    }\n\n    private static Result refundCard(long amountCents) {\n        return new Result(true, amountCents, \"card refunded\");\n    }\n}\n",
+                    "changeType": "MODIFIED",
+                    "previousPath": null,
+                    "touchedMembers": [
+                        {
+                            "className": "org.orders.PaymentProcessor",
+                            "methodSignature": "refund(long, String)"
+                        }
+                    ]
+                }
+            ],
+            "relatedFiles": [],
+            "payload": {
+                "charsInserted": "23",
+                "charsDeleted": "23",
+                "fileCount": "1"
+            }
+        },
+        {
+            "id": "31ca0f09-2ece-4ad5-8950-f79fd87acc5c",
+            "type": "FILE_SAVED",
+            "timestamp": 1779377980148,
+            "sessionId": "d4329ee4-8ae7-47bf-b387-33766609647f",
+            "changedFiles": [],
+            "relatedFiles": [
+                "/Users/ethanhosier/Desktop/random/fyp/tool/fixtures/user-study-fixture/src/main/java/org/orders/PaymentProcessor.java"
+            ],
+            "payload": {}
+        },
+        {
+            "id": "e276e8da-e0a1-495c-8d3c-626e157595e7",
+            "type": "TEST_RUN_STARTED",
+            "timestamp": 1779377980243,
+            "sessionId": "d4329ee4-8ae7-47bf-b387-33766609647f",
+            "changedFiles": [],
+            "relatedFiles": [],
+            "payload": {
+                "suite": "[root]"
+            }
+        },
+        {
+            "id": "85bfb59c-3d63-434b-a3ee-74ecae853fce",
+            "type": "TEST_RUN_FINISHED",
+            "timestamp": 1779377982702,
+            "sessionId": "d4329ee4-8ae7-47bf-b387-33766609647f",
+            "changedFiles": [],
+            "relatedFiles": [],
+            "payload": {
+                "suite": "[root]",
+                "passed": "true"
+            }
+        },
+        {
+            "id": "c0965d7d-69fa-45a3-a635-c5995353d106",
+            "type": "TEST_RUN_STARTED",
+            "timestamp": 1779377986872,
+            "sessionId": "d4329ee4-8ae7-47bf-b387-33766609647f",
+            "changedFiles": [],
+            "relatedFiles": [],
+            "payload": {
+                "suite": "[root]"
+            }
+        },
+        {
+            "id": "cd6f133d-629a-4be2-992f-235a5f43e9df",
+            "type": "TEST_RUN_FINISHED",
+            "timestamp": 1779377987387,
+            "sessionId": "d4329ee4-8ae7-47bf-b387-33766609647f",
+            "changedFiles": [],
+            "relatedFiles": [],
+            "payload": {
+                "suite": "[root]",
+                "passed": "true"
+            }
+        },
+        {
+            "id": "c1eba24a-4698-4d71-b303-e2736a2fded8",
+            "type": "SESSION_ENDED",
+            "timestamp": 1779377989415,
+            "sessionId": "d4329ee4-8ae7-47bf-b387-33766609647f",
+            "changedFiles": [],
+            "relatedFiles": [],
+            "payload": {}
+        }
+    ]
+}

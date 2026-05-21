@@ -334,6 +334,16 @@ Jagdish Bansiya and Carl~G. Davis.
 \newblock A hierarchical model for object-oriented design quality assessment.
 \newblock {\em IEEE Transactions on Software Engineering}, 28(1):4--17, 2002.
 
+\bibitem{cohen1960kappa}
+Jacob Cohen.
+\newblock A coefficient of agreement for nominal scales.
+\newblock {\em Educational and Psychological Measurement}, 20(1):37--46, 1960.
+
+\bibitem{landis1977kappa}
+J.~Richard Landis and Gary~G. Koch.
+\newblock The measurement of observer agreement for categorical data.
+\newblock {\em Biometrics}, 33(1):159--174, 1977.
+
 \bibitem{eclipse_jdt_faq}
 {Eclipse Foundation}.
 \newblock {JDT/FAQ}.
