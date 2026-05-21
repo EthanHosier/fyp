@@ -49,6 +49,54 @@ public class OrderService {
             throw new IllegalStateException("duplicate submission");
         }
 
+        validateRequest(req);
+
+        List<LineItem> items = req.cart.snapshot();
+        boolean reserved = inventory.reserve(items);
+        if (!reserved) {
+            throw new IllegalStateException("insufficient stock");
+        }
+
+        long grandTotal = computeGrandTotal(req);
+
+        PaymentProcessor.Result result = payments.charge(grandTotal, req.paymentMethod);
+        if (!result.success) {
+            inventory.release(items);
+            throw new IllegalStateException("payment failed: " + result.message);
+        }
+
+        inventory.commit(items);
+
+        Order order = buildAndNotify(req, items, result);
+
+        if (req.idempotencyKey != null) {
+            submittedIds.add(req.idempotencyKey);
+        }
+        return order;
+    }
+
+    private Order buildAndNotify(CheckoutRequest req, List<LineItem> items, PaymentProcessor.Result result) {
+        String billingStreet = req.billingStreet != null ? req.billingStreet : req.shippingStreet;
+        String billingCity = req.billingCity != null ? req.billingCity : req.shippingCity;
+        String billingPostcode = req.billingPostcode != null ? req.billingPostcode : req.shippingPostcode;
+
+        Order order = new Order(
+                UUID.randomUUID().toString(),
+                req.customerEmail,
+                req.customerName,
+                req.shippingStreet, req.shippingCity, req.shippingPostcode,
+                billingStreet, billingCity, billingPostcode,
+                items,
+                Instant.now()
+        );
+        order.setTotalCents(result.chargedCents);
+        order.setStatus(OrderStatus.PAID);
+
+        notifier.notifyCustomer(order);
+        return order;
+    }
+
+    private void validateRequest(CheckoutRequest req) {
         if (req.cart == null || req.cart.isEmpty()) {
             throw new IllegalStateException("cart is empty");
         }
@@ -72,13 +120,9 @@ public class OrderService {
         if (req.shippingPostcode == null || req.shippingPostcode.isBlank()) {
             throw new IllegalStateException("missing shipping postcode");
         }
+    }
 
-        List<LineItem> items = req.cart.snapshot();
-        boolean reserved = inventory.reserve(items);
-        if (!reserved) {
-            throw new IllegalStateException("insufficient stock");
-        }
-
+    private long computeGrandTotal(CheckoutRequest req) {
         long subtotal = req.cart.subtotalCents();
         long shippingCents;
         if (req.cart.totalWeightGrams() < 500) {
@@ -91,38 +135,7 @@ public class OrderService {
         long shippingFromCalc = shipping.process(req.cart.totalWeightGrams(), req.shippingPostcode);
         long preTax = subtotal + shippingFromCalc;
         long tax = (long) Math.round(preTax * 0.2);
-        long grandTotal = preTax + tax;
-
-        PaymentProcessor.Result result = payments.charge(grandTotal, req.paymentMethod);
-        if (!result.success) {
-            inventory.release(items);
-            throw new IllegalStateException("payment failed: " + result.message);
-        }
-
-        inventory.commit(items);
-
-        String billingStreet = req.billingStreet != null ? req.billingStreet : req.shippingStreet;
-        String billingCity = req.billingCity != null ? req.billingCity : req.shippingCity;
-        String billingPostcode = req.billingPostcode != null ? req.billingPostcode : req.shippingPostcode;
-
-        Order order = new Order(
-                UUID.randomUUID().toString(),
-                req.customerEmail,
-                req.customerName,
-                req.shippingStreet, req.shippingCity, req.shippingPostcode,
-                billingStreet, billingCity, billingPostcode,
-                items,
-                Instant.now()
-        );
-        order.setTotalCents(result.chargedCents);
-        order.setStatus(OrderStatus.PAID);
-
-        notifier.notifyCustomer(order);
-
-        if (req.idempotencyKey != null) {
-            submittedIds.add(req.idempotencyKey);
-        }
-        return order;
+        return preTax + tax;
     }
 
     private void validate(Cart cart, String customerEmail,
@@ -152,13 +165,4 @@ public class OrderService {
         }
     }
 
-    private long calculateDiscountLegacy(long subtotal) {
-        if (subtotal > 50_000) {
-            return (long) Math.round(subtotal * 0.05);
-        }
-        if (subtotal > 20_000) {
-            return (long) Math.round(subtotal * 0.02);
-        }
-        return 0;
-    }
 }

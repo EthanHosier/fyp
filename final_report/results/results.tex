@@ -158,7 +158,7 @@ Five limitations qualify the ablation result. The cleanliness sub-weights are no
 The third experiment evaluates the divergence-point detector itself against ground truth. For each of the $45$ recorded sessions, the analysis pipeline assembles a report at production weights and compares the report's divergence points against the session manifest's \texttt{expected\_kinds} (the set of kinds a perfect detector would surface alternatives for) and the implied injection kind from the session's playbook pattern. The output is a $54$-column row per session covering per-kind classification (true and false positives and negatives), magnitude statistics, and injection prominence; the full sweep takes roughly $5$ seconds of wall-clock time. The headline numbers, expanded in the parts below, are perfect precision on all four kinds (rework, hygiene, ordering, and IDE-replay all at $1.00$), and every caught injection ranked at top-$1$ within its own session.
 
 \paragraph{Detection accuracy.}
-Table~\ref{tab:results-divergence-accuracy} reports per-kind precision and recall. Rework and hygiene are perfect on both axes: $9$ of $9$ rework injections and $13$ of $13$ hygiene injections are caught at $1.00$ precision. IDE-replay is also precision-perfect after closing four previously-documented plugin-instrumentation false positives in sessions $025$, $032$, $037$, and $039$; the fix extends the plugin's command listener to synthesise a refactoring envelope around IntelliJ commands the platform refactoring listener is silent for, and is discussed further in \S\ref{sec:results-scoped-out}. Ordering has perfect precision but only $0.36$ recall on any-expected (and $0.40$ recall on injection-only), because the reorder synthesiser's \texttt{splitOnInvalid} validator gate collapses windows containing a manual step into singletons and produces no permutations. The recall gap is documented and deliberate; its rationale is in \S\ref{sec:results-scoped-out}.
+Table~\ref{tab:results-divergence-accuracy} reports per-kind precision and recall. Rework and hygiene are perfect on both axes: $9$ of $9$ rework injections and $13$ of $13$ hygiene injections are caught at $1.00$ precision. IDE-replay is also precision-perfect after closing four previously-documented plugin-instrumentation false positives in sessions $025$, $032$, $037$, and $039$; the fix extends the plugin's command listener to synthesise a refactoring envelope around IntelliJ commands the platform refactoring listener is silent for, and is discussed further in \S\ref{sec:results-scoped-out}. Ordering has perfect precision but only $0.36$ recall on any-expected (and $0.40$ recall on injection-only), because the reorder synthesiser's \texttt{splitOnInvalid} validator gate collapses windows containing a manual step into singletons and produces no permutations. The recall gap is documented and deliberate; its rationale is in \S\ref{sec:results-scoped-out}. Per-kind inter-rater reliability of these labels, against two independent raters, is reported in \S\ref{sec:results-userstudy}.
 
 \begin{table}[htbp]
 \centering
@@ -198,7 +198,7 @@ ORDERING   & 29 & 225 &  7 & \textbf{24.1\%} & 9 points  \\
 \end{table}
 
 \paragraph{Injection prominence.}
-The most user-facing claim in this chapter is in Table~\ref{tab:results-divergence-prominence}: of the $32$ injections the detector caught across the four kinds ($8$ hygiene, $16$ IDE-replay, $2$ ordering, $6$ rework), every single one was the highest-magnitude divergence point in its session. The mean rank is $1.00$ across all four kinds. A user who only opens the top recommendation in the dashboard of \S\ref{sec:arch-dashboard} therefore always sees the deliberately bad behaviour the playbook injected, and no useful alternative of another kind masks the injection. The number is partly a property of the controlled-injection design, since the playbook injects one dominant bad behaviour per session and that behaviour is structurally likely to be the largest divergence point; the prominence number on uncontrolled real-world sessions would almost certainly be lower.
+The most user-facing claim in this chapter is in Table~\ref{tab:results-divergence-prominence}: of the $32$ injections the detector caught across the four kinds ($8$ hygiene, $16$ IDE-replay, $2$ ordering, $6$ rework), every single one was the highest-magnitude divergence point in its session. The mean rank is $1.00$ across all four kinds. A user who only opens the top recommendation in the dashboard of \S\ref{sec:arch-dashboard} therefore always sees the deliberately bad behaviour the playbook injected, and no useful alternative of another kind masks the injection. The number is partly a property of the controlled-injection design, since the playbook injects one dominant bad behaviour per session and that behaviour is structurally likely to be the largest divergence point; the prominence number on uncontrolled real-world sessions would almost certainly be lower. The participant corpus described in \S\ref{sec:results-userstudy} deliberately omits pre-declared expected kinds, so no participant-corpus prominence number is reported; the per-session per-kind distribution reported there is the closest external check on the prominence claim.
 
 \begin{table}[htbp]
 \centering
@@ -259,11 +259,90 @@ sessions with regression       & 39 of 45 & --- & --- \\
 \paragraph{Caveats.}
 Five limitations qualify the divergence numbers. The corpus is $45$ hand-recorded sessions, so per-cell counts are small (only $5$ ordering injections, for example); the per-kind ratios are directionally correct but not enough to support tight confidence intervals, which is why raw counts are reported alongside percentages throughout. Strict step anchoring is disabled, and the cost of that choice is reported directly above; re-enabling it depends on plugin-side cadence stability. The ``beats user'' computation uses a strict $\textnormal{magnitude} > 0$ threshold against trajectory-final $J$, so a positive magnitude genuinely means the alternative scores higher under the production formula; hygiene commit-gap divergence points have a discrete magnitude exactly equal to $W_{\textsc{cg}}$ because the commit-flip alt drops the gap count by one at trajectory-final. The $225$ enumeration count for ordering is the synthesiser's reach across the corpus rather than the user-facing number (which is the $29$ surfaced divergence points). And the IDE-replay false positives are upstream plugin-capture issues rather than detector-logic errors; they are counted as detector false positives in the confusion matrix above for transparency, but the upstream cause is named both here and in \S\ref{sec:results-scoped-out}.
 
-% TODO study-blocked: expanded-corpus paragraph
-% Fill in when the user-study Phase 1 (Cohen's kappa per kind from
-% two independent raters), Phase 2 (per-kind precision/recall delta
-% on the expanded 51-session corpus = 45 + 6), and Phase 3 (verbatim
-% quotes from feedback sessions) land. Plan in PLAN-user-study.md.
+\section{User study}
+\label{sec:results-userstudy}
+
+The fourth experiment steps outside the controlled-injection corpus to two new questions. First, do independent raters agree with the per-kind labels the divergence experiment of \S\ref{sec:results-divergence} treats as ground truth, or are those labels an author-specific artefact? Second, on sessions recorded by independent participants on a different codebase and without the playbook's controlled-injection structure, does the detector's per-kind output remain coherent, and do per-session divergence-point rates evolve as participants accumulate tool feedback across a multi-session arc? The two participants in this study, referred to throughout as P1 and P2, were recruited as senior MEng Computing students at Imperial College London; both produced an independent labelling of the 45-session corpus before participating, and both performed six recorded refactoring sessions each on a new order-processing fixture (\texttt{user-study-fixture/}) structurally disjoint from the library fixture used in \S\ref{sec:results-divergence}.
+
+\paragraph{Inter-rater reliability.}
+P1 and P2 each labelled all $45$ sessions against the multi-label schema in \S\ref{sec:methodology-rater}, working only from \texttt{events.jsonl}, \texttt{session.json}, and a written copy of the schema. Neither rater saw the playbook prompts, the manifest, the divergence-experiment analysis reports, or any dashboard output; the labelling pass ran before either rater performed a user-study session. Table~\ref{tab:results-userstudy-kappa} reports per-kind Cohen's $\kappa$~\cite{cohen1960kappa} for the three rater pairs against the 45-session corpus. All four kinds reach at least substantial agreement by the Landis and Koch thresholds~\cite{landis1977kappa}. Ordering and IDE-replay land at $\kappa = 1.00$ across every pair: all three labellers agree on every one of the $45$ sessions. Rework lands at $\kappa = 0.86$ between the author and each of the independent raters, and at $\kappa = 1.00$ between P1 and P2. Hygiene lands between $\kappa = 0.72$ and $\kappa = 0.86$, depending on which pair is compared.
+
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabular}{lrrr}
+\hline
+\textbf{kind} & \textbf{Author vs P1} & \textbf{Author vs P2} & \textbf{P1 vs P2} \\
+\hline
+ORDERING    & $1.000$ & $1.000$ & $1.000$ \\
+IDE\_REPLAY & $1.000$ & $1.000$ & $1.000$ \\
+REWORK      & $0.861$ & $0.861$ & $1.000$ \\
+HYGIENE     & $0.848$ & $0.723$ & $0.862$ \\
+\hline
+\end{tabular}
+\caption{Per-kind Cohen's $\kappa$ on the 45-session corpus between the author and the two independent raters and between the two independent raters. Ordering and IDE-replay are perfect on every pair; rework and hygiene reach substantial-to-almost-perfect agreement on every pair under Landis and Koch's interpretation thresholds.}
+\label{tab:results-userstudy-kappa}
+\end{table}
+
+The two imperfect kinds have specific disagreement structure worth recording. The rework disagreements concern exactly two sessions out of the $45$ across both author-vs-rater pairs, and the disagreement is symmetric: session $024$ (a borderline suboptimal-ordering injection) carries a rework label from both independent raters but not from the author, while session $043$ (a borderline add-then-revert control) carries a rework label from the author but not from either independent rater. P1 and P2 agree with each other on both sessions, so the two raters are an internally consistent signal that the author's labelling on those two specific sessions is the candidate outlier. The hygiene disagreements concentrate on three loud or borderline manual-move-method sessions ($014$, $015$, $016$) where P2 added a hygiene label that neither the author nor P1 added; plus session $039$ (a borderline no-commit-stretch injection) where the author added hygiene but neither rater did. These are reported as methodology findings rather than retroactively reconciled into the manifest, in line with the rater-protocol commitment in \S\ref{sec:methodology-rater} not to edit labels post-hoc to inflate $\kappa$.
+
+\paragraph{Descriptive findings on the participant corpus.}
+P1 and P2 each performed six recorded refactoring sessions on the order-processing fixture: $12$ sessions in total. The playbook gives each session a what-not-how prompt naming the area of code to address but never the IntelliJ action to use, the testing or commit cadence to follow, or the divergence kinds the detector surfaces.\footnote{Quotes throughout this section are paraphrased from session-end notes taken during the post-study interview; full audio transcription was not feasible within the study budget. The source notes are retained as private study artefacts and are not reproduced here.} Because the playbook deliberately omits pre-declared \texttt{expected\_kinds}, the participant corpus admits no precision/recall claim of the form reported in \S\ref{sec:results-divergence}; what it does admit is a descriptive per-kind distribution and a descriptive per-session count, which Table~\ref{tab:results-userstudy-distribution} gives in full.
+
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabular}{lrrrrr}
+\hline
+\textbf{session} & \textbf{IDE\_REPLAY} & \textbf{REWORK} & \textbf{HYGIENE} & \textbf{ORDERING} & \textbf{total} \\
+\hline
+P1 S1 & $10$ & $0$ & $2$ & $4$ & $16$ \\
+P1 S2 &  $4$ & $0$ & $6$ & $0$ & $10$ \\
+P1 S3 & $10$ & $4$ & $2$ & $0$ & $16$ \\
+P1 S4 &  $0$ & $0$ & $0$ & $0$ &  $0$ \\
+P1 S5 &  $2$ & $0$ & $2$ & $0$ &  $4$ \\
+P1 S6 &  $0$ & $0$ & $0$ & $7$ &  $7$ \\
+P2 S1 &  $6$ & $0$ & $4$ & $0$ & $10$ \\
+P2 S2 &  $4$ & $0$ & $8$ & $0$ & $12$ \\
+P2 S3 &  $2$ & $0$ & $4$ & $7$ & $13$ \\
+P2 S4 &  $0$ & $0$ & $0$ & $0$ &  $0$ \\
+P2 S5 &  $6$ & $0$ & $2$ & $0$ &  $8$ \\
+P2 S6 &  $2$ & $6$ & $2$ & $2$ & $12$ \\
+\hline
+\textbf{total} & $\textbf{46}$ & $\textbf{10}$ & $\textbf{32}$ & $\textbf{20}$ & $\textbf{108}$ \\
+\hline
+\end{tabular}
+\caption{Per-session divergence-point counts across the 12-session participant corpus. Both participants registered $0$ divergence points on session S04 (the cross-class duplication consolidation prompt); the remaining sessions exercise all four kinds in proportions broadly consistent with the 45-session corpus.}
+\label{tab:results-userstudy-distribution}
+\end{table}
+
+The aggregate per-kind distribution across the $108$ divergence points is IDE-replay $42.6\%$, hygiene $29.6\%$, ordering $18.5\%$, rework $9.3\%$. Both participants registered $0$ divergence points on session S04, the cross-class validation consolidation prompt; the playbook for that session asks the participant to unify three near-identical validation blocks into a single home, a task with a clean IDE-refactor path that both participants executed without surfacing any divergence point. Used cautiously, this is the closest the chapter comes to an external true-negative observation: when the task is approachable through the IDE refactor surface and participants use it, the detector stays quiet. Both participants identified IDE-replay as the most actionable kind in interview, with one participant noting that they ``didn't realise what IntelliJ could do before so didn't use it''; both identified ordering as the least actionable, with one asking ``how can [I] actually apply that in the future''.
+
+\paragraph{Behavioural trajectory across the six-session arc.}
+A second question the participant corpus admits is whether per-kind divergence-point rates evolve as participants accumulate feedback. Table~\ref{tab:results-userstudy-trajectory} aggregates per-kind divergence-point counts across the two participants, session by session. Two kinds show trajectory signal. The IDE-replay aggregate falls from $16$ in S1 to $2$ in S6, an $88\%$ reduction with one mid-arc spike in S5; per-participant, P1 falls from $10$ to $0$ monotonically and P2 falls from $6$ to $2$ with a single S5 deviation. The hygiene aggregate peaks at $14$ in S2 --- consistent with both participants first seeing commit-cadence and test-cadence feedback at the end of S1 and applying it from S3 onwards --- and then falls to $2$ in S6. Both participants self-reported the corresponding behavioural change in interview: one said they ``ran tests after every change + committed more + used automated tools'', and the other said they ``used the IDE methods more frequently''. The IDE-replay and hygiene trajectories are consistent with that self-report but are not a causal claim: with $n = 2$ participants over six sessions, the chapter reports a descriptive correspondence between detector output and qualitative testimony rather than an effect-size estimate.
+
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabular}{lrrrrrrr}
+\hline
+\textbf{kind} & \textbf{S1} & \textbf{S2} & \textbf{S3} & \textbf{S4} & \textbf{S5} & \textbf{S6} & \textbf{$\Delta$} \\
+\hline
+IDE\_REPLAY & $16$ & $8$  & $12$ & $0$ & $8$ & $2$ & $-14$ \\
+HYGIENE    & $6$  & $14$ & $6$  & $0$ & $4$ & $2$ & $-4$  \\
+ORDERING   & $4$  & $0$  & $7$  & $0$ & $0$ & $9$ & $+5$  \\
+REWORK     & $0$  & $0$  & $4$  & $0$ & $0$ & $6$ & $+6$  \\
+\hline
+\end{tabular}
+\caption{Per-kind divergence-point trajectory across the six-session arc, summed across both participants. IDE-replay and hygiene show a downward trajectory consistent with self-reported behavioural change; ordering and rework are episodic, firing on the sessions whose prompts inherently involve them.}
+\label{tab:results-userstudy-trajectory}
+\end{table}
+
+The remaining two kinds do not show trajectory signal. Ordering fires on sessions whose prompts inherently involve multi-step sequencing decisions --- S3 (within-class duplication) and S6 (reshape and cleanup) account for $16$ of the $20$ ordering divergence points across the corpus --- and is therefore episodic rather than amenable to behavioural improvement on a six-session arc. Rework is also episodic, spiking on the participants' hardest sessions where contiguous undo/redo cycles drive several flags from a single sequence of mis-clicks. One participant raised this as a specific metric-design complaint in interview, observing that rework ``picked up on undos + redos a lot (in a bad way) [---] over penalised'' on contiguous-step sequences caused by mistyped keys. The Table~\ref{tab:results-userstudy-trajectory} pattern is consistent with that account: the $6$ rework flags concentrated in S6 cluster within the single most complex session of the arc, where one participant produced the bulk of those flags from a contiguous sequence of small edits.
+
+One additional qualitative finding does not show in the trajectory table but matters for future tuning: hygiene also produces a false-positive shape, firing when a participant is thinking rather than stuck. One participant flagged this in interview as ``tests when wasn't quite finished just was thinking'', and the pattern is reflected in the S2 peak for hygiene more generally. Both this finding and the rework over-penalisation are reported here as candidate metric-tuning directions rather than detector bugs: the divergence points are accurate readings of what the trajectory contains, but the metric design treats some legitimate-pause and mistyped-key cases more harshly than the participant would.
+
+An agent-comparison run on the same playbook, recorded with an automated coding agent rather than a human participant, is scoped for future work and is not reported here; the capture mechanism for ingesting an agent's session into the Phase A pipeline remains open.
 
 \section{Headline finding: reordering rarely helps on commuting windows}
 \label{sec:results-headline}

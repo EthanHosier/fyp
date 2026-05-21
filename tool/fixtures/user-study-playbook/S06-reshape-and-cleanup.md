@@ -4,11 +4,14 @@ Target time: ~25 minutes.
 
 These are four small behaviour-preserving changes to `OrderService` and `PaymentProcessor`. The externally visible behaviour of `OrderService.processOrder` and `PaymentProcessor.charge` shouldn't change.
 
-## Before you start
+[//]: # (## Before you start)
 
-1. From `tool/fixtures/`, run `./reset-for-user-study-session.sh`.
-2. In IntelliJ, click the "Reload from disk" toolbar button (or wait a few seconds).
-3. Start plugin recording.
+[//]: # ()
+[//]: # (1. From `tool/fixtures/`, run `./reset-for-user-study-session.sh`.)
+
+[//]: # (2. In IntelliJ, click the "Reload from disk" toolbar button &#40;or wait a few seconds&#41;.)
+
+[//]: # (3. Start plugin recording.)
 
 ## Step 1 — Remove the dead branch in `PaymentProcessor.charge`
 
@@ -49,6 +52,9 @@ The block at lines 102–122 of `processOrder` builds the new `Order` object, se
 
 1. Stop plugin recording.
 2. The facilitator will open your analysis report — take a look.
-3. Answer two short questions (verbal is fine):
-   - Which feedback item, if any, was most useful?
-   - Did anything in the report make you want to do something differently in the next session?
+
+[//]: # (3. Answer two short questions &#40;verbal is fine&#41;:)
+
+[//]: # (   - Which feedback item, if any, was most useful?)
+
+[//]: # (   - Did anything in the report make you want to do something differently in the next session?)

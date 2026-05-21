@@ -1,119 +1,123 @@
 \babel@toc {english}{}\relax 
-\contentsline {chapter}{\numberline {1}Introduction}{6}{chapter.1}%
-\contentsline {section}{\numberline {1.1}Background}{6}{section.1.1}%
-\contentsline {section}{\numberline {1.2}Motivation}{6}{section.1.2}%
-\contentsline {section}{\numberline {1.3}Research Objectives}{7}{section.1.3}%
-\contentsline {section}{\numberline {1.4}Contributions}{7}{section.1.4}%
-\contentsline {section}{\numberline {1.5}Approach and Scope}{8}{section.1.5}%
-\contentsline {section}{\numberline {1.6}Thesis Roadmap}{8}{section.1.6}%
-\contentsline {chapter}{\numberline {2}Background and Related Work}{9}{chapter.2}%
-\contentsline {section}{\numberline {2.1}Definitions and framing}{9}{section.2.1}%
-\contentsline {subsection}{\numberline {2.1.1}Refactoring as behaviour-preserving transformation}{9}{subsection.2.1.1}%
-\contentsline {subsection}{\numberline {2.1.2}Atomic refactorings, smells, and sequences}{9}{subsection.2.1.2}%
-\contentsline {subsection}{\numberline {2.1.3}State--action--trace formalism}{10}{subsection.2.1.3}%
-\contentsline {section}{\numberline {2.2}Outcome-based refactoring evaluation}{10}{section.2.2}%
-\contentsline {subsection}{\numberline {2.2.1}Endpoint-centric quality improvement}{10}{subsection.2.2.1}%
-\contentsline {subsection}{\numberline {2.2.2}What endpoint evaluation captures-and what it misses}{10}{subsection.2.2.2}%
-\contentsline {section}{\numberline {2.3}Code smell detection and quality metrics}{11}{section.2.3}%
-\contentsline {subsection}{\numberline {2.3.1}Smell detection as operationalising design issues}{11}{subsection.2.3.1}%
-\contentsline {subsection}{\numberline {2.3.2}Quality metrics: structural and readability-oriented signals}{11}{subsection.2.3.2}%
-\contentsline {subsection}{\numberline {2.3.3}Implications for process-quality metric construction}{11}{subsection.2.3.3}%
-\contentsline {section}{\numberline {2.4}Refactoring detection and mining from code changes}{13}{section.2.4}%
-\contentsline {subsection}{\numberline {2.4.1}From diffs to refactoring actions}{13}{subsection.2.4.1}%
-\contentsline {subsection}{\numberline {2.4.2}Representation, coverage, and typical failure modes}{13}{subsection.2.4.2}%
-\contentsline {paragraph}{Mixed and tangled changes.}{13}{section*.6}%
-\contentsline {paragraph}{Incomplete coverage and composition effects.}{13}{section*.7}%
-\contentsline {paragraph}{Behaviour preservation is not verified.}{13}{section*.8}%
-\contentsline {subsection}{\numberline {2.4.3}Tie-in to this thesis}{13}{subsection.2.4.3}%
-\contentsline {section}{\numberline {2.5}Refactoring recommendation and search/synthesis}{14}{section.2.5}%
-\contentsline {subsection}{\numberline {2.5.1}Synthesis and path completion from partial edits}{14}{subsection.2.5.1}%
-\contentsline {paragraph}{Relevance and limitations for process evaluation.}{14}{section*.9}%
-\contentsline {subsection}{\numberline {2.5.2}Search-based optimisation of refactoring sequences}{14}{subsection.2.5.2}%
-\contentsline {paragraph}{Relevance and limitations for process evaluation.}{15}{section*.10}%
-\contentsline {subsection}{\numberline {2.5.3}Goal-directed navigation and architectural refactoring}{15}{subsection.2.5.3}%
-\contentsline {paragraph}{Relevance and limitations for process evaluation.}{15}{section*.11}%
-\contentsline {subsection}{\numberline {2.5.4}Interactive and developer-in-the-loop recommendation}{15}{subsection.2.5.4}%
-\contentsline {paragraph}{Relevance and limitations for process evaluation.}{15}{section*.12}%
-\contentsline {subsection}{\numberline {2.5.5}Beyond structural metrics: alternative objectives for ranking refactorings}{16}{subsection.2.5.5}%
-\contentsline {subsection}{\numberline {2.5.6}Synthesis: what sequence-generation work enables, and what remains missing}{16}{subsection.2.5.6}%
-\contentsline {subsection}{\numberline {2.5.7}Recent trajectory-formalism work in software engineering}{16}{subsection.2.5.7}%
-\contentsline {section}{\numberline {2.6}Process-aware work and IDE trace capture}{17}{section.2.6}%
-\contentsline {subsection}{\numberline {2.6.1}Logging developer interactions in IDEs}{17}{subsection.2.6.1}%
-\contentsline {subsection}{\numberline {2.6.2}Granularity, segmentation, and semantic interpretation}{17}{subsection.2.6.2}%
-\contentsline {section}{\numberline {2.7}Summary and positioning: toward process-quality evaluation}{17}{section.2.7}%
-\contentsline {chapter}{\numberline {3}Methodology}{19}{chapter.3}%
-\contentsline {section}{\numberline {3.1}Formal definitions and notation}{19}{section.3.1}%
-\contentsline {section}{\numberline {3.2}The process score}{19}{section.3.2}%
-\contentsline {section}{\numberline {3.3}Process-score weights}{20}{section.3.3}%
-\contentsline {paragraph}{$W_{\textsc {g}}$ (gain, 50).}{21}{section*.15}%
-\contentsline {paragraph}{$W_{\textsc {b}}$ (broken, 28).}{21}{section*.16}%
-\contentsline {paragraph}{$W_{\textsc {st}}$ (skip-tests, 14).}{21}{section*.17}%
-\contentsline {paragraph}{$W_{\textsc {mi}}$ (manual-when-IDE, 11).}{21}{section*.18}%
-\contentsline {paragraph}{$W_{\textsc {l}}$ (length, 11).}{22}{section*.19}%
-\contentsline {paragraph}{$W_{\textsc {cg}}$ (commit-gap, 7).}{22}{section*.20}%
-\contentsline {section}{\numberline {3.4}The cleanliness sub-score}{22}{section.3.4}%
-\contentsline {paragraph}{Composition rule.}{23}{section*.22}%
-\contentsline {paragraph}{Uniform sub-weights, by deliberate choice.}{23}{section*.23}%
-\contentsline {paragraph}{Caveats deliberately disclosed.}{23}{section*.24}%
-\contentsline {section}{\numberline {3.5}The divergence-point detector}{23}{section.3.5}%
-\contentsline {subsection}{\numberline {3.5.1}ORDERING detection}{24}{subsection.3.5.1}%
-\contentsline {subsection}{\numberline {3.5.2}MANUAL\_REFACTOR detection}{24}{subsection.3.5.2}%
-\contentsline {subsection}{\numberline {3.5.3}REWORK detection}{24}{subsection.3.5.3}%
-\contentsline {subsection}{\numberline {3.5.4}HYGIENE detection}{24}{subsection.3.5.4}%
-\contentsline {section}{\numberline {3.6}Reorder synthesiser}{24}{section.3.6}%
-\contentsline {paragraph}{Window splitting on validator verdicts.}{25}{section*.25}%
-\contentsline {paragraph}{Dependency-DAG construction.}{25}{section*.26}%
-\contentsline {paragraph}{SSA versioning across renames.}{25}{section*.27}%
-\contentsline {paragraph}{Topological enumeration.}{25}{section*.28}%
-\contentsline {paragraph}{Depth-first search over a prefix trie.}{25}{section*.29}%
-\contentsline {paragraph}{Terminal AST-equivalence audit.}{25}{section*.30}%
-\contentsline {section}{\numberline {3.7}Manual-refactor synthesiser}{25}{section.3.7}%
-\contentsline {section}{\numberline {3.8}Rework synthesiser}{26}{section.3.8}%
-\contentsline {section}{\numberline {3.9}Hygiene synthesisers}{26}{section.3.9}%
-\contentsline {section}{\numberline {3.10}Validator and behaviour preservation}{26}{section.3.10}%
-\contentsline {section}{\numberline {3.11}Rater design}{27}{section.3.11}%
-\contentsline {chapter}{\numberline {4}Tool Architecture}{28}{chapter.4}%
-\contentsline {section}{\numberline {4.1}Architecture at a glance}{28}{section.4.1}%
-\contentsline {section}{\numberline {4.2}Event capture}{29}{section.4.2}%
-\contentsline {section}{\numberline {4.3}Shadow repo reconstruction and worktree pool}{29}{section.4.3}%
-\contentsline {paragraph}{Shadow repo reconstruction.}{29}{section*.32}%
-\contentsline {paragraph}{Worktree allocation.}{29}{section*.33}%
-\contentsline {section}{\numberline {4.4}Metrics calculation}{29}{section.4.4}%
-\contentsline {section}{\numberline {4.5}Applying refactorings via Eclipse JDT}{30}{section.4.5}%
-\contentsline {paragraph}{Batch sessions.}{30}{section*.34}%
-\contentsline {paragraph}{Anchor resolution.}{30}{section*.35}%
-\contentsline {section}{\numberline {4.6}Synthesising counterfactual trajectories}{30}{section.4.6}%
-\contentsline {paragraph}{Reorder synthesis.}{30}{section*.36}%
-\contentsline {paragraph}{Manual-refactor synthesis and the wrap-and-patch layer.}{31}{section*.37}%
-\contentsline {paragraph}{Rework synthesis.}{31}{section*.38}%
-\contentsline {paragraph}{Hygiene synthesis.}{32}{section*.39}%
-\contentsline {section}{\numberline {4.7}Pipeline Phases}{32}{section.4.7}%
-\contentsline {section}{\numberline {4.8}Dashboard}{32}{section.4.8}%
-\contentsline {chapter}{\numberline {5}Experiments and Results}{33}{chapter.5}%
-\contentsline {section}{\numberline {5.1}Sensitivity sweep}{33}{section.5.1}%
-\contentsline {paragraph}{Design.}{33}{section*.40}%
-\contentsline {paragraph}{Distribution.}{34}{section*.41}%
-\contentsline {paragraph}{Sources of ranking instability.}{34}{section*.43}%
-\contentsline {paragraph}{Saturation check.}{34}{section*.45}%
-\contentsline {paragraph}{Caveats.}{34}{section*.46}%
-\contentsline {section}{\numberline {5.2}Ablation sweep}{35}{section.5.2}%
-\contentsline {paragraph}{Design.}{35}{section*.47}%
-\contentsline {paragraph}{Sanity check.}{35}{section*.48}%
-\contentsline {paragraph}{Monotone by active-term count.}{35}{section*.49}%
-\contentsline {paragraph}{Per-term single-knob recovery.}{35}{section*.51}%
-\contentsline {paragraph}{Per-term leave-one-out recovery.}{36}{section*.53}%
-\contentsline {paragraph}{Caveats.}{36}{section*.55}%
-\contentsline {section}{\numberline {5.3}Divergence experiment}{37}{section.5.3}%
-\contentsline {paragraph}{Detection accuracy.}{37}{section*.56}%
-\contentsline {paragraph}{Detection quality.}{37}{section*.58}%
-\contentsline {paragraph}{Injection prominence.}{38}{section*.60}%
-\contentsline {paragraph}{Step-anchor recall under strict matching.}{38}{section*.62}%
-\contentsline {paragraph}{Baselines and absolute magnitudes.}{38}{section*.64}%
-\contentsline {paragraph}{Caveats.}{39}{section*.66}%
-\contentsline {section}{\numberline {5.4}Headline finding: reordering rarely helps on commuting windows}{39}{section.5.4}%
-\contentsline {section}{\numberline {5.5}Scoped-out fixes}{40}{section.5.5}%
-\contentsline {chapter}{\numberline {6}Project Plan and Timetable (Jan--Jun 2026)}{41}{chapter.6}%
-\contentsline {paragraph}{Work completed so far (as of 21 Jan 2026).}{41}{section*.67}%
-\contentsline {paragraph}{Timeline in 5 phases (Jan $\rightarrow $ end of June).}{41}{section*.68}%
-\contentsline {chapter}{\numberline {7}Ethical Issues and Data Handling Plan}{42}{chapter.7}%
-\contentsline {chapter}{\numberline {A}First Appendix}{43}{appendix.A}%
+\contentsline {chapter}{\numberline {1}Introduction}{7}{chapter.1}%
+\contentsline {section}{\numberline {1.1}Background}{7}{section.1.1}%
+\contentsline {section}{\numberline {1.2}Motivation}{7}{section.1.2}%
+\contentsline {section}{\numberline {1.3}Research Objectives}{8}{section.1.3}%
+\contentsline {section}{\numberline {1.4}Contributions}{8}{section.1.4}%
+\contentsline {section}{\numberline {1.5}Approach and Scope}{9}{section.1.5}%
+\contentsline {section}{\numberline {1.6}Thesis Roadmap}{9}{section.1.6}%
+\contentsline {chapter}{\numberline {2}Background and Related Work}{10}{chapter.2}%
+\contentsline {section}{\numberline {2.1}Definitions and framing}{10}{section.2.1}%
+\contentsline {subsection}{\numberline {2.1.1}Refactoring as behaviour-preserving transformation}{10}{subsection.2.1.1}%
+\contentsline {subsection}{\numberline {2.1.2}Atomic refactorings, smells, and sequences}{10}{subsection.2.1.2}%
+\contentsline {subsection}{\numberline {2.1.3}State--action--trace formalism}{11}{subsection.2.1.3}%
+\contentsline {section}{\numberline {2.2}Outcome-based refactoring evaluation}{11}{section.2.2}%
+\contentsline {subsection}{\numberline {2.2.1}Endpoint-centric quality improvement}{11}{subsection.2.2.1}%
+\contentsline {subsection}{\numberline {2.2.2}What endpoint evaluation captures-and what it misses}{11}{subsection.2.2.2}%
+\contentsline {section}{\numberline {2.3}Code smell detection and quality metrics}{12}{section.2.3}%
+\contentsline {subsection}{\numberline {2.3.1}Smell detection as operationalising design issues}{12}{subsection.2.3.1}%
+\contentsline {subsection}{\numberline {2.3.2}Quality metrics: structural and readability-oriented signals}{12}{subsection.2.3.2}%
+\contentsline {subsection}{\numberline {2.3.3}Implications for process-quality metric construction}{12}{subsection.2.3.3}%
+\contentsline {section}{\numberline {2.4}Refactoring detection and mining from code changes}{14}{section.2.4}%
+\contentsline {subsection}{\numberline {2.4.1}From diffs to refactoring actions}{14}{subsection.2.4.1}%
+\contentsline {subsection}{\numberline {2.4.2}Representation, coverage, and typical failure modes}{14}{subsection.2.4.2}%
+\contentsline {paragraph}{Mixed and tangled changes.}{14}{section*.6}%
+\contentsline {paragraph}{Incomplete coverage and composition effects.}{14}{section*.7}%
+\contentsline {paragraph}{Behaviour preservation is not verified.}{14}{section*.8}%
+\contentsline {subsection}{\numberline {2.4.3}Tie-in to this thesis}{14}{subsection.2.4.3}%
+\contentsline {section}{\numberline {2.5}Refactoring recommendation and search/synthesis}{15}{section.2.5}%
+\contentsline {subsection}{\numberline {2.5.1}Synthesis and path completion from partial edits}{15}{subsection.2.5.1}%
+\contentsline {paragraph}{Relevance and limitations for process evaluation.}{15}{section*.9}%
+\contentsline {subsection}{\numberline {2.5.2}Search-based optimisation of refactoring sequences}{15}{subsection.2.5.2}%
+\contentsline {paragraph}{Relevance and limitations for process evaluation.}{16}{section*.10}%
+\contentsline {subsection}{\numberline {2.5.3}Goal-directed navigation and architectural refactoring}{16}{subsection.2.5.3}%
+\contentsline {paragraph}{Relevance and limitations for process evaluation.}{16}{section*.11}%
+\contentsline {subsection}{\numberline {2.5.4}Interactive and developer-in-the-loop recommendation}{16}{subsection.2.5.4}%
+\contentsline {paragraph}{Relevance and limitations for process evaluation.}{16}{section*.12}%
+\contentsline {subsection}{\numberline {2.5.5}Beyond structural metrics: alternative objectives for ranking refactorings}{17}{subsection.2.5.5}%
+\contentsline {subsection}{\numberline {2.5.6}Synthesis: what sequence-generation work enables, and what remains missing}{17}{subsection.2.5.6}%
+\contentsline {subsection}{\numberline {2.5.7}Recent trajectory-formalism work in software engineering}{17}{subsection.2.5.7}%
+\contentsline {section}{\numberline {2.6}Process-aware work and IDE trace capture}{18}{section.2.6}%
+\contentsline {subsection}{\numberline {2.6.1}Logging developer interactions in IDEs}{18}{subsection.2.6.1}%
+\contentsline {subsection}{\numberline {2.6.2}Granularity, segmentation, and semantic interpretation}{18}{subsection.2.6.2}%
+\contentsline {section}{\numberline {2.7}Summary and positioning: toward process-quality evaluation}{18}{section.2.7}%
+\contentsline {chapter}{\numberline {3}Methodology}{20}{chapter.3}%
+\contentsline {section}{\numberline {3.1}Formal definitions and notation}{20}{section.3.1}%
+\contentsline {section}{\numberline {3.2}The process score}{20}{section.3.2}%
+\contentsline {section}{\numberline {3.3}Process-score weights}{21}{section.3.3}%
+\contentsline {paragraph}{$W_{\textsc {g}}$ (gain, 50).}{22}{section*.15}%
+\contentsline {paragraph}{$W_{\textsc {b}}$ (broken, 28).}{22}{section*.16}%
+\contentsline {paragraph}{$W_{\textsc {st}}$ (skip-tests, 14).}{22}{section*.17}%
+\contentsline {paragraph}{$W_{\textsc {mi}}$ (manual-when-IDE, 11).}{22}{section*.18}%
+\contentsline {paragraph}{$W_{\textsc {l}}$ (length, 11).}{23}{section*.19}%
+\contentsline {paragraph}{$W_{\textsc {cg}}$ (commit-gap, 7).}{23}{section*.20}%
+\contentsline {section}{\numberline {3.4}The cleanliness sub-score}{23}{section.3.4}%
+\contentsline {paragraph}{Composition rule.}{24}{section*.22}%
+\contentsline {paragraph}{Uniform sub-weights, by deliberate choice.}{24}{section*.23}%
+\contentsline {paragraph}{Caveats deliberately disclosed.}{24}{section*.24}%
+\contentsline {section}{\numberline {3.5}The divergence-point detector}{24}{section.3.5}%
+\contentsline {subsection}{\numberline {3.5.1}ORDERING detection}{25}{subsection.3.5.1}%
+\contentsline {subsection}{\numberline {3.5.2}MANUAL\_REFACTOR detection}{25}{subsection.3.5.2}%
+\contentsline {subsection}{\numberline {3.5.3}REWORK detection}{25}{subsection.3.5.3}%
+\contentsline {subsection}{\numberline {3.5.4}HYGIENE detection}{25}{subsection.3.5.4}%
+\contentsline {section}{\numberline {3.6}Reorder synthesiser}{25}{section.3.6}%
+\contentsline {paragraph}{Window splitting on validator verdicts.}{26}{section*.25}%
+\contentsline {paragraph}{Dependency-DAG construction.}{26}{section*.26}%
+\contentsline {paragraph}{SSA versioning across renames.}{26}{section*.27}%
+\contentsline {paragraph}{Topological enumeration.}{26}{section*.28}%
+\contentsline {paragraph}{Depth-first search over a prefix trie.}{26}{section*.29}%
+\contentsline {paragraph}{Terminal AST-equivalence audit.}{26}{section*.30}%
+\contentsline {section}{\numberline {3.7}Manual-refactor synthesiser}{26}{section.3.7}%
+\contentsline {section}{\numberline {3.8}Rework synthesiser}{27}{section.3.8}%
+\contentsline {section}{\numberline {3.9}Hygiene synthesisers}{27}{section.3.9}%
+\contentsline {section}{\numberline {3.10}Validator and behaviour preservation}{27}{section.3.10}%
+\contentsline {section}{\numberline {3.11}Rater design}{28}{section.3.11}%
+\contentsline {chapter}{\numberline {4}Tool Architecture}{29}{chapter.4}%
+\contentsline {section}{\numberline {4.1}Architecture at a glance}{29}{section.4.1}%
+\contentsline {section}{\numberline {4.2}Event capture}{30}{section.4.2}%
+\contentsline {section}{\numberline {4.3}Shadow repo reconstruction and worktree pool}{30}{section.4.3}%
+\contentsline {paragraph}{Shadow repo reconstruction.}{30}{section*.32}%
+\contentsline {paragraph}{Worktree allocation.}{30}{section*.33}%
+\contentsline {section}{\numberline {4.4}Metrics calculation}{30}{section.4.4}%
+\contentsline {section}{\numberline {4.5}Applying refactorings via Eclipse JDT}{31}{section.4.5}%
+\contentsline {paragraph}{Batch sessions.}{31}{section*.34}%
+\contentsline {paragraph}{Anchor resolution.}{31}{section*.35}%
+\contentsline {section}{\numberline {4.6}Synthesising counterfactual trajectories}{31}{section.4.6}%
+\contentsline {paragraph}{Reorder synthesis.}{31}{section*.36}%
+\contentsline {paragraph}{Manual-refactor synthesis and the wrap-and-patch layer.}{32}{section*.37}%
+\contentsline {paragraph}{Rework synthesis.}{32}{section*.38}%
+\contentsline {paragraph}{Hygiene synthesis.}{33}{section*.39}%
+\contentsline {section}{\numberline {4.7}Pipeline Phases}{33}{section.4.7}%
+\contentsline {section}{\numberline {4.8}Dashboard}{33}{section.4.8}%
+\contentsline {chapter}{\numberline {5}Experiments and Results}{34}{chapter.5}%
+\contentsline {section}{\numberline {5.1}Sensitivity sweep}{34}{section.5.1}%
+\contentsline {paragraph}{Design.}{34}{section*.40}%
+\contentsline {paragraph}{Distribution.}{35}{section*.41}%
+\contentsline {paragraph}{Sources of ranking instability.}{35}{section*.43}%
+\contentsline {paragraph}{Saturation check.}{35}{section*.45}%
+\contentsline {paragraph}{Caveats.}{35}{section*.46}%
+\contentsline {section}{\numberline {5.2}Ablation sweep}{36}{section.5.2}%
+\contentsline {paragraph}{Design.}{36}{section*.47}%
+\contentsline {paragraph}{Sanity check.}{36}{section*.48}%
+\contentsline {paragraph}{Monotone by active-term count.}{36}{section*.49}%
+\contentsline {paragraph}{Per-term single-knob recovery.}{36}{section*.51}%
+\contentsline {paragraph}{Per-term leave-one-out recovery.}{37}{section*.53}%
+\contentsline {paragraph}{Caveats.}{37}{section*.55}%
+\contentsline {section}{\numberline {5.3}Divergence experiment}{38}{section.5.3}%
+\contentsline {paragraph}{Detection accuracy.}{38}{section*.56}%
+\contentsline {paragraph}{Detection quality.}{38}{section*.58}%
+\contentsline {paragraph}{Injection prominence.}{39}{section*.60}%
+\contentsline {paragraph}{Step-anchor recall under strict matching.}{39}{section*.62}%
+\contentsline {paragraph}{Baselines and absolute magnitudes.}{40}{section*.64}%
+\contentsline {paragraph}{Caveats.}{40}{section*.66}%
+\contentsline {section}{\numberline {5.4}User study}{40}{section.5.4}%
+\contentsline {paragraph}{Inter-rater reliability.}{40}{section*.67}%
+\contentsline {paragraph}{Descriptive findings on the participant corpus.}{41}{section*.69}%
+\contentsline {paragraph}{Behavioural trajectory across the six-session arc.}{42}{section*.71}%
+\contentsline {section}{\numberline {5.5}Headline finding: reordering rarely helps on commuting windows}{42}{section.5.5}%
+\contentsline {section}{\numberline {5.6}Scoped-out fixes}{43}{section.5.6}%
+\contentsline {chapter}{\numberline {6}Project Plan and Timetable (Jan--Jun 2026)}{45}{chapter.6}%
+\contentsline {paragraph}{Work completed so far (as of 21 Jan 2026).}{45}{section*.73}%
+\contentsline {paragraph}{Timeline in 5 phases (Jan $\rightarrow $ end of June).}{45}{section*.74}%
+\contentsline {chapter}{\numberline {7}Ethical Issues and Data Handling Plan}{46}{chapter.7}%
+\contentsline {chapter}{\numberline {A}First Appendix}{47}{appendix.A}%

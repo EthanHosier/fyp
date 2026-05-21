@@ -6,45 +6,45 @@ Database file #1: bibs/sample.bib
 Warning--empty journal in bouzenia2025trajectories
 Warning--empty title in wang2018traceability
 Warning--empty journal in wang2018traceability
-You've used 66 entries,
+You've used 68 entries,
             1791 wiz_defined-function locations,
-            783 strings with 16962 characters,
-and the built_in function-call counts, 15935 in all, are:
-= -- 1434
-> -- 725
+            798 strings with 17265 characters,
+and the built_in function-call counts, 16379 in all, are:
+= -- 1479
+> -- 737
 < -- 16
-+ -- 267
-- -- 201
-* -- 929
-:= -- 2447
-add.period$ -- 221
-call.type$ -- 66
-change.case$ -- 62
++ -- 272
+- -- 204
+* -- 963
+:= -- 2516
+add.period$ -- 227
+call.type$ -- 68
+change.case$ -- 64
 chr.to.int$ -- 0
-cite$ -- 69
-duplicate$ -- 779
-empty$ -- 1598
-format.name$ -- 201
-if$ -- 3680
+cite$ -- 71
+duplicate$ -- 797
+empty$ -- 1644
+format.name$ -- 204
+if$ -- 3776
 int.to.chr$ -- 0
-int.to.str$ -- 66
-missing$ -- 65
-newline$ -- 338
-num.names$ -- 66
-pop$ -- 259
+int.to.str$ -- 68
+missing$ -- 67
+newline$ -- 348
+num.names$ -- 68
+pop$ -- 261
 preamble$ -- 1
 purify$ -- 0
 quote$ -- 0
-skip$ -- 393
+skip$ -- 400
 stack$ -- 0
-substring$ -- 871
-swap$ -- 226
+substring$ -- 915
+swap$ -- 228
 text.length$ -- 16
 text.prefix$ -- 0
 top$ -- 0
 type$ -- 0
 warning$ -- 3
-while$ -- 140
-width$ -- 68
-write$ -- 728
+while$ -- 146
+width$ -- 70
+write$ -- 750
 (There were 3 warnings)

@@ -2,11 +2,14 @@
 
 Target time: ~25 minutes.
 
-## Before you start
+[//]: # (## Before you start)
 
-1. From `tool/fixtures/`, run `./reset-for-user-study-session.sh`.
-2. In IntelliJ, click the "Reload from disk" toolbar button (or wait a few seconds).
-3. Start plugin recording.
+[//]: # ()
+[//]: # (1. From `tool/fixtures/`, run `./reset-for-user-study-session.sh`.)
+
+[//]: # (2. In IntelliJ, click the "Reload from disk" toolbar button &#40;or wait a few seconds&#41;.)
+
+[//]: # (3. Start plugin recording.)
 
 ## Step 1 — `Order.getShippingLabel` and `Order.getBillingLabel`
 
@@ -27,6 +30,9 @@ Target time: ~25 minutes.
 
 1. Stop plugin recording.
 2. The facilitator will open your analysis report — take a look.
-3. Answer two short questions (verbal is fine):
-   - Which feedback item, if any, was most useful?
-   - Did anything in the report make you want to do something differently in the next session?
+
+[//]: # (3. Answer two short questions &#40;verbal is fine&#41;:)
+
+[//]: # (   - Which feedback item, if any, was most useful?)
+
+[//]: # (   - Did anything in the report make you want to do something differently in the next session?)
