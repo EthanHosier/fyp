@@ -10,19 +10,26 @@ Target time: ~25 minutes.
 
 ## The duplication
 
-The same validation rules (cart non-empty, each line item has positive qty + non-negative price, customer email non-blank, shipping street / city / postcode non-blank) appear in three places:
+The same set of validation rules — cart non-empty, every line item has positive qty + non-negative price, customer email non-blank, shipping street / city / postcode non-blank — appears in two places:
 
-- `Cart.validate()` in `Cart.java` (lines 60–73).
-- `OrderValidator.validate(...)` in `OrderValidator.java` (lines 7–32).
+- `OrderValidator.validate(Cart, String, String, String, String)` in `OrderValidator.java` (lines 7–32).
 - The inline block at the top of `OrderService.processOrder` in `OrderService.java` (lines 53–75).
 
-Make these rules live in one place — `OrderValidator.validate(...)` — and have both `Cart` and `OrderService` call it.
+There is also a third copy: the private method `OrderService.validate(Cart, String, String, String, String)` in `OrderService.java` (lines 128–153). It is identical to `OrderValidator.validate(...)` and is not called from anywhere.
+
+Make `OrderValidator.validate(...)` the single home for these rules.
 
 ## Steps
 
-1. In `OrderService.java`, delete the inline validation block in `processOrder` (lines 53–75) and replace it with a single call to `validator.validate(req.cart, req.customerEmail, req.shippingStreet, req.shippingCity, req.shippingPostcode)`.
-2. In `Cart.java`, remove `Cart.validate()` and update `Cart.checkout()` to call `OrderValidator.validate(...)` instead (you'll need a `OrderValidator` reference — either passed in to `Cart`, or constructed inside `checkout()`).
-3. In `OrderService.java`, the now-unused private `OrderService.validate(...)` method (lines 128–153) — remove it.
+1. In `OrderService.java`, delete the inline validation block in `processOrder` (lines 53–75) and replace it with a single call:
+
+   ```java
+   validator.validate(req.cart, req.customerEmail, req.shippingStreet, req.shippingCity, req.shippingPostcode);
+   ```
+
+2. In the same file, remove the now-unused private method `OrderService.validate(...)` (lines 128–153).
+
+`Cart.validate()` in `Cart.java` is a smaller, separate API (it checks only the cart-internal rules and takes no email/address) — leave it as-is.
 
 ## When you're done
 
