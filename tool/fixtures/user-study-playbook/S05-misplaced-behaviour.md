@@ -7,15 +7,14 @@ Target time: ~25 minutes.
 1. From `tool/fixtures/`, run `./reset-for-user-study-session.sh`.
 2. In IntelliJ, click the "Reload from disk" toolbar button (or wait a few seconds).
 3. Start plugin recording.
-4. Confirm the test suite is green: `./gradlew test`.
 
 ## Prompts
 
-1. `Notifier.notifyCustomer` reads several fields from `Order` to build its message. Push the work to where the data lives.
-2. If you moved logic out of `Notifier`, look at the resulting method bodies and decide whether they still earn their place.
-3. Run the test suite.
+1. `Notifier.notifyCustomer(Order order)` reads a lot of fields from `Order` — `getCustomerEmail`, `getCustomerName`, `getItems`, `getTotalCents`, `getShippingStreet/City/Postcode` — and computes the line-item subtotal itself. Move the message-building work onto `Order` (e.g. a `confirmationMessage()` method) so `Notifier.notifyCustomer` just asks `Order` for the formatted message and delivers it.
+2. After the move, the original `Notifier.notifyCustomer` should be a few lines at most. If it still looks like it could be inlined into its callers, decide whether to leave it as a thin wrapper or fold it in.
+3. If time remains: do the same exercise for `Notifier.handle(Order)`.
 
-Work through them in any order. Keep tests green as you go.
+Work through them in any order.
 
 ## When you're done
 

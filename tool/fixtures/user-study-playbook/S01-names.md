@@ -7,15 +7,14 @@ Target time: ~25 minutes.
 1. From `tool/fixtures/`, run `./reset-for-user-study-session.sh`.
 2. In IntelliJ, click the "Reload from disk" toolbar button (or wait a few seconds).
 3. Start plugin recording.
-4. Confirm the test suite is green: `./gradlew test`.
 
 ## Prompts
 
-1. Some methods in `InventoryManager`, `Notifier`, and `ShippingCalculator` are named in ways that hide what they do. Give them names that describe what they actually do.
-2. Pick one of the methods you've just changed and check that every call site still reads naturally.
-3. Look briefly through the rest of the codebase for any other identifiers whose names don't match what they do.
+1. In `InventoryManager.java`, rename the method `doIt(String sku, int n)` to something that describes what it does — it increments the reserved-quantity entry for a sku.
+2. In `Notifier.java`, rename the method `handle(Order order)` — it sends a shipment-notification message to the customer.
+3. In `ShippingCalculator.java`, rename the method `process(Order order)` — it computes the shipping fee for an order. (The two-argument `process(int weightGrams, String postcode)` overload should be renamed consistently.)
 
-Work through them in any order. Keep tests green as you go.
+Work through them in any order.
 
 ## When you're done
 

@@ -7,15 +7,14 @@ Target time: ~25 minutes.
 1. From `tool/fixtures/`, run `./reset-for-user-study-session.sh`.
 2. In IntelliJ, click the "Reload from disk" toolbar button (or wait a few seconds).
 3. Start plugin recording.
-4. Confirm the test suite is green: `./gradlew test`.
 
 ## Prompts
 
-1. `OrderService.processOrder` is doing too many things in one method (validate, reserve stock, compute totals, charge, notify). Make its top-level shape easier to read.
-2. There is logic in `PaymentProcessor` and `OrderService` that either never runs or is no longer called. Remove what isn't needed.
-3. Run the full test suite and confirm everything still passes.
+1. `OrderService.processOrder(CheckoutRequest req)` is ~85 lines doing six things in sequence: idempotency check, inline validation, inventory reservation, total calculation (subtotal + shipping + tax), payment + rollback, and finally order construction + notification. Pull each phase into its own private method so the top-level `processOrder` reads as a short sequence of named steps.
+2. In `PaymentProcessor.charge(long subtotalCents, String method)` there is an `if (method == null && subtotalCents < 0)` block that can never run (the two earlier guards already throw when `method == null` or when `subtotalCents < 0`). Remove it.
+3. In `OrderService.java`, the private method `calculateDiscountLegacy(long subtotal)` is never called from anywhere. Remove it.
 
-Work through them in any order. Keep tests green as you go.
+Work through them in any order.
 
 ## When you're done
 
