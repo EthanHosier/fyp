@@ -10,14 +10,15 @@ Target time: ~25 minutes.
 
 ## The problem
 
-`Notifier.notifyCustomer(Order order)` in `Notifier.java` (lines 10–29) reads almost everything off `Order` — `getCustomerEmail`, `getCustomerName`, `getId`, `getItems`, `getTotalCents`, `getShippingStreet/City/Postcode` — and computes its own line-item subtotal. The string-building belongs on `Order`, not on `Notifier`.
+`Notifier.notifyCustomer(Order order)` in `Notifier.java` (lines 10–29) reads almost everything off `Order` — `getCustomerEmail`, `getCustomerName`, `getId`, `getItems`, `getTotalCents`, `getShippingStreet/City/Postcode` — and computes its own line-item subtotal. `Notifier.handle(Order order)` (lines 31–35) does the same on a smaller scale for shipment notifications. The string-building belongs on `Order`, not on `Notifier`.
 
-Move it. The externally visible behaviour shouldn't change: calling `notifier.notifyCustomer(order)` should still append the same string to `sent`.
+Move it. The externally visible behaviour shouldn't change: calling `notifier.notifyCustomer(order)` or `notifier.handle(order)` should still append the same strings to `sent`.
 
 ## Steps
 
 1. In `Order.java`, add a public method `confirmationMessage()` that returns the multi-line confirmation string. Move the entire `sb.append(...)` block from `Notifier.notifyCustomer` into it.
 2. In `Notifier.java`, replace the body of `notifyCustomer(Order order)` with two lines — get the string from `order.confirmationMessage()`, then add it to `sent`.
+3. Do the same for `handle`: add a public `Order.shipmentMessage()` that returns the short shipment-notification string, then shrink `Notifier.handle(Order order)` to two lines (get message from `order.shipmentMessage()`, add to `sent`).
 
 ## When you're done
 

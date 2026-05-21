@@ -2,7 +2,7 @@
 
 Target time: ~25 minutes.
 
-These are three small behaviour-preserving changes to `OrderService` and `PaymentProcessor`. The externally visible behaviour of `OrderService.processOrder` and `PaymentProcessor.charge` shouldn't change.
+These are four small behaviour-preserving changes to `OrderService` and `PaymentProcessor`. The externally visible behaviour of `OrderService.processOrder` and `PaymentProcessor.charge` shouldn't change.
 
 ## Before you start
 
@@ -30,12 +30,20 @@ The private method `calculateDiscountLegacy(long subtotal)` at line 155 of `Orde
 
 `processOrder(CheckoutRequest req)` (lines 44–124) does several things inline. Pull the two largest blocks out into private methods so the top-level body is easier to read:
 
-| Block                       | Current lines | Suggested method                                          |
-|-----------------------------|---------------|-----------------------------------------------------------|
-| Inline validation           | 52–75         | `validateRequest(req)`                                    |
-| Total calculation (sub+ship+tax) | 83–94    | `computeGrandTotal(req)` returning `long`                 |
+| Block                            | Current lines | Suggested method                              |
+|----------------------------------|---------------|-----------------------------------------------|
+| Inline validation                | 52–75         | `validateRequest(req)`                        |
+| Total calculation (sub+ship+tax) | 83–94         | `computeGrandTotal(req)` returning `long`     |
 
 Leave the rest of `processOrder` as-is — the idempotency guard, reservation, payment, commit, and order construction can stay inline.
+
+## Step 4 — Pull out order construction + notification
+
+The block at lines 102–122 of `processOrder` builds the new `Order` object, sets its total and status, and calls `notifier.notifyCustomer(order)`. Move that block into a private method on `OrderService`:
+
+- Suggested signature: `buildAndNotify(CheckoutRequest req, List<LineItem> items, PaymentProcessor.Result result)` returning the constructed `Order`.
+
+`processOrder` should now read as a short sequence of named steps with no inline string-building, validation, or arithmetic.
 
 ## When you're done
 
