@@ -236,12 +236,12 @@ The hygiene synthesiser builds alternatives where the user ran tests or committe
 
 Both alter the process metadata at the anchor checkpoint, not the code---because hygiene is fundamentally a process property (when did tests run, when did commits happen). The alt's code remains unchanged; only the metrics shift. By rescoring the trajectory with adjusted metadata and comparing final scores, we measure the cost in process-score points of the skipped hygiene event.
 
-The metadata-adjustment approach is the honest representation of what a hygiene-improved counterfactual actually looks like: a developer running tests at the anchor checkpoint, or committing earlier, does not change the code at that checkpoint, only the metric stream that accumulates downstream from it.
+The metadata-adjustment approach is the honest representation of what a hygiene-improved alternative trajectory actually looks like: a developer running tests at a specific checkpoint, or committing earlier, does not change the code at that checkpoint, only the metrics after that checkpoint.
 
 \section{Validator and behaviour preservation}
 \label{sec:methodology-validator}
 
-Before reordering anything, the reorder synthesiser needs a behaviour-preservation guarantee on the user's window: replaying the user's specs in their original order has to reach the user's terminal state. If it does not, reordering is unsafe. The bracket-level validator establishes this guarantee. For each \texttt{(fromSha, toSha)} bracket, the validator borrows a worktree at \texttt{fromSha}, replays the user's specs in their original order inside a single JDT batch session, and runs two checks:
+Before reordering, the synthesiser must verify that replaying the user's specs in order reaches the same final state. Given the Eclipse-IntelliJ differences (explained in \S\ref{sec:arch-wrap-patch}), this validation is critical. If the check fails, reordering is unsafe. The bracket-level validator establishes this. For each \texttt{(fromSha, toSha)} bracket, the validator borrows a worktree at \texttt{fromSha}, replays the user's specs in their original order inside a single JDT batch session, and runs two checks:
 \begin{itemize}
   \item The set of \texttt{.java} files changed by the replay matches the set changed in the user's \texttt{git diff fromSha..toSha}.
   \item The terminal AST hash of every changed file matches the hash of the user's terminal state.
