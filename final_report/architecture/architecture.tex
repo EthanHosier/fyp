@@ -58,7 +58,7 @@ Figure~\ref{fig:arch-overview} shows the dataflow at a glance.
 
 The Intellij plugin is responsible for capturing the Intellij events which are emitted during the user's refactoring process. The captured event types cover editor activity (files opened, closed, saved, modified, renamed, moved), refactoring activity (refactoring start / finish), build activity (build start / finish), test activity (test-run start / finish with pass and fail counts), git activity (one event per new commit observed in the underlying repository), and the session lifecycle (refactoring session start / end).
 
-File modification activity is the noisiest source. IntelliJ emits an event for every keystroke, but we debounce these to avoid noise. A debouncing layer accumulates keystrokes into an \emph{edit burst}: when a quiet window elapses without further typing, a single burst event is emitted carrying the file's post-edit contents and the structured set of program elements touched.
+File modification activity is the noisiest source. IntelliJ emits an event for every keystroke, but we debounce these to avoid noise. A debouncing layer accumulates keystrokes into an \emph{edit burst} across all files: when a 2-second quiet window elapses without further typing, a single burst event is emitted carrying the file's post-edit contents and the structured set of program elements touched.
 
 Although a handful of the fine-grained file-level events (file open, save, and similar) are not consumed by any downstream stage, they are recorded because their capture is essentially free at the plugin layer, and they remain obvious candidates for future work on navigation patterns, file dwell time, and read-versus-edit behaviour.
 
