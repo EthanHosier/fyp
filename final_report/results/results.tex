@@ -140,7 +140,7 @@ Table~\ref{tab:results-ablation-monotone} groups the $2{,}880$ rows by how many 
 \end{table}
 
 \paragraph{Per-term single-knob recovery.}
-Table~\ref{tab:results-ablation-solo} shows how much magnitude each term contributes when it's the only active term. Three observations follow. The \texttt{manualIde}, \texttt{broken}, and \texttt{length} terms are the strongest contributors, each recovering roughly a third of the total; these match the values in Table~\ref{tab:methodology-weights} (\S\ref{sec:methodology-weights}), connecting methodology to results. The \texttt{gain} term alone recovers $0.000$ despite having the largest weight ($50$), because gain relies on the cleanliness delta $\Delta C$, which is near zero when user and alternative reach the same state; gain has no effect alone but matters in combination, as Table~\ref{tab:results-ablation-monotone} shows. Finally, the gap between \texttt{commitGap} ($0.126$) and \texttt{manualIde} ($0.357$) shows that recovery depends on both weight and how much the signal varies across sessions, not weight alone.
+Table~\ref{tab:results-ablation-solo} shows how much magnitude each term contributes when it's the only active term. Three observations follow. The \texttt{manualIde}, \texttt{broken}, and \texttt{length} terms are the strongest contributors, each recovering roughly a third of the total; these match the values in Table~\ref{tab:methodology-weights} (\S\ref{sec:methodology-weights}), connecting methodology to results. The \texttt{gain} term alone recovers $0.000$ despite having the largest weight ($50$), because gain relies on the cleanliness delta $\Delta C$, which is near zero when user and alternative reach the same state; gain has no effect alone but matters in combination, as Table~\ref{tab:results-ablation-monotone} shows. Finally, the gap between \texttt{commitGap} ($0.126$) and \texttt{manualIde} ($0.357$) shows that recovery depends on both weight and how much the signal varies across sessions, not solely weight alone.
 
 \begin{table}[htbp]
 \centering
@@ -157,7 +157,7 @@ Table~\ref{tab:results-ablation-solo} shows how much magnitude each term contrib
 \texttt{gain}      & 0.830 & 0.333 & \textbf{0.000} \\
 \hline
 \end{tabular}
-\caption{Per-term single-knob recovery (each term active alone, the other five zeroed). The \texttt{manualIde} / \texttt{broken} / \texttt{length} cluster recover roughly a third each; \texttt{gain} alone recovers $0.000$ because $\Delta C \approx 0$ on most fixtures, so the term has nothing to multiply in isolation.}
+\caption{Per-term single-knob recovery (each term active alone, others zeroed). The \texttt{manualIde}, \texttt{broken}, and \texttt{length} terms each recover roughly a third; \texttt{gain} alone recovers $0.000$ because the cleanliness delta is near zero on most fixtures, so it has no effect when isolated.}
 \label{tab:results-ablation-solo}
 \end{table}
 
