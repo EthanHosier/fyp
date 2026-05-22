@@ -64,7 +64,10 @@ object FeedbackForAgent {
     }
 
     fun render(report: AnalysisReport): String {
-        val dps = report.divergencePoints.sortedByDescending { it.magnitude }
+        val dps = report.divergencePoints.sortedWith(
+            compareByDescending<DivergencePoint> { it.magnitude }
+                .thenBy { it.stepIndex }
+        )
         val advice = report.advice
         val sb = StringBuilder()
         sb.append("# Session feedback\n\n")

@@ -4,6 +4,7 @@ import com.github.ethanhosier.analysis.metrics.derived.CleanlinessWeights
 import com.github.ethanhosier.analysis.metrics.derived.ProcessScoreWeights
 import com.github.ethanhosier.analysis.metrics.derived.ScoringConfig
 import com.github.ethanhosier.analysis.pipeline.AnalysisReport
+import com.github.ethanhosier.analysis.pipeline.DivergencePoint
 import com.github.ethanhosier.analysis.pipeline.PhaseAResult
 import com.github.ethanhosier.analysis.pipeline.ReportAssembler
 import kotlinx.serialization.json.Json
@@ -163,9 +164,14 @@ object MultiKnobMonteCarloExperiment {
         )
     }
 
+    // Ties broken by ascending stepIndex — see SensitivityExperiment.ranking
+    // for the same rationale.
     private fun ranking(report: AnalysisReport): List<Int> =
         report.divergencePoints
-            .sortedByDescending { it.magnitude }
+            .sortedWith(
+                compareByDescending<DivergencePoint> { it.magnitude }
+                    .thenBy { it.stepIndex }
+            )
             .map { it.stepIndex }
 
     private fun requireArg(args: Array<String>, flag: String): String? {

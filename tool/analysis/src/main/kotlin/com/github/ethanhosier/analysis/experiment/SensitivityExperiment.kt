@@ -4,6 +4,7 @@ import com.github.ethanhosier.analysis.metrics.derived.CleanlinessWeights
 import com.github.ethanhosier.analysis.metrics.derived.ProcessScoreWeights
 import com.github.ethanhosier.analysis.metrics.derived.ScoringConfig
 import com.github.ethanhosier.analysis.pipeline.AnalysisReport
+import com.github.ethanhosier.analysis.pipeline.DivergencePoint
 import com.github.ethanhosier.analysis.pipeline.PhaseAResult
 import com.github.ethanhosier.analysis.pipeline.ReportAssembler
 import kotlinx.serialization.json.Json
@@ -202,9 +203,17 @@ object SensitivityExperiment {
         return out
     }
 
+    // Ties on magnitude (HYGIENE-COMMIT_GAP DPs all carry magnitude
+    // exactly W_cg by construction; saturated DPs all share the
+    // clamp-induced magnitude) are broken by ascending stepIndex so
+    // the ranking is a deterministic function of the report rather
+    // than relying on the stable-sort artefact of insertion order.
     private fun ranking(report: AnalysisReport): List<Int> =
         report.divergencePoints
-            .sortedByDescending { it.magnitude }
+            .sortedWith(
+                compareByDescending<DivergencePoint> { it.magnitude }
+                    .thenBy { it.stepIndex }
+            )
             .map { it.stepIndex }
 
     /**

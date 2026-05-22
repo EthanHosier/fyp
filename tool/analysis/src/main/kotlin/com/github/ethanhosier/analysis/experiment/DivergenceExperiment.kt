@@ -4,6 +4,7 @@ import com.github.ethanhosier.analysis.advice.TrajectoryAdvisor
 import com.github.ethanhosier.analysis.experiment.baselines.Baselines
 import com.github.ethanhosier.analysis.metrics.derived.ScoringConfig
 import com.github.ethanhosier.analysis.pipeline.AnalysisReport
+import com.github.ethanhosier.analysis.pipeline.DivergencePoint
 import com.github.ethanhosier.analysis.pipeline.DivergenceKind
 import com.github.ethanhosier.analysis.pipeline.PhaseAResult
 import com.github.ethanhosier.analysis.pipeline.ReportAssembler
@@ -337,14 +338,17 @@ object DivergenceExperiment {
         } else null
 
         // Injection prominence.
-        // Sort DPs across all kinds by magnitude (desc) to compute the
-        // rank of the highest-magnitude DP of the injection's kind. Stable
-        // sort — original ordering breaks ties.
+        // Sort DPs across all kinds by magnitude (desc); ties broken by
+        // ascending stepIndex so the ranking is a deterministic function
+        // of the report.
         val injectionDpCount = injectionKind?.let { dpsByKind[it]?.size ?: 0 } ?: 0
         val injectionDpRank: Int? = if (injectionKind == null || injectionDpCount == 0) {
             null
         } else {
-            val sortedByMag = report.divergencePoints.sortedByDescending { it.magnitude }
+            val sortedByMag = report.divergencePoints.sortedWith(
+                compareByDescending<DivergencePoint> { it.magnitude }
+                    .thenBy { it.stepIndex }
+            )
             // 1-indexed position of the first DP of the injection's kind.
             sortedByMag.indexOfFirst { it.kind == injectionKind } + 1
         }

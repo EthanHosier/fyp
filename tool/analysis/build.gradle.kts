@@ -188,6 +188,19 @@ tasks.register<JavaExec>("phaseB") {
     classpath = sourceSets["main"].runtimeClasspath
 }
 
+// Stages the analysis module's runtime classpath (its own jar plus
+// every transitive dep) into `notebooks/libs/` so the Kotlin notebook
+// can pick them up via `@file:DependsOn`. Regenerate after any
+// dependency change with `./gradlew :analysis:notebookLibs`.
+tasks.register<Copy>("notebookLibs") {
+    group = "build"
+    description = "Stages analysis runtime jars under notebooks/libs/ for the Kotlin notebook."
+    dependsOn(tasks.named("jar"))
+    from(configurations.runtimeClasspath)
+    from(tasks.named("jar"))
+    into(rootProject.projectDir.resolve("notebooks/libs"))
+}
+
 // Phase-2.2b multi-knob Monte Carlo: every weight is perturbed
 // simultaneously by a log-normal factor (sigma = ln 2). Used to bound
 // the formula's robustness under joint weight miscalibration, which

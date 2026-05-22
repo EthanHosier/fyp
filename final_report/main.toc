@@ -99,7 +99,7 @@
 \contentsline {paragraph}{Single-knob results.}{36}{section*.45}%
 \contentsline {paragraph}{Sources of ranking instability.}{36}{section*.47}%
 \contentsline {paragraph}{Multi-knob Monte Carlo.}{37}{section*.49}%
-\contentsline {paragraph}{Saturation as a clipping confound.}{37}{section*.51}%
+\contentsline {paragraph}{Saturation and score-clamp bias.}{37}{section*.51}%
 \contentsline {paragraph}{Caveats and scope.}{37}{section*.52}%
 \contentsline {subsection}{\numberline {5.1.2}Ablation sweep}{38}{subsection.5.1.2}%
 \contentsline {paragraph}{Design.}{38}{section*.53}%
@@ -115,9 +115,9 @@
 \contentsline {subsection}{\numberline {5.2.2}Divergence experiment}{42}{subsection.5.2.2}%
 \contentsline {paragraph}{Detection accuracy.}{42}{section*.65}%
 \contentsline {paragraph}{Detection quality.}{42}{section*.67}%
-\contentsline {paragraph}{Injection prominence.}{42}{section*.69}%
+\contentsline {paragraph}{Injection prominence.}{43}{section*.69}%
 \contentsline {paragraph}{Step-anchor recall under strict matching.}{43}{section*.71}%
-\contentsline {paragraph}{Baselines and absolute magnitudes.}{43}{section*.73}%
+\contentsline {paragraph}{Baselines and absolute magnitudes.}{44}{section*.73}%
 \contentsline {paragraph}{Caveats.}{44}{section*.75}%
 \contentsline {subsection}{\numberline {5.2.3}Scoped-out fix: ordering recall}{44}{subsection.5.2.3}%
 \contentsline {section}{\numberline {5.3}User and agent studies}{44}{section.5.3}%
