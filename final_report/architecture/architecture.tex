@@ -9,7 +9,7 @@ This chapter describes how the tool is implemented. We walk through the pipeline
 The tool consists of four JVM modules (\texttt{:ide-plugin}, \texttt{:analysis}, \texttt{:refactoring-bundle}, \texttt{:shared}) plus a standalone React/TypeScript dashboard (\texttt{dashboard/}):
 
 \begin{itemize}
-  \item \texttt{ide-plugin/} -- an IntelliJ plugin that records the developer's session as a stream of typed events and uploads it to the analysis server. The user manually starts and stops recording by clicking buttons in the IDE.
+  \item \texttt{ide-plugin/} -- an IntelliJ plugin that records the developer's session as a stream of typed events and uploads it to the analysis server. The user manually starts and stops recording a button in the IDE.
   \item \texttt{analysis/} -- the Kotlin pipeline; it ingests sessions, reconstructs a shadow git repo, mines and synthesises trajectories, computes per-checkpoint metrics, and emits an \texttt{AnalysisReport}.
   \item \texttt{refactoring-bundle/} -- a headless Eclipse JDT distribution wrapped in an embedded Equinox OSGi framework; the analysis module talks to it across the OSGi class\-loader boundary (details in \S\ref{sec:arch-wrap-patch}).
   \item \texttt{dashboard/} -- a React/TypeScript single-page app that renders the \texttt{AnalysisReport} (details in \S\ref{sec:arch-dashboard}).
@@ -58,7 +58,7 @@ Figure~\ref{fig:arch-overview} shows the dataflow at a glance.
 
 The Intellij plugin is responsible for capturing the Intellij events which are emitted during the user's refactoring process. The captured event types cover editor activity (files opened, closed, saved, modified, renamed, moved), refactoring activity (refactoring start / finish), build activity (build start / finish), test activity (test-run start / finish with pass and fail counts), git activity (one event per new commit observed in the underlying repository), and the session lifecycle (refactoring session start / end).
 
-Editor activity is the noisiest source, so keystroke-level events are not emitted directly. A debouncing layer accumulates keystrokes into an \emph{edit burst}: when a quiet window elapses without further typing, a single burst event is emitted carrying the file's post-edit contents and the structured set of program elements touched.
+File modification activity is the noisiest source. IntelliJ emits an event for every keystroke, but we debounce these to avoid noise. A debouncing layer accumulates keystrokes into an \emph{edit burst}: when a quiet window elapses without further typing, a single burst event is emitted carrying the file's post-edit contents and the structured set of program elements touched.
 
 Although a handful of the fine-grained file-level events (file open, save, and similar) are not consumed by any downstream stage, they are recorded because their capture is essentially free at the plugin layer, and they remain obvious candidates for future work on navigation patterns, file dwell time, and read-versus-edit behaviour.
 
