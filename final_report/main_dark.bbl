@@ -334,6 +334,21 @@ Jagdish Bansiya and Carl~G. Davis.
 \newblock A hierarchical model for object-oriented design quality assessment.
 \newblock {\em IEEE Transactions on Software Engineering}, 28(1):4--17, 2002.
 
+\bibitem{coleman1994maintainability}
+Don Coleman, Dan Ash, Bruce Lowther, and Paul Oman.
+\newblock Using metrics to evaluate software system maintainability.
+\newblock {\em Computer}, 27(8):44--49, 1994.
+
+\bibitem{cohen1960kappa}
+Jacob Cohen.
+\newblock A coefficient of agreement for nominal scales.
+\newblock {\em Educational and Psychological Measurement}, 20(1):37--46, 1960.
+
+\bibitem{landis1977kappa}
+J.~Richard Landis and Gary~G. Koch.
+\newblock The measurement of observer agreement for categorical data.
+\newblock {\em Biometrics}, 33(1):159--174, 1977.
+
 \bibitem{eclipse_jdt_faq}
 {Eclipse Foundation}.
 \newblock {JDT/FAQ}.
@@ -399,16 +414,6 @@ Erik {\v{S}}trumbelj and Igor Kononenko.
 \newblock Explaining prediction models and individual predictions with feature
   contributions.
 \newblock {\em Knowledge and Information Systems}, 41(3):647--665, 2014.
-
-\bibitem{cohen1960kappa}
-Jacob Cohen.
-\newblock A coefficient of agreement for nominal scales.
-\newblock {\em Educational and Psychological Measurement}, 20(1):37--46, 1960.
-
-\bibitem{landis1977kappa}
-J.~Richard Landis and Gary~G. Koch.
-\newblock The measurement of observer agreement for categorical data.
-\newblock {\em Biometrics}, 33(1):159--174, 1977.
 
 \bibitem{mens2007graph}
 Tom Mens, Gabriele Taentzer, and Olga Runge.

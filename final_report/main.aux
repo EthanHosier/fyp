@@ -205,11 +205,11 @@
 \citation{paixao2017balancing}
 \citation{gautam2025refactorbench}
 \citation{murphyhill2009howrefactor}
-\citation{negara2013manualautomated}
 \citation{mens2004survey}
+\citation{negara2013manualautomated}
 \citation{vakilian2012usedisuse}
-\@writefile{lot}{\contentsline {table}{\numberline {3.2}{\ignorespaces Production weights for Equation~\eqref  {eq:process-score}, the literature each weight rests on, and the magnitude recovery when only that term is active in the formula (full power-set ablation, $2^6 = 64$ variants per fixture; see \S  \ref {sec:results-ablation}).}}{22}{table.caption.14}\protected@file@percent }
-\newlabel{tab:methodology-weights}{{3.2}{22}{Production weights for Equation~\eqref {eq:process-score}, the literature each weight rests on, and the magnitude recovery when only that term is active in the formula (full power-set ablation, $2^6 = 64$ variants per fixture; see \S \ref {sec:results-ablation})}{table.caption.14}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {3.2}{\ignorespaces Production weights for Equation~\eqref  {eq:process-score} and the literature each weight rests on. Empirical contribution of each term to the formula's ranking output is reported in the ablation analysis of \S  \ref {sec:results-ablation}.}}{22}{table.caption.14}\protected@file@percent }
+\newlabel{tab:methodology-weights}{{3.2}{22}{Production weights for Equation~\eqref {eq:process-score} and the literature each weight rests on. Empirical contribution of each term to the formula's ranking output is reported in the ablation analysis of \S \ref {sec:results-ablation}}{table.caption.14}{}}
 \@writefile{toc}{\contentsline {paragraph}{$W_{\textsc  {g}}$ (gain, 50).}{22}{section*.15}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{$W_{\textsc  {b}}$ (broken, 28).}{22}{section*.16}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{$W_{\textsc  {st}}$ (skip-tests, 14).}{22}{section*.17}\protected@file@percent }
@@ -240,10 +240,12 @@
 \newlabel{sec:methodology-cleanliness}{{3.4}{23}{The cleanliness sub-score}{section.3.4}{}}
 \@writefile{lot}{\contentsline {table}{\numberline {3.3}{\ignorespaces The six sub-signals composing the cleanliness sub-score $C(s)$. All weights are uniform 1.0 following Laplace's principle of insufficient reason (see composition rule below); the production weight bundle in the implementation reflects this.}}{23}{table.caption.21}\protected@file@percent }
 \newlabel{tab:methodology-cleanliness}{{3.3}{23}{The six sub-signals composing the cleanliness sub-score $C(s)$. All weights are uniform 1.0 following Laplace's principle of insufficient reason (see composition rule below); the production weight bundle in the implementation reflects this}{table.caption.21}{}}
+\@writefile{toc}{\contentsline {paragraph}{Composition rule.}{23}{section*.22}\protected@file@percent }
+\citation{coleman1994maintainability}
+\citation{bansiya2002qmood}
 \citation{buse2010readability}
 \citation{munozbaron2020cognitive}
 \citation{lavazza2023cognitive}
-\@writefile{toc}{\contentsline {paragraph}{Composition rule.}{24}{section*.22}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{Uniform sub-weights, by deliberate choice.}{24}{section*.23}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{Caveats deliberately disclosed.}{24}{section*.24}\protected@file@percent }
 \@writefile{toc}{\contentsline {section}{\numberline {3.5}The divergence-point detector}{24}{section.3.5}\protected@file@percent }
@@ -259,8 +261,8 @@
 \newlabel{sec:methodology-detector-rework}{{3.5.3}{25}{REWORK detection}{subsection.3.5.3}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {3.5.4}HYGIENE detection}{25}{subsection.3.5.4}\protected@file@percent }
 \newlabel{sec:methodology-detector-hygiene}{{3.5.4}{25}{HYGIENE detection}{subsection.3.5.4}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {3.6}Reorder synthesiser}{25}{section.3.6}\protected@file@percent }
-\newlabel{sec:methodology-reorder}{{3.6}{25}{Reorder synthesiser}{section.3.6}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {3.6}Reorder synthesiser}{26}{section.3.6}\protected@file@percent }
+\newlabel{sec:methodology-reorder}{{3.6}{26}{Reorder synthesiser}{section.3.6}{}}
 \@writefile{toc}{\contentsline {paragraph}{Window splitting on validator verdicts.}{26}{section*.25}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{Dependency-DAG construction.}{26}{section*.26}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{SSA versioning across renames.}{26}{section*.27}\protected@file@percent }
@@ -461,20 +463,21 @@
 \bibcite{biemankang1995tcc}{50}
 \bibcite{wagner2015quamoco}{51}
 \bibcite{bansiya2002qmood}{52}
-\bibcite{cohen1960kappa}{53}
-\bibcite{landis1977kappa}{54}
-\bibcite{eclipse_jdt_faq}{55}
-\bibcite{eclipse_jdtls}{56}
-\bibcite{wang2025tosem}{57}
-\bibcite{wang2025forge}{58}
-\bibcite{kendall1948rank}{59}
-\bibcite{agresti2010ordinal}{60}
-\bibcite{croux2010influence}{61}
-\bibcite{webber2010rbo}{62}
-\bibcite{saisana2005composite}{63}
-\bibcite{lundberg2017shap}{64}
-\bibcite{strumbelj2014explaining}{65}
-\bibcite{mens2007graph}{66}
-\bibcite{liu2009smell}{67}
-\bibcite{khrishe2016empirical}{68}
+\bibcite{coleman1994maintainability}{53}
+\bibcite{cohen1960kappa}{54}
+\bibcite{landis1977kappa}{55}
+\bibcite{eclipse_jdt_faq}{56}
+\bibcite{eclipse_jdtls}{57}
+\bibcite{wang2025tosem}{58}
+\bibcite{wang2025forge}{59}
+\bibcite{kendall1948rank}{60}
+\bibcite{agresti2010ordinal}{61}
+\bibcite{croux2010influence}{62}
+\bibcite{webber2010rbo}{63}
+\bibcite{saisana2005composite}{64}
+\bibcite{lundberg2017shap}{65}
+\bibcite{strumbelj2014explaining}{66}
+\bibcite{mens2007graph}{67}
+\bibcite{liu2009smell}{68}
+\bibcite{khrishe2016empirical}{69}
 \gdef \@abspage@last{55}

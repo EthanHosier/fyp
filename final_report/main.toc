@@ -52,7 +52,7 @@
 \contentsline {paragraph}{$W_{\textsc {l}}$ (length, 11).}{23}{section*.19}%
 \contentsline {paragraph}{$W_{\textsc {cg}}$ (commit-gap, 7).}{23}{section*.20}%
 \contentsline {section}{\numberline {3.4}The cleanliness sub-score}{23}{section.3.4}%
-\contentsline {paragraph}{Composition rule.}{24}{section*.22}%
+\contentsline {paragraph}{Composition rule.}{23}{section*.22}%
 \contentsline {paragraph}{Uniform sub-weights, by deliberate choice.}{24}{section*.23}%
 \contentsline {paragraph}{Caveats deliberately disclosed.}{24}{section*.24}%
 \contentsline {section}{\numberline {3.5}The divergence-point detector}{24}{section.3.5}%
@@ -60,7 +60,7 @@
 \contentsline {subsection}{\numberline {3.5.2}MANUAL\_REFACTOR detection}{25}{subsection.3.5.2}%
 \contentsline {subsection}{\numberline {3.5.3}REWORK detection}{25}{subsection.3.5.3}%
 \contentsline {subsection}{\numberline {3.5.4}HYGIENE detection}{25}{subsection.3.5.4}%
-\contentsline {section}{\numberline {3.6}Reorder synthesiser}{25}{section.3.6}%
+\contentsline {section}{\numberline {3.6}Reorder synthesiser}{26}{section.3.6}%
 \contentsline {paragraph}{Window splitting on validator verdicts.}{26}{section*.25}%
 \contentsline {paragraph}{Dependency-DAG construction.}{26}{section*.26}%
 \contentsline {paragraph}{SSA versioning across renames.}{26}{section*.27}%

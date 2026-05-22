@@ -296,30 +296,30 @@ P1 and P2 each performed six recorded refactoring sessions on the order-processi
 \hline
 \textbf{session} & \textbf{IDE\_REPLAY} & \textbf{REWORK} & \textbf{HYGIENE} & \textbf{ORDERING} & \textbf{total} \\
 \hline
-P1 S1 & $10$ & $0$ & $2$ & $4$ & $16$ \\
-P1 S2 &  $4$ & $0$ & $6$ & $0$ & $10$ \\
-P1 S3 & $10$ & $4$ & $2$ & $0$ & $16$ \\
+P1 S1 &  $5$ & $0$ & $1$ & $1$ &  $7$ \\
+P1 S2 &  $0$ & $0$ & $3$ & $0$ &  $3$ \\
+P1 S3 &  $5$ & $2$ & $1$ & $0$ &  $8$ \\
 P1 S4 &  $0$ & $0$ & $0$ & $0$ &  $0$ \\
-P1 S5 &  $2$ & $0$ & $2$ & $0$ &  $4$ \\
-P1 S6 &  $0$ & $0$ & $0$ & $7$ &  $7$ \\
-P2 S1 &  $6$ & $0$ & $4$ & $0$ & $10$ \\
-P2 S2 &  $4$ & $0$ & $8$ & $0$ & $12$ \\
-P2 S3 &  $2$ & $0$ & $4$ & $7$ & $13$ \\
+P1 S5 &  $1$ & $0$ & $1$ & $0$ &  $2$ \\
+P1 S6 &  $0$ & $0$ & $0$ & $0$ &  $0$ \\
+P2 S1 &  $3$ & $0$ & $2$ & $0$ &  $5$ \\
+P2 S2 &  $2$ & $0$ & $4$ & $0$ &  $6$ \\
+P2 S3 &  $1$ & $0$ & $2$ & $1$ &  $4$ \\
 P2 S4 &  $0$ & $0$ & $0$ & $0$ &  $0$ \\
-P2 S5 &  $6$ & $0$ & $2$ & $0$ &  $8$ \\
-P2 S6 &  $2$ & $6$ & $2$ & $2$ & $12$ \\
+P2 S5 &  $2$ & $0$ & $1$ & $0$ &  $3$ \\
+P2 S6 &  $1$ & $3$ & $1$ & $0$ &  $5$ \\
 \hline
-\textbf{total} & $\textbf{46}$ & $\textbf{10}$ & $\textbf{32}$ & $\textbf{20}$ & $\textbf{108}$ \\
+\textbf{total} & $\textbf{20}$ & $\textbf{5}$ & $\textbf{16}$ & $\textbf{2}$ & $\textbf{43}$ \\
 \hline
 \end{tabular}
 \caption{Per-session divergence-point counts across the 12-session participant corpus. Both participants registered $0$ divergence points on session S04 (the cross-class duplication consolidation prompt); the remaining sessions exercise all four kinds in proportions broadly consistent with the 45-session corpus.}
 \label{tab:results-userstudy-distribution}
 \end{table}
 
-The aggregate per-kind distribution across the $108$ divergence points is IDE-replay $42.6\%$, hygiene $29.6\%$, ordering $18.5\%$, rework $9.3\%$. Both participants registered $0$ divergence points on session S04, the cross-class validation consolidation prompt; the playbook for that session asks the participant to unify three near-identical validation blocks into a single home, a task with a clean IDE-refactor path that both participants executed without surfacing any divergence point. Used cautiously, this is the closest the chapter comes to an external true-negative observation: when the task is approachable through the IDE refactor surface and participants use it, the detector stays quiet. Both participants identified IDE-replay as the most actionable kind in interview, with one participant noting that they ``didn't realise what IntelliJ could do before so didn't use it''; both identified ordering as the least actionable, with one asking ``how can [I] actually apply that in the future''.
+The aggregate per-kind distribution across the $43$ divergence points is IDE-replay $46.5\%$, hygiene $37.2\%$, rework $11.6\%$, ordering $4.7\%$. Both participants registered $0$ divergence points on session S04, the cross-class validation consolidation prompt; the playbook for that session asks the participant to unify three near-identical validation blocks into a single home, a task with a clean IDE-refactor path that both participants executed without surfacing any divergence point. Used cautiously, this is the closest the chapter comes to an external true-negative observation: when the task is approachable through the IDE refactor surface and participants use it, the detector stays quiet. Both participants identified IDE-replay as the most actionable kind in interview, with one participant noting that they ``didn't realise what IntelliJ could do before so didn't use it''; both identified ordering as the least actionable, with one asking ``how can [I] actually apply that in the future''.
 
 \paragraph{Behavioural trajectory across the six-session arc.}
-A second question the participant corpus admits is whether per-kind divergence-point rates evolve as participants accumulate feedback. Table~\ref{tab:results-userstudy-trajectory} aggregates per-kind divergence-point counts across the two participants, session by session. Two kinds show trajectory signal. The IDE-replay aggregate falls from $16$ in S1 to $2$ in S6, an $88\%$ reduction with one mid-arc spike in S5; per-participant, P1 falls from $10$ to $0$ monotonically and P2 falls from $6$ to $2$ with a single S5 deviation. The hygiene aggregate peaks at $14$ in S2 --- consistent with both participants first seeing commit-cadence and test-cadence feedback at the end of S1 and applying it from S3 onwards --- and then falls to $2$ in S6. Both participants self-reported the corresponding behavioural change in interview: one said they ``ran tests after every change + committed more + used automated tools'', and the other said they ``used the IDE methods more frequently''. The IDE-replay and hygiene trajectories are consistent with that self-report but are not a causal claim: with $n = 2$ participants over six sessions, the chapter reports a descriptive correspondence between detector output and qualitative testimony rather than an effect-size estimate.
+A second question the participant corpus admits is whether per-kind divergence-point rates evolve as participants accumulate feedback. Table~\ref{tab:results-userstudy-trajectory} aggregates per-kind divergence-point counts across the two participants, session by session. Two kinds show trajectory signal. The IDE-replay aggregate falls from $8$ in S1 to $1$ in S6, an $88\%$ reduction with a mid-arc spike in S3; per-participant, P1 falls from $5$ to $0$ and P2 falls from $3$ to $1$, both trending down across the arc. The hygiene aggregate peaks at $7$ in S2 --- consistent with both participants first seeing commit-cadence and test-cadence feedback at the end of S1 and applying it from S3 onwards --- and then falls to $1$ in S6. Both participants self-reported the corresponding behavioural change in interview: one said they ``ran tests after every change + committed more + used automated tools'', and the other said they ``used the IDE methods more frequently''. The IDE-replay and hygiene trajectories are consistent with that self-report but are not a causal claim: with $n = 2$ participants over six sessions, the chapter reports a descriptive correspondence between detector output and qualitative testimony rather than an effect-size estimate.
 
 \begin{table}[htbp]
 \centering
@@ -328,19 +328,19 @@ A second question the participant corpus admits is whether per-kind divergence-p
 \hline
 \textbf{kind} & \textbf{S1} & \textbf{S2} & \textbf{S3} & \textbf{S4} & \textbf{S5} & \textbf{S6} & \textbf{$\Delta$} \\
 \hline
-IDE\_REPLAY & $16$ & $8$  & $12$ & $0$ & $8$ & $2$ & $-14$ \\
-HYGIENE    & $6$  & $14$ & $6$  & $0$ & $4$ & $2$ & $-4$  \\
-ORDERING   & $4$  & $0$  & $7$  & $0$ & $0$ & $9$ & $+5$  \\
-REWORK     & $0$  & $0$  & $4$  & $0$ & $0$ & $6$ & $+6$  \\
+IDE\_REPLAY & $8$ & $2$ & $6$ & $0$ & $3$ & $1$ & $-7$ \\
+HYGIENE    & $3$ & $7$ & $3$ & $0$ & $2$ & $1$ & $-2$ \\
+ORDERING   & $1$ & $0$ & $1$ & $0$ & $0$ & $0$ & $-1$ \\
+REWORK     & $0$ & $0$ & $2$ & $0$ & $0$ & $3$ & $+3$ \\
 \hline
 \end{tabular}
 \caption{Per-kind divergence-point trajectory across the six-session arc, summed across both participants. IDE-replay and hygiene show a downward trajectory consistent with self-reported behavioural change; ordering and rework are episodic, firing on the sessions whose prompts inherently involve them.}
 \label{tab:results-userstudy-trajectory}
 \end{table}
 
-The remaining two kinds do not show trajectory signal. Ordering fires on sessions whose prompts inherently involve multi-step sequencing decisions --- S3 (within-class duplication) and S6 (reshape and cleanup) account for $16$ of the $20$ ordering divergence points across the corpus --- and is therefore episodic rather than amenable to behavioural improvement on a six-session arc. Rework is also episodic, spiking on the participants' hardest sessions where contiguous undo/redo cycles drive several flags from a single sequence of mis-clicks. One participant raised this as a specific metric-design complaint in interview, observing that rework ``picked up on undos + redos a lot (in a bad way) [---] over penalised'' on contiguous-step sequences caused by mistyped keys. The Table~\ref{tab:results-userstudy-trajectory} pattern is consistent with that account: the $6$ rework flags concentrated in S6 cluster within the single most complex session of the arc, where one participant produced the bulk of those flags from a contiguous sequence of small edits.
+The remaining two kinds do not show trajectory signal. Ordering fires rarely on the participant corpus --- $2$ divergence points in total across the two participants and six sessions each --- consistent with the headline finding of \S\ref{sec:results-headline} that the score formula is insensitive to commuting reorders and that positive-magnitude reorder alternatives are concentrated on the small fraction of windows containing genuinely non-commuting pairs. Rework is episodic, spiking on the participants' hardest sessions where contiguous undo/redo cycles drive several flags from a single sequence of mis-clicks. One participant raised this as a specific metric-design complaint in interview, observing that rework ``picked up on undos + redos a lot (in a bad way) [---] over penalised'' on contiguous-step sequences caused by mistyped keys. The Table~\ref{tab:results-userstudy-trajectory} pattern is consistent with that account: the $3$ rework flags concentrated in S6 cluster within the single most complex session of the arc, where P2 produced all of those flags from a contiguous sequence of small edits.
 
-The S3 and S6 ordering and rework spikes are a reminder that the six sessions are not interchangeable: S2 (magic-number renames) and S4 (cross-class consolidation) are short, mechanical sessions where divergence-point counts collapse for both participants regardless of where they sit in the arc, while S3 and S6 are structurally harder sessions where the opportunity for ordering and rework flags is built into the playbook prompt. Cross-session comparisons of raw divergence-point counts or of the within-session process score are therefore confounded by task difficulty, and the per-kind columns of Table~\ref{tab:results-userstudy-trajectory} are the cleaner trajectory signal: IDE-replay and hygiene fall across the arc on the kinds where behavioural change was possible, while ordering and rework rise on the hard sessions for both participants. The same confound applies symmetrically to the agent-comparison reading below.
+The S3 and S6 rework spikes are a reminder that the six sessions are not interchangeable: S2 (magic-number renames) and S4 (cross-class consolidation) are short, mechanical sessions where divergence-point counts collapse for both participants regardless of where they sit in the arc, while S3 and S6 are structurally harder sessions where the opportunity for rework flags is built into the playbook prompt. Cross-session comparisons of raw divergence-point counts or of the within-session process score are therefore confounded by task difficulty, and the per-kind columns of Table~\ref{tab:results-userstudy-trajectory} are the cleaner trajectory signal: IDE-replay and hygiene fall across the arc on the kinds where behavioural change was possible, while rework rises on the hard sessions for both participants. The same confound applies symmetrically to the agent-comparison reading below.
 
 One additional qualitative finding does not show in the trajectory table but matters for future tuning: hygiene also produces a false-positive shape, firing when a participant is thinking rather than stuck. One participant flagged this in interview as ``tests when wasn't quite finished just was thinking'', and the pattern is reflected in the S2 peak for hygiene more generally. Both this finding and the rework over-penalisation are reported here as candidate metric-tuning directions rather than detector bugs: the divergence points are accurate readings of what the trajectory contains, but the metric design treats some legitimate-pause and mistyped-key cases more harshly than the participant would.
 
@@ -349,7 +349,7 @@ One additional qualitative finding does not show in the trajectory table but mat
 
 An automated coding agent --- Claude Code (Anthropic, model \texttt{claude-opus-4-7}, run on 2026-05-21) --- performed the same six-session playbook on the same fixture, with the markdown output of a \texttt{feedbackForAgent} task (which renders an analysis report's divergence points and trajectory advice as plain-text instructions) injected into the agent's prompt at the start of each subsequent session. The agent honoured a small setup contract before any session ran: tests were invoked via a wrapper script that brackets the gradle call with \texttt{TEST\_RUN\_STARTED} / \texttt{TEST\_RUN\_FINISHED} events in the plugin trace, and commits were made via standard \texttt{git commit} which the plugin's reflog watcher captured as \texttt{GIT\_COMMIT} events. No human intervened during a session beyond starting and stopping the plugin's recording.
 
-Table~\ref{tab:results-userstudy-agent-distribution} reports the agent's per-kind divergence-point totals against the combined human total from Table~\ref{tab:results-userstudy-trajectory}. The agent produced $10$ divergence points across six sessions, against the combined human total of $108$ --- but the \emph{shape} of the comparison is the headline, not the count. Nine of the agent's ten divergence points are IDE-replay; rework and hygiene fired zero times across the entire six-session arc, and ordering fired exactly once. The human distribution is materially broader: $46$ IDE-replay, $32$ hygiene, $20$ ordering, $10$ rework.
+Table~\ref{tab:results-userstudy-agent-distribution} reports the agent's per-kind divergence-point totals against the combined human total from Table~\ref{tab:results-userstudy-trajectory}. The agent produced $5$ divergence points across six sessions, against the combined human total of $43$ --- but the \emph{shape} of the comparison is the headline, not the count. All five of the agent's divergence points are IDE-replay; rework, hygiene, and ordering fired zero times across the entire six-session arc. The human distribution covers all four kinds: $20$ IDE-replay, $16$ hygiene, $5$ rework, $2$ ordering.
 
 \begin{table}[htbp]
 \centering
@@ -358,19 +358,19 @@ Table~\ref{tab:results-userstudy-agent-distribution} reports the agent's per-kin
 \hline
 \textbf{kind} & \textbf{Agent} & \textbf{Humans (P1 + P2)} & \textbf{Agent / Human} \\
 \hline
-IDE\_REPLAY  & $9$  & $46$  & $0.20$ \\
-REWORK       & $0$  & $10$  & $0.00$ \\
-HYGIENE      & $0$  & $32$  & $0.00$ \\
-ORDERING     & $1$  & $20$  & $0.05$ \\
+IDE\_REPLAY  & $5$ & $20$ & $0.25$ \\
+REWORK       & $0$ & $5$  & $0.00$ \\
+HYGIENE      & $0$ & $16$ & $0.00$ \\
+ORDERING     & $0$ & $2$  & $0.00$ \\
 \hline
-\textbf{total} & $\mathbf{10}$ & $\mathbf{108}$ & $\mathbf{0.09}$ \\
+\textbf{total} & $\mathbf{5}$ & $\mathbf{43}$ & $\mathbf{0.12}$ \\
 \hline
 \end{tabular}
 \caption{Per-kind divergence-point totals for the agent over six sessions on the user-study fixture, against the combined two-participant human total reported in Table~\ref{tab:results-userstudy-trajectory}.}
 \label{tab:results-userstudy-agent-distribution}
 \end{table}
 
-Table~\ref{tab:results-userstudy-agent-trajectory} mirrors the human trajectory table for direct visual comparison. The agent's divergence-point counts session by session are $3, 0, 3, 0, 2, 2$, and the final-checkpoint process scores are $0, 79, 30, 100, 72, 39$. Neither row shows monotonic improvement, but for the same task-difficulty reason noted earlier in this section: S2 and S4 are short, mechanical sessions where everyone --- both participants and the agent alike --- produces near-zero divergence points and runs the score close to the ceiling; S3 and S6 are structurally harder sessions where the human cohort's ordering and rework counts spike as well. The cleaner trajectory signal is the per-kind columns rather than the per-session score endpoints.
+Table~\ref{tab:results-userstudy-agent-trajectory} mirrors the human trajectory table for direct visual comparison. The agent's divergence-point counts session by session are $0, 0, 1, 0, 2, 2$, and the final-checkpoint process scores are $0, 79, 30, 100, 72, 39$. Neither row shows monotonic improvement, for the same task-difficulty reason noted earlier in this section: S2 and S4 are short, mechanical sessions where everyone --- both participants and the agent alike --- produces near-zero divergence points and runs the score close to the ceiling; S3 and S6 are structurally harder sessions where the human cohort's rework count spikes as well. The cleaner trajectory signal is the per-kind columns rather than the per-session score endpoints.
 
 \begin{table}[htbp]
 \centering
@@ -379,10 +379,10 @@ Table~\ref{tab:results-userstudy-agent-trajectory} mirrors the human trajectory 
 \hline
 \textbf{kind} & \textbf{S1} & \textbf{S2} & \textbf{S3} & \textbf{S4} & \textbf{S5} & \textbf{S6} & \textbf{$\Delta$} \\
 \hline
-IDE\_REPLAY  & $2$ & $0$  & $3$  & $0$   & $2$  & $2$  & $0$  \\
+IDE\_REPLAY  & $0$ & $0$  & $1$  & $0$   & $2$  & $2$  & $+2$ \\
 REWORK       & $0$ & $0$  & $0$  & $0$   & $0$  & $0$  & $0$  \\
 HYGIENE      & $0$ & $0$  & $0$  & $0$   & $0$  & $0$  & $0$  \\
-ORDERING     & $1$ & $0$  & $0$  & $0$   & $0$  & $0$  & $-1$ \\
+ORDERING     & $0$ & $0$  & $0$  & $0$   & $0$  & $0$  & $0$  \\
 \hline
 \textbf{final score} & $0$ & $79$ & $30$ & $100$ & $72$ & $39$ & --- \\
 \hline
@@ -391,11 +391,11 @@ ORDERING     & $1$ & $0$  & $0$  & $0$   & $0$  & $0$  & $-1$ \\
 \label{tab:results-userstudy-agent-trajectory}
 \end{table}
 
-Reading the per-kind columns left-to-right tells a different story from the score row. Ordering fired once in S1 and never fired again across the remaining five sessions --- including S6, where the human ordering count climbed to $9$ on the same prompt. After the S1 feedback the agent acknowledged the recommendation in writing and committed to a different sequencing on subsequent sessions; the kind never re-fired. This is the single clearest controlled ``feedback drove a behavioural correction'' observation in the chapter: a kind the tool flagged in S1 was suppressed on the hardest later session even as the same kind climbed for human participants. Rework and hygiene held at zero across all six sessions from the start, consistent with the procedural-discipline contract written into the agent's setup prompt being honoured throughout.
+Reading the per-kind columns left-to-right tells a different story from the score row. Rework, hygiene, and ordering held at zero across all six sessions, consistent with the procedural-discipline contract written into the agent's setup prompt being honoured throughout: tests via the wrapper after every change, commits at the boundaries the playbook prescribes, no undo cycles. The S1 dashboard did surface an admitted-but-not-improving ordering window (a permutation existed that reached the same end state but did not strictly beat the agent's; under the strict $\mathrm{magnitude} > 0$ filter of \S\ref{sec:methodology-detector-ordering} this is informational rather than a divergence point), and the agent acknowledged it in writing after the session; the kind never re-surfaced, but no controlled-comparison claim is made on a window whose magnitude is non-positive.
 
-The persistent failure mode is IDE-replay. Nine of the agent's ten divergence points are IDE-replay flags, and the count does not decline across the arc. The agent has no IDE refactor surface to switch to: Claude Code edits files via text tool calls, not through IntelliJ's Refactor menu, so every refactoring it performs is classified as a manual edit by the detector. The agent itself acknowledges the structural nature of this in its S6 reflection, observing that the IDE-replay flags persist because manual extracts consistently underperform the IntelliJ refactoring and that a deployment that exposed Extract Method as a tool call would resolve the issue. The signal is real and the recommendation correct, but the actuator is missing from the agent's interface; the agent cannot drive the IDE-replay count toward zero however well it works.
+The persistent failure mode is IDE-replay. All five of the agent's divergence points are IDE-replay flags, and the count does not decline across the arc; it is concentrated on the structurally heavier sessions (S3, S5, S6) where the agent performed enough structural refactoring to surface any divergence points at all. The agent has no IDE refactor surface to switch to: Claude Code edits files via text tool calls, not through IntelliJ's Refactor menu, so every refactoring it performs is classified as a manual edit by the detector. The agent itself acknowledges the structural nature of this in its S6 reflection, observing that the IDE-replay flags persist because manual extracts consistently underperform the IntelliJ refactoring and that a deployment that exposed Extract Method as a tool call would resolve the issue. The signal is real and the recommendation correct, but the actuator is missing from the agent's interface; the agent cannot drive the IDE-replay count toward zero however well it works.
 
-The two failure profiles are nearly complementary. Humans are \emph{procedurally noisy and architecturally capable}: high IDE-replay and hygiene counts, scattered ordering and rework, but able to switch to IntelliJ refactor actions when they remember to. The agent is \emph{procedurally disciplined and architecturally limited}: near-zero on rework, hygiene, and ordering --- the three kinds where the tool measures process cadence and sequencing --- but saturated on IDE-replay because the actuator that would resolve it does not exist in its interface. The tool surfaces both kinds of failure correctly; neither profile is the ``right'' one to target, and the comparison demonstrates that the detector's four kinds are pulling apart genuinely different dimensions of refactoring practice rather than collapsing onto a single proxy.
+The two failure profiles are nearly complementary. Humans are \emph{procedurally noisy and architecturally capable}: high IDE-replay and hygiene counts, scattered rework on the hard sessions, but able to switch to IntelliJ refactor actions when they remember to. The agent is \emph{procedurally disciplined and architecturally limited}: zero on rework, hygiene, and ordering --- the three kinds where the tool measures process cadence and sequencing --- and IDE-replay only on the sessions where it performed structural refactoring at all, because the actuator that would resolve IDE-replay does not exist in its interface. The tool surfaces both kinds of failure correctly; neither profile is the ``right'' one to target, and the comparison demonstrates that the detector's four kinds are pulling apart genuinely different dimensions of refactoring practice rather than collapsing onto a single proxy.
 
 The agent comparison is descriptive at $n = 1$ agent over six sessions with one model version on one date; it is illustrative of the detector's behaviour on a non-human actor rather than a generalisable claim about coding agents. A multi-agent extension, and an agent-side IDE refactor capability that would let the IDE-replay count actually respond to feedback, are flagged as future work.
 

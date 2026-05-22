@@ -334,6 +334,11 @@ Jagdish Bansiya and Carl~G. Davis.
 \newblock A hierarchical model for object-oriented design quality assessment.
 \newblock {\em IEEE Transactions on Software Engineering}, 28(1):4--17, 2002.
 
+\bibitem{coleman1994maintainability}
+Don Coleman, Dan Ash, Bruce Lowther, and Paul Oman.
+\newblock Using metrics to evaluate software system maintainability.
+\newblock {\em Computer}, 27(8):44--49, 1994.
+
 \bibitem{cohen1960kappa}
 Jacob Cohen.
 \newblock A coefficient of agreement for nominal scales.
