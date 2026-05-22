@@ -220,6 +220,34 @@ tasks.register<JavaExec>("divergence") {
     classpath = sourceSets["main"].runtimeClasspath
 }
 
+// User-study helpers: per-session DP counts, per-kind trajectory, and
+// inter-rater Cohen's kappa. Pure in-memory; no Equinox bundle wiring.
+// `workingDir` is set to the repo root so the scripts' default relative
+// paths (`fixtures/user-sessions`, etc.) match the Python originals'.
+tasks.register<JavaExec>("userSessionStats") {
+    group = "verification"
+    description = "Per-session DP count table for user-study sessions (mag > 0 only)."
+    mainClass.set("com.github.ethanhosier.analysis.experiment.UserSessionStats")
+    classpath = sourceSets["main"].runtimeClasspath
+    workingDir = rootProject.projectDir
+}
+
+tasks.register<JavaExec>("perKindTrajectory") {
+    group = "verification"
+    description = "Per-kind DP trajectory across the six-session arc per participant."
+    mainClass.set("com.github.ethanhosier.analysis.experiment.PerKindTrajectory")
+    classpath = sourceSets["main"].runtimeClasspath
+    workingDir = rootProject.projectDir
+}
+
+tasks.register<JavaExec>("raterKappa") {
+    group = "verification"
+    description = "Cohen's kappa per kind between two rater manifest CSVs."
+    mainClass.set("com.github.ethanhosier.analysis.experiment.RaterKappa")
+    classpath = sourceSets["main"].runtimeClasspath
+    workingDir = rootProject.projectDir
+}
+
 // Phase-8 agent-comparison helper: render an analysis-report.json's
 // divergence points as a markdown summary that can be injected into a
 // coding agent's prompt before its next session.
