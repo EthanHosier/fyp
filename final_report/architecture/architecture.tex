@@ -1,7 +1,7 @@
 \chapter{Tool Architecture}
 \label{ch:architecture}
 
-This chapter describes the engineering side of the tool. The methodology chapter argued for why each algorithm is correct; this chapter argues for why each one is fast. It walks through the pipeline in order: event capture in the plugin (\S\ref{sec:arch-events}), shadow-repo reconstruction and worktree allocation (\S\ref{sec:arch-shadow}), per-checkpoint metrics calculation (\S\ref{sec:arch-metrics}), the Eclipse JDT refactoring engine that every synthesiser leans on (\S\ref{sec:arch-jdt}), and the four counterfactual-trajectory synthesis strategies (\S\ref{sec:arch-synthesis}). The split of the pipeline into an expensive offline phase and a cheap replay phase is described in \S\ref{sec:arch-phases}, and the dashboard that consumes the resulting report in \S\ref{sec:arch-dashboard}.
+This chapter describes how the tool is implemented. We walk through the pipeline in order: event capture in the plugin (\S\ref{sec:arch-events}), shadow-repo reconstruction and worktree allocation (\S\ref{sec:arch-shadow}), per-checkpoint metrics calculation (\S\ref{sec:arch-metrics}), the Eclipse JDT refactoring engine that powers the synthesizers (\S\ref{sec:arch-jdt}), and the four synthesis strategies for building counterfactual trajectories (\S\ref{sec:arch-synthesis}). We also describe the split between offline and replay phases (\S\ref{sec:arch-phases}) and the dashboard that presents the results (\S\ref{sec:arch-dashboard}).
 
 \section{Architecture at a glance}
 \label{sec:arch-overview}
