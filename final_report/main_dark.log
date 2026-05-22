@@ -2,8 +2,8 @@ This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded forma
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
-**main.tex
-(./main.tex
+**main_dark.tex
+(./main_dark.tex
 LaTeX2e <2024-11-01> patch level 2
 L3 programming layer <2025-01-18>
 (/usr/local/texlive/2025/texmf-dist/tex/latex/base/report.cls
@@ -1163,27 +1163,27 @@ File: l3backend-pdftex.def 2024-05-08 L3 backend support: PDF output (pdfTeX)
 \l__color_backend_stack_int=\count329
 \l__pdf_internal_box=\box69
 )
-(./main.aux)
-\openout1 = `main.aux'.
+(./main_dark.aux)
+\openout1 = `main_dark.aux'.
 
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 29.
-LaTeX Font Info:    ... okay on input line 29.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 29.
-LaTeX Font Info:    ... okay on input line 29.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 29.
-LaTeX Font Info:    ... okay on input line 29.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 29.
-LaTeX Font Info:    ... okay on input line 29.
-LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 29.
-LaTeX Font Info:    ... okay on input line 29.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 29.
-LaTeX Font Info:    ... okay on input line 29.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 29.
-LaTeX Font Info:    ... okay on input line 29.
-LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 29.
-LaTeX Font Info:    ... okay on input line 29.
-LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 29.
-LaTeX Font Info:    ... okay on input line 29.
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 48.
+LaTeX Font Info:    ... okay on input line 48.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 48.
+LaTeX Font Info:    ... okay on input line 48.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 48.
+LaTeX Font Info:    ... okay on input line 48.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 48.
+LaTeX Font Info:    ... okay on input line 48.
+LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 48.
+LaTeX Font Info:    ... okay on input line 48.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 48.
+LaTeX Font Info:    ... okay on input line 48.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 48.
+LaTeX Font Info:    ... okay on input line 48.
+LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 48.
+LaTeX Font Info:    ... okay on input line 48.
+LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 48.
+LaTeX Font Info:    ... okay on input line 48.
 
 *geometry* driver: auto-detecting
 *geometry* detected driver: pdftex
@@ -1249,12 +1249,12 @@ Package caption Info: End \AtBeginDocument code.
 Package todonotes Warning: The length marginparwidth is less than 2cm and will 
 most likely cause issues with the appearance of inserted todonotes. The issue c
 an be solved by adding a line like \setlength {\marginparwidth }{2cm} prior to 
-loading the todonotes package. on input line 29.
+loading the todonotes package. on input line 48.
 
-Package hyperref Info: Link coloring ON on input line 29.
-(./main.out) (./main.out)
+Package hyperref Info: Link coloring ON on input line 48.
+(./main_dark.out) (./main_dark.out)
 \@outlinefile=\write4
-\openout4 = `main.out'.
+\openout4 = `main_dark.out'.
 
  (./title/title.tex
 Package epstopdf Info: Source file: <title/logo.eps>
@@ -1291,7 +1291,7 @@ pdfTeX warning (ext4): destination with the same identifier (name{page.1}) has
 been already used, duplicate ignored
 <to be read again> 
                    \relax 
-l.34 \end{abstract}
+l.53 \end{abstract}
                     [1]
 
 
@@ -1299,32 +1299,32 @@ pdfTeX warning (ext4): destination with the same identifier (name{page.1}) has
 been already used, duplicate ignored
 <to be read again> 
                    \relax 
-l.38 \end{abstract}
-                    [1] (./main.toc
+l.57 \end{abstract}
+                    [1] (./main_dark.toc
 
 [2
 
 ])
 \tf@toc=\write5
-\openout5 = `main.toc'.
+\openout5 = `main_dark.toc'.
 
 
 
-[3] (./main.lof)
+[3] (./main_dark.lof)
 \tf@lof=\write6
-\openout6 = `main.lof'.
+\openout6 = `main_dark.lof'.
 
 
 
 [4
 
-] (./main.lot
+] (./main_dark.lot
 
 [5
 
 ])
 \tf@lot=\write7
-\openout7 = `main.lot'.
+\openout7 = `main_dark.lot'.
 
  (./introduction/introduction.tex
 
@@ -1552,7 +1552,7 @@ Chapter 7.
 
 ]
 Appendix A.
-) (./main.bbl
+) (./main_dark.bbl
 
 [50
 
@@ -1566,22 +1566,22 @@ Appendix A.
 
 [53])
 
-[54] (./main.aux)
+[54] (./main_dark.aux)
  ***********
 LaTeX2e <2024-11-01> patch level 2
 L3 programming layer <2025-01-18>
  ***********
-Package rerunfilecheck Info: File `main.out' has not changed.
+Package rerunfilecheck Info: File `main_dark.out' has not changed.
 (rerunfilecheck)             Checksum: 9525FC8CF5F1FE7C745242CB8C5FFDE8;15533.
  ) 
 Here is how much of TeX's memory you used:
- 25176 strings out of 473190
- 475303 string characters out of 5715800
- 889598 words of memory out of 5000000
- 47669 multiletter control sequences out of 15000+600000
+ 25181 strings out of 473190
+ 475569 string characters out of 5715800
+ 890289 words of memory out of 5000000
+ 47674 multiletter control sequences out of 15000+600000
  590336 words of font info for 94 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 103i,13n,106p,1893b,847s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 103i,13n,106p,1898b,847s stack positions out of 10000i,1000n,20000p,200000b,200000s
 </usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx9.pfb>
 </usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb><
 /usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></
@@ -1622,7 +1622,7 @@ ti0900.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sfti
 .pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sftt1000.p
 fb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sfxc0700.pfb
 >
-Output written on main.pdf (56 pages, 1372671 bytes).
+Output written on main_dark.pdf (56 pages, 1377557 bytes).
 PDF statistics:
  1447 PDF objects out of 1728 (max. 8388607)
  1285 compressed objects within 13 object streams

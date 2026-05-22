@@ -363,17 +363,6 @@ J.~Richard Landis and Gary~G. Koch.
   2017; reference implementation \texttt{eclipse-jdtls/eclipse.jdt.ls} on
   GitHub. Consulted 2026-05-18.
 
-\bibitem{wang2025tosem}
-Haibo Wang, Zhuolin Xu, Huaien Zhang, Nikolaos Tsantalis, and Shin~Hwei Tan.
-\newblock Towards understanding refactoring engine bugs.
-\newblock {\em ACM Transactions on Software Engineering and Methodology}, 2025.
-
-\bibitem{wang2025forge}
-Haibo Wang, Zhuolin Xu, and Shin~Hwei Tan.
-\newblock Testing refactoring engine via historical bug report driven {LLM}.
-\newblock In {\em Proceedings of the 2nd ACM International Conference on AI
-  Foundation Models and Software Engineering (FORGE)}. ACM, 2025.
-
 \bibitem{kendall1948rank}
 Maurice~G. Kendall.
 \newblock {\em Rank Correlation Methods}.

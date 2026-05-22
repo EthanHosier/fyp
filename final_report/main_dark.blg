@@ -1,6 +1,6 @@
 This is BibTeX, Version 0.99d (TeX Live 2025)
 Capacity: max_strings=200000, hash_size=200000, hash_prime=170003
-The top-level auxiliary file: main.aux
+The top-level auxiliary file: main_dark.aux
 The style file: unsrt.bst
 Database file #1: bibs/sample.bib
 Warning--empty journal in bouzenia2025trajectories
@@ -8,7 +8,7 @@ Warning--empty title in wang2018traceability
 Warning--empty journal in wang2018traceability
 You've used 67 entries,
             1791 wiz_defined-function locations,
-            798 strings with 17046 characters,
+            798 strings with 17056 characters,
 and the built_in function-call counts, 16235 in all, are:
 = -- 1472
 > -- 723

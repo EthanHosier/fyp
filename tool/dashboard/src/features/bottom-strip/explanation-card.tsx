@@ -160,7 +160,7 @@ function DeltaList({ deltas }: { deltas: Delta[] }) {
             tone={d.improved ? "good" : "bad"}
             className="inline-flex w-14 items-center justify-end gap-1"
           >
-            <span>{d.improved ? "▼" : "▲"}</span>
+            <span>{d.diff > 0 ? "▲" : "▼"}</span>
             <span>{formatDiff(d.diff, d.metric)}</span>
           </Text>
         </li>

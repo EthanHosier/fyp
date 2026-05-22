@@ -344,6 +344,10 @@ The S3 and S6 rework spikes are a reminder that the six sessions are not interch
 
 One additional qualitative finding does not show in the trajectory table but matters for future tuning: hygiene also produces a false-positive shape, firing when a participant is thinking rather than stuck. One participant flagged this in interview as ``tests when wasn't quite finished just was thinking'', and the pattern is reflected in the S2 peak for hygiene more generally. Both this finding and the rework over-penalisation are reported here as candidate metric-tuning directions rather than detector bugs: the divergence points are accurate readings of what the trajectory contains, but the metric design treats some legitimate-pause and mistyped-key cases more harshly than the participant would.
 
+\paragraph{Per-step inspection as a usability win.}
+\label{sec:results-userstudy-stepui}
+Both participants singled out the dashboard's per-checkpoint detail panel as a positive part of the interface, independently of the four detector kinds. One participant said the per-checkpoint view made it easy to ``see what action you took to cause the issues to happen'', and that the trajectory graph showing the highest score reachable from each point onwards was ``egging you on to be a better person'' (i.e.\ the alternative-trajectory overlays were read as constructive rather than punitive). The other participant said they could ``see the specific point you went wrong'', valued the cleanliness-signal ``breakdowns'' on each step, and called the dashboard ``easy to track session at specific points + code smells''. These observations validate the per-step smell-attribution and metric-shift breakdown described in \S\ref{sec:arch-metrics} as a usability feature the participants engaged with, not just an architectural by-product of how the report is assembled.
+
 \subsection*{Agent comparison}
 \label{sec:results-userstudy-agent}
 
