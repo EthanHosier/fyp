@@ -60,7 +60,7 @@ The Intellij plugin is responsible for capturing the Intellij events which are e
 
 File modification activity is the noisiest source. IntelliJ emits an event for every keystroke, but we debounce these to avoid noise. A debouncing layer accumulates keystrokes into an \emph{edit burst} across all files: when a 2-second quiet window elapses without further typing, a single burst event is emitted carrying the file's post-edit contents and the structured set of program elements touched.
 
-Although a handful of the fine-grained file-level events (file open, save, and similar) are not consumed by any downstream stage, they are recorded because their capture is essentially free at the plugin layer, and they remain obvious candidates for future work on navigation patterns, file dwell time, and read-versus-edit behaviour.
+Although a handful of the fine-grained file-level events (file open, save, and similar) are not consumed by any downstream stage, they are recorded because their capture is essentially free at the plugin layer, and they remain obvious candidates for future work on navigation patterns, file engagement patterns, and read-versus-edit behaviour.
 
 \section{Shadow repo reconstruction and worktree pool}
 \label{sec:arch-shadow}
