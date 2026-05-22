@@ -173,7 +173,7 @@ Before emitting a divergence point, the detector runs kind-specific filters. Thr
 \subsection{ORDERING detection}
 \label{sec:methodology-detector-ordering}
 
-ORDERING detection works on bracket-validated windows of consecutive refactoring steps (\S\ref{sec:methodology-validator}). For each window, the synthesiser enumerates valid permutations of the steps - only those whose terminal AST matches the user's, established by the audit in \S\ref{sec:methodology-reorder} - and computes the process-score delta of each permutation against the user's. If any permutation strictly beats the user, a divergence point is emitted at the window's terminal step with the best-scoring permutation as the surfaced alternative.
+ORDERING detection works on bracket-validated windows of consecutive refactoring steps (\S\ref{sec:methodology-validator}). For each window, the synthesiser enumerates valid permutations of the steps --- only those whose terminal AST matches the user's, established by the audit in \S\ref{sec:methodology-reorder} --- and computes the process-score delta of each permutation against the user's. One divergence point is emitted per window at its terminal step; the divergence point's magnitude is the best delta across the window's admitted permutations, and all admitted permutations are attached to the divergence point as alternatives. Permutations whose delta is $\leq 0$ are retained on the divergence point for informational use (the dashboard surfaces them so the user can inspect the search space), but downstream analyses --- the divergence-detection experiment of \S\ref{sec:results-divergence} and the ``beats user'' counts reported with it --- apply a strict $\mathrm{magnitude} > 0$ filter so only divergence points whose best alternative actually improved on the user's trajectory are counted.
 
 \subsection{MANUAL\_REFACTOR detection}
 \label{sec:methodology-detector-manual}
@@ -199,13 +199,13 @@ The reorder synthesiser builds alternative trajectories by reshuffling the user'
 Only bracket-validated windows (\S\ref{sec:methodology-validator}) are eligible for reordering. Brackets whose terminal AST doesn't match the user's receive the \textsc{ast\_diverged} verdict, and brackets where a refactoring step failed receive \textsc{refactor\_failed}. Both are treated as individual steps that can't be reordered. However, the wrap-and-patch layer handles cases where the engines only disagreed on minor details (whitespace, import order, etc.), which allows those brackets to pass validation and be reordered.
 
 \paragraph{Dependency-DAG construction.}
-Each refactoring step carries a structured \emph{spec} describing what entities it reads, writes, creates, or deletes. The synthesiser builds a dependency graph where an edge from step $u$ to step $v$ means $v$ depends on $u$'s effects---either $v$ reads something $u$ wrote, or $v$ targets something $u$ created. This graph defines the constraints on any valid reordering.
+Each refactoring step carries a structured \emph{spec} describing what entities it reads, writes, creates, or deletes. The synthesiser builds a dependency graph where an edge from step $u$ to step $v$ means $v$ depends on $u$'s effects. This graph defines the constraints on any valid reordering.
 
 \paragraph{SSA versioning across renames.}
 If a method is renamed at step $t$ from \texttt{foo} to \texttt{bar}, it shows up in later steps under its new name, which breaks simple name-based equality across the trajectory. The synthesiser threads version identifiers through the DAG using single-static-assignment-style versioning: each rename produces a fresh version, and subsequent steps that target the renamed entity bind to the right version. This handles trajectories like Extract Method followed by Rename Method on the extracted method.
 
 \paragraph{Topological enumeration.}
-The synthesiser enumerates topological orderings of the DAG via straightforward recursive backtracking. Each enumeration is a candidate permutation of the window's steps. In practice the DAG sizes are small (most brackets contain 2--8 steps), so the enumeration terminates quickly.
+The synthesiser enumerates topological orderings of the DAG via recursive backtracking. Each enumeration is a candidate permutation of the window's steps. In practice the DAG sizes are small (most brackets contain 2--8 steps), so the enumeration terminates quickly.
 
 \paragraph{Depth-first search over a prefix trie.}
 The enumeration is implemented as a depth-first walk over a prefix trie of candidate permutations, so orderings that share a prefix reuse the project state across that prefix rather than re-applying it from scratch. The engineering of the walk --- the borrowed worktree, the JDT batch session, and the git-checkout backtracking that powers the back edges --- is in \S\ref{sec:arch-reorder-engine}.
@@ -213,14 +213,14 @@ The enumeration is implemented as a depth-first walk over a prefix trie of candi
 \paragraph{Terminal AST-equivalence audit.}
 For each permutation that reaches a terminal state, the synthesiser hashes the affected \texttt{.java} files with a Java AST hasher (which canonicalises method-declaration order and other syntactic differences that do not change behaviour) and compares them to hashes of the user's terminal state computed via \texttt{git show}. Only permutations whose terminal AST hashes \emph{exactly match} the user's count as legitimate reorderings. This is the correctness guarantee: by construction, an admitted reorder reaches the same end state as the user.
 
-The admitted permutations are then scored under Equation~\eqref{eq:process-score}. The highest-scoring permutation that strictly beats the user's becomes the alternative trajectory for the ORDERING divergence point at the window's terminal step.
+The valid permutations are then scored under Equation~\eqref{eq:process-score}. The window collapses to a single ORDERING divergence point at its terminal step; the best delta becomes the divergence point's magnitude and every admitted permutation is attached to it as an alternative. Permutations whose delta is $\leq 0$ are retained for the dashboard's informational view of the search space; the strict $\mathrm{magnitude} > 0$ filter that picks out divergence points whose best alternative beats the user is applied downstream at the experiment stage (\S\ref{sec:results-divergence}).
 
 \section{Manual-refactor synthesiser}
 \label{sec:methodology-manualrefactor}
 
 The manual-refactor synthesiser builds an alternative trajectory in which the user's manual refactoring is instead applied via the IDE's automated pathway. The synthesiser borrows a worktree at the originating commit \texttt{fromSha}, applies each detected spec via its IDE-equivalent operator inside a single JDT batch session, and then runs a residual three-way merge to layer the user's non-refactoring edits (for example, unrelated bug fixes interleaved with the refactor) on top of the synthesised refactor. The resulting tree is committed to a shadow repository.
 
-The residual merge is important: it makes sure the alt trajectory keeps all of the user's non-refactoring edits. That way the comparison is about \emph{how} the user reached the end state (by hand vs.\ via the IDE), not about \emph{whether} they reached it. Without the residual merge, the alt would drift away from the user's end state on the non-refactoring axis and the process-score comparison would be confounded.
+The residual merge ensures the alt trajectory keeps all the user's non-refactoring edits. This way both trajectories end at the same code state, so the comparison measures the refactoring method (hand vs IDE), not whether the final states match. Without the residual merge, the alt would diverge on non-refactoring changes and the process-score comparison would be meaningless.
 
 \section{Rework synthesiser}
 \label{sec:methodology-reworksynth}
