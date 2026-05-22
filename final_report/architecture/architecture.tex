@@ -62,6 +62,9 @@ File modification activity is the noisiest source. IntelliJ emits an event for e
 
 Although a handful of the fine-grained file-level events (file open, save, and similar) are not consumed by any downstream stage, they are recorded because their capture is essentially free at the plugin layer, and they remain obvious candidates for future work on navigation patterns, file engagement patterns, and read-versus-edit behaviour.
 
+\paragraph{Event normalisation.}
+The captured event stream undergoes three normalisations before downstream processing. First, events are re-sorted by timestamp to reflect actual order. Second, spurious events are removed: FILE\_CREATED events that arrive late, and EDIT\_BURST events with no actual changes. The result is the \emph{normalised event stream} consumed by every subsequent stage.
+
 \section{Shadow repo reconstruction and worktree pool}
 \label{sec:arch-shadow}
 
