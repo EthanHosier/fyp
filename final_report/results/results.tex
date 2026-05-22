@@ -94,7 +94,7 @@ Agent ($6$)             & $1{,}200$ & $0.736$ & $86.1\%$ & $100.0\%$\,$^\dagger$
 \label{tab:results-sensitivity-mc}
 \end{table}
 
-\paragraph{Saturation as a clipping confound.}
+\paragraph{Saturation and score-clamp bias.}
 One concern is whether the $\tau$ and top-$N$ numbers are artefacts of the $[0, 100]$ clamp on the process score. A divergence point whose user and alt scores both sit at the upper bound has zero magnitude by construction regardless of weights, which would inflate $\tau$. Saturation is therefore tracked per fixture. The right-hand column of Table~\ref{tab:results-sensitivity-headline} shows the three session sets differ substantially. The injection sessions has $13.6\%$ saturated baseline divergence points, concentrated on seven short fixtures. The agent sessions has $30.0\%$, because most agent sessions push the score close to the ceiling on the easier playbook sessions. The user-study sessions has \emph{zero} saturation. This is the main reason for leading with the user-study sessions: its $\tau$ and top-$N$ values are clean perturbation responses, not clipping artefacts, and the multi-knob top-$1 = 77\%$ figure cannot be dismissed as a saturation finding.
 
 \paragraph{Caveats and scope.}
