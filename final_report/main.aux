@@ -182,6 +182,9 @@
 \newlabel{sec:methodology-notation}{{3.1}{20}{Formal definitions and notation}{section.3.1}{}}
 \@writefile{toc}{\contentsline {section}{\numberline {3.2}The process score}{20}{section.3.2}\protected@file@percent }
 \newlabel{sec:methodology-score}{{3.2}{20}{The process score}{section.3.2}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {3.1}{\ignorespaces Notation used throughout the methodology chapter.}}{21}{table.caption.13}\protected@file@percent }
+\newlabel{tab:methodology-notation}{{3.1}{21}{Notation used throughout the methodology chapter}{table.caption.13}{}}
+\newlabel{eq:process-score}{{3.1}{21}{The process score}{equation.3.1}{}}
 \citation{cedrim2017refactoring}
 \citation{paixao2017balancing}
 \citation{paixao2017balancing}
@@ -195,11 +198,6 @@
 \citation{dibiase2019decomposition}
 \citation{herzig2013tangled}
 \citation{kudrjavets2022small}
-\@writefile{lot}{\contentsline {table}{\numberline {3.1}{\ignorespaces Notation used throughout the methodology chapter.}}{21}{table.caption.13}\protected@file@percent }
-\newlabel{tab:methodology-notation}{{3.1}{21}{Notation used throughout the methodology chapter}{table.caption.13}{}}
-\newlabel{eq:process-score}{{3.1}{21}{The process score}{equation.3.1}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {3.3}Process-score weights}{21}{section.3.3}\protected@file@percent }
-\newlabel{sec:methodology-weights}{{3.3}{21}{Process-score weights}{section.3.3}{}}
 \citation{cedrim2017refactoring}
 \citation{paixao2017balancing}
 \citation{paixao2017balancing}
@@ -208,6 +206,8 @@
 \citation{mens2004survey}
 \citation{negara2013manualautomated}
 \citation{vakilian2012usedisuse}
+\@writefile{toc}{\contentsline {section}{\numberline {3.3}Process-score weights}{22}{section.3.3}\protected@file@percent }
+\newlabel{sec:methodology-weights}{{3.3}{22}{Process-score weights}{section.3.3}{}}
 \@writefile{lot}{\contentsline {table}{\numberline {3.2}{\ignorespaces Production weights for Equation~\eqref  {eq:process-score} and the literature each weight rests on. Empirical contribution of each term to the formula's ranking output is reported in the ablation analysis of \S  \ref {sec:results-ablation}.}}{22}{table.caption.14}\protected@file@percent }
 \newlabel{tab:methodology-weights}{{3.2}{22}{Production weights for Equation~\eqref {eq:process-score} and the literature each weight rests on. Empirical contribution of each term to the formula's ranking output is reported in the ablation analysis of \S \ref {sec:results-ablation}}{table.caption.14}{}}
 \@writefile{toc}{\contentsline {paragraph}{$W_{\textsc  {g}}$ (gain, 50).}{22}{section*.15}\protected@file@percent }
@@ -234,19 +234,19 @@
 \citation{biemankang1995tcc}
 \citation{wagner2015quamoco}
 \citation{bansiya2002qmood}
+\citation{coleman1994maintainability}
+\citation{bansiya2002qmood}
 \@writefile{toc}{\contentsline {paragraph}{$W_{\textsc  {l}}$ (length, 11).}{23}{section*.19}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{$W_{\textsc  {cg}}$ (commit-gap, 7).}{23}{section*.20}\protected@file@percent }
 \@writefile{toc}{\contentsline {section}{\numberline {3.4}The cleanliness sub-score}{23}{section.3.4}\protected@file@percent }
 \newlabel{sec:methodology-cleanliness}{{3.4}{23}{The cleanliness sub-score}{section.3.4}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {3.3}{\ignorespaces The six sub-signals composing the cleanliness sub-score $C(s)$. All weights are uniform 1.0 following Laplace's principle of insufficient reason (see composition rule below); the production weight bundle in the implementation reflects this.}}{23}{table.caption.21}\protected@file@percent }
-\newlabel{tab:methodology-cleanliness}{{3.3}{23}{The six sub-signals composing the cleanliness sub-score $C(s)$. All weights are uniform 1.0 following Laplace's principle of insufficient reason (see composition rule below); the production weight bundle in the implementation reflects this}{table.caption.21}{}}
 \@writefile{toc}{\contentsline {paragraph}{Composition rule.}{23}{section*.22}\protected@file@percent }
-\citation{coleman1994maintainability}
-\citation{bansiya2002qmood}
+\@writefile{toc}{\contentsline {paragraph}{Uniform sub-weights, by deliberate choice.}{23}{section*.23}\protected@file@percent }
 \citation{buse2010readability}
 \citation{munozbaron2020cognitive}
 \citation{lavazza2023cognitive}
-\@writefile{toc}{\contentsline {paragraph}{Uniform sub-weights, by deliberate choice.}{24}{section*.23}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {3.3}{\ignorespaces The six sub-signals composing the cleanliness sub-score $C(s)$. All weights are uniform 1.0 following Laplace's principle of insufficient reason (see composition rule below); the production weight bundle in the implementation reflects this.}}{24}{table.caption.21}\protected@file@percent }
+\newlabel{tab:methodology-cleanliness}{{3.3}{24}{The six sub-signals composing the cleanliness sub-score $C(s)$. All weights are uniform 1.0 following Laplace's principle of insufficient reason (see composition rule below); the production weight bundle in the implementation reflects this}{table.caption.21}{}}
 \@writefile{toc}{\contentsline {paragraph}{Caveats deliberately disclosed.}{24}{section*.24}\protected@file@percent }
 \@writefile{toc}{\contentsline {section}{\numberline {3.5}The divergence-point detector}{24}{section.3.5}\protected@file@percent }
 \newlabel{sec:methodology-detector}{{3.5}{24}{The divergence-point detector}{section.3.5}{}}
@@ -270,8 +270,8 @@
 \@writefile{toc}{\contentsline {paragraph}{Depth-first search over a prefix trie.}{26}{section*.29}\protected@file@percent }
 \newlabel{sec:methodology-canonical-audit}{{3.6}{26}{Terminal AST-equivalence audit}{section*.30}{}}
 \@writefile{toc}{\contentsline {paragraph}{Terminal AST-equivalence audit.}{26}{section*.30}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {3.7}Manual-refactor synthesiser}{26}{section.3.7}\protected@file@percent }
-\newlabel{sec:methodology-manualrefactor}{{3.7}{26}{Manual-refactor synthesiser}{section.3.7}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {3.7}Manual-refactor synthesiser}{27}{section.3.7}\protected@file@percent }
+\newlabel{sec:methodology-manualrefactor}{{3.7}{27}{Manual-refactor synthesiser}{section.3.7}{}}
 \@writefile{toc}{\contentsline {section}{\numberline {3.8}Rework synthesiser}{27}{section.3.8}\protected@file@percent }
 \newlabel{sec:methodology-reworksynth}{{3.8}{27}{Rework synthesiser}{section.3.8}{}}
 \@writefile{toc}{\contentsline {section}{\numberline {3.9}Hygiene synthesisers}{27}{section.3.9}\protected@file@percent }
@@ -320,99 +320,115 @@
 \newlabel{sec:arch-dashboard}{{4.8}{33}{Dashboard}{section.4.8}{}}
 \@writefile{lof}{\contentsline {figure}{\numberline {4.2}{\ignorespaces The dashboard hosted inside an IntelliJ JCEF window. The trajectory chart (centre) plots the user's process score over the session's $37$ checkpoints, with the synthesised alternative trajectory overlaid as a dashed comparison line and divergence-point flags marked along the path. The left rail lists each per-state cleanliness signal with its session-level sparkline; the right rail shows the per-checkpoint detail panel for the currently selected refactoring (a \texttt  {Rename Attribute}), including the divergence point it produced, the IDE-event annotation, and the diff of the underlying file. The bottom strip summarises the session's highest-impact takeaway (left) and the per-metric delta across the selected step (right).}}{34}{figure.caption.41}\protected@file@percent }
 \newlabel{fig:arch-dashboard}{{4.2}{34}{The dashboard hosted inside an IntelliJ JCEF window. The trajectory chart (centre) plots the user's process score over the session's $37$ checkpoints, with the synthesised alternative trajectory overlaid as a dashed comparison line and divergence-point flags marked along the path. The left rail lists each per-state cleanliness signal with its session-level sparkline; the right rail shows the per-checkpoint detail panel for the currently selected refactoring (a \texttt {Rename Attribute}), including the divergence point it produced, the IDE-event annotation, and the diff of the underlying file. The bottom strip summarises the session's highest-impact takeaway (left) and the per-metric delta across the selected step (right)}{figure.caption.41}{}}
-\citation{kendall1948rank}
-\citation{agresti2010ordinal}
-\citation{croux2010influence}
-\citation{webber2010rbo}
 \@writefile{toc}{\contentsline {chapter}{\numberline {5}Experiments and Results}{35}{chapter.5}\protected@file@percent }
 \@writefile{lof}{\addvspace {10\p@ }}
 \@writefile{lot}{\addvspace {10\p@ }}
 \newlabel{ch:results}{{5}{35}{Experiments and Results}{chapter.5}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {5.1}Sensitivity sweep}{35}{section.5.1}\protected@file@percent }
-\newlabel{sec:results-sensitivity}{{5.1}{35}{Sensitivity sweep}{section.5.1}{}}
-\@writefile{toc}{\contentsline {paragraph}{Design.}{35}{section*.42}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Distribution.}{36}{section*.43}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {5.1}{\ignorespaces Distribution of Kendall $\tau $-b across all $4{,}860$ single-knob perturbations. The top-$5$ hit rate is $1.0$ on every row, regardless of which $\tau $ band the row falls into.}}{36}{table.caption.44}\protected@file@percent }
-\newlabel{tab:results-sensitivity-tau}{{5.1}{36}{Distribution of Kendall $\tau $-b across all $4{,}860$ single-knob perturbations. The top-$5$ hit rate is $1.0$ on every row, regardless of which $\tau $ band the row falls into}{table.caption.44}{}}
-\@writefile{toc}{\contentsline {paragraph}{Sources of ranking instability.}{36}{section*.45}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {5.2}{\ignorespaces Knob-by-factor combinations with mean $\tau < 0.97$ across the $45$ fixtures, sorted ascending. All eight rows live at extreme factors ($\times 4$, $\times 10$, or $\times 0.1$); process-side knobs dominate, with one cleanliness-side knob each at the bottom of the table.}}{36}{table.caption.46}\protected@file@percent }
-\newlabel{tab:results-sensitivity-knobs}{{5.2}{36}{Knob-by-factor combinations with mean $\tau < 0.97$ across the $45$ fixtures, sorted ascending. All eight rows live at extreme factors ($\times 4$, $\times 10$, or $\times 0.1$); process-side knobs dominate, with one cleanliness-side knob each at the bottom of the table}{table.caption.46}{}}
-\@writefile{toc}{\contentsline {paragraph}{Saturation check.}{36}{section*.47}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Caveats.}{36}{section*.48}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{The 45-session injection set.}{35}{section*.42}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Reporting conventions.}{35}{section*.43}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {5.1}Testing the score formula}{35}{section.5.1}\protected@file@percent }
+\newlabel{sec:results-metric}{{5.1}{35}{Testing the score formula}{section.5.1}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.1.1}Sensitivity sweep}{35}{subsection.5.1.1}\protected@file@percent }
+\newlabel{sec:results-sensitivity}{{5.1.1}{35}{Sensitivity sweep}{subsection.5.1.1}{}}
+\citation{kendall1948rank}
+\citation{agresti2010ordinal}
+\citation{croux2010influence}
+\citation{webber2010rbo}
+\@writefile{toc}{\contentsline {paragraph}{Design.}{36}{section*.44}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Single-knob results.}{36}{section*.45}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {5.1}{\ignorespaces Single-knob sensitivity across three session sets. The user-study sessions is the cleanest benchmark: longest per-fixture rankings, zero saturated baseline divergence points. Top-$3$ and top-$5$ stability on the user-study sessions are $92.5\%$ and $97.8\%$ respectively; top-$5$ on the other two session sets is trivially $100\%$ because no fixture there has more than $5$ divergence points.}}{36}{table.caption.46}\protected@file@percent }
+\newlabel{tab:results-sensitivity-headline}{{5.1}{36}{Single-knob sensitivity across three session sets. The user-study sessions is the cleanest benchmark: longest per-fixture rankings, zero saturated baseline divergence points. Top-$3$ and top-$5$ stability on the user-study sessions are $92.5\%$ and $97.8\%$ respectively; top-$5$ on the other two session sets is trivially $100\%$ because no fixture there has more than $5$ divergence points}{table.caption.46}{}}
+\@writefile{toc}{\contentsline {paragraph}{Sources of ranking instability.}{36}{section*.47}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {5.2}{\ignorespaces Per-knob top-$1$ disruption counts on the user-study sessions. Cleanliness sub-weights never reshuffle the highest-magnitude divergence point in the sweep; the process-side weights account for every top-$1$ shift.}}{37}{table.caption.48}\protected@file@percent }
+\newlabel{tab:results-sensitivity-knobs}{{5.2}{37}{Per-knob top-$1$ disruption counts on the user-study sessions. Cleanliness sub-weights never reshuffle the highest-magnitude divergence point in the sweep; the process-side weights account for every top-$1$ shift}{table.caption.48}{}}
+\@writefile{toc}{\contentsline {paragraph}{Multi-knob Monte Carlo.}{37}{section*.49}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {5.3}{\ignorespaces Multi-knob Monte Carlo robustness across three session sets ($200$ samples per fixture, log-normal $\sigma = \ln 2$). The user-study sessions are the discriminating benchmark; the multi-knob top-$1$ stability is $\sim 18$ percentage points lower than the single-knob result on the same set.}}{37}{table.caption.50}\protected@file@percent }
+\newlabel{tab:results-sensitivity-mc}{{5.3}{37}{Multi-knob Monte Carlo robustness across three session sets ($200$ samples per fixture, log-normal $\sigma = \ln 2$). The user-study sessions are the discriminating benchmark; the multi-knob top-$1$ stability is $\sim 18$ percentage points lower than the single-knob result on the same set}{table.caption.50}{}}
+\@writefile{toc}{\contentsline {paragraph}{Saturation as a clipping confound.}{37}{section*.51}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Caveats and scope.}{37}{section*.52}\protected@file@percent }
 \citation{saisana2005composite}
 \citation{lundberg2017shap}
 \citation{strumbelj2014explaining}
-\@writefile{toc}{\contentsline {section}{\numberline {5.2}Ablation sweep}{37}{section.5.2}\protected@file@percent }
-\newlabel{sec:results-ablation}{{5.2}{37}{Ablation sweep}{section.5.2}{}}
-\@writefile{toc}{\contentsline {paragraph}{Design.}{37}{section*.49}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Sanity check.}{37}{section*.50}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Monotone by active-term count.}{37}{section*.51}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Per-term single-knob recovery.}{37}{section*.53}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {5.3}{\ignorespaces Mean $\tau $ and magnitude recovery grouped by how many of the six process-score terms are active in the variant. Both statistics rise monotonically with active-term count; sum/sum recovery at active\_count $= 0$ is exactly $0.000$.}}{38}{table.caption.52}\protected@file@percent }
-\newlabel{tab:results-ablation-monotone}{{5.3}{38}{Mean $\tau $ and magnitude recovery grouped by how many of the six process-score terms are active in the variant. Both statistics rise monotonically with active-term count; sum/sum recovery at active\_count $= 0$ is exactly $0.000$}{table.caption.52}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {5.4}{\ignorespaces Per-term single-knob recovery (each term active alone, the other five zeroed). The \texttt  {manualIde} / \texttt  {broken} / \texttt  {length} cluster recover roughly a third each; \texttt  {gain} alone recovers $0.000$ because $\Delta C \approx 0$ on most fixtures, so the term has nothing to multiply in isolation.}}{38}{table.caption.54}\protected@file@percent }
-\newlabel{tab:results-ablation-solo}{{5.4}{38}{Per-term single-knob recovery (each term active alone, the other five zeroed). The \texttt {manualIde} / \texttt {broken} / \texttt {length} cluster recover roughly a third each; \texttt {gain} alone recovers $0.000$ because $\Delta C \approx 0$ on most fixtures, so the term has nothing to multiply in isolation}{table.caption.54}{}}
-\@writefile{toc}{\contentsline {paragraph}{Per-term leave-one-out recovery.}{38}{section*.55}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {5.5}{\ignorespaces Per-term leave-one-out recovery (five terms active, one removed). Removing \texttt  {length} causes the largest sum/sum drop; removing \texttt  {gain} inflates sum/sum above $1.000$, indicating that \texttt  {gain} regularises against the penalty terms rather than acting as a positive contributor in isolation.}}{38}{table.caption.56}\protected@file@percent }
-\newlabel{tab:results-ablation-loo}{{5.5}{38}{Per-term leave-one-out recovery (five terms active, one removed). Removing \texttt {length} causes the largest sum/sum drop; removing \texttt {gain} inflates sum/sum above $1.000$, indicating that \texttt {gain} regularises against the penalty terms rather than acting as a positive contributor in isolation}{table.caption.56}{}}
-\@writefile{toc}{\contentsline {paragraph}{Caveats.}{38}{section*.57}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {5.3}Divergence experiment}{39}{section.5.3}\protected@file@percent }
-\newlabel{sec:results-divergence}{{5.3}{39}{Divergence experiment}{section.5.3}{}}
-\@writefile{toc}{\contentsline {paragraph}{Detection accuracy.}{39}{section*.58}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {5.6}{\ignorespaces Per-kind detection accuracy on the 45-session corpus. The ``injection'' recall column counts only the kind the playbook explicitly injected; ``any expected'' counts any kind the manifest labels include.}}{39}{table.caption.59}\protected@file@percent }
-\newlabel{tab:results-divergence-accuracy}{{5.6}{39}{Per-kind detection accuracy on the 45-session corpus. The ``injection'' recall column counts only the kind the playbook explicitly injected; ``any expected'' counts any kind the manifest labels include}{table.caption.59}{}}
-\@writefile{toc}{\contentsline {paragraph}{Detection quality.}{39}{section*.60}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {5.7}{\ignorespaces Per-kind detection quality. ``DPs'' is the number of divergence points the detector fires; ``alts enum.'' is the total number of alternatives enumerated across those DPs (a single ordering DP enumerates up to $k!$ permutations of a $k$-step window); ``beats user'' is the number of DPs whose best alt beats the user's trajectory.}}{40}{table.caption.61}\protected@file@percent }
-\newlabel{tab:results-divergence-quality}{{5.7}{40}{Per-kind detection quality. ``DPs'' is the number of divergence points the detector fires; ``alts enum.'' is the total number of alternatives enumerated across those DPs (a single ordering DP enumerates up to $k!$ permutations of a $k$-step window); ``beats user'' is the number of DPs whose best alt beats the user's trajectory}{table.caption.61}{}}
-\@writefile{toc}{\contentsline {paragraph}{Injection prominence.}{40}{section*.62}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {5.8}{\ignorespaces Injection prominence: when an injection's kind is caught, where does the corresponding divergence point sit in the session's per-magnitude ranking? Top-$1$ on every catch across all four kinds.}}{40}{table.caption.63}\protected@file@percent }
-\newlabel{tab:results-divergence-prominence}{{5.8}{40}{Injection prominence: when an injection's kind is caught, where does the corresponding divergence point sit in the session's per-magnitude ranking? Top-$1$ on every catch across all four kinds}{table.caption.63}{}}
-\@writefile{toc}{\contentsline {paragraph}{Step-anchor recall under strict matching.}{40}{section*.64}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {5.9}{\ignorespaces Step-anchor recall under strict matching: the fraction of catches whose divergence-point step index matches the manifest's \texttt  {target\_step}. The drop from the anywhere-in-session policy is the directly-measured cost of plugin checkpoint cadence drift.}}{40}{table.caption.65}\protected@file@percent }
-\newlabel{tab:results-divergence-stepanchor}{{5.9}{40}{Step-anchor recall under strict matching: the fraction of catches whose divergence-point step index matches the manifest's \texttt {target\_step}. The drop from the anywhere-in-session policy is the directly-measured cost of plugin checkpoint cadence drift}{table.caption.65}{}}
-\citation{cohen1960kappa}
-\citation{landis1977kappa}
-\@writefile{toc}{\contentsline {paragraph}{Baselines and absolute magnitudes.}{41}{section*.66}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {5.10}{\ignorespaces Absolute scales the divergence-point detector operates against. The cleanliness delta spans the full $[-100, +100]$ range; the detector's best alt averages $+7$ points of process-score improvement.}}{41}{table.caption.67}\protected@file@percent }
-\newlabel{tab:results-divergence-baselines}{{5.10}{41}{Absolute scales the divergence-point detector operates against. The cleanliness delta spans the full $[-100, +100]$ range; the detector's best alt averages $+7$ points of process-score improvement}{table.caption.67}{}}
-\@writefile{toc}{\contentsline {paragraph}{Caveats.}{41}{section*.68}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {5.4}User study}{41}{section.5.4}\protected@file@percent }
-\newlabel{sec:results-userstudy}{{5.4}{41}{User study}{section.5.4}{}}
-\@writefile{toc}{\contentsline {paragraph}{Inter-rater reliability.}{41}{section*.69}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {5.11}{\ignorespaces Per-kind Cohen's $\kappa $ on the 45-session corpus between the author and the two independent raters and between the two independent raters. Ordering and IDE-replay are perfect on every pair; rework and hygiene reach substantial-to-almost-perfect agreement on every pair under Landis and Koch's interpretation thresholds.}}{42}{table.caption.70}\protected@file@percent }
-\newlabel{tab:results-userstudy-kappa}{{5.11}{42}{Per-kind Cohen's $\kappa $ on the 45-session corpus between the author and the two independent raters and between the two independent raters. Ordering and IDE-replay are perfect on every pair; rework and hygiene reach substantial-to-almost-perfect agreement on every pair under Landis and Koch's interpretation thresholds}{table.caption.70}{}}
-\@writefile{toc}{\contentsline {paragraph}{Descriptive findings on the participant corpus.}{42}{section*.71}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {5.12}{\ignorespaces Per-session divergence-point counts across the 12-session participant corpus. Both participants registered $0$ divergence points on session S04 (the cross-class duplication consolidation prompt); the remaining sessions exercise all four kinds in proportions broadly consistent with the 45-session corpus.}}{42}{table.caption.72}\protected@file@percent }
-\newlabel{tab:results-userstudy-distribution}{{5.12}{42}{Per-session divergence-point counts across the 12-session participant corpus. Both participants registered $0$ divergence points on session S04 (the cross-class duplication consolidation prompt); the remaining sessions exercise all four kinds in proportions broadly consistent with the 45-session corpus}{table.caption.72}{}}
-\@writefile{toc}{\contentsline {paragraph}{Behavioural trajectory across the six-session arc.}{43}{section*.73}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {5.13}{\ignorespaces Per-kind divergence-point trajectory across the six-session arc, summed across both participants. IDE-replay and hygiene show a downward trajectory consistent with self-reported behavioural change; ordering and rework are episodic, firing on the sessions whose prompts inherently involve them.}}{43}{table.caption.74}\protected@file@percent }
-\newlabel{tab:results-userstudy-trajectory}{{5.13}{43}{Per-kind divergence-point trajectory across the six-session arc, summed across both participants. IDE-replay and hygiene show a downward trajectory consistent with self-reported behavioural change; ordering and rework are episodic, firing on the sessions whose prompts inherently involve them}{table.caption.74}{}}
-\newlabel{sec:results-userstudy-stepui}{{5.4}{44}{Per-step inspection as a usability win}{section*.75}{}}
-\@writefile{toc}{\contentsline {paragraph}{Per-step inspection as a usability win.}{44}{section*.75}\protected@file@percent }
-\newlabel{sec:results-userstudy-agent}{{5.4}{44}{Agent comparison}{section*.76}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {5.14}{\ignorespaces Per-kind divergence-point totals for the agent over six sessions on the user-study fixture, against the combined two-participant human total reported in Table~\ref {tab:results-userstudy-trajectory}.}}{44}{table.caption.77}\protected@file@percent }
-\newlabel{tab:results-userstudy-agent-distribution}{{5.14}{44}{Per-kind divergence-point totals for the agent over six sessions on the user-study fixture, against the combined two-participant human total reported in Table~\ref {tab:results-userstudy-trajectory}}{table.caption.77}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {5.15}{\ignorespaces Agent per-session divergence-point trajectory and final-checkpoint process scores, mirroring Table~\ref {tab:results-userstudy-trajectory} for the human cohort.}}{44}{table.caption.78}\protected@file@percent }
-\newlabel{tab:results-userstudy-agent-trajectory}{{5.15}{44}{Agent per-session divergence-point trajectory and final-checkpoint process scores, mirroring Table~\ref {tab:results-userstudy-trajectory} for the human cohort}{table.caption.78}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.1.2}Ablation sweep}{38}{subsection.5.1.2}\protected@file@percent }
+\newlabel{sec:results-ablation}{{5.1.2}{38}{Ablation sweep}{subsection.5.1.2}{}}
+\@writefile{toc}{\contentsline {paragraph}{Design.}{38}{section*.53}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Sanity check.}{38}{section*.54}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Monotone by active-term count.}{38}{section*.55}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Per-term single-knob recovery.}{38}{section*.57}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {5.4}{\ignorespaces Mean $\tau $ and magnitude recovery grouped by how many of the six process-score terms are active in the variant. Both statistics rise monotonically with active-term count; sum/sum recovery at active\_count $= 0$ is exactly $0.000$.}}{39}{table.caption.56}\protected@file@percent }
+\newlabel{tab:results-ablation-monotone}{{5.4}{39}{Mean $\tau $ and magnitude recovery grouped by how many of the six process-score terms are active in the variant. Both statistics rise monotonically with active-term count; sum/sum recovery at active\_count $= 0$ is exactly $0.000$}{table.caption.56}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {5.5}{\ignorespaces Per-term single-knob recovery (each term active alone, the other five zeroed). The \texttt  {manualIde} / \texttt  {broken} / \texttt  {length} cluster recover roughly a third each; \texttt  {gain} alone recovers $0.000$ because $\Delta C \approx 0$ on most fixtures, so the term has nothing to multiply in isolation.}}{39}{table.caption.58}\protected@file@percent }
+\newlabel{tab:results-ablation-solo}{{5.5}{39}{Per-term single-knob recovery (each term active alone, the other five zeroed). The \texttt {manualIde} / \texttt {broken} / \texttt {length} cluster recover roughly a third each; \texttt {gain} alone recovers $0.000$ because $\Delta C \approx 0$ on most fixtures, so the term has nothing to multiply in isolation}{table.caption.58}{}}
+\@writefile{toc}{\contentsline {paragraph}{Per-term leave-one-out recovery.}{39}{section*.59}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {5.6}{\ignorespaces Per-term leave-one-out recovery (five terms active, one removed). Removing \texttt  {length} causes the largest sum/sum drop; removing \texttt  {gain} inflates sum/sum above $1.000$, indicating that \texttt  {gain} regularises against the penalty terms rather than acting as a positive contributor in isolation.}}{39}{table.caption.60}\protected@file@percent }
+\newlabel{tab:results-ablation-loo}{{5.6}{39}{Per-term leave-one-out recovery (five terms active, one removed). Removing \texttt {length} causes the largest sum/sum drop; removing \texttt {gain} inflates sum/sum above $1.000$, indicating that \texttt {gain} regularises against the penalty terms rather than acting as a positive contributor in isolation}{table.caption.60}{}}
+\@writefile{toc}{\contentsline {paragraph}{Cross-set rerun on the user-study sessions.}{39}{section*.61}\protected@file@percent }
 \citation{mens2007graph}
 \citation{liu2009smell}
 \citation{khrishe2016empirical}
-\@writefile{toc}{\contentsline {section}{\numberline {5.5}Headline finding: reordering rarely helps on commuting windows}{45}{section.5.5}\protected@file@percent }
-\newlabel{sec:results-headline}{{5.5}{45}{Headline finding: reordering rarely helps on commuting windows}{section.5.5}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {5.6}Scoped-out fixes}{46}{section.5.6}\protected@file@percent }
-\newlabel{sec:results-scoped-out}{{5.6}{46}{Scoped-out fixes}{section.5.6}{}}
-\@writefile{toc}{\contentsline {chapter}{\numberline {6}Project Plan and Timetable (Jan--Jun 2026)}{48}{chapter.6}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {5.7}{\ignorespaces Leave-one-out ranking stability against the injection sessions (Table~\ref {tab:results-ablation-loo}) and the user-study sessions. The term-importance ordering inverts between the two session sets: $W_{\textsc  {cg}}$ is the dominant rank-carrier on the user-study sessions, $W_{\textsc  {mi}}$ and $W_{\textsc  {l}}$ on the injection sessions.}}{40}{table.caption.62}\protected@file@percent }
+\newlabel{tab:results-ablation-user-loo}{{5.7}{40}{Leave-one-out ranking stability against the injection sessions (Table~\ref {tab:results-ablation-loo}) and the user-study sessions. The term-importance ordering inverts between the two session sets: $W_{\textsc {cg}}$ is the dominant rank-carrier on the user-study sessions, $W_{\textsc {mi}}$ and $W_{\textsc {l}}$ on the injection sessions}{table.caption.62}{}}
+\@writefile{toc}{\contentsline {paragraph}{Caveats.}{40}{section*.63}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.1.3}Reordering rarely helps on commuting windows}{40}{subsection.5.1.3}\protected@file@percent }
+\newlabel{sec:results-headline}{{5.1.3}{40}{Reordering rarely helps on commuting windows}{subsection.5.1.3}{}}
+\citation{cohen1960kappa}
+\citation{landis1977kappa}
+\@writefile{toc}{\contentsline {section}{\numberline {5.2}Testing the divergence-point detector}{41}{section.5.2}\protected@file@percent }
+\newlabel{sec:results-detector}{{5.2}{41}{Testing the divergence-point detector}{section.5.2}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.2.1}Inter-rater reliability}{41}{subsection.5.2.1}\protected@file@percent }
+\newlabel{sec:results-kappa}{{5.2.1}{41}{Inter-rater reliability}{subsection.5.2.1}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {5.8}{\ignorespaces Per-kind Cohen's $\kappa $ on the 45-session set between the author and the two independent raters and between the two independent raters. Ordering and IDE-replay are perfect on every pair; rework and hygiene reach substantial-to-almost-perfect agreement on every pair under Landis and Koch's interpretation thresholds.}}{41}{table.caption.64}\protected@file@percent }
+\newlabel{tab:results-userstudy-kappa}{{5.8}{41}{Per-kind Cohen's $\kappa $ on the 45-session set between the author and the two independent raters and between the two independent raters. Ordering and IDE-replay are perfect on every pair; rework and hygiene reach substantial-to-almost-perfect agreement on every pair under Landis and Koch's interpretation thresholds}{table.caption.64}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.2.2}Divergence experiment}{42}{subsection.5.2.2}\protected@file@percent }
+\newlabel{sec:results-divergence}{{5.2.2}{42}{Divergence experiment}{subsection.5.2.2}{}}
+\@writefile{toc}{\contentsline {paragraph}{Detection accuracy.}{42}{section*.65}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {5.9}{\ignorespaces Per-kind detection accuracy on the 45-session set. The ``injection'' recall column counts only the kind the playbook explicitly injected; ``any expected'' counts any kind the manifest labels include.}}{42}{table.caption.66}\protected@file@percent }
+\newlabel{tab:results-divergence-accuracy}{{5.9}{42}{Per-kind detection accuracy on the 45-session set. The ``injection'' recall column counts only the kind the playbook explicitly injected; ``any expected'' counts any kind the manifest labels include}{table.caption.66}{}}
+\@writefile{toc}{\contentsline {paragraph}{Detection quality.}{42}{section*.67}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Injection prominence.}{42}{section*.69}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {5.10}{\ignorespaces Per-kind detection quality. ``DPs'' is the number of divergence points the detector fires; ``alts enum.'' is the total number of alternatives enumerated across those DPs (a single ordering DP enumerates up to $k!$ permutations of a $k$-step window); ``beats user'' is the number of DPs whose best alt beats the user's trajectory.}}{43}{table.caption.68}\protected@file@percent }
+\newlabel{tab:results-divergence-quality}{{5.10}{43}{Per-kind detection quality. ``DPs'' is the number of divergence points the detector fires; ``alts enum.'' is the total number of alternatives enumerated across those DPs (a single ordering DP enumerates up to $k!$ permutations of a $k$-step window); ``beats user'' is the number of DPs whose best alt beats the user's trajectory}{table.caption.68}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {5.11}{\ignorespaces Injection prominence: when an injection's kind is caught, where does the corresponding divergence point sit in the session's per-magnitude ranking? Top-$1$ on every catch across all four kinds.}}{43}{table.caption.70}\protected@file@percent }
+\newlabel{tab:results-divergence-prominence}{{5.11}{43}{Injection prominence: when an injection's kind is caught, where does the corresponding divergence point sit in the session's per-magnitude ranking? Top-$1$ on every catch across all four kinds}{table.caption.70}{}}
+\@writefile{toc}{\contentsline {paragraph}{Step-anchor recall under strict matching.}{43}{section*.71}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {5.12}{\ignorespaces Step-anchor recall under strict matching: the fraction of catches whose divergence-point step index matches the manifest's \texttt  {target\_step}. The drop from the anywhere-in-session policy is the directly-measured cost of plugin checkpoint cadence drift.}}{43}{table.caption.72}\protected@file@percent }
+\newlabel{tab:results-divergence-stepanchor}{{5.12}{43}{Step-anchor recall under strict matching: the fraction of catches whose divergence-point step index matches the manifest's \texttt {target\_step}. The drop from the anywhere-in-session policy is the directly-measured cost of plugin checkpoint cadence drift}{table.caption.72}{}}
+\@writefile{toc}{\contentsline {paragraph}{Baselines and absolute magnitudes.}{43}{section*.73}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {5.13}{\ignorespaces Absolute scales the divergence-point detector operates against. The cleanliness delta spans the full $[-100, +100]$ range; the detector's best alt averages $+7$ points of process-score improvement.}}{44}{table.caption.74}\protected@file@percent }
+\newlabel{tab:results-divergence-baselines}{{5.13}{44}{Absolute scales the divergence-point detector operates against. The cleanliness delta spans the full $[-100, +100]$ range; the detector's best alt averages $+7$ points of process-score improvement}{table.caption.74}{}}
+\@writefile{toc}{\contentsline {paragraph}{Caveats.}{44}{section*.75}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.2.3}Scoped-out fix: ordering recall}{44}{subsection.5.2.3}\protected@file@percent }
+\newlabel{sec:results-scoped-out}{{5.2.3}{44}{Scoped-out fix: ordering recall}{subsection.5.2.3}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {5.3}User and agent studies}{44}{section.5.3}\protected@file@percent }
+\newlabel{sec:results-studies}{{5.3}{44}{User and agent studies}{section.5.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.3.1}User study}{44}{subsection.5.3.1}\protected@file@percent }
+\newlabel{sec:results-userstudy}{{5.3.1}{44}{User study}{subsection.5.3.1}{}}
+\@writefile{toc}{\contentsline {paragraph}{Descriptive findings on the participants' sessions.}{45}{section*.76}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {5.14}{\ignorespaces Per-session divergence-point counts across the 12-session participants' sessions. Both participants registered $0$ divergence points on session S04 (the cross-class duplication consolidation prompt); the remaining sessions exercise all four kinds in proportions broadly consistent with the 45-session set.}}{45}{table.caption.77}\protected@file@percent }
+\newlabel{tab:results-userstudy-distribution}{{5.14}{45}{Per-session divergence-point counts across the 12-session participants' sessions. Both participants registered $0$ divergence points on session S04 (the cross-class duplication consolidation prompt); the remaining sessions exercise all four kinds in proportions broadly consistent with the 45-session set}{table.caption.77}{}}
+\@writefile{toc}{\contentsline {paragraph}{Behavioural trajectory across the six-session arc.}{45}{section*.78}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {5.15}{\ignorespaces Per-kind divergence-point trajectory across the six-session arc, summed across both participants. IDE-replay and hygiene show a downward trajectory consistent with self-reported behavioural change; ordering and rework are episodic, firing on the sessions whose prompts inherently involve them.}}{46}{table.caption.79}\protected@file@percent }
+\newlabel{tab:results-userstudy-trajectory}{{5.15}{46}{Per-kind divergence-point trajectory across the six-session arc, summed across both participants. IDE-replay and hygiene show a downward trajectory consistent with self-reported behavioural change; ordering and rework are episodic, firing on the sessions whose prompts inherently involve them}{table.caption.79}{}}
+\newlabel{sec:results-userstudy-stepui}{{5.3.1}{46}{Per-step inspection as a usability win}{section*.80}{}}
+\@writefile{toc}{\contentsline {paragraph}{Per-step inspection as a usability win.}{46}{section*.80}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.3.2}Agent comparison}{46}{subsection.5.3.2}\protected@file@percent }
+\newlabel{sec:results-userstudy-agent}{{5.3.2}{46}{Agent comparison}{subsection.5.3.2}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {5.16}{\ignorespaces Per-kind divergence-point totals for the agent over six sessions on the user-study fixture, against the combined two-participant human total reported in Table~\ref {tab:results-userstudy-trajectory}.}}{47}{table.caption.81}\protected@file@percent }
+\newlabel{tab:results-userstudy-agent-distribution}{{5.16}{47}{Per-kind divergence-point totals for the agent over six sessions on the user-study fixture, against the combined two-participant human total reported in Table~\ref {tab:results-userstudy-trajectory}}{table.caption.81}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {5.17}{\ignorespaces Agent per-session divergence-point trajectory and final-checkpoint process scores, mirroring Table~\ref {tab:results-userstudy-trajectory} for the human cohort.}}{47}{table.caption.82}\protected@file@percent }
+\newlabel{tab:results-userstudy-agent-trajectory}{{5.17}{47}{Agent per-session divergence-point trajectory and final-checkpoint process scores, mirroring Table~\ref {tab:results-userstudy-trajectory} for the human cohort}{table.caption.82}{}}
+\@writefile{toc}{\contentsline {chapter}{\numberline {6}Project Plan and Timetable (Jan--Jun 2026)}{49}{chapter.6}\protected@file@percent }
 \@writefile{lof}{\addvspace {10\p@ }}
 \@writefile{lot}{\addvspace {10\p@ }}
-\newlabel{ch:plan}{{6}{48}{Project Plan and Timetable (Jan--Jun 2026)}{chapter.6}{}}
-\@writefile{toc}{\contentsline {paragraph}{Work completed so far (as of 21 Jan 2026).}{48}{section*.79}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Timeline in 5 phases (Jan $\rightarrow $ end of June).}{48}{section*.80}\protected@file@percent }
-\@writefile{toc}{\contentsline {chapter}{\numberline {7}Ethical Issues and Data Handling Plan}{49}{chapter.7}\protected@file@percent }
+\newlabel{ch:plan}{{6}{49}{Project Plan and Timetable (Jan--Jun 2026)}{chapter.6}{}}
+\@writefile{toc}{\contentsline {paragraph}{Work completed so far (as of 21 Jan 2026).}{49}{section*.83}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Timeline in 5 phases (Jan $\rightarrow $ end of June).}{49}{section*.84}\protected@file@percent }
+\@writefile{toc}{\contentsline {chapter}{\numberline {7}Ethical Issues and Data Handling Plan}{50}{chapter.7}\protected@file@percent }
 \@writefile{lof}{\addvspace {10\p@ }}
 \@writefile{lot}{\addvspace {10\p@ }}
 \bibstyle{unsrt}
 \bibdata{bibs/sample}
-\@writefile{toc}{\contentsline {chapter}{\numberline {A}First Appendix}{50}{appendix.A}\protected@file@percent }
+\@writefile{toc}{\contentsline {chapter}{\numberline {A}First Appendix}{51}{appendix.A}\protected@file@percent }
 \@writefile{lof}{\addvspace {10\p@ }}
 \@writefile{lot}{\addvspace {10\p@ }}
 \bibcite{opdyke1992refactoring}{1}
@@ -482,4 +498,4 @@
 \bibcite{mens2007graph}{65}
 \bibcite{liu2009smell}{66}
 \bibcite{khrishe2016empirical}{67}
-\gdef \@abspage@last{56}
+\gdef \@abspage@last{57}

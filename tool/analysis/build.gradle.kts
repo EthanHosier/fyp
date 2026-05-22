@@ -188,6 +188,18 @@ tasks.register<JavaExec>("phaseB") {
     classpath = sourceSets["main"].runtimeClasspath
 }
 
+// Phase-2.2b multi-knob Monte Carlo: every weight is perturbed
+// simultaneously by a log-normal factor (sigma = ln 2). Used to bound
+// the formula's robustness under joint weight miscalibration, which
+// the single-knob :sensitivity sweep cannot speak to.
+tasks.register<JavaExec>("multiKnobMC") {
+    group = "verification"
+    description = "Run multi-knob log-normal Monte Carlo against a Phase-A corpus and emit a robustness CSV."
+    mainClass.set("com.github.ethanhosier.analysis.experiment.MultiKnobMonteCarloExperiment")
+    classpath = sourceSets["main"].runtimeClasspath
+    workingDir = rootProject.projectDir
+}
+
 // Phase-2.2 sensitivity sweep: perturbs each scoring weight by ×0.5 /
 // ×1.5 against a corpus of Phase-A dumps and emits a CSV of Kendall-τ +
 // top-5 hit-rate vs. the baseline ranking. Pure in-memory like phaseB —

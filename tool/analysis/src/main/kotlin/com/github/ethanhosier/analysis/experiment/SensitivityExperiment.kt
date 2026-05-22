@@ -86,7 +86,9 @@ object SensitivityExperiment {
     private val readJson = Json { ignoreUnknownKeys = true; isLenient = true }
 
     private const val HEADER =
-        "fixture,group,weight,factor,kendall_tau,top5_hit_rate,baseline_size,perturbed_size," +
+        "fixture,group,weight,factor,kendall_tau," +
+            "top1_hit_rate,top3_hit_rate,top5_hit_rate,top10_hit_rate," +
+            "baseline_size,perturbed_size," +
             "baseline_saturated_dp_count,perturbed_saturated_dp_count"
 
     // Data-driven sweep table: name + a (ScoringConfig, factor) ->
@@ -175,7 +177,10 @@ object SensitivityExperiment {
                 val perturbedReport = ReportAssembler.assemble(phaseA, perturbedCfg)
                 val perturbedRanking = ranking(perturbedReport)
                 val tau = RankingMetrics.kendallTauB(baselineRanking, perturbedRanking)
-                val hit = RankingMetrics.topNHitRate(baselineRanking, perturbedRanking, 5)
+                val hit1 = RankingMetrics.topNHitRate(baselineRanking, perturbedRanking, 1)
+                val hit3 = RankingMetrics.topNHitRate(baselineRanking, perturbedRanking, 3)
+                val hit5 = RankingMetrics.topNHitRate(baselineRanking, perturbedRanking, 5)
+                val hit10 = RankingMetrics.topNHitRate(baselineRanking, perturbedRanking, 10)
                 val perturbedSat = saturatedDpCount(perturbedReport)
                 out += listOf(
                     fixtureName,
@@ -183,7 +188,10 @@ object SensitivityExperiment {
                     knob.name,
                     String.format(Locale.US, "%.6f", factor),
                     String.format(Locale.US, "%.6f", tau),
-                    String.format(Locale.US, "%.6f", hit),
+                    String.format(Locale.US, "%.6f", hit1),
+                    String.format(Locale.US, "%.6f", hit3),
+                    String.format(Locale.US, "%.6f", hit5),
+                    String.format(Locale.US, "%.6f", hit10),
                     baselineRanking.size.toString(),
                     perturbedRanking.size.toString(),
                     baselineSat.toString(),

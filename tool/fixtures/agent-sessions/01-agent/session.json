@@ -293,6 +293,29 @@
             }
         },
         {
+            "id": "142874e6-236a-40a6-be7e-cc9c18badef5",
+            "type": "TEST_RUN_STARTED",
+            "timestamp": 1779394793878,
+            "sessionId": "ce69c999-4e44-4406-aebb-f41d3445c216",
+            "changedFiles": [],
+            "relatedFiles": [],
+            "payload": {
+                "suite": "[root]"
+            }
+        },
+        {
+            "id": "cbd256e2-f0f5-424f-8dbc-56db2e32beeb",
+            "type": "TEST_RUN_FINISHED",
+            "timestamp": 1779394795753,
+            "sessionId": "ce69c999-4e44-4406-aebb-f41d3445c216",
+            "changedFiles": [],
+            "relatedFiles": [],
+            "payload": {
+                "suite": "[root]",
+                "passed": "true"
+            }
+        },
+        {
             "id": "6fb2562c-f15e-44fa-b137-6079eb987343",
             "type": "GIT_COMMIT",
             "timestamp": 1779394802102,
@@ -303,7 +326,7 @@
                 "sha": "0268ccc535355038bcab4487506c343aa7ab608d",
                 "parentSha": "d08c49dec278d58533e7ee6220ad35612e4f3226",
                 "authorTimestamp": "1779394801000",
-                "message": "rename: doIt→addReservation, handle→notifyShipped, process→calculateShippingFee"
+                "message": "rename: doIt\u2192addReservation, handle\u2192notifyShipped, process\u2192calculateShippingFee"
             }
         },
         {

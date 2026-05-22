@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.10.5)  22 MAY 2026 17:21
+This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.10.5)  22 MAY 2026 19:16
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1338,7 +1338,7 @@ Chapter 1.
 
 [8{/usr/local/texlive/2025/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc
 }]
-<introduction/divergence_diagram.png, id=557, 754.82pt x 250.9375pt>
+<introduction/divergence_diagram.png, id=572, 754.82pt x 250.9375pt>
 File: introduction/divergence_diagram.png Graphic file (type png)
 <use introduction/divergence_diagram.png>
 Package pdftex.def Info: introduction/divergence_diagram.png  used on input lin
@@ -1411,17 +1411,17 @@ Overfull \hbox (19.87602pt too wide) in paragraph at lines 29--49
 [21]
 
 [22]
-Underfull \hbox (badness 1014) in paragraph at lines 129--129
+Underfull \hbox (badness 1014) in paragraph at lines 131--131
 []|\T1/cmr/m/n/9 Campbell 2018 [[]]; Muñoz Barón
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 130--131
+Underfull \hbox (badness 10000) in paragraph at lines 132--133
 []|\T1/cmr/m/n/9 CK li-brary, per-class
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 131--132
+Underfull \hbox (badness 10000) in paragraph at lines 133--134
 []|\T1/cmr/m/n/9 CPD-detected cloned
  []
 
@@ -1430,7 +1430,7 @@ Underfull \hbox (badness 10000) in paragraph at lines 131--132
 [23]
 
 [24]
-Overfull \hbox (31.9256pt too wide) in paragraph at lines 171--172
+Overfull \hbox (31.9256pt too wide) in paragraph at lines 173--174
 \T1/cmr/m/n/10 stants gate de-tec-tion: $[] \OT1/cmr/m/n/10 = 2$ \T1/cmr/m/n/10
  drops single-line RE-WORK noise; $[] \OT1/cmr/m/n/10 =
  []
@@ -1471,7 +1471,7 @@ ession\T1/cmr/m/n/10 , \T1/cmtt/m/n/10 TraceEvent\T1/cmr/m/n/10 , \T1/cmtt/m/n/
 [31]
 
 [32]
-<architecture/dashboard_image.png, id=1010, 1641.13126pt x 908.39375pt>
+<architecture/dashboard_image.png, id=1026, 1641.13126pt x 908.39375pt>
 File: architecture/dashboard_image.png Graphic file (type png)
 <use architecture/dashboard_image.png>
 Package pdftex.def Info: architecture/dashboard_image.png  used on input line 1
@@ -1484,27 +1484,6 @@ Package pdftex.def Info: architecture/dashboard_image.png  used on input line 1
 [34 <./architecture/dashboard_image.png>]
 Chapter 5.
 
-Overfull \hbox (46.36086pt too wide) in paragraph at lines 14--15
- []\T1/cmr/bx/n/10 Design.[] \T1/cmr/m/n/10 For each of the $\OT1/cmr/m/n/10 45
-$ \T1/cmr/m/n/10 cor-pus fix-tures, the ex-per-i-ment fixes ev-ery weight in \T
-1/cmtt/m/n/10 ScoringConfig.PRODUCTION
- []
-
-
-Overfull \hbox (14.17302pt too wide) in paragraph at lines 14--15
-\T1/cmr/m/n/10 ex-cept one, scales the cho-sen weight by one of nine fac-tors i
-n $\OMS/cmsy/m/n/10 f\OT1/cmr/m/n/10 0\OML/cmm/m/it/10 :\OT1/cmr/m/n/10 1\OML/c
-mm/m/it/10 ; \OT1/cmr/m/n/10 0\OML/cmm/m/it/10 :\OT1/cmr/m/n/10 25\OML/cmm/m/it
-/10 ; \OT1/cmr/m/n/10 0\OML/cmm/m/it/10 :\OT1/cmr/m/n/10 5\OML/cmm/m/it/10 ; \O
-T1/cmr/m/n/10 0\OML/cmm/m/it/10 :\OT1/cmr/m/n/10 75\OML/cmm/m/it/10 ; \OT1/cmr/
-m/n/10 1\OML/cmm/m/it/10 :\OT1/cmr/m/n/10 25\OML/cmm/m/it/10 ; \OT1/cmr/m/n/10 
-1\OML/cmm/m/it/10 :\OT1/cmr/m/n/10 5\OML/cmm/m/it/10 ; \OT1/cmr/m/n/10 2\OML/cm
-m/m/it/10 :\OT1/cmr/m/n/10 0\OML/cmm/m/it/10 ; \OT1/cmr/m/n/10 4\OML/cmm/m/it/1
-0 :\OT1/cmr/m/n/10 0\OML/cmm/m/it/10 ; \OT1/cmr/m/n/10 10\OML/cmm/m/it/10 :\OT1
-/cmr/m/n/10 0\OMS/cmsy/m/n/10 g$\T1/cmr/m/n/10 ,
- []
-
-
 
 [35
 
@@ -1515,6 +1494,31 @@ m/m/it/10 :\OT1/cmr/m/n/10 0\OML/cmm/m/it/10 ; \OT1/cmr/m/n/10 4\OML/cmm/m/it/1
 [37]
 
 [38]
+
+LaTeX Font Warning: Font shape `T1/cmr/m/scit' undefined
+(Font)              using `T1/cmr/m/scsl' instead on input line 190.
+
+
+LaTeX Font Warning: Font shape `T1/cmr/m/scit' undefined
+(Font)              using `T1/cmr/m/scsl' instead on input line 190.
+
+
+LaTeX Font Warning: Font shape `T1/cmr/m/scit' undefined
+(Font)              using `T1/cmr/m/scsl' instead on input line 190.
+
+
+LaTeX Font Warning: Font shape `T1/cmr/m/scit' undefined
+(Font)              using `T1/cmr/m/scsl' instead on input line 190.
+
+
+LaTeX Font Warning: Font shape `T1/cmr/m/scit' undefined
+(Font)              using `T1/cmr/m/scsl' instead on input line 190.
+
+
+LaTeX Font Warning: Font shape `T1/cmr/m/scit' undefined
+(Font)              using `T1/cmr/m/scsl' instead on input line 190.
+
+
 
 [39]
 
@@ -1528,11 +1532,13 @@ m/m/it/10 :\OT1/cmr/m/n/10 0\OML/cmm/m/it/10 ; \OT1/cmr/m/n/10 4\OML/cmm/m/it/1
 
 [44]
 
-[45]) (./project_plan/project_plan.tex
+[45]
 
-[46]
+[46]) (./project_plan/project_plan.tex
 
 [47]
+
+[48]
 Chapter 6.
 
 Overfull \hbox (43.10004pt too wide) in paragraph at lines 6--7
@@ -1542,31 +1548,31 @@ Overfull \hbox (43.10004pt too wide) in paragraph at lines 6--7
 
 ) (./ethics/ethics.tex
 
-[48
+[49
 
 ]
 Chapter 7.
 ) (./appendix/appendix.tex
 
-[49
+[50
 
 ]
 Appendix A.
 ) (./main_dark.bbl
 
-[50
-
-]
-
 [51
 
 ]
 
-[52]
+[52
 
-[53])
+]
 
-[54] (./main_dark.aux)
+[53]
+
+[54])
+
+[55] (./main_dark.aux)
  ***********
 LaTeX2e <2024-11-01> patch level 2
 L3 programming layer <2025-01-18>
@@ -1575,11 +1581,11 @@ Package rerunfilecheck Info: File `main_dark.out' has not changed.
 (rerunfilecheck)             Checksum: 9525FC8CF5F1FE7C745242CB8C5FFDE8;15533.
  ) 
 Here is how much of TeX's memory you used:
- 25181 strings out of 473190
- 475569 string characters out of 5715800
- 890289 words of memory out of 5000000
- 47674 multiletter control sequences out of 15000+600000
- 590336 words of font info for 94 fonts, out of 8000000 for 9000
+ 25200 strings out of 473190
+ 475824 string characters out of 5715800
+ 893098 words of memory out of 5000000
+ 47682 multiletter control sequences out of 15000+600000
+ 594186 words of font info for 100 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
  103i,13n,106p,1898b,847s stack positions out of 10000i,1000n,20000p,200000b,200000s
 </usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx9.pfb>
@@ -1616,16 +1622,16 @@ super/sfrm0800.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-su
 per/sfrm0900.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-supe
 r/sfrm1000.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/
 sfrm1200.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sf
-ti0900.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sfti
-1000.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sfti12
-00.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sftt0900
-.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sftt1000.p
-fb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sfxc0700.pfb
->
-Output written on main_dark.pdf (56 pages, 1377557 bytes).
+sc0600.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sfti
+0900.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sfti10
+00.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sfti1200
+.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sftt0900.p
+fb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sftt1000.pfb
+></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sfxc0700.pfb>
+Output written on main_dark.pdf (57 pages, 1401348 bytes).
 PDF statistics:
- 1447 PDF objects out of 1728 (max. 8388607)
- 1285 compressed objects within 13 object streams
- 280 named destinations out of 1000 (max. 500000)
+ 1481 PDF objects out of 1728 (max. 8388607)
+ 1314 compressed objects within 14 object streams
+ 285 named destinations out of 1000 (max. 500000)
  588 words of extra memory for PDF output out of 10000 (max. 10000000)
 
