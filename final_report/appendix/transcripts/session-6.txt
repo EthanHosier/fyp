@@ -1,0 +1,346 @@
+> @/Users/ethanhosier/Desktop/random/fyp/tool/fixtures/user-study-playbook/S06-reshape-and-cleanup.md    go
+|  Read ../user-study-playbook/S06-reshape-and-cleanup.md (61 lines)
+
+* Step 1 -- remove dead branch in PaymentProcessor.charge.
+
+Read 1 file (ctrl+o to expand)
+
+* Update(src/main/java/org/orders/PaymentProcessor.java)
+|  Removed 3 lines
+20          if (subtotalCents < 0) {
+21              throw new IllegalArgumentException("negative subtotal");
+22          }
+23 -        if (method == null && subtotalCents < 0) {
+24 -            return new Result(false, 0, "unreachable legacy guard");
+25 -        }
+23          switch (method) {
+24              case "CARD": {
+25                  long fee = (long) Math.round(subtotalCents * 0.029) + 30;
+
+* Bash(./agent-test && git add -A && git commit -m "remove unreachable guard in PaymentProcessor.charge")
+|  > Task :compileJava
+> Task :processResources NO-SOURCE
+> Task :classes
+... +9 lines (ctrl+o to expand)
+|  Allowed by auto mode classifier
+
+* Step 2 -- remove calculateDiscountLegacy.
+
+Read 1 file (ctrl+o to expand)
+
+* Update(src/main/java/org/orders/OrderService.java)
+|  Removed 9 lines
+152          }
+153      }
+154
+155 -    private long calculateDiscountLegacy(long subtotal) {
+156 -        if (subtotal > 50_000) {
+157 -            return (long) Math.round(subtotal * 0.05);
+158 -        }
+159 -        if (subtotal > 20_000) {
+160 -            return (long) Math.round(subtotal * 0.02);
+161 -        }
+162 -        return 0;
+163 -    }
+155  }
+
+* Bash(./agent-test && git add -A && git commit -m "remove unused calculateDiscountLegacy")
+|  > Task :compileJava
+> Task :processResources NO-SOURCE
+> Task :classes
+... +9 lines (ctrl+o to expand)
+|  Allowed by auto mode classifier
+
+* Step 3 -- extract validateRequest and computeGrandTotal. Reading current state.
+
+Read 1 file (ctrl+o to expand)
+
+* Update(src/main/java/org/orders/OrderService.java)
+|  Added 1 line, removed 23 lines
+49              throw new IllegalStateException("duplicate submission");
+50          }
+51
+52 -        if (req.cart == null || req.cart.isEmpty()) {
+53 -            throw new IllegalStateException("cart is empty");
+54 -        }
+55 -        for (LineItem li : req.cart.snapshot()) {
+56 -            if (li.getQty() <= 0) {
+57 -                throw new IllegalStateException("non-positive qty for sku " + li.getSku());
+58 -            }
+59 -            if (li.getUnitPriceCents() < 0) {
+60 -                throw new IllegalStateException("negative price for sku " + li.getSku());
+61 -            }
+62 -        }
+63 -        if (req.customerEmail == null || req.customerEmail.isBlank()) {
+64 -            throw new IllegalStateException("missing customer email");
+65 -        }
+66 -        if (req.shippingStreet == null || req.shippingStreet.isBlank()) {
+67 -            throw new IllegalStateException("missing shipping street");
+68 -        }
+69 -        if (req.shippingCity == null || req.shippingCity.isBlank()) {
+70 -            throw new IllegalStateException("missing shipping city");
+71 -        }
+72 -        if (req.shippingPostcode == null || req.shippingPostcode.isBlank()) {
+73 -            throw new IllegalStateException("missing shipping postcode");
+74 -        }
+52 +        validateRequest(req);
+53
+54          List<LineItem> items = req.cart.snapshot();
+55          boolean reserved = inventory.reserve(items);
+
+* Update(src/main/java/org/orders/OrderService.java)
+|  Added 1 line, removed 13 lines
+57              throw new IllegalStateException("insufficient stock");
+58          }
+59
+60 -        long subtotal = req.cart.subtotalCents();
+61 -        long shippingCents;
+62 -        if (req.cart.totalWeightGrams() < 500) {
+63 -            shippingCents = 299;
+64 -        } else if (req.cart.totalWeightGrams() < 2000) {
+65 -            shippingCents = 599;
+66 -        } else {
+67 -            shippingCents = 1299;
+68 -        }
+69 -        long shippingFromCalc = shipping.process(req.cart.totalWeightGrams(), req.shippingPostcode);
+70 -        long preTax = subtotal + shippingFromCalc;
+71 -        long tax = (long) Math.round(preTax * 0.2);
+72 -        long grandTotal = preTax + tax;
+60 +        long grandTotal = computeGrandTotal(req);
+61
+62          PaymentProcessor.Result result = payments.charge(grandTotal, req.paymentMethod);
+63          if (!result.success) {
+
+* Now add the two new private methods.
+
+* Update(src/main/java/org/orders/OrderService.java)
+|  Added 42 lines
+91          return order;
+92      }
+93
+94 +    private void validateRequest(CheckoutRequest req) {
+95 +        if (req.cart == null || req.cart.isEmpty()) {
+96 +            throw new IllegalStateException("cart is empty");
+97 +        }
+98 +        for (LineItem li : req.cart.snapshot()) {
+99 +            if (li.getQty() <= 0) {
+100 +                throw new IllegalStateException("non-positive qty for sku " + li.getSku());
+101 +            }
+102 +            if (li.getUnitPriceCents() < 0) {
+103 +                throw new IllegalStateException("negative price for sku " + li.getSku());
+104 +            }
+105 +        }
+106 +        if (req.customerEmail == null || req.customerEmail.isBlank()) {
+107 +            throw new IllegalStateException("missing customer email");
+108 +        }
+109 +        if (req.shippingStreet == null || req.shippingStreet.isBlank()) {
+110 +            throw new IllegalStateException("missing shipping street");
+111 +        }
+112 +        if (req.shippingCity == null || req.shippingCity.isBlank()) {
+113 +            throw new IllegalStateException("missing shipping city");
+114 +        }
+115 +        if (req.shippingPostcode == null || req.shippingPostcode.isBlank()) {
+116 +            throw new IllegalStateException("missing shipping postcode");
+117 +        }
+118 +    }
+119 +
+120 +    private long computeGrandTotal(CheckoutRequest req) {
+121 +        long subtotal = req.cart.subtotalCents();
+122 +        long shippingCents;
+123 +        if (req.cart.totalWeightGrams() < 500) {
+124 +            shippingCents = 299;
+125 +        } else if (req.cart.totalWeightGrams() < 2000) {
+126 +            shippingCents = 599;
+127 +        } else {
+128 +            shippingCents = 1299;
+129 +        }
+130 +        long shippingFromCalc = shipping.process(req.cart.totalWeightGrams(), req.shippingPostcode);
+131 +        long preTax = subtotal + shippingFromCalc;
+132 +        long tax = (long) Math.round(preTax * 0.2);
+133 +        return preTax + tax;
+134 +    }
+135 +
+136      private void validate(Cart cart, String customerEmail,
+137                            String shippingStreet, String shippingCity, String shippingPostcode) {
+138          if (cart == null || cart.isEmpty()) {
+
+* Bash(./agent-test && git add -A && git commit -m "extract validateRequest and computeGrandTotal from processOrder")
+|  > Task :compileJava
+> Task :processResources NO-SOURCE
+> Task :classes
+... +9 lines (ctrl+o to expand)
+|  Allowed by auto mode classifier
+
+* Step 4 -- extract buildAndNotify.
+
+Read 1 file (ctrl+o to expand)
+
+* Update(src/main/java/org/orders/OrderService.java)
+|  Added 1 line, removed 17 lines
+67
+68          inventory.commit(items);
+69
+70 -        String billingStreet = req.billingStreet != null ? req.billingStreet : req.shippingStreet;
+71 -        String billingCity = req.billingCity != null ? req.billingCity : req.shippingCity;
+72 -        String billingPostcode = req.billingPostcode != null ? req.billingPostcode : req.shippingPostcode;
+70 +        Order order = buildAndNotify(req, items, result);
+71
+74 -        Order order = new Order(
+75 -                UUID.randomUUID().toString(),
+76 -                req.customerEmail,
+77 -                req.customerName,
+78 -                req.shippingStreet, req.shippingCity, req.shippingPostcode,
+79 -                billingStreet, billingCity, billingPostcode,
+80 -                items,
+81 -                Instant.now()
+82 -        );
+83 -        order.setTotalCents(result.chargedCents);
+84 -        order.setStatus(OrderStatus.PAID);
+85 -
+86 -        notifier.notifyCustomer(order);
+87 -
+72          if (req.idempotencyKey != null) {
+73              submittedIds.add(req.idempotencyKey);
+74          }
+
+* Update(src/main/java/org/orders/OrderService.java)
+|  Added 21 lines
+75          return order;
+76      }
+77
+78 +    private Order buildAndNotify(CheckoutRequest req, List<LineItem> items, PaymentProcessor.Result result) {
+79 +        String billingStreet = req.billingStreet != null ? req.billingStreet : req.shippingStreet;
+80 +        String billingCity = req.billingCity != null ? req.billingCity : req.shippingCity;
+81 +        String billingPostcode = req.billingPostcode != null ? req.billingPostcode : req.shippingPostcode;
+82 +
+83 +        Order order = new Order(
+84 +                UUID.randomUUID().toString(),
+85 +                req.customerEmail,
+86 +                req.customerName,
+87 +                req.shippingStreet, req.shippingCity, req.shippingPostcode,
+88 +                billingStreet, billingCity, billingPostcode,
+89 +                items,
+90 +                Instant.now()
+91 +        );
+92 +        order.setTotalCents(result.chargedCents);
+93 +        order.setStatus(OrderStatus.PAID);
+94 +
+95 +        notifier.notifyCustomer(order);
+96 +        return order;
+97 +    }
+98 +
+99      private void validateRequest(CheckoutRequest req) {
+100          if (req.cart == null || req.cart.isEmpty()) {
+101              throw new IllegalStateException("cart is empty");
+
+* Bash(./agent-test && git add -A && git commit -m "extract buildAndNotify from processOrder")
+|  > Task :compileJava
+> Task :processResources NO-SOURCE
+> Task :classes
+... +9 lines (ctrl+o to expand)
+|  Allowed by auto mode classifier
+
+* S06 done. All four steps completed in separate commits, all tests green. processOrder is now a short sequence: idempotency check -> validate ->
+reserve -> compute total -> charge -> commit -> build & notify -> return. Returning control.
+
+* Sauteed for 1m 36s
+
+> >  tool git:(feat/user-study-fixture) x ./gradlew :analysis:feedbackForAgent \
+--args="--report /Users/ethanhosier/Desktop/random/fyp/tool/fixtures/agent-sessions/06-agent/analysis-report.json"
+Calculating task graph as no cached configuration is available for tasks: :analysis:feedbackForAgent --args=--report
+/Users/ethanhosier/Desktop/random/fyp/tool/fixtures/agent-sessions/06-agent/analysis-report.json
+
+> Task :analysis:feedbackForAgent
+# Session feedback
+
+Session id: `5135a8be-4ebe-4b23-9aae-ca94e6cc2ffa`. The refactoring-trajectory tool produced **2** divergence point(s) and **5** trajectory-wide
+advice item(s) for this session. Each entry below names what the tool saw and what the recommended alternative was. Read them and decide what to
+do differently in the next session.
+
+## Divergence points (sorted by magnitude, highest first)
+
+### 1. IDE_REPLAY (the IDE could have done this refactoring for you) -- magnitude 9 (step 0)
+
+**Extract Method: IDE replay would have scored +9.0**
+
+You performed Extract Method manually across 2 steps; the IDE-driven equivalent would have reached trajectory-final process score 48 vs your 39 --
+a +9.0 gap.
+
+- Replaced refactoring: `ExtractMethod`
+
+### 2. IDE_REPLAY (the IDE could have done this refactoring for you) -- magnitude 9 (step 2)
+
+**Extract Method: IDE replay would have scored +9.0**
+
+You performed Extract Method manually across 1 step; the IDE-driven equivalent would have reached trajectory-final process score 48 vs your 39 -- a
++9.0 gap.
+
+- Replaced refactoring: `ExtractMethod`
+
+## Trajectory advice
+
+### 1. BUILD_OFTEN_BROKEN -- critical
+
+**You broke the build often**
+
+You broke the build on 3/8 checkpoints (37%). Frequent breakage masks the source of new failures and forces you to debug stale code alongside new
+code.
+
+### 2. LONG_STRETCH_WITHOUT_COMMIT -- info
+
+**Long stretch without committing**
+
+Your longest run without a commit was 8 checkpoints. Smaller, more frequent commits give you restore points and keep PR diffs reviewable.
+
+### 3. REFACTORING_INTRODUCED_SMELLS -- warning
+
+**Refactorings introduced new smells**
+
+2 refactorings you applied introduced new smells. Refactoring should leave things cleaner than it found them -- check whether you extracted a
+method that's now too long, or moved code without splitting it.
+
+### 4. PROCESS_SCORE_DEGRADED -- warning
+
+**Long stretch without committing**
+
+Your longest run without a commit was 8 checkpoints. Smaller, more frequent commits give you restore points and keep PR diffs reviewable.
+
+### 3. REFACTORING_INTRODUCED_SMELLS -- warning
+
+**Refactorings introduced new smells**
+
+2 refactorings you applied introduced new smells. Refactoring should leave things cleaner than it found them -- check whether you extracted a
+method that's now too long, or moved code without splitting it.
+
+### 4. PROCESS_SCORE_DEGRADED -- warning
+
+**Process score fell over the session**
+
+Your process score fell from 50 to 39 (-11 points). Your end-of-session state is worse than your start -- look at the chart for where the drop
+happened.
+
+### 5. REORDER_BEATS_USER -- info
+
+**A different ordering of your steps would have scored higher**
+
+Doing your same refactoring steps in a different order would have scored 14 points higher on process score. Toggle the alternative-trajectory
+layer on the chart to see which ordering won.
+
+* Noted. S06 ended with the worst feedback so far -- process score 50->39, build broken on 3/8 checkpoints (likely from the multi-edit extract that
+left the file in a broken state between the inline replacement and adding the new private method), and reorder hint suggests step 4
+(buildAndNotify) probably should have come before the bigger validateRequest/computeGrandTotal extraction.
+
+Takeaways for future:
+- For an Extract Method, do it as a single atomic edit (insert new method first, then replace call site) so the build never breaks mid-step.
+- The IDE-replay flags persist -- manual extracts consistently underperform the IntelliJ refactoring; in a real run I'd use the Extract Method
+  action.
+- Consider extraction order: pull the smaller, leaf-like blocks out first before the larger ones.
+
+Study complete -- six sessions done.
+
+* Churned for 7s
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------
+> save a memory of what worked across sessions
+-----------------------------------------------------------------------------------------------------------------------------------------------------
+?? auto mode on (shift+tab to cycle) . <- for agents

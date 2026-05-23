@@ -1,6 +1,35 @@
 \appendix
 
-\chapter{Agent session transcript}
+\chapter{Appendix}
+\label{ch:appendix}
+
+\section{Agent session transcript}
 \label{app:agent-transcript}
 
-The complete session-by-session transcript of the six-session agent run reported in \S\ref{sec:results-userstudy-agent} is included here verbatim. Each session shows the agent's tool calls, intermediate output, the markdown feedback rendered by \texttt{FeedbackForAgent} at session end, and the agent's reflective response before the next session began. The transcript is the source for every quoted passage in \S\ref{sec:results-userstudy-agent}.
+The complete session-by-session transcript of the six-session agent run reported in \S\ref{sec:results-userstudy-agent} is reproduced here. Each session shows the agent's tool calls and intermediate output, the markdown feedback rendered by \texttt{FeedbackForAgent} at session end (pasted back into the conversation by the orchestrator), and the agent's reflective response before the next session began. The transcript is the source for every quoted passage in \S\ref{sec:results-userstudy-agent}.
+
+The transcript was captured from the live terminal session; box-drawing characters and other non-ASCII glyphs emitted by the Claude Code CLI have been transliterated to ASCII so that the output renders in this document. Apart from that transliteration the content is verbatim.
+
+\subsection{Session 1 --- Names}
+\label{app:agent-transcript:s1}
+\lstinputlisting[style=transcript]{appendix/transcripts/session-1.txt}
+
+\subsection{Session 2 --- Magic numbers}
+\label{app:agent-transcript:s2}
+\lstinputlisting[style=transcript]{appendix/transcripts/session-2.txt}
+
+\subsection{Session 3 --- Within-class duplication}
+\label{app:agent-transcript:s3}
+\lstinputlisting[style=transcript]{appendix/transcripts/session-3.txt}
+
+\subsection{Session 4 --- Cross-class duplication}
+\label{app:agent-transcript:s4}
+\lstinputlisting[style=transcript]{appendix/transcripts/session-4.txt}
+
+\subsection{Session 5 --- Misplaced behaviour}
+\label{app:agent-transcript:s5}
+\lstinputlisting[style=transcript]{appendix/transcripts/session-5.txt}
+
+\subsection{Session 6 --- Reshape and cleanup}
+\label{app:agent-transcript:s6}
+\lstinputlisting[style=transcript]{appendix/transcripts/session-6.txt}

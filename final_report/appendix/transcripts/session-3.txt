@@ -1,0 +1,225 @@
+> @/Users/ethanhosier/Desktop/random/fyp/tool/fixtures/user-study-playbook/S03-within-class-duplication.md pls go
+|  Read ../user-study-playbook/S03-within-class-duplication.md (39 lines)
+
+Read 1 file (ctrl+o to expand)
+
+* Step 1 -- extract formatAddress helper.
+
+* Update(src/main/java/org/orders/Order.java)
+|  Added 8 lines, removed 8 lines
+60      public void setTotalCents(long totalCents) { this.totalCents = totalCents; }
+61
+62      public String getShippingLabel() {
+63 -        StringBuilder sb = new StringBuilder();
+64 -        sb.append(customerName).append("\n");
+65 -        sb.append(shippingStreet).append("\n");
+66 -        sb.append(shippingCity).append(" ").append(shippingPostcode);
+67 -        return sb.toString();
+63 +        return formatAddress(customerName, shippingStreet, shippingCity, shippingPostcode);
+64      }
+65
+66      public String getBillingLabel() {
+67 +        return formatAddress(customerName, billingStreet, billingCity, billingPostcode);
+68 +    }
+69 +
+70 +    private static String formatAddress(String name, String street, String city, String postcode) {
+71          StringBuilder sb = new StringBuilder();
+72 -        sb.append(customerName).append("\n");
+73 -        sb.append(billingStreet).append("\n");
+74 -        sb.append(billingCity).append(" ").append(billingPostcode);
+72 +        sb.append(name).append("\n");
+73 +        sb.append(street).append("\n");
+74 +        sb.append(city).append(" ").append(postcode);
+75          return sb.toString();
+76      }
+77
+
+* Bash(./agent-test && git add -A && git commit -m "extract formatAddress helper in Order")
+|  > Task :compileJava
+> Task :processResources NO-SOURCE
+> Task :classes
+... +9 lines (ctrl+o to expand)
+|  Allowed by auto mode classifier
+
+Read 1 file (ctrl+o to expand)
+
+* Step 2 -- extract charge branches.
+
+* Update(src/main/java/org/orders/PaymentProcessor.java)
+|  Added 27 lines, removed 18 lines
+24              return new Result(false, 0, "unreachable legacy guard");
+25          }
+26          switch (method) {
+27 -            case "CARD": {
+28 -                long fee = (long) Math.round(subtotalCents * 0.029) + 30;
+29 -                long charged = subtotalCents + fee;
+30 -                if (charged > 10_000_000) {
+31 -                    return new Result(false, 0, "card limit exceeded");
+32 -                }
+33 -                return new Result(true, charged, "card charged");
+34 -            }
+35 -            case "CASH": {
+36 -                long charged = subtotalCents;
+37 -                return new Result(true, charged, "cash collected");
+38 -            }
+39 -            case "VOUCHER": {
+40 -                if (subtotalCents > 50_000) {
+41 -                    return new Result(false, 0, "voucher cap exceeded");
+42 -                }
+43 -                return new Result(true, 0, "voucher applied");
+44 -            }
+27 +            case "CARD":
+28 +                return chargeCard(subtotalCents);
+29 +            case "CASH":
+30 +                return chargeCash(subtotalCents);
+31 +            case "VOUCHER":
+32 +                return chargeVoucher(subtotalCents);
+33              default:
+34                  throw new IllegalArgumentException("unknown payment method: " + method);
+35          }
+36      }
+37
+38 +    private Result chargeCard(long subtotalCents) {
+39 +        long fee = (long) Math.round(subtotalCents * 0.029) + 30;
+40 +        long charged = subtotalCents + fee;
+41 +        if (charged > 10_000_000) {
+42 +            return new Result(false, 0, "card limit exceeded");
+43 +        }
+44 +        return new Result(true, charged, "card charged");
+45 +    }
+46 +
+47 +    private Result chargeCash(long subtotalCents) {
+48 +        long charged = subtotalCents;
+49 +        return new Result(true, charged, "cash collected");
+50 +    }
+51 +
+52 +    private Result chargeVoucher(long subtotalCents) {
+53 +        if (subtotalCents > 50_000) {
+54 +            return new Result(false, 0, "voucher cap exceeded");
+55 +        }
+56 +        return new Result(true, 0, "voucher applied");
+57 +    }
+58 +
+59      public Result refund(long amountCents, String method) {
+60          if (method == null) {
+61              throw new IllegalArgumentException("method is null");
+
+* Bash(./agent-test && git add -A && git commit -m "extract chargeCard/chargeCash/chargeVoucher in PaymentProcessor")
+|  > Task :compileJava
+> Task :processResources NO-SOURCE
+> Task :classes
+... +9 lines (ctrl+o to expand)
+|  Allowed by auto mode classifier
+
+* Step 3 -- extract refund branches.
+
+* Update(src/main/java/org/orders/PaymentProcessor.java)
+|  Added 15 lines, removed 3 lines
+65          }
+66          switch (method) {
+67              case "CARD":
+68 -                return new Result(true, amountCents, "card refunded");
+68 +                return refundCard(amountCents);
+69              case "CASH":
+70 -                return new Result(true, amountCents, "cash refunded");
+70 +                return refundCash(amountCents);
+71              case "VOUCHER":
+72 -                return new Result(true, 0, "voucher refund n/a");
+72 +                return refundVoucher(amountCents);
+73              default:
+74                  throw new IllegalArgumentException("unknown payment method: " + method);
+75          }
+76      }
+77 +
+78 +    private Result refundCard(long amountCents) {
+79 +        return new Result(true, amountCents, "card refunded");
+80 +    }
+81 +
+82 +    private Result refundCash(long amountCents) {
+83 +        return new Result(true, amountCents, "cash refunded");
+84 +    }
+85 +
+86 +    private Result refundVoucher(long amountCents) {
+87 +        return new Result(true, 0, "voucher refund n/a");
+88 +    }
+89  }
+
+* Bash(./agent-test && git add -A && git commit -m "extract refundCard/refundCash/refundVoucher in PaymentProcessor")
+|  > Task :compileJava
+> Task :processResources NO-SOURCE
+> Task :classes
+... +9 lines (ctrl+o to expand)
+|  Allowed by auto mode classifier
+
+* S03 done. Three steps, three commits, all tests green. Returning control.
+
+* Baked for 55s
+
+> Calculating task graph as no cached configuration is available for tasks: :analysis:feedbackForAgent --args=--report
+/Users/ethanhosier/Desktop/random/fyp/tool/fixtures/agent-sessions/03-agent/analysis-report.json
+
+> Task :analysis:feedbackForAgent
+# Session feedback
+
+Session id: `248a9f54-351d-4ab2-90dc-9b314ebce9c2`. The refactoring-trajectory tool produced **3** divergence point(s) and **2** trajectory-wide
+advice item(s) for this session. Each entry below names what the tool saw and what the recommended alternative was. Read them and decide what to
+do differently in the next session.
+
+## Divergence points (sorted by magnitude, highest first)
+
+### 1. IDE_REPLAY (the IDE could have done this refactoring for you) -- magnitude 1 (step 10)
+
+**Extract Method: IDE replay would have scored +1.0**
+
+You performed Extract Method manually across 3 steps; the IDE-driven equivalent would have reached trajectory-final process score 31 vs your 30 --
+a +1.0 gap.
+
+- Replaced refactoring: `ExtractMethod`
+
+### 2. IDE_REPLAY (the IDE could have done this refactoring for you) -- magnitude 0 (step 13)
+
+**Extract Method: IDE replay would have scored +0.0**
+
+You performed Extract Method manually across 1 step; the IDE-driven equivalent would have reached trajectory-final process score 30 vs your 30 -- a
++0.0 gap.
+
+- Replaced refactoring: `ExtractMethod`
+
+### 3. IDE_REPLAY (the IDE could have done this refactoring for you) -- magnitude -6 (step 0)
+
+**Extract Method: IDE replay would have scored -6.0**
+
+You performed Extract Method manually across 2 steps; the IDE-driven equivalent would have reached trajectory-final process score 24 vs your 30 --
+a -6.0 gap.
+
+- Replaced refactoring: `ExtractMethod`
+
+## Trajectory advice
+
+### 1. REFACTORING_INTRODUCED_SMELLS -- warning
+
+**Refactorings introduced new smells**
+
+3 refactorings you applied introduced new smells. Refactoring should leave things cleaner than it found them -- check whether you extracted a
+method that's now too long, or moved code without splitting it.
+
+### 2. PROCESS_SCORE_DEGRADED -- critical
+
+**Process score fell over the session**
+
+Your process score fell from 50 to 30 (-20 points). Your end-of-session state is worse than your start -- look at the chart for where the drop
+happened.
+
+* Noted. Key takeaway: my extractions introduced new smells and dropped the process score 50->30. Likely culprits:
+
+- chargeCard still has nested logic that's smelly -- could split out the fee calculation.
+- Methods like chargeCash/refundVoucher are arguably trivial wrappers that didn't earn their keep.
+- Could have made formatAddress cleaner (e.g., String.format or String.join instead of preserving the StringBuilder pattern verbatim).
+
+For S04 I'll: keep extractions tight and meaningful, avoid trivial wrappers when the original was already a one-liner, and consider whether each
+extraction actually reduces a smell rather than just shuffling code.
+
+Ready for S04.
+
+* Cooked for 6s
+

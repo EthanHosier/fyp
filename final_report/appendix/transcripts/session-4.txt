@@ -1,0 +1,111 @@
+> @/Users/ethanhosier/Desktop/random/fyp/tool/fixtures/user-study-playbook/S04-cross-class-duplication.md  go
+|  Read ../user-study-playbook/S04-cross-class-duplication.md (47 lines)
+
+Read 1 file (ctrl+o to expand)
+
+* Update(src/main/java/org/orders/OrderService.java)
+|  Added 1 line, removed 23 lines
+49              throw new IllegalStateException("duplicate submission");
+50          }
+51
+52 -        if (req.cart == null || req.cart.isEmpty()) {
+53 -            throw new IllegalStateException("cart is empty");
+54 -        }
+55 -        for (LineItem li : req.cart.snapshot()) {
+56 -            if (li.getQty() <= 0) {
+57 -                throw new IllegalStateException("non-positive qty for sku " + li.getSku());
+58 -            }
+59 -            if (li.getUnitPriceCents() < 0) {
+60 -                throw new IllegalStateException("negative price for sku " + li.getSku());
+61 -            }
+62 -        }
+63 -        if (req.customerEmail == null || req.customerEmail.isBlank()) {
+64 -            throw new IllegalStateException("missing customer email");
+65 -        }
+66 -        if (req.shippingStreet == null || req.shippingStreet.isBlank()) {
+67 -            throw new IllegalStateException("missing shipping street");
+68 -        }
+69 -        if (req.shippingCity == null || req.shippingCity.isBlank()) {
+70 -            throw new IllegalStateException("missing shipping city");
+71 -        }
+72 -        if (req.shippingPostcode == null || req.shippingPostcode.isBlank()) {
+73 -            throw new IllegalStateException("missing shipping postcode");
+74 -        }
+52 +        validator.validate(req.cart, req.customerEmail, req.shippingStreet, req.shippingCity, req.shippingPostcode);
+53
+54          List<LineItem> items = req.cart.snapshot();
+55          boolean reserved = inventory.reserve(items);
+
+* Bash(./agent-test && git add -A && git commit -m "replace inline validation with OrderValidator call in processOrder")
+|  > Task :compileJava
+> Task :processResources NO-SOURCE
+> Task :classes
+... +9 lines (ctrl+o to expand)
+|  Allowed by auto mode classifier
+
+* Step 2 -- delete unused private validate.
+
+* Update(src/main/java/org/orders/OrderService.java)
+|  Removed 27 lines
+103          return order;
+104      }
+105
+106 -    private void validate(Cart cart, String customerEmail,
+107 -                          String shippingStreet, String shippingCity, String shippingPostcode) {
+108 -        if (cart == null || cart.isEmpty()) {
+109 -            throw new IllegalStateException("cart is empty");
+110 -        }
+111 -        for (LineItem li : cart.snapshot()) {
+112 -            if (li.getQty() <= 0) {
+113 -                throw new IllegalStateException("non-positive qty for sku " + li.getSku());
+114 -            }
+115 -            if (li.getUnitPriceCents() < 0) {
+116 -                throw new IllegalStateException("negative price for sku " + li.getSku());
+117 -            }
+118 -        }
+119 -        if (customerEmail == null || customerEmail.isBlank()) {
+120 -            throw new IllegalStateException("missing customer email");
+121 -        }
+122 -        if (shippingStreet == null || shippingStreet.isBlank()) {
+123 -            throw new IllegalStateException("missing shipping street");
+124 -        }
+125 -        if (shippingCity == null || shippingCity.isBlank()) {
+126 -            throw new IllegalStateException("missing shipping city");
+127 -        }
+128 -        if (shippingPostcode == null || shippingPostcode.isBlank()) {
+129 -            throw new IllegalStateException("missing shipping postcode");
+130 -        }
+131 -    }
+132 -
+106      private long calculateDiscountLegacy(long subtotal) {
+107          if (subtotal > 50_000) {
+108              return (long) Math.round(subtotal * 0.05);
+
+* Bash(./agent-test && git add -A && git commit -m "remove unused private OrderService.validate")
+|  > Task :compileJava
+> Task :processResources NO-SOURCE
+> Task :classes
+... +9 lines (ctrl+o to expand)
+|  Allowed by auto mode classifier
+
+* S04 done. Inline validation replaced with delegation, unused method removed, two commits, all tests green. Returning control.
+
+* Cooked for 33s
+
+>  --args="--report /Users/ethanhosier/Desktop/random/fyp/tool/fixtures/agent-sessions/04-agent/analysis-report.json"
+Calculating task graph as no cached configuration is available for tasks: :analysis:feedbackForAgent --args=--report
+/Users/ethanhosier/Desktop/random/fyp/tool/fixtures/agent-sessions/04-agent/analysis-report.json
+
+> Task :analysis:feedbackForAgent
+# Session feedback
+
+Session id: `1dbb5a19-38f3-44c2-8359-030f7b78f290`. The refactoring-trajectory tool produced **0** divergence point(s) and **0** trajectory-wide
+advice item(s) for this session. Each entry below names what the tool saw and what the recommended alternative was. Read them and decide what to
+do differently in the next session.
+
+_No divergence points or advice fired._
+
+* Clean session -- zero divergences, zero advice. Ready for S05.
+
+* Cogitated for 1s
+

@@ -1,0 +1,153 @@
+> @/Users/ethanhosier/Desktop/random/fyp/tool/fixtures/user-study-playbook/S05-misplaced-behaviour.md go
+|  Read ../user-study-playbook/S05-misplaced-behaviour.md (36 lines)
+
+Read 2 files (ctrl+o to expand)
+
+* Step 1 -- add Order.confirmationMessage().
+
+* Update(src/main/java/org/orders/Order.java)
+|  Added 21 lines
+75          return sb.toString();
+76      }
+77
+78 +    public String confirmationMessage() {
+79 +        StringBuilder sb = new StringBuilder();
+80 +        sb.append("To: ").append(customerEmail).append("\n");
+81 +        sb.append("Hi ").append(customerName).append(",\n");
+82 +        sb.append("Your order ").append(id).append(" is confirmed.\n");
+83 +        sb.append("Items:\n");
+84 +        long subtotal = 0;
+85 +        for (LineItem li : items) {
+86 +            sb.append(" - ").append(li.getSku())
+87 +              .append(" x ").append(li.getQty())
+88 +              .append(" @ ").append(li.getUnitPriceCents()).append("c\n");
+89 +            subtotal += li.lineTotalCents();
+90 +        }
+91 +        sb.append("Subtotal: ").append(subtotal).append("c\n");
+92 +        sb.append("Total charged: ").append(totalCents).append("c\n");
+93 +        sb.append("Shipping to: ").append(shippingStreet)
+94 +          .append(", ").append(shippingCity)
+95 +          .append(" ").append(shippingPostcode).append("\n");
+96 +        return sb.toString();
+97 +    }
+98 +
+99      public int totalWeightGrams() {
+100          int total = 0;
+101          for (LineItem item : items) {
+
+* Update(src/main/java/org/orders/Notifier.java)
+|  Added 2 lines, removed 18 lines
+8      private final List<String> sent = new ArrayList<>();
+9
+10      public void notifyCustomer(Order order) {
+11 -        StringBuilder sb = new StringBuilder();
+12 -        sb.append("To: ").append(order.getCustomerEmail()).append("\n");
+13 -        sb.append("Hi ").append(order.getCustomerName()).append(",\n");
+14 -        sb.append("Your order ").append(order.getId()).append(" is confirmed.\n");
+15 -        sb.append("Items:\n");
+16 -        long subtotal = 0;
+17 -        for (LineItem li : order.getItems()) {
+18 -            sb.append(" - ").append(li.getSku())
+19 -              .append(" x ").append(li.getQty())
+20 -              .append(" @ ").append(li.getUnitPriceCents()).append("c\n");
+21 -            subtotal += li.lineTotalCents();
+22 -        }
+23 -        sb.append("Subtotal: ").append(subtotal).append("c\n");
+24 -        sb.append("Total charged: ").append(order.getTotalCents()).append("c\n");
+25 -        sb.append("Shipping to: ").append(order.getShippingStreet())
+26 -          .append(", ").append(order.getShippingCity())
+27 -          .append(" ").append(order.getShippingPostcode()).append("\n");
+28 -        sent.add(sb.toString());
+11 +        String message = order.confirmationMessage();
+12 +        sent.add(message);
+13      }
+14
+15      public void handle(Order order) {
+
+* Bash(./agent-test && git add -A && git commit -m "move confirmation message building from Notifier to Order")
+|  > Task :compileJava
+> Task :processResources NO-SOURCE
+> Task :classes
+... +9 lines (ctrl+o to expand)
+|  Allowed by auto mode classifier
+
+* Step 3 -- shipmentMessage.
+
+* Update(src/main/java/org/orders/Order.java)
+|  Added 7 lines
+96          return sb.toString();
+97      }
+98
+99 +    public String shipmentMessage() {
+100 +        StringBuilder sb = new StringBuilder();
+101 +        sb.append("To: ").append(customerEmail).append("\n");
+102 +        sb.append("Order ").append(id).append(" has shipped.\n");
+103 +        return sb.toString();
+104 +    }
+105 +
+106      public int totalWeightGrams() {
+107          int total = 0;
+108          for (LineItem item : items) {
+
+* Update(src/main/java/org/orders/Notifier.java)
+|  Added 2 lines, removed 4 lines
+13      }
+14
+15      public void handle(Order order) {
+16 -        StringBuilder sb = new StringBuilder();
+17 -        sb.append("To: ").append(order.getCustomerEmail()).append("\n");
+18 -        sb.append("Order ").append(order.getId()).append(" has shipped.\n");
+19 -        sent.add(sb.toString());
+16 +        String message = order.shipmentMessage();
+17 +        sent.add(message);
+18      }
+19
+20      public List<String> sentMessages() {
+
+* Bash(./agent-test && git add -A && git commit -m "move shipment message building from Notifier to Order")
+|  > Task :compileJava
+> Task :processResources NO-SOURCE
+> Task :classes
+... +9 lines (ctrl+o to expand)
+|  Allowed by auto mode classifier
+
+* S05 done. Both message builders moved to Order, Notifier shrunk to delegation, two commits, all tests green. Returning control.
+
+* Baked for 49s
+
+> --args="--report /Users/ethanhosier/Desktop/random/fyp/tool/fixtures/agent-sessions/05-agent/analysis-report.json"
+Calculating task graph as no cached configuration is available for tasks: :analysis:feedbackForAgent --args=--report
+/Users/ethanhosier/Desktop/random/fyp/tool/fixtures/agent-sessions/05-agent/analysis-report.json
+
+> Task :analysis:feedbackForAgent
+# Session feedback
+
+Session id: `a1b3b00e-513f-44a2-80d6-1dc7f22436b1`. The refactoring-trajectory tool produced **2** divergence point(s) and **0** trajectory-wide
+advice item(s) for this session. Each entry below names what the tool saw and what the recommended alternative was. Read them and decide what to
+do differently in the next session.
+
+## Divergence points (sorted by magnitude, highest first)
+
+### 1. IDE_REPLAY (the IDE could have done this refactoring for you) -- magnitude 2 (step 0)
+
+**Extract Method: IDE replay would have scored +2.0**
+
+You performed Extract Method manually across 1 step; the IDE-driven equivalent would have reached trajectory-final process score 74 vs your 72 -- a
++2.0 gap.
+
+- Replaced refactoring: `ExtractMethod`
+
+### 2. IDE_REPLAY (the IDE could have done this refactoring for you) -- magnitude 2 (step 1)
+
+**Extract Method: IDE replay would have scored +2.0**
+
+You performed Extract Method manually across 1 step; the IDE-driven equivalent would have reached trajectory-final process score 74 vs your 72 -- a
++2.0 gap.
+
+- Replaced refactoring: `ExtractMethod`
+
+* Noted -- both flags are IDE-replay (Extract Method via IntelliJ refactor would have scored +2). No structural issues, no smells introduced. Process
+score 72 is solid. Ready for S06.
+
+* Sauteed for 3s
+
