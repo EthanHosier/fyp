@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.10.5)  23 MAY 2026 19:22
+This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.10.5)  23 MAY 2026 19:39
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1477,15 +1477,15 @@ ession\T1/cmr/m/n/10 , \T1/cmtt/m/n/10 TraceEvent\T1/cmr/m/n/10 , \T1/cmtt/m/n/
 [31]
 
 [32]
-<architecture/dashboard_image.png, id=1096, 1641.13126pt x 908.39375pt>
+
+[33]
+<architecture/dashboard_image.png, id=1103, 1641.13126pt x 908.39375pt>
 File: architecture/dashboard_image.png Graphic file (type png)
 <use architecture/dashboard_image.png>
 Package pdftex.def Info: architecture/dashboard_image.png  used on input line 1
 46.
 (pdftex.def)             Requested size: 426.79135pt x 236.23225pt.
-
-
-[33]) (./results/results.tex
+) (./results/results.tex
 
 [34 <./architecture/dashboard_image.png>]
 Chapter 5.
@@ -1590,11 +1590,11 @@ ra-jec-to-ries by re-play-ing refac-tor-ing specs through Eclipse
 
 [55]
 
-LaTeX Warning: Reference `ch:conclusion' on page 56 undefined on input line 119
+LaTeX Warning: Reference `ch:conclusion' on page 56 undefined on input line 124
 .
 
 
-Overfull \hbox (1.01357pt too wide) in paragraph at lines 120--121
+Overfull \hbox (1.01357pt too wide) in paragraph at lines 125--126
 []\T1/cmr/bx/n/10 Longitudinal val-i-da-tion against ex-ter-nal code-quality ou
 t-comes. \T1/cmr/m/n/10 No out-come dataset
  []
@@ -1648,8 +1648,8 @@ Package rerunfilecheck Info: File `main.out' has not changed.
 (rerunfilecheck)             Checksum: 177B9DF7A92160E91B4CD4E7D0F00E3F;18051.
  ) 
 Here is how much of TeX's memory you used:
- 25276 strings out of 473190
- 476743 string characters out of 5715800
+ 25277 strings out of 473190
+ 476755 string characters out of 5715800
  895108 words of memory out of 5000000
  47709 multiletter control sequences out of 15000+600000
  594186 words of font info for 100 fonts, out of 8000000 for 9000
@@ -1695,10 +1695,10 @@ sc0600.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sfti
 .pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sftt0900.p
 fb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sftt1000.pfb
 ></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sfxc0700.pfb>
-Output written on main.pdf (65 pages, 1440495 bytes).
+Output written on main.pdf (65 pages, 1443489 bytes).
 PDF statistics:
- 1670 PDF objects out of 1728 (max. 8388607)
- 1495 compressed objects within 15 object streams
- 330 named destinations out of 1000 (max. 500000)
+ 1680 PDF objects out of 1728 (max. 8388607)
+ 1504 compressed objects within 16 object streams
+ 331 named destinations out of 1000 (max. 500000)
  700 words of extra memory for PDF output out of 10000 (max. 10000000)
 

@@ -70,7 +70,7 @@
 \contentsline {section}{\numberline {3.7}Manual-refactor synthesiser}{27}{section.3.7}%
 \contentsline {section}{\numberline {3.8}Rework synthesiser}{27}{section.3.8}%
 \contentsline {section}{\numberline {3.9}Hygiene synthesisers}{27}{section.3.9}%
-\contentsline {section}{\numberline {3.10}Validator and behaviour preservation}{27}{section.3.10}%
+\contentsline {section}{\numberline {3.10}Validator and behaviour preservation}{28}{section.3.10}%
 \contentsline {section}{\numberline {3.11}Rater design}{28}{section.3.11}%
 \contentsline {chapter}{\numberline {4}Tool Architecture}{29}{chapter.4}%
 \contentsline {section}{\numberline {4.1}Architecture at a glance}{29}{section.4.1}%
@@ -154,13 +154,14 @@
 \contentsline {paragraph}{Refactoring kinds the synthesiser cannot handle are excluded by construction.}{55}{section*.102}%
 \contentsline {section}{\numberline {6.5}Statistical conclusion validity}{55}{section.6.5}%
 \contentsline {section}{\numberline {6.6}Per-experiment threats}{55}{section.6.6}%
-\contentsline {paragraph}{The user study (\S \ref {sec:results-userstudy}).}{55}{section*.103}%
-\contentsline {paragraph}{The agent comparison (\S \ref {sec:results-userstudy-agent}).}{55}{section*.104}%
-\contentsline {paragraph}{The rater study (\S \ref {sec:results-kappa}).}{55}{section*.105}%
+\contentsline {paragraph}{The kind classifier (\S \ref {sec:results-divergence}).}{55}{section*.103}%
+\contentsline {paragraph}{The user study (\S \ref {sec:results-userstudy}).}{55}{section*.104}%
+\contentsline {paragraph}{The agent comparison (\S \ref {sec:results-userstudy-agent}).}{56}{section*.105}%
+\contentsline {paragraph}{The rater study (\S \ref {sec:results-kappa}).}{56}{section*.106}%
 \contentsline {section}{\numberline {6.7}Implementation threats}{56}{section.6.7}%
 \contentsline {section}{\numberline {6.8}Out of scope}{56}{section.6.8}%
 \contentsline {chapter}{\numberline {7}Project Plan and Timetable (Jan--Jun 2026)}{57}{chapter.7}%
-\contentsline {paragraph}{Work completed so far (as of 21 Jan 2026).}{57}{section*.106}%
-\contentsline {paragraph}{Timeline in 5 phases (Jan $\rightarrow $ end of June).}{57}{section*.107}%
+\contentsline {paragraph}{Work completed so far (as of 21 Jan 2026).}{57}{section*.107}%
+\contentsline {paragraph}{Timeline in 5 phases (Jan $\rightarrow $ end of June).}{57}{section*.108}%
 \contentsline {chapter}{\numberline {8}Ethical Issues and Data Handling Plan}{58}{chapter.8}%
 \contentsline {chapter}{\numberline {A}Agent session transcript}{59}{appendix.A}%
