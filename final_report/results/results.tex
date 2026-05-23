@@ -84,7 +84,7 @@ The multi-knob result is meaningfully weaker than the single-knob headline. On t
 \textbf{session set} & \textbf{samples} & \textbf{mean $\tau$} & \textbf{top-$1$ $= 1$} & \textbf{top-$3$ $= 1$} & \textbf{top-$5$ $= 1$} \\
 \hline
 Injection ($45$)        & $9{,}000$ & $0.986$ & $99.8\%$ & $97.2\%$ & $100.0\%$\,$^\dagger$ \\
-\textbf{User study ($12$)} & $2{,}400$ & $\mathbf{0.781}$ & $\mathbf{81.2\%}$ & $\mathbf{75.1\%}$ & $92.4\%$ \\
+\textbf{User study ($12$)} & $2{,}400$ & $\mathbf{0.781}$ & $\mathbf{81.2\%}$ & $\mathbf{75.1\%}$ & $92.8\%$ \\
 Agent ($6$)             & $1{,}200$ & $0.736$ & $86.1\%$ & $100.0\%$\,$^\dagger$ & $100.0\%$\,$^\dagger$ \\
 \hline
 \multicolumn{6}{l}{\small$^\dagger$ trivially $100\%$: no fixture in that session set has $> N$ baseline divergence points.} \\
@@ -95,7 +95,7 @@ Agent ($6$)             & $1{,}200$ & $0.736$ & $86.1\%$ & $100.0\%$\,$^\dagger$
 \end{table}
 
 \paragraph{Saturation and score-clamp bias.}
-One concern is whether the $\tau$ and top-$N$ numbers reflect the $[0, 100]$ clamp on the process score rather than true stability. When both user and alt scores hit the ceiling, their magnitude is zero regardless of weights, which would inflate $\tau$. Saturation is therefore tracked per fixture. The right-hand column of Table~\ref{tab:results-sensitivity-headline} shows the three session sets differ substantially. The injection sessions has $13.6\%$ saturated baseline divergence points, concentrated on seven short fixtures. The agent sessions has $30.0\%$, because most agent sessions push the score close to the ceiling on the easier playbook sessions. The user-study sessions has \emph{zero} saturation. This is the main reason for leading with the user-study sessions: its $\tau$ and top-$N$ values are clean perturbation responses, not clipping artifacts, and the multi-knob top-$1 = 77\%$ figure isn't explained by saturation.
+One concern is whether the $\tau$ and top-$N$ numbers reflect the $[0, 100]$ clamp on the process score rather than true stability. When both user and alt scores hit the ceiling, their magnitude is zero regardless of weights, which would inflate $\tau$. Saturation is therefore tracked per fixture. The right-hand column of Table~\ref{tab:results-sensitivity-headline} shows the three session sets differ substantially. The injection sessions has $13.6\%$ saturated baseline divergence points, concentrated on seven short fixtures. The agent sessions has $30.0\%$, because most agent sessions push the score close to the ceiling on the easier playbook sessions. The user-study sessions has \emph{zero} saturation. This is the main reason for leading with the user-study sessions: its $\tau$ and top-$N$ values are clean perturbation responses, not clipping artifacts, and the multi-knob top-$1 = 81\%$ figure isn't explained by saturation.
 
 \paragraph{Caveats and scope.}
 Three main limitations. \emph{First}, the experiment establishes that the formula is stable near the production weights. It does not establish that the production weights themselves are uniquely correct, only that small changes to them mostly preserve the ranking. To properly validate this, we'd need to refit the weights against an external outcome dataset, e.g.\ longitudinal code-quality measurements, but no such dataset exists for this problem. \emph{Second}, the multi-knob test is centered around the production weights and tests the neighborhood within roughly $\pm 2\sigma$ (about $\times 0.25$ to $\times 4$). The formula visibly degrades on the user-study sessions even inside this range ($\tau = 0.78$ mean), so the robustness claim is local rather than global. \emph{Third}, the user-study sessions are $n = 12$ sessions across $2$ participants; we haven't tested it on a broader set of naturalistic sessions. We document these limits as threats to validity in \S\ref{sec:results-scoped-out} and the discussion chapter. The chapter does not claim more than the experiments support.
@@ -117,7 +117,7 @@ Two recovery statistics are reported. Mean recovery is the per-fixture ratio of 
 The full-formula variant (all six terms active) reproduces production exactly: $\tau = 1.000$, recovery $= 1.000$, and mean $\lvert \Delta \textnormal{magnitude} \rvert = 0.000$ on every fixture. Comparison and production use the same system.
 
 \paragraph{Monotone by active-term count.}
-Table~\ref{tab:results-ablation-monotone} groups the $2{,}880$ rows by how many process-score terms are active. Both $\tau$ and sum-over-sum recovery increase with each added term, with no jumps. The key finding is when all terms are zeroed (active-count $= 0$): the total magnitude across all $45$ fixtures drops to zero. This means there's no baseline magnitude independent of the weights; every term does real work, and removing all six leaves nothing behind. (The mean-recovery value is $0.333$ at that point, which is why we use sum-over-sum instead.)
+Table~\ref{tab:results-ablation-monotone} groups the $2{,}880$ rows by how many process-score terms are active. Both $\tau$ and sum-over-sum recovery increase with each added term, with no jumps. The key finding is when all terms are zeroed (active-count $= 0$): the total magnitude across all $45$ fixtures drops to zero. This means there's no baseline magnitude independent of the weights; every term does real work, and removing all six leaves nothing behind. (The mean-recovery value is $0.356$ at that point, which is why we use sum-over-sum instead.)
 
 \begin{table}[htbp]
 \centering
@@ -126,12 +126,12 @@ Table~\ref{tab:results-ablation-monotone} groups the $2{,}880$ rows by how many 
 \hline
 \textbf{active terms} & \textbf{mean $\tau$} & \textbf{mean recovery} & \textbf{sum/sum} & \textbf{n} \\
 \hline
-0 (all stripped) & 0.830 & 0.333 & \textbf{0.000} & 45  \\
-1                & 0.863 & 0.476 & 0.211          & 270 \\
-2                & 0.892 & 0.597 & 0.400          & 675 \\
-3                & 0.919 & 0.706 & 0.570          & 900 \\
-4                & 0.945 & 0.808 & 0.726          & 675 \\
-5                & 0.972 & 0.907 & 0.869          & 270 \\
+0 (all stripped) & 0.879 & 0.356 & \textbf{0.000} & 45  \\
+1                & 0.901 & 0.490 & 0.210          & 270 \\
+2                & 0.922 & 0.606 & 0.398          & 675 \\
+3                & 0.943 & 0.710 & 0.568          & 900 \\
+4                & 0.963 & 0.810 & 0.725          & 675 \\
+5                & 0.982 & 0.907 & 0.869          & 270 \\
 6 (full)         & 1.000 & 1.000 & 1.000          & 45  \\
 \hline
 \end{tabular}
@@ -140,7 +140,7 @@ Table~\ref{tab:results-ablation-monotone} groups the $2{,}880$ rows by how many 
 \end{table}
 
 \paragraph{Per-term single-knob recovery.}
-Table~\ref{tab:results-ablation-solo} shows how much magnitude each term contributes when it's the only active term. Three observations follow. The \texttt{manualIde}, \texttt{broken}, and \texttt{length} terms are the strongest contributors, each recovering roughly a third of the total; these match the values in Table~\ref{tab:methodology-weights} (\S\ref{sec:methodology-weights}), connecting methodology to results. The \texttt{gain} term alone recovers $0.000$ despite having the largest weight ($50$), because gain relies on the cleanliness delta $\Delta C$, which is near zero when user and alternative reach the same state; gain has no effect alone but matters in combination, as Table~\ref{tab:results-ablation-monotone} shows. Finally, the gap between \texttt{commitGap} ($0.126$) and \texttt{manualIde} ($0.357$) shows that recovery depends on both weight and how much the signal varies across sessions, not solely weight alone.
+Table~\ref{tab:results-ablation-solo} shows how much magnitude each term contributes when it's the only active term. Three observations follow. The \texttt{length}, \texttt{broken}, and \texttt{manualIde} terms are the strongest contributors, each recovering roughly a third of the total; these match the values in Table~\ref{tab:methodology-weights} (\S\ref{sec:methodology-weights}), connecting methodology to results. The \texttt{gain} term alone recovers $0.000$ despite having the largest weight ($50$), because gain relies on the cleanliness delta $\Delta C$, which is near zero when user and alternative reach the same state; gain has no effect alone but matters in combination, as Table~\ref{tab:results-ablation-monotone} shows. Finally, the gap between \texttt{commitGap} ($0.096$) and \texttt{length} ($0.389$) shows that recovery depends on both weight and how much the signal varies across sessions, not solely weight alone.
 
 \begin{table}[htbp]
 \centering
@@ -149,12 +149,12 @@ Table~\ref{tab:results-ablation-solo} shows how much magnitude each term contrib
 \hline
 \textbf{term} & \textbf{mean $\tau$} & \textbf{mean recovery} & \textbf{sum/sum} \\
 \hline
-\texttt{manualIde} & 0.830 & 0.457 & \textbf{0.357} \\
-\texttt{broken}    & 0.896 & 0.615 & 0.348          \\
-\texttt{length}    & 0.830 & 0.632 & 0.342          \\
-\texttt{commitGap} & 0.904 & 0.387 & 0.126          \\
-\texttt{skipTests} & 0.889 & 0.431 & 0.093          \\
-\texttt{gain}      & 0.830 & 0.333 & \textbf{0.000} \\
+\texttt{length}    & 0.879 & 0.654 & \textbf{0.389} \\
+\texttt{broken}    & 0.923 & 0.614 & 0.358          \\
+\texttt{manualIde} & 0.879 & 0.439 & 0.311          \\
+\texttt{skipTests} & 0.879 & 0.467 & 0.106          \\
+\texttt{commitGap} & 0.967 & 0.414 & 0.096          \\
+\texttt{gain}      & 0.879 & 0.356 & \textbf{0.000} \\
 \hline
 \end{tabular}
 \caption{Per-term single-knob recovery (each term active alone, others zeroed). The \texttt{manualIde}, \texttt{broken}, and \texttt{length} terms each recover roughly a third; \texttt{gain} alone recovers $0.000$ because the cleanliness delta is near zero on most fixtures, so it has no effect when isolated.}
@@ -162,7 +162,7 @@ Table~\ref{tab:results-ablation-solo} shows how much magnitude each term contrib
 \end{table}
 
 \paragraph{Per-term leave-one-out recovery.}
-Table~\ref{tab:results-ablation-loo} shows what happens when you remove one term from the full formula. Removing \texttt{length} causes the largest drop in recovery ($0.736$), so the step-savings bonus from reorder and rework contributes more than any other single term. Removing \texttt{gain} pushes recovery above $1.000$ to $1.090$ --- the most surprising result: without \texttt{gain}, total magnitude is \emph{larger} than at production. The unit being summed here is the per-divergence-point magnitude defined in \S\ref{sec:methodology-score}, i.e.\ the trajectory-final $J(\tau^\ast) - J(\tau)$ delta between each alternative and the user it is compared against; the sum is over $\lvert \text{magnitude} \rvert$ across every surfaced divergence point, including the ones whose alternative scored \emph{worse} than the user (negative magnitudes contribute their absolute value). The mechanism behind the inflation is that \texttt{gain} $\cdot \Delta C$ is small but typically positive for alternatives, so it partially offsets the penalty terms; remove it and the penalty terms determine the alt-versus-user delta unopposed, producing larger per-DP absolute magnitudes which accumulate in the sum. Were the experiment to filter to alt-beats-user DPs only, removing \texttt{gain} would in fact \emph{lower} the total, since alternatives sitting just above the beats-user threshold flip below it without the offset. The \texttt{gain} term therefore plays a regularising role against the penalty terms rather than acting as a positive contributor in isolation. Removing \texttt{broken}, \texttt{skipTests}, or \texttt{commitGap} reshuffles the ranking somewhat ($\tau \leq 0.97$) but barely moves recovery ($\geq 0.83$), so these terms primarily affect \emph{which} divergence point is biggest rather than \emph{how} big.
+Table~\ref{tab:results-ablation-loo} shows what happens when you remove one term from the full formula. Removing \texttt{length} causes the largest drop in recovery ($0.700$), so the step-savings bonus from reorder and rework contributes more than any other single term. Removing \texttt{gain} pushes recovery above $1.000$ to $1.113$ --- the most surprising result: without \texttt{gain}, total magnitude is \emph{larger} than at production. The unit being summed here is the per-divergence-point magnitude defined in \S\ref{sec:methodology-score}, i.e.\ the trajectory-final $J(\tau^\ast) - J(\tau)$ delta between each alternative and the user it is compared against; the sum is over $\lvert \text{magnitude} \rvert$ across every surfaced divergence point, including the ones whose alternative scored \emph{worse} than the user (negative magnitudes contribute their absolute value). The mechanism behind the inflation is that \texttt{gain} $\cdot \Delta C$ is small but typically positive for alternatives, so it partially offsets the penalty terms; remove it and the penalty terms determine the alt-versus-user delta unopposed, producing larger per-DP absolute magnitudes which accumulate in the sum. Were the experiment to filter to alt-beats-user DPs only, removing \texttt{gain} would in fact \emph{lower} the total, since alternatives sitting just above the beats-user threshold flip below it without the offset. The \texttt{gain} term therefore plays a regularising role against the penalty terms rather than acting as a positive contributor in isolation. Removing \texttt{skipTests} or \texttt{commitGap} reshuffles the ranking somewhat but moves recovery less than removing \texttt{length} or \texttt{manualIde} does, so these terms primarily affect \emph{which} divergence point is biggest rather than \emph{how} big.
 
 \begin{table}[htbp]
 \centering
@@ -171,12 +171,12 @@ Table~\ref{tab:results-ablation-loo} shows what happens when you remove one term
 \hline
 \textbf{removed term} & \textbf{mean $\tau$} & \textbf{mean recovery} & \textbf{sum/sum} \\
 \hline
-\texttt{length}    & 1.000 & 0.814 & 0.736          \\
-\texttt{manualIde} & 1.000 & 0.887 & 0.772          \\
-\texttt{broken}    & 0.933 & 0.945 & 0.826          \\
-\texttt{skipTests} & 0.970 & 0.898 & 0.901          \\
-\texttt{commitGap} & 0.926 & 0.952 & 0.892          \\
-\texttt{gain}      & 1.000 & 0.944 & \textbf{1.090} \\
+\texttt{length}    & 1.000 & 0.814 & 0.700          \\
+\texttt{broken}    & 0.967 & 0.938 & 0.775          \\
+\texttt{manualIde} & 1.000 & 0.895 & 0.795          \\
+\texttt{skipTests} & 1.000 & 0.889 & 0.894          \\
+\texttt{commitGap} & 0.930 & 0.959 & 0.939          \\
+\texttt{gain}      & 0.993 & 0.945 & \textbf{1.113} \\
 \hline
 \end{tabular}
 \caption{Per-term leave-one-out recovery (five terms active, one removed). Removing \texttt{length} causes the largest sum/sum drop; removing \texttt{gain} inflates sum/sum above $1.000$, indicating that \texttt{gain} regularises against the penalty terms rather than acting as a positive contributor in isolation.}
@@ -184,7 +184,7 @@ Table~\ref{tab:results-ablation-loo} shows what happens when you remove one term
 \end{table}
 
 \paragraph{Cross-set rerun on the user-study sessions.}
-The ablation above runs on the $45$ injection sessions, which have few divergence points per fixture ($\max 5$, mean $1.5$). Running the same test on the $12$ user-study sessions, which have larger rankings ($\max 8$, mean $4.2$) and no saturation, produces different results. Table~\ref{tab:results-ablation-user-loo} compares leave-one-out $\tau$ across both sets. On user-study sessions, the most important term is commit-gap ($W_{\textsc{cg}}$): removing it drops $\tau$ from $1.000$ to $0.591$, more than twice the drop of any other term. On injection sessions, $W_{\textsc{cg}}$ is one of the smaller-impact terms ($\tau = 0.926$ on removal). The reverse holds for $W_{\textsc{mi}}$ and $W_{\textsc{l}}$: they drive injection-session ranking but have smaller effects on user-study sessions. This difference matters: \emph{which terms matter depends on the type of sessions}, so the weights have different effects on different session types. Removing the cleanliness-gain term $W_{\textsc{g}}$ still has no effect on either set, so it acts as a regularizer, not a rank-shaper.
+The ablation above runs on the $45$ injection sessions, which have few divergence points per fixture ($\max 5$, mean $1.5$). Running the same test on the $12$ user-study sessions, which have larger rankings ($\max 8$, mean $4.2$) and no saturation, produces different results. Table~\ref{tab:results-ablation-user-loo} compares leave-one-out $\tau$ across both sets. On user-study sessions, the most important term is commit-gap ($W_{\textsc{cg}}$): removing it drops $\tau$ from $1.000$ to $0.641$, roughly twice the drop of any other term. On injection sessions, $W_{\textsc{cg}}$ is one of the smaller-impact terms ($\tau = 0.930$ on removal). The reverse holds for $W_{\textsc{mi}}$ and $W_{\textsc{l}}$: they drive injection-session ranking but have smaller effects on user-study sessions. This difference matters: \emph{which terms matter depends on the type of sessions}, so the weights have different effects on different session types. Removing the cleanliness-gain term $W_{\textsc{g}}$ still has no effect on either set, so it acts as a regularizer, not a rank-shaper.
 
 \begin{table}[htbp]
 \centering
@@ -193,12 +193,12 @@ The ablation above runs on the $45$ injection sessions, which have few divergenc
 \hline
 \textbf{removed term} & \textbf{injection $\tau$} & \textbf{user-study $\tau$} \\
 \hline
-\texttt{commitGap} & $0.926$ & $\mathbf{0.591}$ \\
-\texttt{broken}    & $0.933$ & $0.845$ \\
-\texttt{skipTests} & $0.970$ & $0.817$ \\
-\texttt{manualIde} & $1.000$ & $0.862$ \\
+\texttt{commitGap} & $0.930$ & $\mathbf{0.641}$ \\
+\texttt{manualIde} & $1.000$ & $0.826$ \\
+\texttt{broken}    & $0.967$ & $0.837$ \\
+\texttt{skipTests} & $1.000$ & $0.844$ \\
 \texttt{length}    & $1.000$ & $0.905$ \\
-\texttt{gain}      & $1.000$ & $1.000$ \\
+\texttt{gain}      & $0.993$ & $0.992$ \\
 \hline
 \end{tabular}
 \caption{Leave-one-out ranking stability against the injection sessions (Table~\ref{tab:results-ablation-loo}) and the user-study sessions. The term-importance ordering inverts between the two session sets: $W_{\textsc{cg}}$ is the dominant rank-carrier on the user-study sessions, $W_{\textsc{mi}}$ and $W_{\textsc{l}}$ on the injection sessions.}
@@ -428,7 +428,7 @@ Two patterns sit in the table. First, the shape of the production trajectory is 
 
 Second, the gain-stripped trajectory shows a pattern that the production trajectory hides. P1's process score under $W_g = 0$ rises nearly monotonically across the arc, from $25$ at S1 to $50$ at S6, with one $-7$ dip at S5. S6 sits at the baseline ceiling of $50$, meaning P1 incurred essentially no process-discipline penalty on the structurally hardest session of the arc. P2 trends the same direction less consistently: $16 \to 18 \to 31 \to 47 \to 31 \to 40$. The agent's gain-stripped scores show no arc-position trend at all: $37, 40, 40, 50, 42, 35$, varying with task structure rather than session number. The playbook orders the six sessions in roughly increasing structural complexity (S1 renames through to S6 multi-step reshape), so the participants' improvement is happening despite progressively harder tasks, not riding on easier ones. The agent shows no such trend, suggesting that the qualitative between-session course-corrections discussed in \S\ref{sec:results-userstudy-agent}, Thread $1$ do not compound into a monotonic improvement on the process-discipline subscore over the arc.
 
-The direction of the participants' improvement is what the tool's feedback is designed to produce, but the design does not separate feedback exposure from codebase familiarity, and $n = 2$ participants is too small to support a causal claim. The threats-to-validity chapter discusses both of these caveats. What the table does support is a narrower claim: the production score's session-level value is dominated by the cleanliness-gain term, so the production view alone does not show what changes in the participants' process across the arc, and the gain-stripped view does.
+The direction of the participants' improvement is what the tool's feedback is designed to produce, but the design has no control condition (no participant performed the arc without dashboard feedback between sessions) and $n = 2$ participants is too small to support a causal claim. The gain-stripped subscore is largely insulated from how familiar the participant is with the codebase itself --- the terms active under $W_g = 0$ are commit cadence, skipped tests, and manual-when-IDE rate, none of which depend on knowing the code better. What the design does not separate is the participants intuiting what the dashboard rewards and adjusting behaviour to satisfy it (a score-gaming reading), or becoming more comfortable with the playbook idiom across the arc (a task-style-familiarity reading). The threats-to-validity chapter (\S\ref{sec:threats-per-experiment}) discusses these. What the table does support is a narrower claim: the production score's session-level value is dominated by the cleanliness-gain term, so the production view alone does not show what changes in the participants' process across the arc, and the gain-stripped view does.
 
 One additional qualitative finding does not show in the trajectory table but matters for future tuning: hygiene also produces a false-positive shape, firing when a participant is thinking rather than stuck. One participant flagged this in the interview as was ``penalised for not running tests when wasn't quite finished but just was thinking'', and the pattern is reflected in the S2 peak for hygiene more generally. Both this finding and the rework over-penalisation are reported here as candidate metric-tuning directions rather than detector bugs: the divergence points are accurate readings of what the trajectory contains, but the metric design treats some legitimate-pause and mistyped-key cases more harshly than the participant would.
 

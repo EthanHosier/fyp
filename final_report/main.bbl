@@ -418,4 +418,10 @@ Younes Khrishe and Mohammad Alshayeb.
 \newblock In {\em Proceedings of the 7th International Conference on Computer
   Science and Information Technology (CSIT)}, Amman, Jordan, 2016. IEEE.
 
+\bibitem{wohlin2012experimentation}
+Claes Wohlin, Per Runeson, Martin H{\"o}st, Magnus~C. Ohlsson, Bj{\"o}rn
+  Regnell, and Anders Wessl{\'e}n.
+\newblock {\em Experimentation in Software Engineering}.
+\newblock Springer, 2nd edition, 2012.
+
 \end{thebibliography}

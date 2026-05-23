@@ -225,7 +225,7 @@ val sensInj    = sensitivitySweep("Injection (45)",  injection)
 val sensUser   = sensitivitySweep("User study (12)", userStudy)
 val sensAgent  = sensitivitySweep("Agent (6)",       agent)""")
 
-md("Headline table — top-1 stability, τ = 1.0 share, and baseline saturation per session set.")
+md("Headline table — top-1 stability, τ = 1.0 share, and baseline saturation per session set (reproduces Table 5.1).")
 
 code(r"""fun pct(p: Double) = "%.1f%%".format(p * 100)
 
@@ -267,7 +267,7 @@ md(r"""### Multi-knob Monte Carlo
 
 Every weight scaled by an independent log-normal $\exp(\sigma Z)$, $\sigma = \ln 2$, drawn
 from a per-fixture seeded RNG. 200 samples per fixture; mean τ and top-N hit rate against
-production.""")
+production. The headline dataframe at the end of this cell reproduces Table 5.3.""")
 
 code(r"""fun nextGaussian(rng: Random): Double {
     var u: Double; var v: Double; var s: Double
@@ -421,6 +421,65 @@ code(r"""ablInj.groupBy("active_count").aggregate {
     count() into "n"
 }.sortBy("active_count")""")
 
+md(r"""Per-term single-knob recovery on the injection set (reproduces Table 5.5): each
+process-side term active alone, the other five zeroed. Columns: mean $\tau$ against
+production ranking, mean per-fixture recovery, and sum-over-sum recovery.""")
+
+code(r"""fun soloRow(df: AnyFrame, term: String): Map<String, Any> {
+    val rows = df.filter { "variant"<String>() == term }
+    val meanTau = rows["tau"].cast<Double>().mean()
+    // mean per-fixture recovery: |perturbed_mag| / |baseline_mag|, averaged
+    val perFixture = (0 until rows.rowsCount()).map { i ->
+        val b = rows["baseline_mag"][i] as Double
+        val p = rows["perturbed_mag"][i] as Double
+        if (b > 0.0) p / b else 1.0
+    }
+    val meanRec = perFixture.average()
+    val sumPert = rows["perturbed_mag"].cast<Double>().sum()
+    val sumBase = rows["baseline_mag"].cast<Double>().sum()
+    val sumOverSum = if (sumBase > 0.0) sumPert / sumBase else 0.0
+    return mapOf(
+        "term" to term,
+        "mean τ" to "%.3f".format(meanTau),
+        "mean recovery" to "%.3f".format(meanRec),
+        "sum/sum" to "%.3f".format(sumOverSum),
+    )
+}
+
+PROC_TERMS.map { soloRow(ablInj, it) }
+    .sortedByDescending { (it["sum/sum"] as String).toDouble() }
+    .toDataFrame()""")
+
+md(r"""Per-term leave-one-out recovery on the injection set (reproduces Table 5.6): five
+process-side terms active, one removed. Removing $W_{\textsc{l}}$ should produce the
+largest sum/sum drop; removing $W_{\textsc{g}}$ should push sum/sum above 1.0 (the
+regulariser-against-penalties effect discussed in the chapter).""")
+
+code(r"""fun looRow(df: AnyFrame, removed: String): Map<String, Any> {
+    val target = (allTerms - removed).toSortedSet()
+    val rows = df.filter { "variant"<String>().split("+").toSortedSet() == target }
+    val meanTau = rows["tau"].cast<Double>().mean()
+    val perFixture = (0 until rows.rowsCount()).map { i ->
+        val b = rows["baseline_mag"][i] as Double
+        val p = rows["perturbed_mag"][i] as Double
+        if (b > 0.0) p / b else 1.0
+    }
+    val meanRec = perFixture.average()
+    val sumPert = rows["perturbed_mag"].cast<Double>().sum()
+    val sumBase = rows["baseline_mag"].cast<Double>().sum()
+    val sumOverSum = if (sumBase > 0.0) sumPert / sumBase else 0.0
+    return mapOf(
+        "removed term" to removed,
+        "mean τ" to "%.3f".format(meanTau),
+        "mean recovery" to "%.3f".format(meanRec),
+        "sum/sum" to "%.3f".format(sumOverSum),
+    )
+}
+
+PROC_TERMS.map { looRow(ablInj, it) }
+    .sortedBy { (it["sum/sum"] as String).toDouble() }
+    .toDataFrame()""")
+
 md("Cross-set leave-one-out τ (reproduces Table 5.7).")
 
 code(r"""val allTerms = PROC_TERMS.toSortedSet()
@@ -445,7 +504,7 @@ md(r"""## §5.2 Testing the detector
 ### §5.2.1 Inter-rater κ
 
 Loads the three rater manifests, computes pair-wise Cohen's κ per kind across the 45
-sessions.""")
+sessions (reproduces Table 5.8).""")
 
 code(r"""fun parseCsvRow(line: String): List<String> {
     val out = mutableListOf<String>()
@@ -675,7 +734,8 @@ md(r"""## §5.3 User and agent studies
 
 ### Per-session × kind distribution
 
-Strict `magnitude > 0` filter, matching the §3.4 ORDERING-detection paragraph.""")
+Strict `magnitude > 0` filter, matching the §3.4 ORDERING-detection paragraph. The
+`userRows` dataframe printed at the end of this cell reproduces Table 5.12.""")
 
 code(r"""fun perSessionRow(sid: String, phaseA: PhaseAResult): Map<String, Any> {
     val report = ReportAssembler.assemble(phaseA, ScoringConfig.PRODUCTION)
@@ -689,7 +749,7 @@ val userRows  = userStudy.map { (k, v) -> perSessionRow(k, v) }.toDataFrame()
 val agentRows = agent.map { (k, v) -> perSessionRow(k, v) }.toDataFrame()
 userRows""")
 
-md("Per-kind trajectory across the six-session arc, summed across P1 + P2 (reproduces Table 5.14).")
+md("Per-kind trajectory across the six-session arc, summed across P1 + P2 (reproduces Table 5.13).")
 
 code(r"""val combinedTraj = (1..6).map { idx ->
     val matching = (0 until userRows.rowsCount())
@@ -716,14 +776,59 @@ md("### §5.3.2 Agent comparison")
 
 code(r"""agentRows""")
 
-code(r"""kinds.map { k ->
-    val a = (0 until agentRows.rowsCount()).sumOf { agentRows[k][it] as Int }
-    val h = (0 until userRows.rowsCount()).sumOf { userRows[k][it] as Int }
+md(r"""Per-kind divergence-point totals comparing the agent against each participant
+separately (reproduces Table 5.15).""")
+
+code(r"""// Per-participant aggregator for the user-study set.
+fun perPartSum(df: AnyFrame, indexOf: (String) -> Int?, kind: String): Int =
+    (0 until df.rowsCount())
+        .filter { indexOf(df["session"][it] as String) != null }
+        .sumOf { df[kind][it] as Int }
+
+kinds.map { k ->
+    val agentTotal = (0 until agentRows.rowsCount()).sumOf { agentRows[k][it] as Int }
+    val p1Total = perPartSum(userRows, ::p1Idx, k)
+    val p2Total = perPartSum(userRows, ::p2Idx, k)
     mapOf(
-        "kind" to k, "agent" to a, "humans (P1+P2)" to h,
-        "agent/human" to (if (h > 0) "%.2f".format(a.toDouble() / h) else "—"),
+        "kind" to k,
+        "Agent" to agentTotal,
+        "P1" to p1Total,
+        "P2" to p2Total,
+        "Agent / P1" to (if (p1Total > 0) "%.2f".format(agentTotal.toDouble() / p1Total) else "—"),
+        "Agent / P2" to (if (p2Total > 0) "%.2f".format(agentTotal.toDouble() / p2Total) else "—"),
     )
 }.toDataFrame()""")
+
+md(r"""Agent per-session divergence-point trajectory plus final-checkpoint process
+scores (reproduces Table 5.16). One row per kind across S1..S6, with a $\Delta$ column
+for end-minus-start, then a final-score row aligned to the same six columns.""")
+
+code(r"""// Agent per-session DP counts per kind, ordered S1..S6 by agIdx.
+fun agentTrajectoryByKind(): Map<String, IntArray> {
+    val out = kinds.associateWith { IntArray(6) }.toMutableMap()
+    for (i in 0 until agentRows.rowsCount()) {
+        val sid = agentRows["session"][i] as String
+        val idx = agIdx(sid) ?: continue
+        for (k in kinds) {
+            out[k]!![idx - 1] = agentRows[k][i] as Int
+        }
+    }
+    return out
+}
+
+val agentTraj = agentTrajectoryByKind()
+val agentFinalScores = arcScores(agent, ::agIdx, ScoringConfig.PRODUCTION)
+
+(kinds.map { k ->
+    val arr = agentTraj[k]!!
+    mapOf<String, Any>("row" to k) +
+        (1..6).associate { "S$it" to arr[it - 1] } +
+        ("Δ" to (arr[5] - arr[0]))
+} + listOf(
+    mapOf<String, Any>("row" to "final score") +
+        (1..6).associate { "S$it" to agentFinalScores[it - 1] } +
+        ("Δ" to "—")
+)).toDataFrame()""")
 
 md(r"""### Process score trajectory: production weights and gain-stripped weights
 
@@ -732,8 +837,7 @@ For each session, the trajectory-final process score is computed twice: once und
 under a copy with the cleanliness-gain weight `W_g` set to zero. The gain-stripped view
 isolates the process-discipline terms (broken-time, skipped-tests, manual-when-IDE,
 length bonus, commit-gap) from the cleanliness-gain term, mirroring the §5.1.2 ablation
-finding that `W_g` acts as a regularizer on divergence-point ranking. Reproduces
-Table~\ref{tab:results-userstudy-scores} in §5.4.""")
+finding that `W_g` acts as a regularizer on divergence-point ranking (reproduces Table 5.14).""")
 
 code(r"""// Helper: take a session map and a (sessionId -> index) extractor, return six
 // final-checkpoint process scores in arc order (S1..S6) under the given config.

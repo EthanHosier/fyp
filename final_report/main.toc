@@ -129,8 +129,38 @@
 \contentsline {paragraph}{Thread 1: commit cadence, over-corrected and then resolved.}{48}{section*.82}%
 \contentsline {paragraph}{Thread 2: smell-introduction feedback produced a specific self-critique.}{49}{section*.83}%
 \contentsline {paragraph}{Thread 3: agent acknowledges the structural IDE-replay limitation.}{49}{section*.84}%
-\contentsline {chapter}{\numberline {6}Project Plan and Timetable (Jan--Jun 2026)}{50}{chapter.6}%
-\contentsline {paragraph}{Work completed so far (as of 21 Jan 2026).}{50}{section*.85}%
-\contentsline {paragraph}{Timeline in 5 phases (Jan $\rightarrow $ end of June).}{50}{section*.86}%
-\contentsline {chapter}{\numberline {7}Ethical Issues and Data Handling Plan}{51}{chapter.7}%
-\contentsline {chapter}{\numberline {A}Agent session transcript}{52}{appendix.A}%
+\contentsline {chapter}{\numberline {6}Threats to validity}{51}{chapter.6}%
+\contentsline {section}{\numberline {6.1}Mitigations and design choices}{51}{section.6.1}%
+\contentsline {section}{\numberline {6.2}Construct validity}{52}{section.6.2}%
+\contentsline {paragraph}{There is no external ground truth for ``true refactoring quality''.}{52}{section*.85}%
+\contentsline {paragraph}{The score is not a maintainability index.}{52}{section*.86}%
+\contentsline {paragraph}{The four-kind taxonomy is a methodology choice, not a discovered structure.}{52}{section*.87}%
+\contentsline {paragraph}{\texttt {SuboptimalOrdering} is author-claimed, not measured.}{52}{section*.88}%
+\contentsline {paragraph}{The AST-equivalence audit uses an informal definition.}{52}{section*.89}%
+\contentsline {section}{\numberline {6.3}Internal validity}{53}{section.6.3}%
+\contentsline {paragraph}{The single-knob sensitivity sweep is combined with a multi-knob design rather than replaced.}{53}{section*.90}%
+\contentsline {paragraph}{Kind-presence agreement does not imply rank-order agreement.}{53}{section*.91}%
+\contentsline {paragraph}{Cleanliness sub-weights are uniform $1.0$ by Laplace's principle of insufficient reason.}{53}{section*.92}%
+\contentsline {paragraph}{Two batching primitives are heuristic and not sensitivity-tested.}{53}{section*.93}%
+\contentsline {paragraph}{The production weight vector is hand-picked within a literature-grounded ordering.}{53}{section*.94}%
+\contentsline {paragraph}{Which terms carry the ranking varies by session type.}{53}{section*.95}%
+\contentsline {paragraph}{The reorder dependency analysis is deliberately coarse, and anchors are content-addressed.}{53}{section*.96}%
+\contentsline {paragraph}{Cleanliness sub-signals are clamped to the user's range on alternative trajectories.}{54}{section*.97}%
+\contentsline {section}{\numberline {6.4}External validity}{54}{section.6.4}%
+\contentsline {paragraph}{The injection sessions are scoped exercises, not naturalistic sessions.}{54}{section*.98}%
+\contentsline {paragraph}{The user study has two participants and twelve sessions.}{54}{section*.99}%
+\contentsline {paragraph}{The agent comparison is a single agent over six sessions.}{54}{section*.100}%
+\contentsline {paragraph}{All sessions are single-author IntelliJ sessions on a Gradle Java project.}{54}{section*.101}%
+\contentsline {paragraph}{Refactoring kinds the synthesiser cannot handle are excluded by construction.}{55}{section*.102}%
+\contentsline {section}{\numberline {6.5}Statistical conclusion validity}{55}{section.6.5}%
+\contentsline {section}{\numberline {6.6}Per-experiment threats}{55}{section.6.6}%
+\contentsline {paragraph}{The user study (\S \ref {sec:results-userstudy}).}{55}{section*.103}%
+\contentsline {paragraph}{The agent comparison (\S \ref {sec:results-userstudy-agent}).}{55}{section*.104}%
+\contentsline {paragraph}{The rater study (\S \ref {sec:results-kappa}).}{55}{section*.105}%
+\contentsline {section}{\numberline {6.7}Implementation threats}{56}{section.6.7}%
+\contentsline {section}{\numberline {6.8}Out of scope}{56}{section.6.8}%
+\contentsline {chapter}{\numberline {7}Project Plan and Timetable (Jan--Jun 2026)}{57}{chapter.7}%
+\contentsline {paragraph}{Work completed so far (as of 21 Jan 2026).}{57}{section*.106}%
+\contentsline {paragraph}{Timeline in 5 phases (Jan $\rightarrow $ end of June).}{57}{section*.107}%
+\contentsline {chapter}{\numberline {8}Ethical Issues and Data Handling Plan}{58}{chapter.8}%
+\contentsline {chapter}{\numberline {A}Agent session transcript}{59}{appendix.A}%

@@ -129,8 +129,8 @@
 \contentsline {paragraph}{Thread 1: commit cadence, over-corrected and then resolved.}{48}{section*.82}%
 \contentsline {paragraph}{Thread 2: smell-introduction feedback produced a specific self-critique.}{49}{section*.83}%
 \contentsline {paragraph}{Thread 3: agent acknowledges the structural IDE-replay limitation.}{49}{section*.84}%
-\contentsline {chapter}{\numberline {6}Project Plan and Timetable (Jan--Jun 2026)}{50}{chapter.6}%
-\contentsline {paragraph}{Work completed so far (as of 21 Jan 2026).}{50}{section*.85}%
-\contentsline {paragraph}{Timeline in 5 phases (Jan $\rightarrow $ end of June).}{50}{section*.86}%
-\contentsline {chapter}{\numberline {7}Ethical Issues and Data Handling Plan}{51}{chapter.7}%
-\contentsline {chapter}{\numberline {A}Agent session transcript}{52}{appendix.A}%
+\contentsline {chapter}{\numberline {6}Project Plan and Timetable (Jan--Jun 2026)}{51}{chapter.6}%
+\contentsline {paragraph}{Work completed so far (as of 21 Jan 2026).}{51}{section*.85}%
+\contentsline {paragraph}{Timeline in 5 phases (Jan $\rightarrow $ end of June).}{51}{section*.86}%
+\contentsline {chapter}{\numberline {7}Ethical Issues and Data Handling Plan}{52}{chapter.7}%
+\contentsline {chapter}{\numberline {A}Agent session transcript}{53}{appendix.A}%
