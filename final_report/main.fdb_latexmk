@@ -1,13 +1,13 @@
 # Fdb version 4
-["bibtex main"] 1779539855.50219 "main.aux" "main.bbl" "main" 1779539963.05226 0
+["bibtex main"] 1779541577.5458 "main.aux" "main.bbl" "main" 1779542076.09487 0
   "./bibs/sample.bib" 1779448135.97342 37241 04b9cbc0410e7237c74977cb4c7f0b43 ""
   "/usr/local/texlive/2025/texmf-dist/bibtex/bst/base/unsrt.bst" 1292289607 18030 1376b4b231b50c66211e47e42eda2875 ""
-  "main.aux" 1779539962.6721 46604 65f5e6668ae0cffe56f6c0f285110a59 "pdflatex"
+  "main.aux" 1779542075.71152 46682 863a16541e89f0407c93379d25d0dd67 "pdflatex"
   (generated)
   "main.bbl"
   "main.blg"
   (rewritten before read)
-["pdflatex"] 1779539961.59973 "main.tex" "main.pdf" "main" 1779539963.05249 0
+["pdflatex"] 1779542074.5787 "main.tex" "main.pdf" "main" 1779542076.09505 0
   "/usr/local/texlive/2025/texmf-dist/fonts/enc/dvips/cm-super/cm-super-t1.enc" 1136849721 2971 def0b6c1f0b107b3b936def894055589 ""
   "/usr/local/texlive/2025/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc" 1136849721 2900 1537cc8184ad1792082cd229ecc269f4 ""
   "/usr/local/texlive/2025/texmf-dist/fonts/map/fontname/texfonts.map" 1577235249 3524 cb3e574dea2d1052e39280babc910dc8 ""
@@ -265,16 +265,16 @@
   "ethics/ethics.tex" 1779216729.4232 3100 1b90ad211dc7df75d66c395670caed5e ""
   "introduction/divergence_diagram.png" 1779216729.42377 61745 d2075585b040459d55aa99682c67edc1 ""
   "introduction/introduction.tex" 1779216729.4243 11657 57cdec59f1f3ba49792ee62e92b889e1 ""
-  "main.aux" 1779539962.6721 46604 65f5e6668ae0cffe56f6c0f285110a59 "pdflatex"
-  "main.bbl" 1779539855.61119 17192 6c6a575ef94c8211a1e2daa820356edc "bibtex main"
-  "main.lof" 1779539962.67563 1717 6458668fc97dafe9c803fff636c1a527 "pdflatex"
-  "main.lot" 1779539962.67566 6543 d98ad817c2b5142a3d2e9a1288f18308 "pdflatex"
-  "main.out" 1779539962.67528 16532 413888fe9f5b3be423a5ba515139cb18 "pdflatex"
+  "main.aux" 1779542075.71152 46682 863a16541e89f0407c93379d25d0dd67 "pdflatex"
+  "main.bbl" 1779541577.6527 17192 6c6a575ef94c8211a1e2daa820356edc "bibtex main"
+  "main.lof" 1779542075.71581 1717 6458668fc97dafe9c803fff636c1a527 "pdflatex"
+  "main.lot" 1779542075.71583 6582 65c1927c2a97926028e5dee9cea6cc93 "pdflatex"
+  "main.out" 1779542075.71556 16532 413888fe9f5b3be423a5ba515139cb18 "pdflatex"
   "main.tex" 1779216729.43713 1432 784fc6109faac89d747e08ecc9f35615 ""
-  "main.toc" 1779539962.67548 11399 45ec6d71ddf601c76a3e9af786d9afca "pdflatex"
+  "main.toc" 1779542075.71578 11399 45ec6d71ddf601c76a3e9af786d9afca "pdflatex"
   "methodology/methodology.tex" 1779539944.42777 40568 d34df8aba52f50b2b5036c87dc7f304e ""
   "project_plan/project_plan.tex" 1779216729.45213 1547 45fc2e533221dae12492004b4a713b4a ""
-  "results/results.tex" 1779539955.58718 63289 a6971e5e4f666d3a1e474b42a354a1ed ""
+  "results/results.tex" 1779542068.72481 63712 2773114f4668d18c7fc3457ce8ccf9ab ""
   "title/logo.eps" 1779216729.45752 1035249 ff185f9b2455dc5949d7beacddc11a17 ""
   "title/title.tex" 1779216729.45787 2407 267f2409ae134fb17fedaf4e7d475b30 ""
   (generated)
