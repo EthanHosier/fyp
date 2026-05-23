@@ -1,9 +1,15 @@
 # Bibliography Audit Log
 
 **Entries cited:** 67 (1 of the 67 — `croux2010influence` — turns out to be an uncited orphan in the .tex; should be moved to orphan list)  
-**Entries verified:** 49 / 67  
-**Entries with fixes required:** 22 (paixao2017balancing, biemankang1995tcc, scalabrino2018readability 🚨, mens2004survey, alikhanifard2025rminer, bouzenia2025trajectories 🚨, alomar2025slr 🚨, falleri2024gumtree minor, lin2016navigator 🚨, harman2007pareto 🚨🚨, mohan2019manyobjective, silva2017refdiff, rolim2017refazer 🚨, alizadeh2020interactive, whydevelopersrefactor2020 🚨, metricsmotivation2024 🚨, pan2025swegym 🚨, nikolaidis2024metricsbased, paiva2017evaluation, arcellifontana2016falsepositives, damevski2017usagesmells 🚨, foutsekh2018interactiontraces 🚨🚨)  
+**Entries verified:** 67 / 67  
+**Entries with fixes required:** 36 (paixao2017balancing, biemankang1995tcc, scalabrino2018readability 🚨, mens2004survey, alikhanifard2025rminer, bouzenia2025trajectories 🚨, alomar2025slr 🚨, falleri2024gumtree minor, lin2016navigator 🚨, harman2007pareto 🚨🚨, mohan2019manyobjective, silva2017refdiff, rolim2017refazer 🚨, alizadeh2020interactive, whydevelopersrefactor2020 🚨, metricsmotivation2024 🚨, pan2025swegym 🚨, nikolaidis2024metricsbased, paiva2017evaluation, arcellifontana2016falsepositives, damevski2017usagesmells 🚨, foutsekh2018interactiontraces 🚨🚨, bansiya2002qmood 🚨, chen2024morcora, coleman1994maintainability, cortellessa2023manyobjective, eilertsen2024refactorings, heitlager2007sig, khrishe2016empirical, kim2011apilevel, liu2009smell, marinescu2004, mens2007graph, moha2010decor, poncin2011processmining 🚨, wagner2015quamoco, wang2018traceability 🚨🚨)  
 **Uncited orphans:** 16
+
+**Audit-finishing summary (final pass, 18 entries verified):** All entries marked 🚨 / 🚨🚨 need thesis-side rewrites or load-bearing replacements:
+- **🚨🚨 wang2018traceability**: stub `.bib`; correct paper is Nyamawe et al. 2018 IEEE Access. Replace entry; consider renaming citekey.
+- **🚨 bansiya2002qmood**: two thesis sentences (threats.tex:31, methodology.tex:147) claim QMOOD weights were "regression-fitted" or "tuned against expert assessments". Wrong — QMOOD weights are set theoretically and *validated* via rank-correlation against 13 experts. Rewrite both sentences.
+- **🚨 poncin2011processmining**: canonical title is "Process Mining Software *Repositories*" (not "...Development Workflows"); paper centres on VCS/bug-tracker/mail repositories, not Eclipse-plugin IDE event logs. The background.tex:221 "Eclipse plugins" framing should be reworded.
+- Remaining 15 newly-flagged entries: metadata fixes (missing pages/volume/DOI) and a few author-name corrections (chen2024morcora `Lerina→Lei`, eilertsen2024refactorings add Murphy, kim2011apilevel `Danny→Dongxiang`, moha2010decor expand "and others", wagner2015quamoco verify `Mäder/Saft → Mayr/Seidl`).
 
 ## Working order
 
@@ -1337,29 +1343,32 @@ Process in this priority order:
 
 - **Type / title:** article — "A Hierarchical Model for Object-Oriented Design Quality Assessment" (2002)
 - **Authors:** Bansiya, Jagdish and Davis, Carl G.
-- **Venue:** IEEE Transactions on Software Engineering
+- **Venue:** IEEE Transactions on Software Engineering, Vol. 28, No. 1, pp. 4–17
 - **DOI / URL:** 10.1109/32.979986
 - **Local PDF:** —
 
 **Checklist:**
 
-- [ ] 1. Metadata complete for entry type
-- [ ] 2. Metadata accurate against canonical source
-- [ ] 3. Source obtainable (DOI / arXiv / local PDF)
-- [ ] 4. All cite sites enumerated below
-- [ ] 5. Each cite site's claim is supported by the source
-- [ ] 6. No internal contradiction across cite sites
+- [ ] 1. Metadata complete for entry type — FAIL (missing volume/number/pages/doi; see Notes)
+- [x] 2. Metadata accurate against canonical source
+- [x] 3. Source obtainable (DOI / arXiv / local PDF) — IEEE Xplore (paywalled but DOI valid); abstract + methodology summary verified via Semantic Scholar + secondary surveys
+- [x] 4. All cite sites enumerated below
+- [ ] 5. Each cite site's claim is supported by the source — FAIL on sites 1 and 3; see Notes
+- [x] 6. No internal contradiction across cite sites
 
 **Cite sites:**
 
 1. `threats/threats.tex:31` — claim: "Snapshot composites like the Maintainability Index~\cite{coleman1994maintainability} and QMOOD~\cite{bansiya2002qmood} were regression-fitted against expert ratings of completed code."
-   - Source support: 
+   - Source support: **Unsupported (for QMOOD half)**. QMOOD weights are not regression-fitted; they are set by the authors "in accordance with influence and importance" and then *validated* against expert rankings (13 experts × 14 projects; rank-correlation analysis, 11/13 evaluators correlated well with QMOOD ranking). Coleman MI portion is separately handled in that entry. Sentence needs a rewrite, since the regression-fit framing applies to MI, not QMOOD.
 2. `methodology/methodology.tex:144` — claim: "Wagner et al.'s Quamoco framework~\cite{wagner2015quamoco} and the QMOOD quality model~\cite{bansiya2002qmood} both use this kind of layered weighted-sum aggregation, which is a defensible choice when there is no calibration data to fit the weights against."
-   - Source support: 
+   - Source support: **Supported** — QMOOD uses 6 quality characteristics × 11 design properties with weighted-sum aggregation per the published model equations.
 3. `methodology/methodology.tex:147` — claim: "Calibrated weights do exist for snapshot-level static quality composites --- notably Coleman et al.'s Maintainability Index ... and QMOOD~\cite{bansiya2002qmood}, whose design-attribute weights were tuned against expert assessments."
-   - Source support: 
+   - Source support: **Unsupported (for QMOOD half)** — QMOOD weights are set on theoretical/anecdotal grounds, *not* tuned against expert assessments. The expert assessment is used for post-hoc rank validation, not weight fitting. "Tuned against expert assessments" is inaccurate.
 
-**Notes / fixes required:** 
+**Notes / fixes required:**
+- `.bib` metadata: add `volume = {28}`, `number = {1}`, `pages = {4--17}`, `doi = {10.1109/32.979986}`.
+- Thesis sentence fix at `threats.tex:31`: drop QMOOD from the "regression-fitted against expert ratings" claim (that's specific to MI); QMOOD is validated via rank-correlation, not regression-fit.
+- Thesis sentence fix at `methodology.tex:147`: rewrite "whose design-attribute weights were tuned against expert assessments" to e.g. "whose design-attribute weights are set theoretically and validated against expert ranks". Or drop QMOOD from this sentence and keep only Coleman MI, which is the genuine regression-fitted example.
 
 ---
 
@@ -1373,45 +1382,46 @@ Process in this priority order:
 
 **Checklist:**
 
-- [ ] 1. Metadata complete for entry type
-- [ ] 2. Metadata accurate against canonical source
-- [ ] 3. Source obtainable (DOI / arXiv / local PDF)
-- [ ] 4. All cite sites enumerated below
-- [ ] 5. Each cite site's claim is supported by the source
-- [ ] 6. No internal contradiction across cite sites
+- [x] 1. Metadata complete for entry type
+- [x] 2. Metadata accurate against canonical source
+- [x] 3. Source obtainable (DOI / arXiv / local PDF) — arXiv abstract retrieved
+- [x] 4. All cite sites enumerated below
+- [x] 5. Each cite site's claim is supported by the source
+- [x] 6. No internal contradiction across cite sites
 
 **Cite sites:**
 
 1. `background/background.tex:223` — claim: "\emph{CodeWatcher} is a representative example: a lightweight client-server VS Code extension that captures fine-grained, semantically labelled IDE events ... with timestamps to support post-hoc reconstruction of coding sessions \cite{basha2025codewatcher}."
-   - Source support: 
+   - Source support: **Supported** — arXiv abstract confirms "lightweight, unobtrusive client-server system designed to capture fine-grained interaction events from within the Visual Studio Code (VS Code) editor"; logs insertions/deletions/copy-paste/focus shifts with timestamps; "enables developers to reconstruct coding sessions after the fact". Verbatim alignment with thesis claim.
 
-**Notes / fixes required:** 
+**Notes / fixes required:** None. Entry is clean.
 
 ---
 
 ### `chen2024morcora`
 
 - **Type / title:** article — "MORCoRA: Multi-Objective Refactoring Recommendation Considering Review Availability" (2024)
-- **Authors:** Chen, Lerina and Hayashi, Shinpei
+- **Authors:** Chen, Lei and Hayashi, Shinpei (.bib currently says "Lerina" — needs fix)
 - **Venue:** International Journal of Software Engineering and Knowledge Engineering
-- **DOI / URL:** 10.1142/S0218194024500438
+- **DOI / URL:** 10.1142/S0218194024500438; arXiv:2408.06568
 - **Local PDF:** —
 
 **Checklist:**
 
-- [ ] 1. Metadata complete for entry type
-- [ ] 2. Metadata accurate against canonical source
-- [ ] 3. Source obtainable (DOI / arXiv / local PDF)
-- [ ] 4. All cite sites enumerated below
-- [ ] 5. Each cite site's claim is supported by the source
-- [ ] 6. No internal contradiction across cite sites
+- [x] 1. Metadata complete for entry type
+- [ ] 2. Metadata accurate against canonical source — FAIL: first-author given name is "Lei" not "Lerina"
+- [x] 3. Source obtainable (DOI / arXiv / local PDF) — arXiv:2408.06568
+- [x] 4. All cite sites enumerated below
+- [x] 5. Each cite site's claim is supported by the source
+- [x] 6. No internal contradiction across cite sites
 
 **Cite sites:**
 
 1. `background/background.tex:169` — claim: "and related work has extended the framework with socio-technical cost proxies such as reviewer availability \cite{chen2024morcora}."
-   - Source support: 
+   - Source support: **Supported** — abstract confirms MORCoRA is a multi-objective refactoring search that adds reviewer availability (reviewer expertise + workload) as an objective alongside code-quality improvement. "Socio-technical cost proxy" is an accurate gloss for the review-availability objective.
 
-**Notes / fixes required:** 
+**Notes / fixes required:**
+- `.bib` author-name fix: change `Chen, Lerina` to `Chen, Lei`.
 
 ---
 
@@ -1419,27 +1429,29 @@ Process in this priority order:
 
 - **Type / title:** article — "Using Metrics to Evaluate Software System Maintainability" (1994)
 - **Authors:** Coleman, Don and Ash, Dan and Lowther, Bruce and Oman, Paul
-- **Venue:** Computer
+- **Venue:** IEEE Computer, Vol. 27, No. 8, pp. 44–49
 - **DOI / URL:** 10.1109/2.303623
 - **Local PDF:** —
 
 **Checklist:**
 
-- [ ] 1. Metadata complete for entry type
-- [ ] 2. Metadata accurate against canonical source
-- [ ] 3. Source obtainable (DOI / arXiv / local PDF)
-- [ ] 4. All cite sites enumerated below
-- [ ] 5. Each cite site's claim is supported by the source
-- [ ] 6. No internal contradiction across cite sites
+- [ ] 1. Metadata complete for entry type — FAIL (missing volume/number/pages)
+- [x] 2. Metadata accurate against canonical source
+- [x] 3. Source obtainable (DOI / arXiv / local PDF) — Semantic Scholar + open-access mirror
+- [x] 4. All cite sites enumerated below
+- [x] 5. Each cite site's claim is supported by the source — loosely; see Notes
+- [x] 6. No internal contradiction across cite sites
 
 **Cite sites:**
 
 1. `threats/threats.tex:31` — claim: "Snapshot composites like the Maintainability Index~\cite{coleman1994maintainability} and QMOOD~\cite{bansiya2002qmood} were regression-fitted against expert ratings of completed code."
-   - Source support: 
+   - Source support: **Loosely supported** for MI. The regression-fit on HP engineer-provided 1–100 maintainability ratings is documented in the companion paper Oman & Hagemeister 1994 (JSS 24(3):251–266), which Coleman et al. 1994 builds on. Coleman et al. is the canonical MI citation but the calibration method is described in more detail in the companion. Acceptable here since MI is shorthand for the work as a whole. (QMOOD half of this sentence is Unsupported — see `bansiya2002qmood` entry.)
 2. `methodology/methodology.tex:147` — claim: "Calibrated weights do exist for snapshot-level static quality composites --- notably Coleman et al.'s Maintainability Index, whose coefficients were regression-fitted against expert maintainability ratings on industrial systems~\cite{coleman1994maintainability}."
-   - Source support: 
+   - Source support: **Loosely supported**. Same caveat: the regression-fit was performed in Oman & Hagemeister 1994 against HP C/Pascal industrial systems with engineer-provided maintainability ratings. Coleman et al. 1994 reports and uses the MI but the calibration is in the companion. Either keep this citation (defensible — Coleman et al. is the canonical reference) or add a second citation to Oman & Hagemeister 1994 for the regression-fit claim specifically.
 
-**Notes / fixes required:** 
+**Notes / fixes required:**
+- `.bib` metadata: add `volume = {27}`, `number = {8}`, `pages = {44--49}`.
+- Optional: add a `omanhagemeister1994polynomials` entry (J. Syst. Softw. 24(3):251–266, doi: 10.1016/0164-1212(94)90067-1) and cite alongside `coleman1994maintainability` at the two regression-fit sites for precision. Not load-bearing — the current Coleman-only citation is a defensible shorthand.
 
 ---
 
@@ -1447,27 +1459,28 @@ Process in this priority order:
 
 - **Type / title:** article — "Many-Objective Optimization of Non-Functional Attributes Based on Refactoring of Software Models" (2023)
 - **Authors:** Cortellessa, Vittorio and Di Pompeo, Daniele and Stoico, Vincenzo and Tucci, Michele
-- **Venue:** Information and Software Technology
-- **DOI / URL:** 10.1016/j.infsof.2023.107159
+- **Venue:** Information and Software Technology, vol. 157, art. 107159
+- **DOI / URL:** 10.1016/j.infsof.2023.107159; arXiv:2301.09531
 - **Local PDF:** —
 
 **Checklist:**
 
-- [ ] 1. Metadata complete for entry type
-- [ ] 2. Metadata accurate against canonical source
-- [ ] 3. Source obtainable (DOI / arXiv / local PDF)
-- [ ] 4. All cite sites enumerated below
-- [ ] 5. Each cite site's claim is supported by the source
-- [ ] 6. No internal contradiction across cite sites
+- [ ] 1. Metadata complete for entry type — FAIL (missing volume/article number)
+- [x] 2. Metadata accurate against canonical source
+- [x] 3. Source obtainable (DOI / arXiv / local PDF) — arXiv:2301.09531
+- [x] 4. All cite sites enumerated below
+- [x] 5. Each cite site's claim is supported by the source
+- [x] 6. No internal contradiction across cite sites
 
 **Cite sites:**
 
 1. `background/background.tex:169` — claim: "recent many-objective formulations explicitly treat \emph{architectural distance}-a direct disruption proxy-as a first-class Pareto objective alongside structural quality \cite{cortellessa2023manyobjective}."
-   - Source support: 
+   - Source support: **Supported** — abstract names "architectural distance, which quantifies the effort to obtain a model alternative from the initial one" as one of four objectives in the NSGA-II Pareto search, alongside performance, reliability, and antipattern count. Direct match for "first-class Pareto objective alongside structural quality".
 2. `methodology/methodology.tex:114` — claim: "Cortellessa et al.~\cite{cortellessa2023manyobjective} continue that line of work, trading effort against code-quality objectives explicitly."
-   - Source support: 
+   - Source support: **Supported** — architectural distance is the explicit effort proxy traded off against performance/reliability/antipattern objectives.
 
-**Notes / fixes required:** 
+**Notes / fixes required:**
+- `.bib` metadata: add `volume = {157}`, `pages = {107159}` (article number), `doi = {10.1016/j.infsof.2023.107159}`.
 
 ---
 
@@ -1509,19 +1522,19 @@ Process in this priority order:
 
 **Checklist:**
 
-- [ ] 1. Metadata complete for entry type
-- [ ] 2. Metadata accurate against canonical source
-- [ ] 3. Source obtainable (DOI / arXiv / local PDF)
-- [ ] 4. All cite sites enumerated below
-- [ ] 5. Each cite site's claim is supported by the source
-- [ ] 6. No internal contradiction across cite sites
+- [x] 1. Metadata complete for entry type
+- [x] 2. Metadata accurate against canonical source
+- [x] 3. Source obtainable (DOI / arXiv / local PDF) — wiki page live
+- [x] 4. All cite sites enumerated below
+- [x] 5. Each cite site's claim is supported by the source
+- [x] 6. No internal contradiction across cite sites
 
 **Cite sites:**
 
 1. `architecture/architecture.tex:93` — claim: "The Eclipse JDT FAQ~\cite{eclipse_jdt_faq} distinguishes two deployment modes: bare-classpath (for parser and AST features) and runtime-workbench (for workspace-dependent features)."
-   - Source support: 
+   - Source support: **Loosely supported** — FAQ explicitly says "JDT Core has no dependency on UI side, however it requires a runtime-workbench. Hence you can use it in an Eclipse headless application or include all the dependent jar files in the class path of your application. (You will have to use ASTParser.setSource() and ASTParser.setEnvironment() to be able to parse non Eclipse Java projects.)" The thesis's "two deployment modes" framing is a defensible paraphrase of this — the FAQ describes one approach (workbench) and a documented workaround (bare classpath via ASTParser configuration). The "bare-classpath for parser/AST features" and "runtime-workbench for workspace-dependent features" labels are the thesis's, not the FAQ's, but they accurately describe what the FAQ documents.
 
-**Notes / fixes required:** 
+**Notes / fixes required:** None for content. The label "(2026)" reflects when the wiki page was accessed (current); FAQ pages are living docs. Consider adding `urldate = {2026-05-XX}` to `.bib` for clarity, but not required.
 
 ---
 
@@ -1535,45 +1548,46 @@ Process in this priority order:
 
 **Checklist:**
 
-- [ ] 1. Metadata complete for entry type
-- [ ] 2. Metadata accurate against canonical source
-- [ ] 3. Source obtainable (DOI / arXiv / local PDF)
-- [ ] 4. All cite sites enumerated below
-- [ ] 5. Each cite site's claim is supported by the source
-- [ ] 6. No internal contradiction across cite sites
+- [x] 1. Metadata complete for entry type
+- [x] 2. Metadata accurate against canonical source
+- [x] 3. Source obtainable (DOI / arXiv / local PDF) — GitHub repo live
+- [x] 4. All cite sites enumerated below
+- [x] 5. Each cite site's claim is supported by the source
+- [x] 6. No internal contradiction across cite sites
 
 **Cite sites:**
 
 1. `architecture/architecture.tex:93` — claim: "The reference implementation is the Eclipse JDT Language Server~\cite{eclipse_jdtls}, maintained by the Eclipse Foundation as a headless JDT distribution."
-   - Source support: 
+   - Source support: **Supported** — README confirms project is a Java LSP implementation built on Eclipse JDT, maintained under the `eclipse-jdtls` GitHub org (Eclipse Foundation stewardship via Eclipse CI, EPL 2.0 license). "Headless JDT distribution" is a fair description — the LSP server runs headlessly and is built atop the JDT bundles. Minor caveat: README phrases the project as a language server built on JDT/LSP4J/M2Eclipse/Buildship rather than literally "headless JDT distribution", but the gloss is accurate.
 
-**Notes / fixes required:** 
+**Notes / fixes required:** None.
 
 ---
 
 ### `eilertsen2024refactorings`
 
 - **Type / title:** article — "A Study of Refactorings during Software Change Tasks" (2024)
-- **Authors:** Eilertsen, Anna Maria
+- **Authors:** Eilertsen, Anna Maria and Murphy, Gail C. (.bib currently missing Murphy — needs fix)
 - **Venue:** Journal of Software: Evolution and Process
 - **DOI / URL:** 10.1002/smr.2378
 - **Local PDF:** —
 
 **Checklist:**
 
-- [ ] 1. Metadata complete for entry type
-- [ ] 2. Metadata accurate against canonical source
-- [ ] 3. Source obtainable (DOI / arXiv / local PDF)
-- [ ] 4. All cite sites enumerated below
-- [ ] 5. Each cite site's claim is supported by the source
-- [ ] 6. No internal contradiction across cite sites
+- [x] 1. Metadata complete for entry type
+- [ ] 2. Metadata accurate against canonical source — FAIL: co-author Gail C. Murphy (UBC) missing from author list
+- [x] 3. Source obtainable (DOI / arXiv / local PDF) — Wiley Online Library
+- [x] 4. All cite sites enumerated below
+- [x] 5. Each cite site's claim is supported by the source
+- [x] 6. No internal contradiction across cite sites
 
 **Cite sites:**
 
 1. `background/background.tex:211` — claim: "Empirical observational studies independently confirm that real-world refactoring proceeds as ordered sequences of operations interleaved with other change activities \cite{eilertsen2024refactorings}, motivating the trajectory-level framing adopted in this thesis."
-   - Source support: 
+   - Source support: **Supported** — observational study of 17 professional developers on 3 change tasks; finds developers' workflow strategies shape opportunities for refactoring, with refactorings intermixed with other change activities during change tasks. Aligns with the "interleaved with other change activities" framing. "Ordered sequences of operations" is a reasonable paraphrase of the developer-strategy framing.
 
-**Notes / fixes required:** 
+**Notes / fixes required:**
+- `.bib` author-list fix: add `and Murphy, Gail C.` so the entry reads `author = {Eilertsen, Anna Maria and Murphy, Gail C.}`.
 
 ---
 
@@ -1609,25 +1623,26 @@ Process in this priority order:
 
 - **Type / title:** inproceedings — "A Practical Model for Measuring Maintainability" (2007)
 - **Authors:** Heitlager, Ilja and Kuipers, Tobias and Visser, Joost
-- **Venue:** Proceedings of the 6th International Conference on the Quality of Information and Communications Technology (QUATIC)
+- **Venue:** Proceedings of the 6th International Conference on the Quality of Information and Communications Technology (QUATIC), pp. 30–39
 - **DOI / URL:** 10.1109/QUATIC.2007.8
 - **Local PDF:** —
 
 **Checklist:**
 
-- [ ] 1. Metadata complete for entry type
-- [ ] 2. Metadata accurate against canonical source
-- [ ] 3. Source obtainable (DOI / arXiv / local PDF)
-- [ ] 4. All cite sites enumerated below
-- [ ] 5. Each cite site's claim is supported by the source
-- [ ] 6. No internal contradiction across cite sites
+- [ ] 1. Metadata complete for entry type — FAIL (missing pages)
+- [x] 2. Metadata accurate against canonical source
+- [x] 3. Source obtainable (DOI / arXiv / local PDF) — open PDF on ResearchGate + Open Universiteit mirror
+- [x] 4. All cite sites enumerated below
+- [x] 5. Each cite site's claim is supported by the source
+- [x] 6. No internal contradiction across cite sites
 
 **Cite sites:**
 
 1. `methodology/methodology.tex:133` — claim: "Duplication           & 1.0 & Heitlager et al. 2007~\cite{heitlager2007sig}; Fowler 1999~\cite{fowler1999refactoring} & CPD-detected cloned lines on touched files \\"
-   - Source support: 
+   - Source support: **Supported** — SIG maintainability model explicitly includes duplication as one of six source-code properties (volume, complexity, duplication, unit length, # units, # modules) mapped onto ISO 9126 maintainability sub-characteristics. Heitlager et al. is the canonical citation for treating duplication as a first-class maintainability sub-signal.
 
-**Notes / fixes required:** 
+**Notes / fixes required:**
+- `.bib` metadata: add `pages = {30--39}`.
 
 ---
 
@@ -1635,77 +1650,82 @@ Process in this priority order:
 
 - **Type / title:** inproceedings — "An empirical study on the effect of the order of applying software refactoring" (2016)
 - **Authors:** Khrishe, Younes and Alshayeb, Mohammad
-- **Venue:** Proceedings of the 7th International Conference on Computer Science and Information Technology (CSIT)
+- **Venue:** Proceedings of the 7th International Conference on Computer Science and Information Technology (CSIT), Amman, Jordan, pp. 1–4
 - **DOI / URL:** 10.1109/CSIT.2016.7549471
 - **Local PDF:** —
 
 **Checklist:**
 
-- [ ] 1. Metadata complete for entry type
-- [ ] 2. Metadata accurate against canonical source
-- [ ] 3. Source obtainable (DOI / arXiv / local PDF)
-- [ ] 4. All cite sites enumerated below
-- [ ] 5. Each cite site's claim is supported by the source
-- [ ] 6. No internal contradiction across cite sites
+- [ ] 1. Metadata complete for entry type — FAIL (missing pages)
+- [x] 2. Metadata accurate against canonical source
+- [x] 3. Source obtainable (DOI / arXiv / local PDF) — IEEE Xplore abstract
+- [x] 4. All cite sites enumerated below
+- [x] 5. Each cite site's claim is supported by the source
+- [x] 6. No internal contradiction across cite sites
 
 **Cite sites:**
 
 1. `results/results.tex:221` — claim: "Prior empirical work either claims order matters based on interactions between code smells~\cite{liu2009smell} or tests on a single small fixture without checking AST equivalence~\cite{khrishe2016empirical}."
-   - Source support: 
+   - Source support: **Supported** — paper runs 6 experiments applying 3 refactoring methods in different orders, evaluating via software metrics at the end of each sequence. The 4-page conference paper is consistent with "single small fixture" framing; methodology is metric-based without an AST-equivalence check.
 
-**Notes / fixes required:** 
+**Notes / fixes required:**
+- `.bib` metadata: add `pages = {1--4}`, `address = {Amman, Jordan}`.
 
 ---
 
 ### `kim2011apilevel`
 
 - **Type / title:** inproceedings — "An Empirical Investigation into the Role of API-Level Refactorings during Software Evolution" (2011)
-- **Authors:** Kim, Miryung and Cai, Danny and Kim, Sunghun
-- **Venue:** Proceedings of the 33rd International Conference on Software Engineering (ICSE)
-- **DOI / URL:** —
+- **Authors:** Kim, Miryung and Cai, Dongxiang and Kim, Sunghun (.bib currently says "Cai, Danny" — needs fix)
+- **Venue:** Proceedings of the 33rd International Conference on Software Engineering (ICSE), pp. 151–160
+- **DOI / URL:** 10.1145/1985793.1985815
 - **Local PDF:** —
 
 **Checklist:**
 
-- [ ] 1. Metadata complete for entry type
-- [ ] 2. Metadata accurate against canonical source
-- [ ] 3. Source obtainable (DOI / arXiv / local PDF)
-- [ ] 4. All cite sites enumerated below
-- [ ] 5. Each cite site's claim is supported by the source
-- [ ] 6. No internal contradiction across cite sites
+- [ ] 1. Metadata complete for entry type — FAIL (missing DOI and pages)
+- [ ] 2. Metadata accurate against canonical source — FAIL: middle author is "Dongxiang Cai", not "Danny" (DBLP, ACM DL)
+- [x] 3. Source obtainable (DOI / arXiv / local PDF) — ACM DL
+- [x] 4. All cite sites enumerated below
+- [x] 5. Each cite site's claim is supported by the source
+- [x] 6. No internal contradiction across cite sites
 
 **Cite sites:**
 
 1. `introduction/introduction.tex:5` — claim: "At the same time, refactoring can be costly: it consumes developer time, introduces risk, and is frequently intertwined with other work such as feature development and bug fixing rather than occurring as isolated ``refactoring-only'' tasks \cite{murphyhill2009howrefactor,kim2011apilevel}."
-   - Source support: 
+   - Source support: **Loosely supported** — Kim et al. study API-level refactorings in Eclipse / JEdit / Columba and find that API-level refactorings occur during software evolution (including around bug-fix and feature work, e.g. "more frequently before than after major software releases"). This is a reasonable general reference for the "intertwined with other work" framing. The primary load-bearing citation for this sentence is Murphy-Hill et al. 2009, who explicitly characterise floss-refactoring (refactoring intertwined with other change activities); Kim et al. is a secondary citation.
 
-**Notes / fixes required:** 
+**Notes / fixes required:**
+- `.bib` author-name fix: change `Cai, Danny` to `Cai, Dongxiang`.
+- `.bib` metadata: add `doi = {10.1145/1985793.1985815}`, `pages = {151--160}`.
 
 ---
 
 ### `liu2009smell`
 
 - **Type / title:** inproceedings — "Facilitating software refactoring with appropriate resolution order of bad smells" (2009)
-- **Authors:** Liu, Hui and Yang, Lu and Niu, Zhendong and Ma, Zhiyi and Shao, Weizhong
-- **Venue:** Proceedings of the 7th Joint Meeting of the European Software Engineering Conference and the ACM SIGSOFT Symposium on the Foundations of Software Engineering (ESEC/FSE)
+- **Authors:** Liu, Hui and Yang, Limei and Niu, Zhendong and Ma, Zhiyi and Shao, Weizhong (.bib has "Yang, Lu" — may need fix; see Notes)
+- **Venue:** Proceedings of the 7th Joint Meeting of the European Software Engineering Conference and the ACM SIGSOFT Symposium on the Foundations of Software Engineering (ESEC/FSE), pp. 265–268
 - **DOI / URL:** 10.1145/1595696.1595738
 - **Local PDF:** —
 
 **Checklist:**
 
-- [ ] 1. Metadata complete for entry type
-- [ ] 2. Metadata accurate against canonical source
-- [ ] 3. Source obtainable (DOI / arXiv / local PDF)
-- [ ] 4. All cite sites enumerated below
-- [ ] 5. Each cite site's claim is supported by the source
-- [ ] 6. No internal contradiction across cite sites
+- [ ] 1. Metadata complete for entry type — FAIL (missing pages)
+- [ ] 2. Metadata accurate against canonical source — POSSIBLE FAIL: ACM DL lists second author as "Limei Yang", .bib says "Lu Yang" — confirm against ACM
+- [x] 3. Source obtainable (DOI / arXiv / local PDF) — ACM DL
+- [x] 4. All cite sites enumerated below
+- [x] 5. Each cite site's claim is supported by the source
+- [x] 6. No internal contradiction across cite sites
 
 **Cite sites:**
 
 1. `results/results.tex:221` — claim: "Prior empirical work either claims order matters based on interactions between code smells~\cite{liu2009smell} or tests on a single small fixture without checking AST equivalence~\cite{khrishe2016empirical}."
-   - Source support: 
+   - Source support: **Supported** — abstract: "We have a bunch of bad smells, refactoring rules, and refactoring tools, but we do not know which kind of bad smells should be resolved first." Paper proposes appropriate resolution order for bad smells (i.e. order matters based on smell interactions). Direct match for thesis claim.
 
-**Notes / fixes required:** 
+**Notes / fixes required:**
+- `.bib` metadata: add `pages = {265--268}`.
+- Confirm second author: ACM DL search returned "Limei Yang"; .bib has "Lu Yang". Could be a romanization variant of the same person — verify against ACM author profile / canonical listing before treating as a definitive correction.
 
 ---
 
@@ -1713,25 +1733,26 @@ Process in this priority order:
 
 - **Type / title:** inproceedings — "Detection Strategies: Metrics-Based Rules for Detecting Design Flaws" (2004)
 - **Authors:** Marinescu, Radu
-- **Venue:** Proceedings of the 20th IEEE International Conference on Software Maintenance (ICSM)
+- **Venue:** Proceedings of the 20th IEEE International Conference on Software Maintenance (ICSM), Chicago, IL, USA, pp. 350–359
 - **DOI / URL:** 10.1109/ICSM.2004.1357820
 - **Local PDF:** —
 
 **Checklist:**
 
-- [ ] 1. Metadata complete for entry type
-- [ ] 2. Metadata accurate against canonical source
-- [ ] 3. Source obtainable (DOI / arXiv / local PDF)
-- [ ] 4. All cite sites enumerated below
-- [ ] 5. Each cite site's claim is supported by the source
-- [ ] 6. No internal contradiction across cite sites
+- [ ] 1. Metadata complete for entry type — FAIL (missing pages, address)
+- [x] 2. Metadata accurate against canonical source
+- [x] 3. Source obtainable (DOI / arXiv / local PDF) — open PDF on Academia.edu / ptidej course mirror
+- [x] 4. All cite sites enumerated below
+- [x] 5. Each cite site's claim is supported by the source
+- [x] 6. No internal contradiction across cite sites
 
 **Cite sites:**
 
 1. `methodology/methodology.tex:135` — claim: "Smells                & 1.0 & Marinescu 2004~\cite{marinescu2004}; Arcelli Fontana et al. 2016~\cite{arcellifontana2016falsepositives}; Moha et al. 2010~\cite{moha2010decor} & PMD violation count on touched files \\"
-   - Source support: 
+   - Source support: **Loosely supported** — Marinescu introduces detection strategies: metrics-based rules that combine multiple OO metrics (WMC, TCC, ATFD, etc.) to detect ~10 design flaws (God Class, God Method, Data Class, Refused Bequest, etc.). Canonical reference for rule-based smell detection as a category. The thesis uses PMD (a different rule-based tool) but the underlying technique (metric/rule combinations identifying design flaws) traces back to Marinescu. Acceptable as a "category citation" alongside the other two smell-detection references.
 
-**Notes / fixes required:** 
+**Notes / fixes required:**
+- `.bib` metadata: add `pages = {350--359}`, `address = {Chicago, IL, USA}`.
 
 ---
 
@@ -1739,25 +1760,26 @@ Process in this priority order:
 
 - **Type / title:** article — "Analysing refactoring dependencies using graph transformation" (2007)
 - **Authors:** Mens, Tom and Taentzer, Gabriele and Runge, Olga
-- **Venue:** Software and Systems Modeling (SoSyM)
+- **Venue:** Software and Systems Modeling (SoSyM), vol. 6, no. 3, pp. 269–285
 - **DOI / URL:** 10.1007/s10270-006-0044-6
 - **Local PDF:** —
 
 **Checklist:**
 
-- [ ] 1. Metadata complete for entry type
-- [ ] 2. Metadata accurate against canonical source
-- [ ] 3. Source obtainable (DOI / arXiv / local PDF)
-- [ ] 4. All cite sites enumerated below
-- [ ] 5. Each cite site's claim is supported by the source
-- [ ] 6. No internal contradiction across cite sites
+- [ ] 1. Metadata complete for entry type — FAIL (missing volume/number/pages)
+- [x] 2. Metadata accurate against canonical source
+- [x] 3. Source obtainable (DOI / arXiv / local PDF) — preprint on ResearchGate
+- [x] 4. All cite sites enumerated below
+- [x] 5. Each cite site's claim is supported by the source
+- [x] 6. No internal contradiction across cite sites
 
 **Cite sites:**
 
 1. `results/results.tex:221` — claim: "Mens, Taentzer and Runge~\cite{mens2007graph} show that refactorings as graph transformations with parallel independence (empty critical pairs) means every permutation reaches the same final state, and IDE refactorings are designed to have this property."
-   - Source support: 
+   - Source support: **Supported** — paper represents refactorings as graph transformations and applies critical-pair analysis to detect implicit dependencies/conflicts between refactorings. Keywords include "critical pair analysis" and "sequential independence". The result the thesis paraphrases (empty critical pairs ⇒ parallel-independent ⇒ commuting / order-invariant terminal state) is the standard algebraic-graph-transformation result the paper builds on. The IDE-design parenthetical is the thesis's framing, not the paper's, but the underlying claim about parallel-independence is the paper's central technical apparatus.
 
-**Notes / fixes required:** 
+**Notes / fixes required:**
+- `.bib` metadata: add `volume = {6}`, `number = {3}`, `pages = {269--285}`.
 
 ---
 
@@ -1794,32 +1816,34 @@ Process in this priority order:
 ### `moha2010decor`
 
 - **Type / title:** article — "DECOR: A Method for the Specification and Detection of Code and Design Smells" (2010)
-- **Authors:** Moha, Naouel and others
-- **Venue:** IEEE Transactions on Software Engineering
-- **DOI / URL:** —
+- **Authors:** Moha, Naouel and Gu\'eh\'eneuc, Yann-Ga\"el and Duchien, Laurence and Le Meur, Anne-Fran\c{c}oise (.bib currently "and others" — needs expansion)
+- **Venue:** IEEE Transactions on Software Engineering, vol. 36, no. 1, pp. 20–36
+- **DOI / URL:** 10.1109/TSE.2009.50
 - **Local PDF:** —
 
 **Checklist:**
 
-- [ ] 1. Metadata complete for entry type
-- [ ] 2. Metadata accurate against canonical source
-- [ ] 3. Source obtainable (DOI / arXiv / local PDF)
-- [ ] 4. All cite sites enumerated below
-- [ ] 5. Each cite site's claim is supported by the source
-- [ ] 6. No internal contradiction across cite sites
+- [ ] 1. Metadata complete for entry type — FAIL (missing volume/number/pages/doi/co-authors)
+- [ ] 2. Metadata accurate against canonical source — FAIL: author list elided as "and others"; canonical has 4 named authors
+- [x] 3. Source obtainable (DOI / arXiv / local PDF) — open Inria HAL and IRISA mirrors
+- [x] 4. All cite sites enumerated below
+- [x] 5. Each cite site's claim is supported by the source
+- [x] 6. No internal contradiction across cite sites
 
 **Cite sites:**
 
 1. `background/background.tex:51` — claim: "A prominent rule-based system is DECOR, which defines smells and design anti-patterns using a set of measurable symptoms and corresponding detection rules \cite{moha2010decor}."
-   - Source support: 
+   - Source support: **Supported** — abstract states DECOR is "a method that embodies and defines all the steps necessary for the specification and detection of code and design smells" via a high-level DSL that generates detection algorithms. The 4 anti-patterns (Blob, Functional Decomposition, Spaghetti Code, Swiss Army Knife) and 15 underlying code smells are specified using a consistent vocabulary. Direct match for "measurable symptoms and detection rules".
 2. `background/background.tex:85` — claim: "DECOR-style detectors \cite{moha2010decor}; other smell tools \cite{paiva2017evaluation} \\"
-   - Source support: 
+   - Source support: **Supported** — "DECOR-style" is the standard shorthand in the smell-detection literature for the DSL-based, rule-driven approach DECOR introduces.
 3. `background/background.tex:235` — claim: "it assesses refactoring success by looking at changes in quality indicators between start and end snapshots, including structural metrics and smell-based proxies \cite{harman2007pareto,moha2010decor}."
-   - Source support: 
+   - Source support: **Loosely supported** — DECOR is primarily about *specifying* and *detecting* smells, not about assessing refactoring success per se. The "smell-based proxies" framing is a defensible link (smell counts are a natural quality proxy) but the paper itself does not centrally argue this. Acceptable as a category citation; the load-bearing citation for refactoring-success measurement should be `harman2007pareto`.
 4. `methodology/methodology.tex:135` — claim: "Smells                & 1.0 & Marinescu 2004~\cite{marinescu2004}; Arcelli Fontana et al. 2016~\cite{arcellifontana2016falsepositives}; Moha et al. 2010~\cite{moha2010decor} & PMD violation count on touched files \\"
-   - Source support: 
+   - Source support: **Loosely supported** — DECOR is a rule-based smell detector (PMD is a different one); citation justifies "rule-based smell detection" as a category, not PMD-specifically. Defensible alongside Marinescu and Arcelli Fontana.
 
-**Notes / fixes required:** 
+**Notes / fixes required:**
+- `.bib` author-list fix: replace `and others` with `and Gu\'eh\'eneuc, Yann-Ga\"el and Duchien, Laurence and Le Meur, Anne-Fran\c{c}oise`.
+- `.bib` metadata: add `volume = {36}`, `number = {1}`, `pages = {20--36}`, `doi = {10.1109/TSE.2009.50}`.
 
 ---
 
@@ -1912,91 +1936,111 @@ Process in this priority order:
 
 ### `poncin2011processmining`
 
-- **Type / title:** inproceedings — "Process Mining Software Development Workflows" (2011)
+- **Type / title:** inproceedings — "Process Mining Software Repositories" (2011) — **NOTE: canonical title is "Repositories", not "Development Workflows"**
 - **Authors:** Poncin, Wouter and Serebrenik, Alexander and van den Brand, Mark
-- **Venue:** Proceedings of the 15th European Conference on Software Maintenance and Reengineering (CSMR)
-- **DOI / URL:** 10.1109/CSMR.2011.50
+- **Venue:** Proceedings of the 15th European Conference on Software Maintenance and Reengineering (CSMR), pp. 5–13
+- **DOI / URL:** 10.1109/CSMR.2011.5 (canonical; .bib currently has 10.1109/CSMR.2011.50 — confirm)
 - **Local PDF:** —
 
 **Checklist:**
 
-- [ ] 1. Metadata complete for entry type
-- [ ] 2. Metadata accurate against canonical source
-- [ ] 3. Source obtainable (DOI / arXiv / local PDF)
-- [ ] 4. All cite sites enumerated below
-- [ ] 5. Each cite site's claim is supported by the source
-- [ ] 6. No internal contradiction across cite sites
+- [ ] 1. Metadata complete for entry type — FAIL (missing pages; DOI/title need verification)
+- [ ] 2. Metadata accurate against canonical source — FAIL: canonical title is "Process Mining Software Repositories" (TU/e Research Portal); .bib has "...Software Development Workflows". DOI also differs.
+- [x] 3. Source obtainable (DOI / arXiv / local PDF) — TU/e portal, IEEE Xplore, SciSpace PDF mirror
+- [x] 4. All cite sites enumerated below
+- [x] 5. Each cite site's claim is supported by the source — see Notes; this hinges on whether the cited paper is the "Repositories" CSMR 2011 paper or a different Poncin/Serebrenik/van den Brand work
+- [x] 6. No internal contradiction across cite sites
 
 **Cite sites:**
 
 1. `background/background.tex:221` — claim: "Poncin et al.\ use Eclipse plugins to collect detailed event logs and then apply process mining techniques to infer developer workflows \cite{poncin2011processmining}."
-   - Source support: 
+   - Source support: **Loosely supported** — the canonical "Process Mining Software Repositories" paper (CSMR 2011) is about combining heterogeneous repositories (VCS, bug trackers, mail archives) with process mining via FRASR/ProM, not centrally about Eclipse-plugin event logs. The "Eclipse plugins to collect event logs" framing is closer to the FRASR companion work / Damevski-style telemetry. If the thesis means this specific 2011 CSMR paper, the "Eclipse plugins" phrasing is a misleading paraphrase; if it means a related Poncin/Serebrenik/van den Brand work, the citation key may be wrong. **Recommend the user verify which paper is intended.**
 2. `background/background.tex:226` — claim: "The process mining and interaction analysis literature highlights that segmenting activity into tasks/episodes is not trivial \cite{poncin2011processmining,damevski2017usagesmells}."
-   - Source support: 
+   - Source support: **Loosely supported** — Poncin et al. discuss combining heterogeneous repositories which inherently involves activity segmentation; not a verbatim claim but consistent with the paper's stance on process-mining over noisy repository data.
 3. `background/background.tex:235` — claim: "Finally, IDE logging research shows that fine-grained traces can be captured and analysed, but it also highlights challenges around the segmentation and interpretation of them \cite{poncin2011processmining,damevski2017usagesmells,foutsekh2018interactiontraces}."
-   - Source support: 
+   - Source support: **Loosely supported** — same caveat; Poncin focuses on repositories rather than IDE traces, so this citation site reads better with `damevski2017usagesmells` and `foutsekh2018interactiontraces` doing the heavy lifting.
 
-**Notes / fixes required:** 
+**Notes / fixes required:**
+- `.bib` title fix: change `"Process Mining Software Development Workflows"` → `"Process Mining Software Repositories"`.
+- `.bib` DOI: confirm against TU/e portal — search returned 10.1109/CSMR.2011.5 (page 5–13 paper); the .bib has 10.1109/CSMR.2011.50 which may be a different paper in the same proceedings. Recheck on IEEE Xplore proceedings listing.
+- `.bib` metadata: add `pages = {5--13}`.
+- **Consider rewording the `background.tex:221` "Eclipse plugins to collect event logs" claim**, since the canonical Poncin paper is about VCS/bug-tracker/mail repositories, not IDE-event logs. The "Eclipse plugin" framing belongs to FRASR or to Damevski's later IDE-telemetry work.
 
 ---
 
 ### `wagner2015quamoco`
 
 - **Type / title:** article — "Operationalised Product Quality Models and Assessment: The Quamoco Approach" (2015)
-- **Authors:** Wagner, Stefan and Goeb, Andreas and Heinemann, Lars and Kl\"as, Michael and Lampasona, Constanza and Lochmann, Klaus and M\"ader, Patrick and Pl\"osch, Reinhold and Saft, Matthias and Streit, J\"urgen and Trendowicz, Adam
-- **Venue:** Information and Software Technology
-- **DOI / URL:** —
+- **Authors:** Wagner, Stefan and Goeb, Andreas and Heinemann, Lars and Kl\"as, Michael and Lampasona, Constanza and Lochmann, Klaus and Mayr, Alois and Pl\"osch, Reinhold and Seidl, Andreas and Streit, J\"urgen and Trendowicz, Adam (.bib currently has "M\"ader, Patrick" and "Saft, Matthias" — likely wrong; see Notes)
+- **Venue:** Information and Software Technology, vol. 62, pp. 101–123
+- **DOI / URL:** 10.1016/j.infsof.2015.02.009; arXiv:1611.09230
 - **Local PDF:** —
 
 **Checklist:**
 
-- [ ] 1. Metadata complete for entry type
-- [ ] 2. Metadata accurate against canonical source
-- [ ] 3. Source obtainable (DOI / arXiv / local PDF)
-- [ ] 4. All cite sites enumerated below
-- [ ] 5. Each cite site's claim is supported by the source
-- [ ] 6. No internal contradiction across cite sites
+- [ ] 1. Metadata complete for entry type — FAIL (missing volume/pages/doi)
+- [ ] 2. Metadata accurate against canonical source — FAIL: search result shows "Mayr, Seidl" (not "Mäder, Saft") in the canonical author list. Verify against the arXiv preprint and Elsevier listing before applying a correction.
+- [x] 3. Source obtainable (DOI / arXiv / local PDF) — arXiv:1611.09230 (open-access preprint)
+- [x] 4. All cite sites enumerated below
+- [x] 5. Each cite site's claim is supported by the source
+- [x] 6. No internal contradiction across cite sites
 
 **Cite sites:**
 
 1. `methodology/methodology.tex:144` — claim: "Wagner et al.'s Quamoco framework~\cite{wagner2015quamoco} and the QMOOD quality model~\cite{bansiya2002qmood} both use this kind of layered weighted-sum aggregation, which is a defensible choice when there is no calibration data to fit the weights against."
-   - Source support: 
+   - Source support: **Supported** — abstract describes "a meta quality model defines the structure of operationalised quality models. The approach links abstract quality characteristics to concrete measurements through a layered aggregation mechanism". Direct match for "layered weighted-sum aggregation" framing.
 
-**Notes / fixes required:** 
+**Notes / fixes required:**
+- `.bib` metadata: add `volume = {62}`, `pages = {101--123}`, `doi = {10.1016/j.infsof.2015.02.009}`.
+- **Verify co-author names against arXiv:1611.09230**: search returned `Mayr, A.` and `Seidl, A.` where .bib has `Mäder, Patrick` and `Saft, Matthias`. The latter two could be wrong — Patrick Mäder works on traceability (different research line) and Matthias Saft is not obviously connected. Highly likely .bib needs correction to `Mayr, Alois` and `Seidl, Andreas`.
 
 ---
 
 ### `wang2018traceability`
 
-- **Type / title:** article — "(title placeholder)" (2018)
-- **Authors:** Wang and others
-- **Venue:** (journal placeholder)
-- **DOI / URL:** —
+- **Type / title:** article — "Recommending Refactoring Solutions Based on Traceability and Code Metrics" (2018) — **NOTE: identified from cite-site context; first author is Nyamawe, not Wang. Citekey is misleading.**
+- **Authors:** Nyamawe, Ally S. and Liu, Hui and Niu, Zhendong and Wang, Wentao and Niu, Nan
+- **Venue:** IEEE Access, vol. 6, pp. 49460–49475
+- **DOI / URL:** 10.1109/ACCESS.2018.2868990
 - **Local PDF:** —
 
 **Checklist:**
 
-- [ ] 1. Metadata complete for entry type
-- [ ] 2. Metadata accurate against canonical source
-- [ ] 3. Source obtainable (DOI / arXiv / local PDF)
-- [ ] 4. All cite sites enumerated below
-- [ ] 5. Each cite site's claim is supported by the source
-- [ ] 6. No internal contradiction across cite sites
+- [ ] 1. Metadata complete for entry type — FAIL: stub entry (.bib has empty title, "and others" author, no venue/journal)
+- [ ] 2. Metadata accurate against canonical source — FAIL (entire entry must be replaced; see Notes)
+- [x] 3. Source obtainable (DOI / arXiv / local PDF) — IEEE Access (open-access journal); homepages.uc.edu mirror
+- [x] 4. All cite sites enumerated below
+- [x] 5. Each cite site's claim is supported by the source
+- [x] 6. No internal contradiction across cite sites
 
 **Cite sites:**
 
 1. `background/background.tex:38` — claim: "For example, some systems extend beyond structure-based metrics by incorporating additional information such as requirements traceability, arguing that designs can be ``better'' not only in properties derivable from the code structure, but also in maintainability tasks like impact analysis \cite{wang2018traceability}."
-   - Source support: 
+   - Source support: **Supported** — Nyamawe et al. 2018 abstract: "compare and select among alternative refactoring solutions based on their impact on metrics of source code. However, their impact on the traceability between source code and requirements is ignored although the importance of such traceability has been well recognized." Direct match for the "extend beyond structure metrics by incorporating requirements traceability" framing.
 2. `background/background.tex:110` — claim: "Traceability-based ranking methods \cite{wang2018traceability} \\"
-   - Source support: 
+   - Source support: **Supported** — paper explicitly proposes ranking alternative refactoring solutions by their impact on requirements traceability.
 3. `background/background.tex:189` — claim: "Approaches that include traceability treat ``quality'' as partly determined by how well requirements map to code, and they are motivated by maintenance tasks like impact analysis and comprehension \cite{wang2018traceability}."
-   - Source support: 
+   - Source support: **Supported** — paper uses entropy-based traceability quality measures derived from requirements-to-code mappings as a quality dimension alongside coupling/cohesion.
 4. `background/background.tex:199` — claim: "and broaden ``quality'' beyond structural metrics where additional artefacts exist (e.g., traceability) \cite{wang2018traceability}."
-   - Source support: 
+   - Source support: **Supported** — same claim as site 1.
 5. `background/background.tex:235` — claim: "and that ``quality'' may need to include contextual objectives beyond just structural metrics \cite{wang2018traceability,whydevelopersrefactor2020,metricsmotivation2024}."
-   - Source support: 
+   - Source support: **Supported** — traceability is a contextual objective explicitly raised alongside structural metrics in the paper.
 
-**Notes / fixes required:** Bib entry is a stub — title, journal, author list are placeholders and require filling in.
+**Notes / fixes required (HIGH PRIORITY — current `.bib` entry is a stub):**
+- **Replace stub entry entirely**. Canonical `.bib`:
+  ```
+  @article{wang2018traceability,
+    author  = {Nyamawe, Ally S. and Liu, Hui and Niu, Zhendong and Wang, Wentao and Niu, Nan},
+    title   = {Recommending Refactoring Solutions Based on Traceability and Code Metrics},
+    journal = {IEEE Access},
+    volume  = {6},
+    pages   = {49460--49475},
+    year    = {2018},
+    doi     = {10.1109/ACCESS.2018.2868990}
+  }
+  ```
+- **Consider renaming the citekey** to `nyamawe2018traceability` to reflect actual first author. If left as `wang2018traceability` (a defensible shortcut), at least document the choice — Wentao Wang is the 4th of 5 authors.
+- All five thesis cite sites are well-supported by the canonical paper; no thesis-side rewrites are needed once the bib stub is replaced.
 
 ---
 

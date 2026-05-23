@@ -3,48 +3,44 @@ Capacity: max_strings=200000, hash_size=200000, hash_prime=170003
 The top-level auxiliary file: main.aux
 The style file: unsrt.bst
 Database file #1: bibs/sample.bib
-Warning--empty journal in bouzenia2025trajectories
-Warning--empty title in wang2018traceability
-Warning--empty journal in wang2018traceability
 You've used 67 entries,
             1791 wiz_defined-function locations,
-            796 strings with 17061 characters,
-and the built_in function-call counts, 16219 in all, are:
-= -- 1463
-> -- 735
-< -- 16
-+ -- 271
-- -- 204
-* -- 960
-:= -- 2490
-add.period$ -- 223
+            816 strings with 18043 characters,
+and the built_in function-call counts, 18126 in all, are:
+= -- 1674
+> -- 811
+< -- 23
++ -- 296
+- -- 229
+* -- 1166
+:= -- 2721
+add.period$ -- 227
 call.type$ -- 67
-change.case$ -- 63
+change.case$ -- 64
 chr.to.int$ -- 0
-cite$ -- 70
-duplicate$ -- 787
-empty$ -- 1622
-format.name$ -- 204
-if$ -- 3737
+cite$ -- 67
+duplicate$ -- 851
+empty$ -- 1771
+format.name$ -- 229
+if$ -- 4193
 int.to.chr$ -- 0
 int.to.str$ -- 67
 missing$ -- 67
 newline$ -- 343
 num.names$ -- 67
-pop$ -- 258
+pop$ -- 237
 preamble$ -- 1
 purify$ -- 0
 quote$ -- 0
-skip$ -- 396
+skip$ -- 454
 stack$ -- 0
-substring$ -- 909
-swap$ -- 226
-text.length$ -- 16
+substring$ -- 1196
+swap$ -- 277
+text.length$ -- 23
 text.prefix$ -- 0
 top$ -- 0
 type$ -- 0
-warning$ -- 3
-while$ -- 145
+warning$ -- 0
+while$ -- 173
 width$ -- 69
-write$ -- 740
-(There were 3 warnings)
+write$ -- 763
