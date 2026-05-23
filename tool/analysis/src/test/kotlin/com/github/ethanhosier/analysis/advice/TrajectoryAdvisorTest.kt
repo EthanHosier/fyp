@@ -111,37 +111,68 @@ class TrajectoryAdvisorTest {
 
     @Test
     fun `long stretch without commit fires CRITICAL when no commits at all`() {
-        val cps = (1..5).map { cp("s$it") }
-        val item = advise(cps).single { it.kind == AdviceKind.LONG_STRETCH_WITHOUT_COMMIT }
+        // 6 green-refactor checkpoints, no commits — `longest` = 6 → CRITICAL.
+        val cps = (1..6).map { cp("s$it") }
+        val refs = (1..6).map { refStep(toSha = "s$it", ideRelevant = false) }
+        val item = advise(cps, refactoringSteps = refs)
+            .single { it.kind == AdviceKind.LONG_STRETCH_WITHOUT_COMMIT }
         assertEquals(AdviceSeverity.CRITICAL, item.severity)
         assertTrue("never committed" in item.title.lowercase() || "never" in item.title)
     }
 
     @Test
-    fun `long stretch without commit fires INFO at 6 to 11 checkpoints`() {
-        // 7 checkpoints, no commits — `longest` = 7 → INFO.
+    fun `long stretch without commit does not fire when no checkpoint is green-refactor`() {
+        // 10 checkpoints with no refactoring steps landing — `longest` = 0.
+        // Mirrors the score-formula's commit-gap term, which does not penalise
+        // sessions whose checkpoints are not green-refactor.
+        val cps = (1..10).map { cp("s$it") }
+        val items = advise(cps)
+        assertNull(items.firstOrNull { it.kind == AdviceKind.LONG_STRETCH_WITHOUT_COMMIT })
+    }
+
+    @Test
+    fun `long stretch without commit fires INFO at 6 to 11 green-refactor checkpoints`() {
+        // 7 green-refactor checkpoints, plus a separate user commit — `longest` = 7 → INFO.
         val cps = (1..7).map { cp("s$it") }
+        val refs = (1..7).map { refStep(toSha = "s$it", ideRelevant = false) }
         val commit = userCommit("commitsha")
-        val item = advise(cps, commits = listOf(commit))
+        val item = advise(cps, commits = listOf(commit), refactoringSteps = refs)
             .single { it.kind == AdviceKind.LONG_STRETCH_WITHOUT_COMMIT }
         assertEquals(AdviceSeverity.INFO, item.severity)
-        assertTrue("7 checkpoints" in item.body)
+        assertTrue("was 7" in item.body)
     }
 
     @Test
     fun `long stretch without commit fires WARNING at 12 or more`() {
         val cps = (1..14).map { cp("s$it") }
+        val refs = (1..14).map { refStep(toSha = "s$it", ideRelevant = false) }
         val commit = userCommit("c")
-        val item = advise(cps, commits = listOf(commit))
+        val item = advise(cps, commits = listOf(commit), refactoringSteps = refs)
             .single { it.kind == AdviceKind.LONG_STRETCH_WITHOUT_COMMIT }
         assertEquals(AdviceSeverity.WARNING, item.severity)
     }
 
     @Test
     fun `long stretch without commit does not fire on short runs with commits`() {
-        // Three checkpoints, with a commit landing on the second — longest run = 2.
-        val cps = listOf(cp("s1"), cp("s2"), cp("s3"))
-        val items = advise(cps, commits = listOf(userCommit("s2")))
+        // Three green-refactor checkpoints, with a commit on the second —
+        // longest contiguous green-refactor run = 2, below threshold.
+        val cps = listOf(cp("s1"), cp("s2", isUserCommit = true), cp("s3"))
+        val refs = listOf(
+            refStep(toSha = "s1", ideRelevant = false),
+            refStep(toSha = "s2", ideRelevant = false),
+            refStep(toSha = "s3", ideRelevant = false),
+        )
+        val items = advise(cps, commits = listOf(userCommit("s2")), refactoringSteps = refs)
+        assertNull(items.firstOrNull { it.kind == AdviceKind.LONG_STRETCH_WITHOUT_COMMIT })
+    }
+
+    @Test
+    fun `long stretch ignores broken-build checkpoints`() {
+        // 8 checkpoints, every one has a refactor landing, but every other
+        // one is build-broken. Only 4 are green-refactor. Below threshold.
+        val cps = (1..8).map { cp("s$it", buildSuccess = it % 2 == 1) }
+        val refs = (1..8).map { refStep(toSha = "s$it", ideRelevant = false) }
+        val items = advise(cps, refactoringSteps = refs)
         assertNull(items.firstOrNull { it.kind == AdviceKind.LONG_STRETCH_WITHOUT_COMMIT })
     }
 
@@ -299,12 +330,23 @@ class TrajectoryAdvisorTest {
 
     @Test
     fun `multiple rules can fire on the same report`() {
+        // Mix of broken-build and green-refactor checkpoints so all four
+        // rules trigger: BUILD_OFTEN_BROKEN (3 of 9 broken),
+        // SMELLS_ACCUMULATED_NET (1 → 12), PROCESS_SCORE_DEGRADED (80 → 30),
+        // LONG_STRETCH_WITHOUT_COMMIT (6 green-refactor in a row, no commit).
         val cps = listOf(
             cp("s1", buildSuccess = false, processTotal = 80, smells = 1),
             cp("s2", buildSuccess = false, processTotal = 60, smells = 10),
             cp("s3", buildSuccess = false, processTotal = 50, smells = 12),
+            cp("s4", processTotal = 45, smells = 12),
+            cp("s5", processTotal = 40, smells = 12),
+            cp("s6", processTotal = 38, smells = 12),
+            cp("s7", processTotal = 35, smells = 12),
+            cp("s8", processTotal = 32, smells = 12),
+            cp("s9", processTotal = 30, smells = 12),
         )
-        val items = advise(cps)
+        val refs = (4..9).map { refStep(toSha = "s$it", ideRelevant = false) }
+        val items = advise(cps, refactoringSteps = refs)
         val kinds = items.map { it.kind }.toSet()
         assertTrue(AdviceKind.BUILD_OFTEN_BROKEN in kinds)
         assertTrue(AdviceKind.SMELLS_ACCUMULATED_NET in kinds)
@@ -360,9 +402,11 @@ class TrajectoryAdvisorTest {
         smells: Int = 0,
         processTotal: Int = 50,
         pmdTracking: PmdTracking = PmdTracking.EMPTY,
+        isUserCommit: Boolean = false,
     ): CheckpointReport = CheckpointReport(
         sha = sha,
         events = emptyList(),
+        isUserCommit = isUserCommit,
         metrics = CheckpointMetrics(
             sha = sha,
             ck = CkResult(perClass = emptyList()),

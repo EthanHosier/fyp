@@ -80,49 +80,65 @@ object TrajectoryAdvisor {
     private fun adviseLongStretchWithoutCommit(report: AnalysisReport): AdviceItem? {
         val total = report.checkpoints.size
         if (total < 3) return null
+        val longest = longestGreenRefactorRunBetweenCommits(report)
+        if (longest < MIN_COMMIT_GAP) return null
         val commits = report.userGitCommits.size
         if (commits == 0) {
             return AdviceItem(
                 kind = AdviceKind.LONG_STRETCH_WITHOUT_COMMIT,
                 severity = AdviceSeverity.CRITICAL,
                 title = "You never committed during this session",
-                body = "You went $total checkpoints with no commit. Commits are " +
-                    "cheap restore points; without them you can't bisect, can't " +
-                    "revert cleanly, and your PR diff balloons.",
+                body = "You accumulated $longest green-refactor checkpoints with no commit. " +
+                    "Commits are cheap restore points; without them you can't bisect, " +
+                    "can't revert cleanly, and your PR diff balloons.",
             )
         }
-        val longest = longestRunBetweenCommits(report)
-        if (longest < 6) return null
         val severity = if (longest < 12) AdviceSeverity.INFO else AdviceSeverity.WARNING
         return AdviceItem(
             kind = AdviceKind.LONG_STRETCH_WITHOUT_COMMIT,
             severity = severity,
             title = "Long stretch without committing",
-            body = "Your longest run without a commit was $longest checkpoints. " +
-                "Smaller, more frequent commits give you restore points and keep " +
-                "PR diffs reviewable.",
+            body = "Your longest run of green-refactor checkpoints between commits was " +
+                "$longest. Smaller, more frequent commits give you restore points " +
+                "and keep PR diffs reviewable.",
         )
     }
 
     /**
-     * Returns the max number of checkpoints in any contiguous run with
-     * no user commit landing on a checkpoint within it. Counts from
-     * session start (or last commit) up to session end (or next commit).
+     * Mirrors the `greenSinceLastCommit` counter in DerivedMetricsRunner
+     * so the advice rule fires on the same condition that drives the
+     * COMMIT_GAP divergence point and the score-formula commit-gap
+     * penalty: a contiguous run of green-refactor checkpoints (refactor
+     * step landed, build passing, tests passing-not-skipped) without a
+     * user commit landing within the run. Non-refactor and non-green
+     * checkpoints don't add to the counter; user-commit checkpoints
+     * close the run.
      */
-    private fun longestRunBetweenCommits(report: AnalysisReport): Int {
-        val commitShas = report.userGitCommits.map { it.sha }.toSet()
+    private fun longestGreenRefactorRunBetweenCommits(report: AnalysisReport): Int {
+        val refactorTouchedShas = report.refactoringSteps.map { it.toSha }.toSet()
         var longest = 0
         var run = 0
         for (cp in report.checkpoints) {
-            run++
-            if (cp.sha in commitShas) {
-                if (run > longest) longest = run
-                run = 0
+            val landsRefactor = cp.sha in refactorTouchedShas
+            val tests = cp.metrics.tests
+            val testsOk = !tests.wasSkipped && tests.success
+            val greenRefactor = landsRefactor && cp.metrics.build.success && testsOk
+            when {
+                cp.isUserCommit -> {
+                    if (run > longest) longest = run
+                    run = 0
+                }
+                greenRefactor -> run += 1
             }
         }
         if (run > longest) longest = run
         return longest
     }
+
+    // Matches ScoringConfig.minCommitGap default; the advice rule must
+    // not fire below this threshold or it diverges from the COMMIT_GAP
+    // divergence point and the score-formula commit-gap penalty.
+    private const val MIN_COMMIT_GAP = 6
 
     private fun adviseRefactoringIntroducedSmells(report: AnalysisReport): AdviceItem? {
         val cpBySha = report.checkpoints.associateBy { it.sha }
