@@ -402,6 +402,9 @@ INPUT /usr/local/texlive/2025/texmf-dist/fonts/tfm/jknappen/ec/ecbx0600.tfm
 INPUT ./threats/threats.tex
 INPUT ./threats/threats.tex
 INPUT threats/threats.tex
+INPUT ./conclusion/conclusion.tex
+INPUT ./conclusion/conclusion.tex
+INPUT conclusion/conclusion.tex
 INPUT ./project_plan/project_plan.tex
 INPUT ./project_plan/project_plan.tex
 INPUT project_plan/project_plan.tex

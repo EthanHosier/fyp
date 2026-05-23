@@ -4,7 +4,7 @@ DO IN `final_report/`, not `interim_report/`. The latter is frozen.
 
 ## Context
 
-The user study has now wrapped (12 human sessions + 6 agent sessions). The results chapter §5 is substantively complete. Remaining work is the three follow-on chapters and the report-wide polish pass. Per `MENG_PROJECT_ASSESSMENT_CRITERIA.md` the rubric splits 15 / 50 / 20 / 15 across Framing / Execution / Evaluation / Communication; the items below are tagged by which band they're aimed at moving.
+The user study has wrapped (12 human sessions + 6 agent sessions). The results chapter §5 is substantively complete, the threats-to-validity chapter §6 is done, and the conclusion chapter §7 is now done. Remaining work is the §5 read-through, the appendix wiring, the GenAI disclosure, and the bibliography pass. Per `MENG_PROJECT_ASSESSMENT_CRITERIA.md` the rubric splits 15 / 50 / 20 / 15 across Framing / Execution / Evaluation / Communication; the items below are tagged by which band they're aimed at moving.
 
 ## Chronological writeup order
 
@@ -16,12 +16,13 @@ The user study has now wrapped (12 human sessions + 6 agent sessions). The resul
 | 4 | Tool architecture chapter | 2 days | ✅ **done** | Execution 50% |
 | 5 | Experiments + results chapter | 1 week | ✅ **done** (substantive) | Execution 50% + Evaluation 20% |
 | 5b | §5 final read-through | ½ day | **pending** | Communication 15% |
-| 6 | Threats-to-validity / discussion | 2 days | **pending** | Evaluation 20% (highest leverage) |
-| 7 | Conclusion + future work | 1 day | **pending** | Evaluation 20% + Framing 15% |
+| 6 | Threats-to-validity / discussion | 2 days | ✅ **done** | Evaluation 20% (highest leverage) |
+| 7 | Conclusion + future work | 1 day | ✅ **done** | Evaluation 20% + Framing 15% |
 | 8 | Bibliography audit | ½ day | **pending** | Communication 15% |
 | 9 | GenAI disclosure appendix | ½ day | **pending** | Communication 15% (caps band at 50–59% if absent) |
+| 9b | Port agent transcript into appendix | ½ day | **pending** | Resolves `app:agent-transcript` cross-references from §5.4.2 |
 
-**Total remaining: ~4.5 days of focused writeup.**
+**Total remaining: ~1.5 days of focused writeup.**
 
 ## Where §5 landed (recap of this session's work)
 
@@ -53,25 +54,36 @@ Single pass focused on three drift sources after the cumulative editing this ses
 
 The substantive results work is done; this is polish.
 
-### 6. Threats-to-validity / discussion (2 days, Evaluation 20% — highest leverage)
+### 6. Threats-to-validity / discussion — ✅ **done**
 
-Currently: `final_report/evaluation/evaluation.tex` is $11$ lines. The §5 chapter cross-references "the threats-to-validity chapter" multiple times and those refs resolve to an essentially empty section.
+Landed as `final_report/threats/threats.tex` (new directory; the stale `evaluation/evaluation.tex` interim-plan stub was left orphaned in main.tex). Chapter heading **"Threats to validity"**, label `ch:threats`. Wired into `main.tex` between results and project_plan.
 
-Source material is in hand:
-- `tool/THREATS-TO-VALIDITY.md` — $80$ lines of bullet content organised by validity axis (construct / internal-calibration / external-corpus / statistical / kind-classifier-specific / agent-specific / user-study-specific / rater-study-specific / implementation / out-of-scope).
-- Per-experiment caveats are already inline in §5 — the chapter should consolidate them rather than re-derive.
+Renders at $\sim 6$ pages with eight subsections:
 
-Target shape: $3$–$5$ pages of structured prose. One subsection per validity axis. Lead with **what was mitigated** (κ on 45 sessions; multi-recorder corpus via P1 + P2; deterministic tie-break; honest score-floor clamping disclosure; relaxed validator-check disclosure). Then **what remains open** — explicit n=2 + no-control-condition for the user study; n=1 agent; structural IDE-refactor-surface limitation for the agent; codebase-familiarity confound; per-session-not-per-step TP classification; ORDERING-recall scope-out.
+- **§6.1 Mitigations and design choices** — leads with eight bullets covering what the design already addresses (three-way κ, multi-recorder fixture, deterministic tie-break, multi-knob MC, score-floor disclosure, validator-check disclosure, notebook reproducibility, per-session-not-per-step TP disclosure).
+- **§6.2 Construct validity** — five paragraphs: no external ground truth, score-not-maintainability-index, four-kind taxonomy is methodology choice, `SuboptimalOrdering` author-claimed, AST-equivalence audit informal.
+- **§6.3 Internal validity** — eight paragraphs: single-knob vs multi-knob, no rater-rank validation, cleanliness sub-weights uniform, two batching primitives heuristic, production weights hand-picked, term-importance varies by session type (connects to gain-stripped finding), reorder dependency analysis coarse (with the audit-found correction that only `RenameMethod`/`ChangeMethodSignature`/`ParameterizeVariable`/`ParameterizeAttribute` are coarse), cleanliness clamp does not affect magnitudes by construction (validator forces same terminal AST).
+- **§6.4 External validity** — five paragraphs: scoped exercises not naturalistic, $n=2$ user study, $n=1$ agent, single-author IntelliJ/Gradle Java, refactoring kinds outside synthesiser capability excluded.
+- **§6.5 Statistical conclusion validity** — three short paragraphs on κ CIs, τ-b brittleness, no multiple-comparison correction.
+- **§6.6 Per-experiment threats** — four paragraphs (kind classifier, user study with Hawthorne + task-style framing, agent comparison, rater study).
+- **§6.7 Implementation threats** — wrap-and-patch incompleteness, reorder enumerator size budget (windows >$7$ steps skipped, capped at $7! = 5040$).
+- **§6.8 Out of scope** — six items (multi-agent, longitudinal, cross-IDE, weight refitting, live dashboard, rater-rank).
 
-### 7. Conclusion + future work (1 day, Evaluation 20% + Framing 15%)
+Key cross-chapter corrections shipped during §6 drafting:
+- Methodology §3.6 corrected: previously said "DAG sizes are small (most brackets contain 2–8 steps), enumeration terminates quickly" — now discloses the hard $7$-step budget consistent with the code and the threats chapter.
+- Architecture §4.6 corrected: enumeration paragraph now mentions the size budget alongside the dependency-DAG pruning.
+- §5.4 gain-stripped paragraph reframed: dropped "design doesn't separate feedback from codebase familiarity" framing (the gain-stripped subscore is constructed precisely to be codebase-knowledge-independent), replaced with Hawthorne + task-style-familiarity confounds.
+- Wohlin et al. 2012 bib entry added to `bibs/sample.bib` for the four-axis framework citation.
 
-Currently: `final_report/conclusion/conclusion.tex` is $0$ lines.
+### 7. Conclusion + future work — ✅ **done**
 
-Target shape: $2$–$3$ pages.
+Landed as `final_report/conclusion/conclusion.tex`, wired into `main.tex` between threats and project_plan. Resolves the previously-undefined `\ref{ch:conclusion}` in threats.tex. Five subsections:
 
-- **Contribution restatement**: what was built (score formula + four-kind detector + per-kind alt synthesisers + IntelliJ plugin + JCEF dashboard + analysis pipeline), what was found (the headline numbers: precision $1.00$ × four kinds, top-1 stability ≥ $95\%$, gain-stripped human improvement curve, agent qualitative behavioural threads), what generalises and what does not.
-- **Future work**: multi-agent comparison; multi-language / cross-IDE port; ORDERING recall via relaxed validator check; persistent learning across agent sessions; dashboard-mode live feedback (vs current session-replay); IDE-refactor-as-agent-tool-call deployment that would close the IDE_REPLAY gap; longitudinal validation against external code-quality outcomes (named as future work, infeasible at MEng scope).
-- **What we cannot claim**: causation from the user-study trajectory ($n=2$, no control); generalisability to team-PR workflows; weight calibration against an external outcome dataset.
+- **§7.1 Summary of contributions** — two main contributions (process-quality score $J$ and divergence-point detector, with the four per-kind synthesisers folded in as detector-internal), plus supporting deliverables (corpus, plugin, dashboard, notebook).
+- **§7.2 Headline findings** — five paragraphs: commuting-refactoring observation, kind-classifier precision $1.00$, top-1 stability ($95.0\%$ single-knob, $77.0\%$ multi-knob), gain-stripped process-discipline arc for P1/P2, agent course-correction within its tool surface with the IDE-replay limitation correctly attributed to missing tool surface rather than agent failure.
+- **§7.3 What the work supports and what it does not** — four-claim supports list; the "does not" paragraph reframed away from a laundry-list of limitations toward "claims left for follow-up work".
+- **§7.4 Future work** — eight prioritised items, led by larger-and-controlled human study (the largest single gap), then multi-agent comparison, rater-rank validation, IDE-refactor-as-agent-tool, live-feedback dashboard, cross-IDE/cross-language, reorder beam search, relaxed validator gate.
+- **§7.5 Closing** — single paragraph returning to the introduction's gap framing.
 
 ### 8. Bibliography audit (½ day, Communication 15%)
 
@@ -84,11 +96,13 @@ Rubric explicitly requires this; without it the Communication band caps at $50$�
 ## Critical files
 
 - `final_report/results/results.tex` — substantively complete; needs the §5 read-through (task 5b).
-- `final_report/evaluation/evaluation.tex` — currently stub; needs full §6 draft (task 6).
-- `final_report/conclusion/conclusion.tex` — empty; needs full §7 draft (task 7).
-- `final_report/appendix/appendix.tex` — currently has agent-transcript label only; add GenAI appendix (task 9).
-- `final_report/bibs/sample.bib` — needs audit (task 8).
-- `tool/THREATS-TO-VALIDITY.md` — source-of-truth bullets for §6.
+- `final_report/threats/threats.tex` — ✅ done (Chapter 6).
+- `final_report/evaluation/evaluation.tex` — stale interim-plan stub; not included in main.tex; safe to ignore or delete.
+- `final_report/conclusion/conclusion.tex` — ✅ done (Chapter 7).
+- `final_report/appendix/appendix.tex` — currently has agent-transcript label only; needs the transcript content ported in (task 9b) and the GenAI appendix appended (task 9).
+- `final_report/bibs/sample.bib` — needs audit (task 8). Wohlin 2012 entry already added during §6 drafting.
+- `tool/THREATS-TO-VALIDITY.md` — base bullet source consumed by §6.
+- `tool/PLAN-threats-to-validity-audit.md` — audit additions consumed by §6.
 
 ## What is in hand
 

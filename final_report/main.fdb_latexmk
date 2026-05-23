@@ -1,13 +1,13 @@
 # Fdb version 4
-["bibtex main"] 1779561430.78928 "main.aux" "main.bbl" "main" 1779561563.07192 0
+["bibtex main"] 1779562898.38319 "main.aux" "main.bbl" "main" 1779565517.58876 0
   "./bibs/sample.bib" 1779551643.93169 37576 33e8de792236b52a84e744e965d7db4f ""
   "/usr/local/texlive/2025/texmf-dist/bibtex/bst/base/unsrt.bst" 1292289607 18030 1376b4b231b50c66211e47e42eda2875 ""
-  "main.aux" 1779561562.69475 53835 d88018c3e409180b0450c97d8850e38f "pdflatex"
+  "main.aux" 1779565517.20972 55111 9e75649cb7c283966d553955b0f30617 "pdflatex"
   (generated)
   "main.bbl"
   "main.blg"
   (rewritten before read)
-["pdflatex"] 1779561561.57997 "main.tex" "main.pdf" "main" 1779561563.07211 0
+["pdflatex"] 1779565516.09242 "main.tex" "main.pdf" "main" 1779565517.58895 0
   "/usr/local/texlive/2025/texmf-dist/fonts/enc/dvips/cm-super/cm-super-t1.enc" 1136849721 2971 def0b6c1f0b107b3b936def894055589 ""
   "/usr/local/texlive/2025/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc" 1136849721 2900 1537cc8184ad1792082cd229ecc269f4 ""
   "/usr/local/texlive/2025/texmf-dist/fonts/map/fontname/texfonts.map" 1577235249 3524 cb3e574dea2d1052e39280babc910dc8 ""
@@ -262,16 +262,17 @@
   "architecture/architecture.tex" 1779561555.22914 24077 27274352c7cf29ae7d6487e16e61f2da ""
   "architecture/dashboard_image.png" 1779466692.61397 774274 07e0137bd4416e9f45e3f33a975f64f0 ""
   "background/background.tex" 1779216729.42178 43638 ae6179b66f63d76d2574951ba54679fa ""
+  "conclusion/conclusion.tex" 1779565510.18677 10416 24cda59b866f9fc9745798eea48d8801 ""
   "ethics/ethics.tex" 1779216729.4232 3100 1b90ad211dc7df75d66c395670caed5e ""
   "introduction/divergence_diagram.png" 1779216729.42377 61745 d2075585b040459d55aa99682c67edc1 ""
   "introduction/introduction.tex" 1779216729.4243 11657 57cdec59f1f3ba49792ee62e92b889e1 ""
-  "main.aux" 1779561562.69475 53835 d88018c3e409180b0450c97d8850e38f "pdflatex"
-  "main.bbl" 1779561430.89913 17433 c5dfbea3e8595bc96a03ab73b242d83a "bibtex main"
-  "main.lof" 1779561562.69935 1737 fd017bb171bcc8765c152c174f3ab00d "pdflatex"
-  "main.lot" 1779561562.69937 7001 830f9b4f4d4baf70beed4fe930e72c40 "pdflatex"
-  "main.out" 1779561562.69869 18051 177b9df7a92160e91b4cd4e7d0f00e3f "pdflatex"
-  "main.tex" 1779551611.84208 1460 3169da17288484479fdd8511fae6c982 ""
-  "main.toc" 1779561562.69931 15166 5ef858a0dc3909ca8ff514205ebe38bb "pdflatex"
+  "main.aux" 1779565517.20972 55111 9e75649cb7c283966d553955b0f30617 "pdflatex"
+  "main.bbl" 1779562898.50049 17433 c5dfbea3e8595bc96a03ab73b242d83a "bibtex main"
+  "main.lof" 1779565517.2144 1757 fc85fbfbcc288f875f2d2bf5fab271c6 "pdflatex"
+  "main.lot" 1779565517.21443 7021 be78c0483d3b0d25919f7d839d9def7c "pdflatex"
+  "main.out" 1779565517.2142 18966 2d9ac1ae5c5044ced767fbc64b1134f1 "pdflatex"
+  "main.tex" 1779562892.08888 1494 984f5b4cb5a0e19337da3cf844daadad ""
+  "main.toc" 1779565517.21438 15640 9f27efef61cc114475b82a7568dcec94 "pdflatex"
   "methodology/methodology.tex" 1779561492.65798 41589 5ffb371c2c3fbc7e0edf4bbb53ab7071 ""
   "project_plan/project_plan.tex" 1779216729.45213 1547 45fc2e533221dae12492004b4a713b4a ""
   "results/results.tex" 1779559992.68801 74697 06ef17c198b4ef2c6ec52a8b79e12423 ""

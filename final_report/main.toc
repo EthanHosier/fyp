@@ -160,8 +160,14 @@
 \contentsline {paragraph}{The rater study (\S \ref {sec:results-kappa}).}{56}{section*.106}%
 \contentsline {section}{\numberline {6.7}Implementation threats}{56}{section.6.7}%
 \contentsline {section}{\numberline {6.8}Out of scope}{56}{section.6.8}%
-\contentsline {chapter}{\numberline {7}Project Plan and Timetable (Jan--Jun 2026)}{57}{chapter.7}%
-\contentsline {paragraph}{Work completed so far (as of 21 Jan 2026).}{57}{section*.107}%
-\contentsline {paragraph}{Timeline in 5 phases (Jan $\rightarrow $ end of June).}{57}{section*.108}%
-\contentsline {chapter}{\numberline {8}Ethical Issues and Data Handling Plan}{58}{chapter.8}%
-\contentsline {chapter}{\numberline {A}Agent session transcript}{59}{appendix.A}%
+\contentsline {chapter}{\numberline {7}Conclusion}{57}{chapter.7}%
+\contentsline {section}{\numberline {7.1}Summary of contributions}{57}{section.7.1}%
+\contentsline {section}{\numberline {7.2}Headline findings}{57}{section.7.2}%
+\contentsline {section}{\numberline {7.3}What the work supports and what it does not}{58}{section.7.3}%
+\contentsline {section}{\numberline {7.4}Future work}{58}{section.7.4}%
+\contentsline {section}{\numberline {7.5}Closing}{59}{section.7.5}%
+\contentsline {chapter}{\numberline {8}Project Plan and Timetable (Jan--Jun 2026)}{60}{chapter.8}%
+\contentsline {paragraph}{Work completed so far (as of 21 Jan 2026).}{60}{section*.107}%
+\contentsline {paragraph}{Timeline in 5 phases (Jan $\rightarrow $ end of June).}{60}{section*.108}%
+\contentsline {chapter}{\numberline {9}Ethical Issues and Data Handling Plan}{61}{chapter.9}%
+\contentsline {chapter}{\numberline {A}Agent session transcript}{62}{appendix.A}%
