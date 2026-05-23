@@ -70,7 +70,7 @@
 \contentsline {section}{\numberline {3.7}Manual-refactor synthesiser}{27}{section.3.7}%
 \contentsline {section}{\numberline {3.8}Rework synthesiser}{27}{section.3.8}%
 \contentsline {section}{\numberline {3.9}Hygiene synthesisers}{27}{section.3.9}%
-\contentsline {section}{\numberline {3.10}Validator and behaviour preservation}{27}{section.3.10}%
+\contentsline {section}{\numberline {3.10}Validator and behaviour preservation}{28}{section.3.10}%
 \contentsline {section}{\numberline {3.11}Rater design}{28}{section.3.11}%
 \contentsline {chapter}{\numberline {4}Tool Architecture}{29}{chapter.4}%
 \contentsline {section}{\numberline {4.1}Architecture at a glance}{29}{section.4.1}%
