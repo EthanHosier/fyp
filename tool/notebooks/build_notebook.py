@@ -725,6 +725,97 @@ code(r"""kinds.map { k ->
     )
 }.toDataFrame()""")
 
+md(r"""### Process score trajectory: production weights and gain-stripped weights
+
+For each session, the trajectory-final process score is computed twice: once under
+`ScoringConfig.PRODUCTION` (the formula used everywhere else in this chapter) and once
+under a copy with the cleanliness-gain weight `W_g` set to zero. The gain-stripped view
+isolates the process-discipline terms (broken-time, skipped-tests, manual-when-IDE,
+length bonus, commit-gap) from the cleanliness-gain term, mirroring the §5.1.2 ablation
+finding that `W_g` acts as a regularizer on divergence-point ranking. Reproduces
+Table~\ref{tab:results-userstudy-scores} in §5.4.""")
+
+code(r"""// Helper: take a session map and a (sessionId -> index) extractor, return six
+// final-checkpoint process scores in arc order (S1..S6) under the given config.
+fun arcScores(
+    sessions: Map<String, PhaseAResult>,
+    indexOf: (String) -> Int?,
+    cfg: ScoringConfig,
+): List<Int> {
+    val byIdx = sessions.entries.mapNotNull { (sid, pa) ->
+        indexOf(sid)?.let { it to pa }
+    }.toMap()
+    return (1..6).map { i ->
+        byIdx[i]?.let { ReportAssembler.assemble(it, cfg).checkpoints.last()
+            .derivedMetrics?.process?.total } ?: -1
+    }
+}
+
+// Re-derive a gain-stripped config in-memory so the notebook is self-contained.
+val gainZero = ScoringConfig.PRODUCTION.copy(
+    process = ScoringConfig.PRODUCTION.process.copy(gain = 0.0),
+)
+
+// P1 = will-NN, P2 = yukie-NN, agent = NN-agent.
+fun p1Idx(sid: String) = Regex("^will-(\\d+)$").find(sid)?.groupValues?.get(1)?.toIntOrNull()
+fun p2Idx(sid: String) = Regex("^yukie-(\\d+)$").find(sid)?.groupValues?.get(1)?.toIntOrNull()
+fun agIdx(sid: String) = Regex("^(\\d+)-agent$").find(sid)?.groupValues?.get(1)?.toIntOrNull()
+
+val rows = listOf(
+    Triple("P1 (production)", userStudy, ::p1Idx) to ScoringConfig.PRODUCTION,
+    Triple("P1 (gain=0)",     userStudy, ::p1Idx) to gainZero,
+    Triple("P2 (production)", userStudy, ::p2Idx) to ScoringConfig.PRODUCTION,
+    Triple("P2 (gain=0)",     userStudy, ::p2Idx) to gainZero,
+    Triple("Agent (production)", agent,  ::agIdx) to ScoringConfig.PRODUCTION,
+    Triple("Agent (gain=0)",     agent,  ::agIdx) to gainZero,
+).map { (label, cfg) ->
+    val scores = arcScores(label.second, label.third, cfg)
+    val mean = scores.filter { it >= 0 }.average()
+    mapOf("actor" to label.first) +
+        (1..6).associate { "S$it" to scores[it - 1] } +
+        ("mean" to "%.1f".format(mean))
+}
+rows.toDataFrame()""")
+
+md(r"""### Per-session broken-build percentage by actor
+
+Broken wall-clock time divided by total session wall-clock time, parsed from the
+final checkpoint's `process.contributions[broken].detail` string. These percentages
+surface on the dashboard as the `BUILD_OFTEN_BROKEN` advice item when they cross the
+$15\%$ warning threshold or the $30\%$ critical threshold. Reproduces the per-session
+broken-build numbers cited in §5.4.2 Thread 1.""")
+
+code(r"""// Parse details like "1m04s of 4m44s broken (23%) - 4 of 10 checkpoint".
+val brokenPctRe = Regex("\\((\\d+)%\\)")
+
+fun brokenPct(sessions: Map<String, PhaseAResult>, indexOf: (String) -> Int?): List<Int> {
+    val byIdx = sessions.entries.mapNotNull { (sid, pa) -> indexOf(sid)?.let { it to pa } }.toMap()
+    return (1..6).map { i ->
+        val pa = byIdx[i] ?: return@map -1
+        val report = ReportAssembler.assemble(pa, ScoringConfig.PRODUCTION)
+        val last = report.checkpoints.lastOrNull() ?: return@map -1
+        val contrib = last.derivedMetrics?.process?.contributions?.firstOrNull { it.id == "broken" }
+        val detail = contrib?.detail ?: return@map 0
+        brokenPctRe.find(detail)?.groupValues?.get(1)?.toIntOrNull() ?: 0
+    }
+}
+
+val brokenRows = listOf(
+    "P1"    to ::p1Idx,
+    "P2"    to ::p2Idx,
+    "Agent" to ::agIdx,
+).map { (label, idx) ->
+    val pcts = brokenPct(if (label == "Agent") agent else userStudy, idx)
+    val nonMissing = pcts.filter { it >= 0 }
+    val mean = if (nonMissing.isNotEmpty()) nonMissing.average() else 0.0
+    val peak = nonMissing.maxOrNull() ?: 0
+    mapOf("actor" to label) +
+        (1..6).associate { "S$it" to "${pcts[it - 1]}%" } +
+        ("mean" to "%.1f%%".format(mean)) +
+        ("peak" to "$peak%")
+}
+brokenRows.toDataFrame()""")
+
 # ---------------------------------------------------------------- write
 
 nb = {

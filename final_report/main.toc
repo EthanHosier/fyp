@@ -122,14 +122,15 @@
 \contentsline {subsection}{\numberline {5.3.1}User study}{44}{subsection.5.3.1}%
 \contentsline {paragraph}{Descriptive findings on the participants' sessions.}{44}{section*.72}%
 \contentsline {paragraph}{Behavioural trajectory across the six-session arc.}{45}{section*.74}%
-\contentsline {paragraph}{Per-step inspection as a usability win.}{46}{section*.76}%
-\contentsline {subsection}{\numberline {5.3.2}Agent comparison}{46}{subsection.5.3.2}%
-\contentsline {paragraph}{Behavioural threads from the agent's own reflections.}{47}{section*.79}%
-\contentsline {paragraph}{Thread 1: commit cadence, over-corrected and then resolved.}{47}{section*.80}%
-\contentsline {paragraph}{Thread 2: smell-introduction feedback produced a specific self-critique.}{48}{section*.81}%
-\contentsline {paragraph}{Thread 3: agent acknowledges the structural IDE-replay limitation.}{48}{section*.82}%
-\contentsline {chapter}{\numberline {6}Project Plan and Timetable (Jan--Jun 2026)}{49}{chapter.6}%
-\contentsline {paragraph}{Work completed so far (as of 21 Jan 2026).}{49}{section*.83}%
-\contentsline {paragraph}{Timeline in 5 phases (Jan $\rightarrow $ end of June).}{49}{section*.84}%
-\contentsline {chapter}{\numberline {7}Ethical Issues and Data Handling Plan}{50}{chapter.7}%
-\contentsline {chapter}{\numberline {A}Agent session transcript}{51}{appendix.A}%
+\contentsline {paragraph}{Process scores under the production and gain-stripped weightings.}{46}{section*.76}%
+\contentsline {paragraph}{Per-step inspection as a usability win.}{47}{section*.78}%
+\contentsline {subsection}{\numberline {5.3.2}Agent comparison}{47}{subsection.5.3.2}%
+\contentsline {paragraph}{Behavioural threads from the agent's own reflections.}{48}{section*.81}%
+\contentsline {paragraph}{Thread 1: commit cadence, over-corrected and then resolved.}{48}{section*.82}%
+\contentsline {paragraph}{Thread 2: smell-introduction feedback produced a specific self-critique.}{49}{section*.83}%
+\contentsline {paragraph}{Thread 3: agent acknowledges the structural IDE-replay limitation.}{49}{section*.84}%
+\contentsline {chapter}{\numberline {6}Project Plan and Timetable (Jan--Jun 2026)}{50}{chapter.6}%
+\contentsline {paragraph}{Work completed so far (as of 21 Jan 2026).}{50}{section*.85}%
+\contentsline {paragraph}{Timeline in 5 phases (Jan $\rightarrow $ end of June).}{50}{section*.86}%
+\contentsline {chapter}{\numberline {7}Ethical Issues and Data Handling Plan}{51}{chapter.7}%
+\contentsline {chapter}{\numberline {A}Agent session transcript}{52}{appendix.A}%
