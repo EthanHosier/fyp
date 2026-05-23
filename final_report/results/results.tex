@@ -259,8 +259,10 @@ The two imperfect kinds show specific disagreement patterns. Rework disagreement
 
 The third experiment evaluates the divergence-point detector itself against ground truth. For each of the $45$ recorded sessions, the analysis pipeline generates a report using the production weights and compares the report's divergence points against the session's \texttt{expected\_kinds} label (the set of kinds a perfect detector would surface alternatives for) and the implied injection kind from the session's playbook pattern. The output is a $54$-column row per session covering per-kind classification (true and false positives and negatives), magnitude statistics, and injection prominence; the full sweep takes roughly $5$ seconds of wall-clock time. The headline numbers, expanded in the parts below, are perfect precision on all four kinds (rework, hygiene, ordering, and IDE-replay all at $1.00$), and every caught injection ranked at top-$1$ within its own session.
 
-\paragraph{Detection accuracy.}
-Table~\ref{tab:results-divergence-accuracy} reports per-kind precision and recall. Rework and hygiene are perfect on both axes: $9$ of $9$ rework injections and $13$ of $13$ hygiene injections are caught at $1.00$ precision. IDE-replay is also precision-perfect. Ordering has perfect precision but only $0.36$ recall on any-expected (and $0.40$ recall on injection-only), because the reorder synthesiser's \texttt{splitOnInvalid} validator gate (\S\ref{sec:methodology-reorder}) disqualifies any window containing a step the synthesiser engine cannot reproduce, and on this session set most ordering-injection windows contain at least one such step. The recall gap is documented and deliberate - its rationale is in \S\ref{sec:results-scoped-out}. Per-kind inter-rater reliability of these labels, against two independent raters, is reported in \S\ref{sec:results-userstudy}.
+\paragraph{Precision and recall.}
+We report precision and recall as separate numbers rather than rolling them into F1 or accuracy. The reason is that the two kinds of mistake the detector can make are not equally bad: if the detector shows the user an alternative that doesn't really exist (a precision miss), it actively misleads them and wastes their time; if the detector quietly fails to show an alternative that would have helped (a recall miss), the user is no worse off than if they had never opened the dashboard. Treating these as the same kind of error, the way F1 does, would hide the difference. Accuracy is also unhelpful here because most of the cells in the per-kind confusion matrix are true negatives --- a detector that does nothing at all would still score around $75\%$ accuracy on these refactoring sessions, which doesn't tell the reader anything useful.
+
+Table~\ref{tab:results-divergence-prec-recall} reports per-kind precision and recall. Rework and hygiene are perfect on both axes: $9$ of $9$ rework injections and $13$ of $13$ hygiene injections are caught at $1.00$ precision. IDE-replay is also precision-perfect. Ordering has perfect precision but only $0.36$ recall on any-expected (and $0.40$ recall on injection-only), because the reorder synthesiser's \texttt{splitOnInvalid} validator gate (\S\ref{sec:methodology-reorder}) disqualifies any window containing a step the synthesiser engine cannot reproduce, and on this session set most ordering-injection windows contain at least one such step. The recall gap is documented and deliberate - its rationale is in \S\ref{sec:results-scoped-out}. Per-kind inter-rater reliability of these labels, against two independent raters, is reported in \S\ref{sec:results-kappa}.
 
 \begin{table}[htbp]
 \centering
@@ -275,12 +277,12 @@ REWORK     & 1.00 & 1.00 & 1.00 \\
 HYGIENE    & 1.00 & 1.00 & 1.00 \\
 \hline
 \end{tabular}
-\caption{Per-kind detection accuracy on the 45-session set. The ``injection'' recall column counts only the kind the playbook explicitly injected; ``any expected'' counts any kind the session's \texttt{expected\_kinds} label includes.}
-\label{tab:results-divergence-accuracy}
+\caption{Per-kind precision and recall on the 45-session set. The ``injection'' recall column counts only the kind the playbook explicitly injected; ``any expected'' counts any kind the session's \texttt{expected\_kinds} label includes.}
+\label{tab:results-divergence-prec-recall}
 \end{table}
 
 \paragraph{Detection quality.}
-A precision/recall number says nothing about whether the alternatives the detector surfaces are actually useful improvements over the user's own trajectory. Table~\ref{tab:results-divergence-quality} reports the number of divergence points the detector fires per kind, the number of alternatives it enumerates, and the fraction of fires whose best alternative beats the user's trajectory under the production score formula.
+A precision/recall number says nothing about whether the alternatives the detector surfaces are actually useful improvements over the user's own trajectory. Table~\ref{tab:results-divergence-quality} reports the number of divergence points the detector fires per kind, the number of alternatives it enumerates, and the fraction of fires whose best alternative beats the user's trajectory under the production score formula. Across all kinds, best-alt magnitudes range from $-5$ to $+23$ with mean $+6.39$, so the percentages in the ``beats user'' column below can be read against an absolute scale of how much each winning alternative actually improved on the user's trajectory.
 
 Hygiene never proposes a useless alternative: every one of its $13$ divergence points is a real improvement over the user's trajectory ($100\%$). IDE-replay proposes a real improvement in $12$ of $16$ fires ($75.0\%$); the four misses break down as three sessions where the user's process score was already pinned at the lower end of the $[0,100]$ range so neither the user nor the IDE-driven alternative can score below it (the magnitude is mechanically zero rather than evidence about the \texttt{manualIde} penalty), and one session where the IDE alt scored $5$ points lower than the user's manual edit. The four misses are a property of the score-range floor, not a calibration finding about \texttt{manualIde}.
 
@@ -325,47 +327,8 @@ REWORK      &  5 &  5 & 1.00 \\
 \label{tab:results-divergence-prominence}
 \end{table}
 
-\paragraph{Step-anchor recall under strict matching.}
-Table~\ref{tab:results-divergence-stepanchor} reports what the recall numbers above would become if the detector were required to anchor each catch at the session's \texttt{target\_step} label rather than anywhere in the session. The strict rates drop sharply: $33.3\%$ on hygiene, $9.5\%$ on IDE-replay, $0\%$ on ordering, and $16.7\%$ on rework. The cause is plugin checkpoint cadence: the plugin emits a checkpoint at every edit-burst flush, and in-place rename templates produce variable-count edit bursts depending on typing speed, so the same logical injection lands at index $2$ in one recording and index $4$ in another. Ordering is the worst affected because its anchor is the terminal step of the reorder window, which shifts with every intermediate checkpoint. This thesis therefore measures the cost of cadence drift directly and chooses the looser anywhere-in-session policy on its primary numbers; re-enabling strict anchoring is gated on plugin-side checkpoint stability, the same upstream issue that drives the IDE-replay false positives reported above.
-
-\begin{table}[htbp]
-\centering
-\small
-\begin{tabular}{lrrr}
-\hline
-\textbf{injected kind} & \textbf{n} & \textbf{step matches} & \textbf{strict rate} \\
-\hline
-HYGIENE     &  9 & 3 & 33.3\% \\
-IDE\_REPLAY & 21 & 2 &  9.5\% \\
-ORDERING    &  5 & 0 &  0\%   \\
-REWORK      &  6 & 1 & 16.7\% \\
-\hline
-\end{tabular}
-\caption{Step-anchor recall under strict matching: the fraction of catches whose divergence-point step index matches the session's \texttt{target\_step} label. The drop from the anywhere-in-session policy is the directly-measured cost of plugin checkpoint cadence drift.}
-\label{tab:results-divergence-stepanchor}
-\end{table}
-
-\paragraph{Baselines and absolute magnitudes.}
-Table~\ref{tab:results-divergence-baselines} reports the absolute scales the detector operates against, so the per-kind numbers above can be read in context. The end-to-end cleanliness delta spans the full $200$-point range from $-100$ to $+100$ with a mean of $+6.97$: the session set exercises both clean and degraded trajectories rather than concentrating on one polarity. The detector's best alternative across all sessions averages $+6.39$ points of process-score magnitude, with the largest single magnitude reaching $+23$ and the smallest non-zero best-alt magnitude reaching $-5$ (the single genuinely-worse alternative reported above), and $39$ of the $45$ sessions exhibit at least one per-step score regression that the simplest baseline detector could flag. The per-kind numbers above show that the divergence-point detector provides qualitatively more information than this per-step baseline.
-
-\begin{table}[htbp]
-\centering
-\small
-\begin{tabular}{lrrr}
-\hline
-\textbf{metric} & \textbf{mean} & \textbf{min} & \textbf{max} \\
-\hline
-cleanliness delta              & $+6.97$ & $-100$ & $+100$ \\
-best-alt magnitude             & $+6.39$ & $-5$   & $+23$  \\
-sessions with regression       & 39 of 45 & --- & --- \\
-\hline
-\end{tabular}
-\caption{Absolute scales the divergence-point detector operates against. The cleanliness delta spans the full $[-100, +100]$ range; the detector's best alt averages $+7$ points of process-score improvement.}
-\label{tab:results-divergence-baselines}
-\end{table}
-
 \paragraph{Caveats.}
-Four limitations qualify the divergence numbers. The session set is $45$ hand-recorded sessions, so per-cell counts are small (only $5$ ordering injections, for example); the per-kind ratios are directionally correct but not enough to support tight confidence intervals, which is why raw counts are reported alongside percentages throughout. Strict step anchoring is disabled, and the cost of that choice is reported directly above; re-enabling it depends on plugin-side cadence stability. The ``beats user'' computation uses a strict $\textnormal{magnitude} > 0$ threshold against trajectory-final $J$, so a positive magnitude genuinely means the alternative scores higher under the production formula; hygiene commit-gap divergence points have a discrete magnitude exactly equal to $W_{\textsc{cg}}$ because the commit-flip alt drops the gap count by one at trajectory-final. The $194$ enumeration count for ordering is the synthesiser's reach across the session set rather than the user-facing number, which is the $24$ surfaced divergence points.
+Three limitations qualify the divergence numbers. The session set is $45$ hand-recorded sessions, so per-cell counts are small (only $5$ ordering injections, for example); the per-kind ratios are directionally correct but not enough to support tight confidence intervals, which is why raw counts are reported alongside percentages throughout. The detector reports each divergence point against the user's recorded step index, but step boundaries are a function of the plugin's edit-burst-flush cadence and are not semantically stable across recordings of the same logical activity; recall is therefore reported under the looser anywhere-in-session policy rather than against the manifest's \texttt{target\_step} label. The ``beats user'' computation uses a strict $\textnormal{magnitude} > 0$ threshold against trajectory-final $J$, so a positive magnitude genuinely means the alternative scores higher under the production formula; hygiene commit-gap divergence points have a discrete magnitude exactly equal to $W_{\textsc{cg}}$ because the commit-flip alt drops the gap count by one at trajectory-final. The $194$ enumeration count for ordering is the synthesiser's reach across the session set rather than the user-facing number, which is the $24$ surfaced divergence points.
 
 
 \subsection{Scoped-out fix: ordering recall}

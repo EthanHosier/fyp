@@ -655,90 +655,19 @@ kinds.map { kind ->
     )
 }.toDataFrame()""")
 
-md(r"""Step-anchor recall under strict matching (reproduces Table 5.9) — for each session whose
-playbook pattern maps to an injection kind, ask whether any divergence point of that kind anchors
-exactly at the manifest's `target_step` (or contains it in its ORDERING window). Denominator is
-the total number of injection sessions per kind, not the caught count.""")
+md(r"""Best-alt magnitude range across the injection sessions — gives an absolute scale for the
+per-kind beat fractions above. Cited in the detection-quality paragraph of §5.2.2.""")
 
-code(r"""// Load target_step alongside pattern.
-fun loadTargetSteps(path: String): Map<String, Int> {
-    val lines = File(repoRoot, path).readLines()
-    val header = parseCsvRow(lines[0])
-    val sid = header.indexOf("session_id")
-    val ts = header.indexOf("target_step")
-    return lines.drop(1).filter { it.isNotBlank() }
-        .associate {
-            val row = parseCsvRow(it)
-            row[sid] to row[ts].toInt()
-        }
+code(r"""val bestAlts = injection.values.mapNotNull { phaseA ->
+    ReportAssembler.assemble(phaseA, ScoringConfig.PRODUCTION)
+        .divergencePoints.maxOfOrNull { it.magnitude }
 }
-val targetStepBySid = loadTargetSteps("fixtures/sessions/manifest-v2.csv")
-
-val stepAnchorRows = mutableMapOf<String, Pair<Int, Int>>() // kind -> (n, matches)
-for ((sid, phaseA) in injection) {
-    val pattern = patternsBySid[sid] ?: continue
-    val injKind = INJECTION_KIND_BY_PATTERN[pattern] ?: continue
-    val target = targetStepBySid[sid] ?: continue
-    val report = ReportAssembler.assemble(phaseA, ScoringConfig.PRODUCTION)
-    val injKindEnum = com.github.ethanhosier.analysis.pipeline.DivergenceKind.valueOf(injKind)
-    val dps = report.divergencePoints.filter { it.kind == injKindEnum }
-    val matched = dps.any { dp ->
-        dp.stepIndex == target ||
-            (dp.orderingWindowSteps?.contains(target) == true)
-    }
-    val (n, m) = stepAnchorRows.getOrDefault(injKind, 0 to 0)
-    stepAnchorRows[injKind] = (n + 1) to (m + (if (matched) 1 else 0))
-}
-
-kinds.map { kind ->
-    val (n, m) = stepAnchorRows[kind] ?: (0 to 0)
-    mapOf(
-        "kind" to kind,
-        "n" to n,
-        "step matches" to m,
-        "strict rate" to (if (n > 0) "%.1f%%".format(100.0 * m / n) else "—"),
-    )
-}.toDataFrame()""")
-
-md(r"""Baselines and absolute magnitudes (reproduces Table 5.10) — cleanliness delta, best-alt
-magnitude per session, and the count of sessions exhibiting at least one per-step process-score
-regression that a per-step baseline detector could flag.""")
-
-code(r"""data class Baseline(
-    val cleanlinessDelta: Double?,
-    val bestAltMagnitude: Double?,
-    val hasRegression: Boolean,
-)
-
-val baselineRows = injection.map { (sid, phaseA) ->
-    val report = ReportAssembler.assemble(phaseA, ScoringConfig.PRODUCTION)
-    val cps = report.checkpoints
-    val first = cps.firstOrNull()?.derivedMetrics?.cleanliness?.score
-    val last  = cps.lastOrNull()?.derivedMetrics?.cleanliness?.score
-    val delta = if (first != null && last != null) (last - first).toDouble() else null
-    val best = report.divergencePoints.maxOfOrNull { it.magnitude }
-    // Per-step regression: any consecutive pair where process.total drops.
-    val totals = cps.mapNotNull { it.derivedMetrics?.process?.total?.toDouble() }
-    val regression = totals.zipWithNext().any { (a, b) -> b < a }
-    sid to Baseline(delta, best, regression)
-}.toMap()
-
-fun stats(xs: List<Double>) = Triple(
-    xs.average(), xs.min(), xs.max(),
-)
-
-val deltas = baselineRows.values.mapNotNull { it.cleanlinessDelta }
-val bests  = baselineRows.values.mapNotNull { it.bestAltMagnitude }
-val regSessions = baselineRows.values.count { it.hasRegression }
-
-val (dMean, dMin, dMax) = stats(deltas)
-val (bMean, bMin, bMax) = stats(bests)
-
-listOf(
-    mapOf("metric" to "cleanliness delta", "mean" to "%.2f".format(dMean), "min" to dMin.toInt(), "max" to dMax.toInt()),
-    mapOf("metric" to "best-alt magnitude", "mean" to "%.2f".format(bMean), "min" to bMin.toInt(), "max" to bMax.toInt()),
-    mapOf("metric" to "sessions with regression", "mean" to "$regSessions of ${baselineRows.size}", "min" to "—", "max" to "—"),
-).toDataFrame()""")
+mapOf(
+    "n sessions with any DP" to bestAlts.size,
+    "mean best-alt magnitude" to "%.2f".format(bestAlts.average()),
+    "min" to bestAlts.min().toInt(),
+    "max" to bestAlts.max().toInt(),
+)""")
 
 # ---------------------------------------------------------------- §5.3 user + agent
 

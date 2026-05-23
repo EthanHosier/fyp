@@ -113,21 +113,19 @@
 \contentsline {section}{\numberline {5.2}Testing the divergence-point detector}{41}{section.5.2}%
 \contentsline {subsection}{\numberline {5.2.1}Inter-rater reliability}{41}{subsection.5.2.1}%
 \contentsline {subsection}{\numberline {5.2.2}Divergence experiment}{42}{subsection.5.2.2}%
-\contentsline {paragraph}{Detection accuracy.}{42}{section*.65}%
+\contentsline {paragraph}{Precision and recall.}{42}{section*.65}%
 \contentsline {paragraph}{Detection quality.}{42}{section*.67}%
 \contentsline {paragraph}{Injection prominence.}{43}{section*.69}%
-\contentsline {paragraph}{Step-anchor recall under strict matching.}{43}{section*.71}%
-\contentsline {paragraph}{Baselines and absolute magnitudes.}{43}{section*.73}%
-\contentsline {paragraph}{Caveats.}{44}{section*.75}%
+\contentsline {paragraph}{Caveats.}{43}{section*.71}%
 \contentsline {subsection}{\numberline {5.2.3}Scoped-out fix: ordering recall}{44}{subsection.5.2.3}%
 \contentsline {section}{\numberline {5.3}User and agent studies}{44}{section.5.3}%
-\contentsline {subsection}{\numberline {5.3.1}User study}{45}{subsection.5.3.1}%
-\contentsline {paragraph}{Descriptive findings on the participants' sessions.}{45}{section*.76}%
-\contentsline {paragraph}{Behavioural trajectory across the six-session arc.}{45}{section*.78}%
-\contentsline {paragraph}{Per-step inspection as a usability win.}{46}{section*.80}%
-\contentsline {subsection}{\numberline {5.3.2}Agent comparison}{47}{subsection.5.3.2}%
-\contentsline {chapter}{\numberline {6}Project Plan and Timetable (Jan--Jun 2026)}{49}{chapter.6}%
-\contentsline {paragraph}{Work completed so far (as of 21 Jan 2026).}{49}{section*.83}%
-\contentsline {paragraph}{Timeline in 5 phases (Jan $\rightarrow $ end of June).}{49}{section*.84}%
-\contentsline {chapter}{\numberline {7}Ethical Issues and Data Handling Plan}{50}{chapter.7}%
-\contentsline {chapter}{\numberline {A}First Appendix}{51}{appendix.A}%
+\contentsline {subsection}{\numberline {5.3.1}User study}{44}{subsection.5.3.1}%
+\contentsline {paragraph}{Descriptive findings on the participants' sessions.}{44}{section*.72}%
+\contentsline {paragraph}{Behavioural trajectory across the six-session arc.}{45}{section*.74}%
+\contentsline {paragraph}{Per-step inspection as a usability win.}{46}{section*.76}%
+\contentsline {subsection}{\numberline {5.3.2}Agent comparison}{46}{subsection.5.3.2}%
+\contentsline {chapter}{\numberline {6}Project Plan and Timetable (Jan--Jun 2026)}{48}{chapter.6}%
+\contentsline {paragraph}{Work completed so far (as of 21 Jan 2026).}{48}{section*.79}%
+\contentsline {paragraph}{Timeline in 5 phases (Jan $\rightarrow $ end of June).}{48}{section*.80}%
+\contentsline {chapter}{\numberline {7}Ethical Issues and Data Handling Plan}{49}{chapter.7}%
+\contentsline {chapter}{\numberline {A}First Appendix}{50}{appendix.A}%
