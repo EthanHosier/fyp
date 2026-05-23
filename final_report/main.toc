@@ -94,13 +94,13 @@
 \contentsline {paragraph}{The 45-session injection set.}{35}{section*.42}%
 \contentsline {paragraph}{Reporting conventions.}{35}{section*.43}%
 \contentsline {section}{\numberline {5.1}Testing the score formula}{35}{section.5.1}%
-\contentsline {subsection}{\numberline {5.1.1}Sensitivity sweep}{35}{subsection.5.1.1}%
+\contentsline {subsection}{\numberline {5.1.1}Sensitivity sweep}{36}{subsection.5.1.1}%
 \contentsline {paragraph}{Design.}{36}{section*.44}%
 \contentsline {paragraph}{Single-knob results.}{36}{section*.45}%
-\contentsline {paragraph}{Sources of ranking instability.}{36}{section*.47}%
+\contentsline {paragraph}{Sources of ranking instability.}{37}{section*.47}%
 \contentsline {paragraph}{Multi-knob Monte Carlo.}{37}{section*.49}%
 \contentsline {paragraph}{Saturation and score-clamp bias.}{37}{section*.51}%
-\contentsline {paragraph}{Caveats and scope.}{37}{section*.52}%
+\contentsline {paragraph}{Caveats and scope.}{38}{section*.52}%
 \contentsline {subsection}{\numberline {5.1.2}Ablation sweep}{38}{subsection.5.1.2}%
 \contentsline {paragraph}{Design.}{38}{section*.53}%
 \contentsline {paragraph}{Sanity check.}{38}{section*.54}%
@@ -109,7 +109,7 @@
 \contentsline {paragraph}{Per-term leave-one-out recovery.}{39}{section*.59}%
 \contentsline {paragraph}{Cross-set rerun on the user-study sessions.}{39}{section*.61}%
 \contentsline {paragraph}{Caveats.}{40}{section*.63}%
-\contentsline {subsection}{\numberline {5.1.3}Reordering rarely helps on commuting windows}{40}{subsection.5.1.3}%
+\contentsline {subsection}{\numberline {5.1.3}Reordering rarely helps on independent refactorings}{40}{subsection.5.1.3}%
 \contentsline {section}{\numberline {5.2}Testing the divergence-point detector}{41}{section.5.2}%
 \contentsline {subsection}{\numberline {5.2.1}Inter-rater reliability}{41}{subsection.5.2.1}%
 \contentsline {subsection}{\numberline {5.2.2}Divergence experiment}{42}{subsection.5.2.2}%
@@ -117,15 +117,15 @@
 \contentsline {paragraph}{Detection quality.}{42}{section*.67}%
 \contentsline {paragraph}{Injection prominence.}{43}{section*.69}%
 \contentsline {paragraph}{Step-anchor recall under strict matching.}{43}{section*.71}%
-\contentsline {paragraph}{Baselines and absolute magnitudes.}{44}{section*.73}%
+\contentsline {paragraph}{Baselines and absolute magnitudes.}{43}{section*.73}%
 \contentsline {paragraph}{Caveats.}{44}{section*.75}%
 \contentsline {subsection}{\numberline {5.2.3}Scoped-out fix: ordering recall}{44}{subsection.5.2.3}%
 \contentsline {section}{\numberline {5.3}User and agent studies}{44}{section.5.3}%
-\contentsline {subsection}{\numberline {5.3.1}User study}{44}{subsection.5.3.1}%
+\contentsline {subsection}{\numberline {5.3.1}User study}{45}{subsection.5.3.1}%
 \contentsline {paragraph}{Descriptive findings on the participants' sessions.}{45}{section*.76}%
 \contentsline {paragraph}{Behavioural trajectory across the six-session arc.}{45}{section*.78}%
 \contentsline {paragraph}{Per-step inspection as a usability win.}{46}{section*.80}%
-\contentsline {subsection}{\numberline {5.3.2}Agent comparison}{46}{subsection.5.3.2}%
+\contentsline {subsection}{\numberline {5.3.2}Agent comparison}{47}{subsection.5.3.2}%
 \contentsline {chapter}{\numberline {6}Project Plan and Timetable (Jan--Jun 2026)}{49}{chapter.6}%
 \contentsline {paragraph}{Work completed so far (as of 21 Jan 2026).}{49}{section*.83}%
 \contentsline {paragraph}{Timeline in 5 phases (Jan $\rightarrow $ end of June).}{49}{section*.84}%
