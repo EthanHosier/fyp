@@ -1,152 +1,107 @@
 # Plan: Thesis writeup (master organising plan)
 
-DO IN final_report not interim_report folder, since the latter is now frozen and the former is where the final writeup lives.
+DO IN `final_report/`, not `interim_report/`. The latter is frozen.
 
 ## Context
 
-The user study (`PLAN-user-study.md`) is in flight and runs over
-the next ~2 weeks. Per `HONEST_REVIEW_2.md`, the project's mark is
-now writeup-bound rather than experiment-bound, and only ~1.5 pages
-of the ~50-page thesis are actually study-dependent. The remaining
-~48 pages can be drafted in parallel with the study.
-
-This is the master plan organising that writeup work in
-chronological thesis order, with the study-blocked slots clearly
-flagged. **Detailed per-section plans will be written separately**
-(`PLAN-thesis-<section>.md`) when work on each section begins.
+The user study has now wrapped (12 human sessions + 6 agent sessions). The results chapter §5 is substantively complete. Remaining work is the three follow-on chapters and the report-wide polish pass. Per `MENG_PROJECT_ASSESSMENT_CRITERIA.md` the rubric splits 15 / 50 / 20 / 15 across Framing / Execution / Evaluation / Communication; the items below are tagged by which band they're aimed at moving.
 
 ## Chronological writeup order
 
-| # | Section                          | Estimate | Status        | Study-blocked slot                              |
-|---|----------------------------------|---------:|---------------|-------------------------------------------------|
-| 1 | Introduction                     | ½ day    | ✅ **done**    | —                                               |
-| 2 | Background trim + new citations  | 2 days   | ✅ **done**    | —                                               |
-| 3 | Methodology chapter              | 1 week   | ✅ **done**    | ~~TODO slot: rater-design paragraph (~½ pg)~~ — landed |
-| 4 | Tool architecture chapter        | 2 days   | ✅ **done**    | —                                               |
-| 5 | Experiments + results chapter    | 1 week   | ✅ **done**    | ~~TODO: expanded-corpus subsection (~½ pg)~~ — shipped as full §5.4 User study (4 sub-blocks, ~5 pp incl. agent comparison) |
-| 6 | Threats-to-validity / discussion | 2 days   | pending       | TODO: mitigation paragraph (~⅓ pg)              |
-| 7 | Conclusion + future work         | 1 day    | pending       | TODO: user-study findings bullet (~¼ pg)        |
-| 8 | Bibliography audit               | ½ day    | pending       | —                                               |
-| 9 | GenAI disclosure appendix        | ½ day    | pending       | —                                               |
+| # | Section | Estimate | Status | Rubric criterion |
+|---|---|---|---|---|
+| 1 | Introduction | ½ day | ✅ **done** | Framing 15% |
+| 2 | Background trim + new citations | 2 days | ✅ **done** | Framing 15% |
+| 3 | Methodology chapter | 1 week | ✅ **done** | Execution 50% |
+| 4 | Tool architecture chapter | 2 days | ✅ **done** | Execution 50% |
+| 5 | Experiments + results chapter | 1 week | ✅ **done** (substantive) | Execution 50% + Evaluation 20% |
+| 5b | §5 final read-through | ½ day | **pending** | Communication 15% |
+| 6 | Threats-to-validity / discussion | 2 days | **pending** | Evaluation 20% (highest leverage) |
+| 7 | Conclusion + future work | 1 day | **pending** | Evaluation 20% + Framing 15% |
+| 8 | Bibliography audit | ½ day | **pending** | Communication 15% |
+| 9 | GenAI disclosure appendix | ½ day | **pending** | Communication 15% (caps band at 50–59% if absent) |
 
-**Total: ~3.5 weeks of focused writeup, study-dependent inserts
-total ~1.5 pages across 4 slots.**
+**Total remaining: ~4.5 days of focused writeup.**
 
-**Update (post-user-study):** the expanded-corpus slot landed
-larger than the original ½-page budget — `\section{User study}`
-came in at ~5 pages with four sub-blocks (inter-rater reliability,
-descriptive findings on the participant corpus, behavioural
-trajectory across the six-session arc, agent comparison). The
-agent-comparison sub-block was Phase 8 of `PLAN-user-study.md` and
-was originally a one-sentence stub deferred to future work; it now
-ships as a full subsection with two new tables. The methodology
-rater-design TODO has now landed too (a ½-page section covering
-schema, briefing/blinding protocol, κ as Landis-Koch interpretation,
-reconciliation policy, with the empirical numbers carried in the
-results-chapter table). The threats-to-validity and conclusion
-TODOs are still open.
+## Where §5 landed (recap of this session's work)
 
-## Per-section quick-scope notes
+§5 substantive content is complete and PDF-clean. Highlights of what changed since the original plan:
 
-1. **Introduction** — tighten the gap statement using the
-   reordering-rarely-helps finding from `divergence.md`.
+- **§5.1 Score formula** — sensitivity sweep (single-knob + multi-knob Monte Carlo), ablation across three session sets (injection / user study / agent), the "reordering rarely helps" headline. Top-1 stability $95.6\%$ user / $97.5\%$ agent / $99.8\%$ injection.
+- **§5.2 Detector** — three-way inter-rater κ across $45$ sessions, per-kind precision/recall, per-kind detection quality with REWORK and IDE_REPLAY misses framed honestly (REWORK $46.2\%$ beat rate carries the "process signal sometimes earned, not wasted" reading; IDE_REPLAY $75.0\%$ misses are score-floor clamping not penalty miscalibration). Injection-prominence table with the ORDERING row honestly absent. F1/accuracy explicitly justified against.
+- **§5.3 User and agent studies** split into:
+  - **§5.4 User study** ($12$ sessions, P1 + P2): per-session per-kind distribution, per-kind behavioural trajectory across the arc, the new **process-score-under-production-and-gain-stripped-weightings** table that surfaces a near-monotonic process-discipline improvement under $W_g = 0$ for both participants against a difficulty headwind, hygiene false-positive observation, per-step inspection usability findings, paraphrased interview quotes.
+  - **§5.4.2 Agent comparison** ($6$ sessions, Claude Code, single Claude Code session across all six): per-kind table against P1 and P2 separately, per-session trajectory, three quoted behavioural threads (commit cadence over-corrected then resolved; smell-introduction self-critique; acknowledged IDE-replay structural limitation), broken-build percentage comparison tied to Thread 1.
+- **Cross-session corrections shipped this session**:
+  - `LONG_STRETCH_WITHOUT_COMMIT` advice rule rewritten to count green-refactor checkpoints only, matching the score-formula commit-gap penalty. All 18 analysis-report JSONs regenerated under the corrected rule. Three stale claims in §5.4.2 Thread 1 fixed accordingly.
+  - Table 5.7 (detection quality), 5.8 (prominence), and 5.9 (step-anchor) regenerated against current code with explicit tie-break ordering; baselines paragraph and table dropped entirely as a strawman comparison.
+  - Step-anchor recall sub-table removed (was measuring plugin cadence noise, not detector accuracy); replaced with a one-sentence disclosure in the caveats paragraph + a threats bullet flagging the per-session-not-per-step TP classification.
+  - "Manifest" implementation leakage replaced with concrete label references (`expected_kinds`, `target_step`, etc.).
+  - All ranking sites in code use deterministic `compareByDescending<DivergencePoint>{magnitude}.thenBy{stepIndex}`.
+- **Notebook** (`tool/notebooks/experiments.ipynb`, $46$ cells) reproduces every table in §5 that quotes a number. Each notebook cell carries a markdown comment naming the chapter table it reproduces.
+- **Appendix `app:agent-transcript`** label exists; the full Claude Code session transcript is referenced from §5.4.2 Threads 1–3.
 
-2. **Background** — port `interim_report/background/background.tex`,
-   trim ReSynth weight to ~½ page, add 1–2 paragraphs of 2023–2025
-   work on developer-process logging / refactoring-trajectory
-   analysis, full typo + formality pass.
+## Remaining writeup tasks
 
-3. **Methodology chapter** — ✅ **done.** Order:
-   state/action/trace framing → process score with cited weights
-   + ablation single-term recovery numbers → cleanliness sub-score
-   → DivergencePoint detector per kind → per-kind synthesisers
-   (incl. JDT `withBatchSession` engineering story) → rater design.
-   ~~TODO slot near end: rater-design paragraph.~~ — landed as
-   `\section{Rater design}` covering schema, briefing/blinding
-   protocol, Cohen's κ + Landis-Koch interpretation, and the
-   "don't retro-edit labels" reconciliation policy with sessions
-   024 / 043 as the concrete case. Empirical numbers stay in the
-   results chapter; methodology section is the framing.
+### 5b. §5 final read-through (½ day)
 
-4. **Tool architecture** — ✅ **done.** Ported to LaTeX as 8
-   sections (architecture at a glance, event capture, shadow-repo
-   reconstruction and worktree pool, metrics calculation, applying
-   refactorings via Eclipse JDT, synthesising counterfactual
-   trajectories, pipeline phases, dashboard). Phase A / Phase B
-   split surfaced as the engineering contribution.
+Single pass focused on three drift sources after the cumulative editing this session:
 
-5. **Experiments + results** — ✅ **done.** Three subsections from
-   `explained_results/{sensitivity, ablation, divergence}.md` near
-   verbatim, the reordering-rarely-helps headline, the scoped-out
-   fixes section (now updated for the PR #62 IDE_REPLAY closure),
-   and a new `\section{User study}` covering Cohen's κ on the
-   45-session corpus, per-session descriptive findings on the
-   12-session participant corpus, behavioural trajectory, and the
-   agent-comparison subsection. ~~TODO slot at end of divergence
-   subsection: expanded-corpus (κ per kind, multi-recorder
-   precision/recall delta, verbatim quotes).~~ — landed.
+- **(i) Stale cross-references.** Any `\ref{}` that may have changed names this session (e.g. `sec:results-userstudy` → `sec:results-kappa` for the κ table, `tab:results-divergence-accuracy` → `tab:results-divergence-prec-recall`, `tab:results-divergence-baselines` deleted, `tab:results-divergence-stepanchor` deleted). Already swept once but worth a second pass given how many table labels moved.
+- **(ii) Forward-references to threats-to-validity that name a specific bullet.** The §5 text cross-references "the threats-to-validity chapter" multiple times, often paraphrasing a specific bullet. Once §6 is drafted those references should resolve to actual section labels rather than the §6 placeholder.
+- **(iii) §5 chapter intro paragraph + §-by-§ summary at the top of §5** must still match what each subsection actually delivers post-rewrite. The intro was written when the chapter had a different shape (e.g. "baselines and absolute magnitudes" paragraph that is now deleted; step-anchor analysis that is now removed; agent comparison framed as one paragraph that is now three quoted threads).
 
-6. **Threats-to-validity / discussion** — consolidate
-   per-experiment caveats from the four `explained_results/*.md`
-   files. Lead with what was mitigated, then what remains.
-   **TODO slot at the top:** mitigation paragraph (κ +
-   multi-recorder).
+The substantive results work is done; this is polish.
 
-7. **Conclusion + future work** — bullet deferred items: ORDERING
-   gate relaxation, plugin template-event capture, multi-language,
-   AI-vs-human comparison, multi-fixture, full multi-recorder
-   corpus expansion.
-   **TODO slot:** user-study findings bullet.
+### 6. Threats-to-validity / discussion (2 days, Evaluation 20% — highest leverage)
 
-8. **Bibliography audit** — verify all citations resolve; add
-   2023–2025 entries used in Background.
+Currently: `final_report/evaluation/evaluation.tex` is $11$ lines. The §5 chapter cross-references "the threats-to-validity chapter" multiple times and those refs resolve to an essentially empty section.
 
-9. **GenAI disclosure appendix** — rubric-mandated. One paragraph
-   per category of use (writing assistance, code assistance,
-   ideation).
+Source material is in hand:
+- `tool/THREATS-TO-VALIDITY.md` — $80$ lines of bullet content organised by validity axis (construct / internal-calibration / external-corpus / statistical / kind-classifier-specific / agent-specific / user-study-specific / rater-study-specific / implementation / out-of-scope).
+- Per-experiment caveats are already inline in §5 — the chapter should consolidate them rather than re-derive.
 
-## Source-material map
+Target shape: $3$–$5$ pages of structured prose. One subsection per validity axis. Lead with **what was mitigated** (κ on 45 sessions; multi-recorder corpus via P1 + P2; deterministic tie-break; honest score-floor clamping disclosure; relaxed validator-check disclosure). Then **what remains open** — explicit n=2 + no-control-condition for the user study; n=1 agent; structural IDE-refactor-surface limitation for the agent; codebase-familiarity confound; per-session-not-per-step TP classification; ORDERING-recall scope-out.
 
-Most chapters port from existing markdown writeups rather than
-being written from scratch:
+### 7. Conclusion + future work (1 day, Evaluation 20% + Framing 15%)
 
-| Thesis chapter         | Existing source(s)                                                                     |
-|------------------------|-----------------------------------------------------------------------------------------|
-| Background             | `interim_report/background/background.tex` (trim + extend)                              |
-| Methodology            | `explained_results/*.md` methodology sections + `ARCHITECTURE.md` (partly)              |
-| Tool architecture      | `ARCHITECTURE.md`                                                                       |
-| Experiments + results  | `explained_results/sensitivity.md`, `ablation.md`, `divergence.md`, `plugin-misclassifications.md` |
-| Threats-to-validity    | Per-experiment Caveats sections in the four `explained_results/*.md` files               |
+Currently: `final_report/conclusion/conclusion.tex` is $0$ lines.
 
-## What's blocked by the user study (the 4 TODO slots)
+Target shape: $2$–$3$ pages.
 
-1. ~~**Methodology chapter** — rater-design paragraph (Phase 1 of
-   `PLAN-user-study.md`).~~ **✅ Done.** Landed as
-   `\section{Rater design}` in `methodology.tex` covering schema,
-   briefing/blinding protocol, κ + Landis-Koch interpretation,
-   reconciliation policy with sessions 024 / 043 as the concrete
-   case. Cross-refs from §5.3 detection-accuracy and §5.4
-   inter-rater-reliability both resolve cleanly.
-2. ~~**Experiments + results chapter** — expanded-corpus subsection
-   (κ per kind, multi-recorder precision/recall delta on the new
-   6 sessions, verbatim quotes from feedback).~~ **✅ Done.**
-   Landed as the full `\section{User study}` with four sub-blocks
-   (inter-rater κ on the 45-session corpus, descriptive findings
-   on the 12-session participant corpus, behavioural trajectory,
-   agent comparison). All three new tables in §5.4 in place; PDF
-   builds clean.
-3. **Threats-to-validity** — mitigation paragraph leading the
-   section. _Still open. κ + multi-recorder data both available._
-4. **Conclusion** — user-study findings bullet. _Still open. Data
-   available._
+- **Contribution restatement**: what was built (score formula + four-kind detector + per-kind alt synthesisers + IntelliJ plugin + JCEF dashboard + analysis pipeline), what was found (the headline numbers: precision $1.00$ × four kinds, top-1 stability ≥ $95\%$, gain-stripped human improvement curve, agent qualitative behavioural threads), what generalises and what does not.
+- **Future work**: multi-agent comparison; multi-language / cross-IDE port; ORDERING recall via relaxed validator check; persistent learning across agent sessions; dashboard-mode live feedback (vs current session-replay); IDE-refactor-as-agent-tool-call deployment that would close the IDE_REPLAY gap; longitudinal validation against external code-quality outcomes (named as future work, infeasible at MEng scope).
+- **What we cannot claim**: causation from the user-study trajectory ($n=2$, no control); generalisability to team-PR workflows; weight calibration against an external outcome dataset.
 
-Total slots done: 2 of 4. Of the remaining two, all underlying
-data is in hand; they are writing-only tasks.
+### 8. Bibliography audit (½ day, Communication 15%)
 
-## Note on per-section plans
+`bibs/sample.bib` needs an end-to-end pass. Verify every `\cite{}` resolves. Check for the 2023–2025 entries used in Background. Consistency of style across entries. No stub `key.bib.sample` placeholders.
 
-This file is the master organising plan. Each section gets its own
-detailed `PLAN-thesis-<section>.md` (e.g. `PLAN-thesis-methodology.md`,
-`PLAN-thesis-results.md`) when work on that section begins —
-covering sub-sections, figure lists, page budgets, citation lists,
-and exact source-material mappings.
+### 9. GenAI disclosure appendix (½ day, Communication 15%)
+
+Rubric explicitly requires this; without it the Communication band caps at $50$–$59\%$. One paragraph per category of use (writing assistance, code assistance, ideation), with the disclosure being transparent and critically reflective per the 70-84% band descriptor ("noting limitations, checks, or how AI suggestions were adapted").
+
+## Critical files
+
+- `final_report/results/results.tex` — substantively complete; needs the §5 read-through (task 5b).
+- `final_report/evaluation/evaluation.tex` — currently stub; needs full §6 draft (task 6).
+- `final_report/conclusion/conclusion.tex` — empty; needs full §7 draft (task 7).
+- `final_report/appendix/appendix.tex` — currently has agent-transcript label only; add GenAI appendix (task 9).
+- `final_report/bibs/sample.bib` — needs audit (task 8).
+- `tool/THREATS-TO-VALIDITY.md` — source-of-truth bullets for §6.
+
+## What is in hand
+
+All data, code, and notebook tables are in place:
+- All $45 + 12 + 6 = 63$ session analysis-report JSONs regenerated under current code.
+- Notebook `tool/notebooks/experiments.ipynb` reproduces every table in §5 with markdown comments cross-referencing the chapter.
+- `tool/THREATS-TO-VALIDITY.md` ready to expand into prose for §6.
+- Agent session transcript exists at `tool/fixtures/agent-sessions/AGENT_SESSION_TRANSCRIPT.md`; needs porting into `appendix/appendix.tex` for the §5.4.2 cross-references to resolve cleanly.
+
+## Out of scope (named as future work, not done)
+
+- Rater-rank validation (Kendall τ-b across raters on per-session DP ranking, as distinct from per-kind agreement). Noted in threats-to-validity as a known gap.
+- Multi-agent agent comparison ($n > 1$ models, multiple dates).
+- Refitting production weights against an outcome dataset.
+- Cross-IDE / cross-language port.
+- Real-time / live-feedback dashboard mode (current is session-replay).
