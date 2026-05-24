@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.10.5)  24 MAY 2026 00:54
+This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.10.5)  24 MAY 2026 01:41
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -8,8 +8,8 @@ LaTeX2e <2024-11-01> patch level 2
 L3 programming layer <2025-01-18>
 (/usr/local/texlive/2025/texmf-dist/tex/latex/base/report.cls
 Document Class: report 2024/06/29 v1.4n Standard LaTeX document class
-(/usr/local/texlive/2025/texmf-dist/tex/latex/base/size10.clo
-File: size10.clo 2024/06/29 v1.4n Standard LaTeX file (size option)
+(/usr/local/texlive/2025/texmf-dist/tex/latex/base/size11.clo
+File: size11.clo 2024/06/29 v1.4n Standard LaTeX file (size option)
 )
 \c@part=\count196
 \c@chapter=\count197
@@ -1231,12 +1231,12 @@ LaTeX Font Info:    ... okay on input line 45.
 * \topmargin=-23.91173pt
 * \headheight=12.0pt
 * \headsep=25.0pt
-* \topskip=10.0pt
+* \topskip=11.0pt
 * \footskip=30.0pt
 * \marginparwidth=49.79231pt
-* \marginparsep=11.0pt
+* \marginparsep=10.0pt
 * \columnsep=10.0pt
-* \skip\footins=9.0pt plus 4.0pt minus 2.0pt
+* \skip\footins=10.0pt plus 4.0pt minus 2.0pt
 * \hoffset=0.0pt
 * \voffset=0.0pt
 * \mag=1000
@@ -1286,22 +1286,22 @@ Package hyperref Info: Link coloring ON on input line 45.
 
 \c@lstlisting=\count344
  (./title/title.tex
-Package epstopdf Info: Source file: <title/logo.eps>
-(epstopdf)                    date: 2026-05-19 19:52:09
-(epstopdf)                    size: 1035249 bytes
-(epstopdf)             Output file: <title/logo-eps-converted-to.pdf>
-(epstopdf)                    date: 2026-05-19 19:52:09
-(epstopdf)                    size: 15917 bytes
-(epstopdf)             Command: <repstopdf --outfile=title/logo-eps-converted-t
-o.pdf title/logo.eps>
+Package epstopdf Info: Source file: <title/imperial-logo.eps>
+(epstopdf)                    date: 2026-05-24 01:16:24
+(epstopdf)                    size: 1521406 bytes
+(epstopdf)             Output file: <title/imperial-logo-eps-converted-to.pdf>
+(epstopdf)                    date: 2026-05-24 01:17:36
+(epstopdf)                    size: 10186 bytes
+(epstopdf)             Command: <repstopdf --outfile=title/imperial-logo-eps-co
+nverted-to.pdf title/imperial-logo.eps>
 (epstopdf)             \includegraphics on input line 9.
 Package epstopdf Info: Output file is already uptodate.
-<title/logo-eps-converted-to.pdf, id=409, 362.35374pt x 95.35625pt>
-File: title/logo-eps-converted-to.pdf Graphic file (type pdf)
-<use title/logo-eps-converted-to.pdf>
-Package pdftex.def Info: title/logo-eps-converted-to.pdf  used on input line 9.
-
-(pdftex.def)             Requested size: 227.62204pt x 59.9016pt.
+<title/imperial-logo-eps-converted-to.pdf, id=404, 1553.805pt x 171.64125pt>
+File: title/imperial-logo-eps-converted-to.pdf Graphic file (type pdf)
+<use title/imperial-logo-eps-converted-to.pdf>
+Package pdftex.def Info: title/imperial-logo-eps-converted-to.pdf  used on inpu
+t line 9.
+(pdftex.def)             Requested size: 227.62204pt x 25.14268pt.
 
 Underfull \hbox (badness 10000) in paragraph at lines 9--10
 
@@ -1312,8 +1312,8 @@ Underfull \hbox (badness 10000) in paragraph at lines 9--10
 [1
 
 {/usr/local/texlive/2025/texmf-var/fonts/map/pdftex/updmap/pdftex.map}{/usr/loc
-al/texlive/2025/texmf-dist/fonts/enc/dvips/cm-super/cm-super-t1.enc} <./title/l
-ogo-eps-converted-to.pdf>])
+al/texlive/2025/texmf-dist/fonts/enc/dvips/cm-super/cm-super-t1.enc} <./title/i
+mperial-logo-eps-converted-to.pdf>])
 
 
 pdfTeX warning (ext4): destination with the same identifier (name{page.1}) has 
@@ -1321,14 +1321,6 @@ been already used, duplicate ignored
 <to be read again> 
                    \relax 
 l.50 \end{abstract}
-                    [1]
-
-
-pdfTeX warning (ext4): destination with the same identifier (name{page.1}) has 
-been already used, duplicate ignored
-<to be read again> 
-                   \relax 
-l.54 \end{abstract}
                     [1] (./main.toc
 
 [2
@@ -1339,83 +1331,70 @@ l.54 \end{abstract}
 \tf@toc=\write5
 \openout5 = `main.toc'.
 
+ (./introduction/introduction.tex
 
-
-[4] (./main.lof)
-\tf@lof=\write6
-\openout6 = `main.lof'.
-
+[4]
+Chapter 1.
 
 
 [5
 
-] (./main.lot
-Overfull \hbox (8.59311pt too wide) in paragraph at lines 15--15
- [][] [][][]\T1/cmr/m/n/10 Per-term single-knob re-cov-ery (each term ac-tive a
-lone, oth-ers ze-roed). The \T1/cmtt/m/n/10 manualIde\T1/cmr/m/n/10 , 
- []
-
-
-
-[6
-
-])
-\tf@lot=\write7
-\openout7 = `main.lot'.
-
- (./introduction/introduction.tex
-
-[7]
-Chapter 1.
-
-
-[8
-
 ]
 
-[9{/usr/local/texlive/2025/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc
-}]
-<introduction/divergence_diagram.png, id=727, 754.82pt x 250.9375pt>
+[6]
+Overfull \hbox (24.37209pt too wide) in paragraph at lines 29--30
+[]\T1/cmr/m/n/10.95 A first-class divergence-point de-tec-tor that clas-si-fies
+ di-ver-gence into four kinds (\T1/cmr/m/sc/10.95 ordering\T1/cmr/m/n/10.95 ,
+ []
+
+<introduction/divergence_diagram.png, id=585, 754.82pt x 250.9375pt>
 File: introduction/divergence_diagram.png Graphic file (type png)
 <use introduction/divergence_diagram.png>
 Package pdftex.def Info: introduction/divergence_diagram.png  used on input lin
 e 42.
 (pdftex.def)             Requested size: 341.43437pt x 113.50665pt.
-) (./background/background.tex
 
-[10 <./introduction/divergence_diagram.png>]
+Underfull \vbox (badness 2671) has occurred while \output is active []
+
+
+
+[7{/usr/local/texlive/2025/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc
+}]) (./background/background.tex
+
+[8 <./introduction/divergence_diagram.png>]
 Chapter 2.
 
 
-[11
+[9
 
 ]
 
-[12]
+[10]
 
-[13]
+[11]
 Overfull \hbox (13.85587pt too wide) in paragraph at lines 73--113
  [][] 
  []
 
 
-Underfull \vbox (badness 10000) has occurred while \output is active []
 
+[12]
 
+[13]
 
 [14]
 
 [15]
 
 [16]
-
-[17]
 Overfull \hbox (2.70354pt too wide) in paragraph at lines 188--188
 []\T1/cmr/bx/n/12 Beyond struc-tural met-rics: al-ter-na-tive ob-jec-tives for 
 rank-ing refac-
  []
 
 
+
+[17]
 
 [18]
 
@@ -1424,7 +1403,13 @@ rank-ing refac-
 [20]
 Chapter 3.
 
-Overfull \hbox (19.87602pt too wide) in paragraph at lines 29--49
+Overfull \hbox (0.91447pt too wide) in paragraph at lines 4--5
+\T1/cmr/m/n/10.95 This chap-ter de-fines our three main con-tri-bu-tions: the p
+rocess-quality score, the divergence-
+ []
+
+
+Overfull \hbox (57.81567pt too wide) in paragraph at lines 29--49
  [][] 
  []
 
@@ -1433,73 +1418,153 @@ Overfull \hbox (19.87602pt too wide) in paragraph at lines 29--49
 [21
 
 ]
-
-[22]
-
-[23]
-Underfull \hbox (badness 1014) in paragraph at lines 131--131
-[]|\T1/cmr/m/n/9 Campbell 2018 [[]]; Muñoz Barón
+Overfull \hbox (6.2157pt too wide) detected at line 62
+[][][]\OML/cmm/m/it/10.95 J\OT1/cmr/m/n/10.95 (\OML/cmm/m/it/10.95 ^^\\OT1/cmr/
+m/n/10.95 ) = [][][]\OML/cmm/m/it/10.95 ^^L \OT1/cmr/m/n/10.95 + \OML/cmm/m/it/
+10.95 W[] \OT1/cmr/m/n/10.95 ^^A\OML/cmm/m/it/10.95 C\OT1/cmr/m/n/10.95 (\OML/c
+mm/m/it/10.95 ^^\\OT1/cmr/m/n/10.95 ) \OMS/cmsy/m/n/10.95 ^^@ \OML/cmm/m/it/10.
+95 W[] r[]\OT1/cmr/m/n/10.95 (\OML/cmm/m/it/10.95 ^^\\OT1/cmr/m/n/10.95 ) \OMS/
+cmsy/m/n/10.95 ^^@ \OML/cmm/m/it/10.95 W[] r[]\OT1/cmr/m/n/10.95 (\OML/cmm/m/it
+/10.95 ^^\\OT1/cmr/m/n/10.95 ) \OMS/cmsy/m/n/10.95 ^^@ \OML/cmm/m/it/10.95 W[] 
+r[]\OT1/cmr/m/n/10.95 (\OML/cmm/m/it/10.95 ^^\\OT1/cmr/m/n/10.95 ) \OMS/cmsy/m/
+n/10.95 ^^@ \OML/cmm/m/it/10.95 W[] n[]\OT1/cmr/m/n/10.95 (\OML/cmm/m/it/10.95 
+^^\\OT1/cmr/m/n/10.95 ) + \OML/cmm/m/it/10.95 W[] ^^[[]\OT1/cmr/m/n/10.95 (\OML
+/cmm/m/it/10.95 ^^\\OT1/cmr/m/n/10.95 )[]
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 132--133
-[]|\T1/cmr/m/n/9 CK li-brary, per-class
+
+[22]
+Underfull \hbox (badness 1603) in paragraph at lines 91--92
+[]|\T1/cmr/m/n/10 Harman & Tratt 2007 [[]]; Mo-han & Greer
+ []
+
+
+Underfull \hbox (badness 1874) in paragraph at lines 92--93
+\T1/cmr/m/n/10 Herzig & Zeller 2013 [[]]; Ku-dr-javets et al.
+ []
+
+
+
+[23]
+
+[24]
+Underfull \hbox (badness 3260) in paragraph at lines 132--133
+[]|\T1/cmr/m/n/10 CK li-brary, per-class
  []
 
 
 Underfull \hbox (badness 10000) in paragraph at lines 133--134
-[]|\T1/cmr/m/n/9 CPD-detected cloned
+[]|\T1/cmr/m/n/10 CPD-detected cloned
  []
 
 
+Underfull \hbox (badness 10000) in paragraph at lines 134--135
+[]|\T1/cmr/m/n/10 Five-feature blend,
+ []
 
-[24]
+
+Underfull \hbox (badness 10000) in paragraph at lines 135--135
+[]|\T1/cmr/m/n/10 Marinescu 2004 [[]]; Ar-celli
+ []
+
+
+Underfull \hbox (badness 2662) in paragraph at lines 135--136
+[]|\T1/cmr/m/n/10 PMD vi-o-la-tion count
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 136--137
+[]|\T1/cmr/m/n/10 Per-class mean,
+ []
+
+
+Overfull \hbox (5.44229pt too wide) in paragraph at lines 127--139
+ [][] 
+ []
+
+
 
 [25]
-Overfull \hbox (31.9256pt too wide) in paragraph at lines 173--174
-\T1/cmr/m/n/10 stants gate de-tec-tion: $[] \OT1/cmr/m/n/10 = 2$ \T1/cmr/m/n/10
- drops single-line RE-WORK noise; $[] \OT1/cmr/m/n/10 =
- []
-
-
 
 [26]
 
 [27]
 
-[28]) (./architecture/architecture.tex
+[28]
 
 [29]
-Chapter 4.
-
-Overfull \hbox (4.54666pt too wide) in paragraph at lines 9--10
-\T1/cmr/m/n/10 The tool con-sists of four JVM mod-ules (\T1/cmtt/m/n/10 :ide-pl
-ugin\T1/cmr/m/n/10 , \T1/cmtt/m/n/10 :analysis\T1/cmr/m/n/10 , \T1/cmtt/m/n/10 
-:refactoring-bundle\T1/cmr/m/n/10 , \T1/cmtt/m/n/10 :shared\T1/cmr/m/n/10 )
+Overfull \hbox (5.36623pt too wide) in paragraph at lines 254--255
+\T1/cmr/m/n/10.95 Each ses-sion car-ries a row in \T1/cmtt/m/n/10.95 fixtures/s
+essions/manifest-v2.csv \T1/cmr/m/n/10.95 whose \T1/cmtt/m/n/10.95 expected_kin
+ds
  []
 
 
-Overfull \hbox (21.71637pt too wide) in paragraph at lines 16--17
-[]\T1/cmtt/m/n/10 shared/ \T1/cmr/m/n/10 -- cross-wire types (\T1/cmtt/m/n/10 S
-ession\T1/cmr/m/n/10 , \T1/cmtt/m/n/10 TraceEvent\T1/cmr/m/n/10 , \T1/cmtt/m/n/
-10 SessionMetadata\T1/cmr/m/n/10 , \T1/cmtt/m/n/10 FileSnapshot\T1/cmr/m/n/10 ,
- \T1/cmtt/m/n/10 EventType\T1/cmr/m/n/10 )
+Overfull \hbox (19.41342pt too wide) in paragraph at lines 256--257
+\T1/cmr/m/n/10.95 that drove each record-ing, our \T1/cmtt/m/n/10.95 manifest-v
+2.csv \T1/cmr/m/n/10.95 la-bels, the per-session \T1/cmtt/m/n/10.95 analysis-re
+port.json
+ []
+
+
+Overfull \hbox (24.07162pt too wide) in paragraph at lines 256--257
+\T1/cmr/m/n/10.95 raters were also given a small read-only helper script (\T1/c
+mtt/m/n/10.95 tool/scripts/session-event-diffs.py\T1/cmr/m/n/10.95 )
+ []
+
+
+Overfull \hbox (6.8765pt too wide) in paragraph at lines 256--257
+\T1/cmr/m/n/10.95 event. The script is a pre-sen-ta-tion aid only; it de-rives 
+its out-put from the same \T1/cmtt/m/n/10.95 events.jsonl
  []
 
 
 
-[30
+[30]
+Overfull \hbox (5.09218pt too wide) in paragraph at lines 258--259
+\OMS/cmsy/m/n/10.95 K$\T1/cmr/m/n/10.95 . For each kind $\OML/cmm/m/it/10.95 k$
+\T1/cmr/m/n/10.95 , the rater's la-bel is treated as the bi-nary judge-ment ``$
+\OML/cmm/m/it/10.95 k \OMS/cmsy/m/n/10.95 2 []$
+ []
 
-]
+) (./architecture/architecture.tex
 
 [31]
+Chapter 4.
 
-[32]
+Overfull \hbox (0.48738pt too wide) in paragraph at lines 16--17
+[]\T1/cmtt/m/n/10.95 shared/ \T1/cmr/m/n/10.95 -- cross-wire types (\T1/cmtt/m/
+n/10.95 Session\T1/cmr/m/n/10.95 , \T1/cmtt/m/n/10.95 TraceEvent\T1/cmr/m/n/10.
+95 , \T1/cmtt/m/n/10.95 SessionMetadata\T1/cmr/m/n/10.95 , \T1/cmtt/m/n/10.95 F
+ileSnapshot\T1/cmr/m/n/10.95 ,
+ []
+
+
+Underfull \vbox (badness 3701) has occurred while \output is active []
+
+
+
+[32
+
+]
+Overfull \hbox (2.6115pt too wide) in paragraph at lines 61--62
+\T1/cmr/m/n/10.95 keystroke, but we de-bounce these to avoid noise. A de-bounc-
+ing layer ac-cu-mu-lates keystrokes
+ []
+
+
 
 [33]
 
 [34]
-<architecture/dashboard_image.png, id=1185, 1641.13126pt x 908.39375pt>
+
+[35]
+
+[36]
+
+[37]
+<architecture/dashboard_image.png, id=1083, 1641.13126pt x 908.39375pt>
 File: architecture/dashboard_image.png Graphic file (type png)
 <use architecture/dashboard_image.png>
 Package pdftex.def Info: architecture/dashboard_image.png  used on input line 1
@@ -1507,45 +1572,29 @@ Package pdftex.def Info: architecture/dashboard_image.png  used on input line 1
 (pdftex.def)             Requested size: 426.79135pt x 236.23225pt.
 ) (./results/results.tex
 
-[35 <./architecture/dashboard_image.png>]
+[38 <./architecture/dashboard_image.png>]
 Chapter 5.
 
-Underfull \vbox (badness 1127) has occurred while \output is active []
+Underfull \vbox (badness 2884) has occurred while \output is active []
 
 
 
-[36
+[39
 
 ]
-
-[37]
-
-[38]
-
-[39]
-
-LaTeX Font Warning: Font shape `T1/cmr/m/scit' undefined
-(Font)              using `T1/cmr/m/scsl' instead on input line 204.
-
-
-LaTeX Font Warning: Font shape `T1/cmr/m/scit' undefined
-(Font)              using `T1/cmr/m/scsl' instead on input line 204.
-
-
-LaTeX Font Warning: Font shape `T1/cmr/m/scit' undefined
-(Font)              using `T1/cmr/m/scsl' instead on input line 204.
-
-
-LaTeX Font Warning: Font shape `T1/cmr/m/scit' undefined
-(Font)              using `T1/cmr/m/scsl' instead on input line 204.
-
-
-LaTeX Font Warning: Font shape `T1/cmr/m/scit' undefined
-(Font)              using `T1/cmr/m/scsl' instead on input line 204.
-
-
-LaTeX Font Warning: Font shape `T1/cmr/m/scit' undefined
-(Font)              using `T1/cmr/m/scsl' instead on input line 204.
+Overfull \hbox (21.56076pt too wide) in paragraph at lines 25--26
+\T1/cmr/m/n/10.95 one, scales the cho-sen weight by one of nine fac-tors in $\O
+MS/cmsy/m/n/10.95 f\OT1/cmr/m/n/10.95 0\OML/cmm/m/it/10.95 :\OT1/cmr/m/n/10.95 
+1\OML/cmm/m/it/10.95 ; \OT1/cmr/m/n/10.95 0\OML/cmm/m/it/10.95 :\OT1/cmr/m/n/10
+.95 25\OML/cmm/m/it/10.95 ; \OT1/cmr/m/n/10.95 0\OML/cmm/m/it/10.95 :\OT1/cmr/m
+/n/10.95 5\OML/cmm/m/it/10.95 ; \OT1/cmr/m/n/10.95 0\OML/cmm/m/it/10.95 :\OT1/c
+mr/m/n/10.95 75\OML/cmm/m/it/10.95 ; \OT1/cmr/m/n/10.95 1\OML/cmm/m/it/10.95 :\
+OT1/cmr/m/n/10.95 25\OML/cmm/m/it/10.95 ; \OT1/cmr/m/n/10.95 1\OML/cmm/m/it/10.
+95 :\OT1/cmr/m/n/10.95 5\OML/cmm/m/it/10.95 ; \OT1/cmr/m/n/10.95 2\OML/cmm/m/it
+/10.95 :\OT1/cmr/m/n/10.95 0\OML/cmm/m/it/10.95 ; \OT1/cmr/m/n/10.95 4\OML/cmm/
+m/it/10.95 :\OT1/cmr/m/n/10.95 0\OML/cmm/m/it/10.95 ; \OT1/cmr/m/n/10.95 10\OML
+/cmm/m/it/10.95 :\OT1/cmr/m/n/10.95 0\OMS/cmsy/m/n/10.95 g$\T1/cmr/m/n/10.95 ,
+ []
 
 
 
@@ -1559,103 +1608,143 @@ LaTeX Font Warning: Font shape `T1/cmr/m/scit' undefined
 
 [44]
 
+LaTeX Font Warning: Font shape `T1/cmr/m/scit' undefined
+(Font)              using `T1/cmr/m/scsl' instead on input line 204.
+
+
+LaTeX Font Warning: Font shape `T1/cmr/m/scit' undefined
+(Font)              using `T1/cmr/m/scsl' instead on input line 204.
+
+
+LaTeX Font Warning: Font shape `T1/cmr/m/scit' undefined
+(Font)              using `T1/cmr/m/scsl' instead on input line 204.
+
+
+LaTeX Font Warning: Font shape `T1/cmr/m/scit' undefined
+(Font)              using `T1/cmr/m/scsl' instead on input line 204.
+
+
+LaTeX Font Warning: Font shape `T1/cmr/m/scit' undefined
+(Font)              using `T1/cmr/m/scsl' instead on input line 204.
+
+
+LaTeX Font Warning: Font shape `T1/cmr/m/scit' undefined
+(Font)              using `T1/cmr/m/scsl' instead on input line 204.
+
+
+
 [45]
 
 [46]
 
 [47]
-Overfull \hbox (136.7377pt too wide) in paragraph at lines 443--444
-\T1/cmr/m/n/10 fa-cil-i-ta-tor pasted the mark-down out-put of the \T1/cmtt/m/n
-/10 feedbackForAgent \T1/cmr/m/n/10 task (\T1/cmtt/m/n/10 tool/analysis/.../exp
-eriment/FeedbackForAgent.kt\T1/cmr/m/n/10 )
- []
+Underfull \vbox (badness 2781) has occurred while \output is active []
 
 
 
 [48]
 
 [49]
-Overfull \hbox (4.43668pt too wide) in paragraph at lines 498--499
-\T1/cmr/m/n/10 writ-ten re-sponse iden-ti-fied its own anti-pattern by name: ``
-meth-ods like \T1/cmtt/m/n/10 chargeCash\T1/cmr/m/n/10 /\T1/cmtt/m/n/10 refundV
-oucher
- []
-
-) (./threats/threats.tex
 
 [50]
-Chapter 6.
 
-Overfull \hbox (3.4552pt too wide) in paragraph at lines 14--15
-\T1/cmr/m/n/10 that all carry mag-ni-tude ex-actly $\OML/cmm/m/it/10 W[]$\T1/cm
-r/m/n/10 ) would sort by in-ser-tion or-der, which is non-deterministic
- []
-
-
-
-[51
-
-]
-LaTeX Font Info:    Font shape `T1/cmtt/bx/n' in size <10> not available
-(Font)              Font shape `T1/cmtt/m/n' tried instead on input line 37.
-
+[51]
 
 [52]
+Underfull \vbox (badness 7814) has occurred while \output is active []
+
+
 
 [53]
+Overfull \hbox (7.43883pt too wide) in paragraph at lines 487--488
+\T1/cmr/m/n/10.95 procedural-discipline con-tract writ-ten into the agent's set
+up prompt be-ing hon-oured through-
+ []
+
+
 
 [54]
-Overfull \hbox (2.79709pt too wide) in paragraph at lines 85--86
-\T1/cmtt/m/n/10 IDE_REPLAY \T1/cmr/m/n/10 syn-the-siser builds al-ter-na-tive t
-ra-jec-to-ries by re-play-ing refac-tor-ing specs through Eclipse
+Overfull \hbox (40.45795pt too wide) in paragraph at lines 495--496
+\T1/cmr/m/n/10.95 fired three IDE-replay di-ver-gence points (one at mag-ni-tud
+e $\OMS/cmsy/m/n/10.95 ^^@\OT1/cmr/m/n/10.95 6$\T1/cmr/m/n/10.95 ), \T1/cmtt/m/
+n/10.95 REFACTORING_INTRODUCED_SMELLS\T1/cmr/m/n/10.95 ,
  []
 
 
 
-[55]
-Overfull \hbox (1.01357pt too wide) in paragraph at lines 125--126
-[]\T1/cmr/bx/n/10 Longitudinal val-i-da-tion against ex-ter-nal code-quality ou
-t-comes. \T1/cmr/m/n/10 No out-come dataset
- []
-
-) (./conclusion/conclusion.tex
+[55]) (./threats/threats.tex
 
 [56]
-Chapter 7.
+Chapter 6.
 
 
 [57
 
 ]
+LaTeX Font Info:    Font shape `T1/cmtt/bx/n' in size <10.95> not available
+(Font)              Font shape `T1/cmtt/m/n' tried instead on input line 19.
 
-[58]) (./declarations/declarations.tex
+
+[58]
+Overfull \hbox (2.73546pt too wide) in paragraph at lines 46--47
+ []\T1/cmr/bx/n/10.95 The re-order de-pen-dency anal-y-sis is de-lib-er-ately c
+oarse, and an-chors are content-
+ []
+
+
 
 [59]
+
+[60]
+
+[61]
+
+[62]) (./conclusion/conclusion.tex
+
+[63]
+Chapter 7.
+
+
+[64
+
+]
+Overfull \hbox (2.58556pt too wide) in paragraph at lines 22--23
+\T1/cmr/m/n/10.95 multi-knob Monte Carlo de-sign (ev-ery weight per-turbed si-m
+ul-ta-ne-ously from $[]\OT1/cmr/m/n/10.95 (\OML/cmm/m/it/10.95 ^^[ \OMS/cmsy/m/
+n/10.95 ^^A N\OT1/cmr/m/n/10.95 (0\OML/cmm/m/it/10.95 ; \OT1/cmr/m/n/10.95 1))$
+
+ []
+
+
+
+[65]) (./declarations/declarations.tex
+
+[66]
 Chapter 8.
 ) (./appendix/appendix.tex
 
-[60
+[67
 
 ]
 Appendix A.
 Package hyperref Info: bookmark level for unknown lstlisting defaults to 0 on i
 nput line 15.
 (./appendix/transcripts/session-1.txt
-Overfull \hbox (58.50229pt too wide) in paragraph at lines 2--3
+Overfull \hbox (123.83102pt too wide) in paragraph at lines 2--3
 [][] 
  []
 
 
-Overfull \hbox (135.16599pt too wide) in paragraph at lines 12--14
+Overfull \hbox (214.30405pt too wide) in paragraph at lines 12--14
 [][][][] 
  []
 
 
 
-[61
+[68
 
 ]
-Overfull \hbox (135.16599pt too wide) in paragraph at lines 43--44
+Overfull \hbox (214.30405pt too wide) in paragraph at lines 43--44
 [][][][] 
  []
 
@@ -1663,56 +1752,30 @@ Overfull \hbox (135.16599pt too wide) in paragraph at lines 43--44
 Underfull \vbox (badness 10000) has occurred while \output is active []
 
 
-
-[62]
-Underfull \vbox (badness 10000) has occurred while \output is active []
-
-
-
-[63]) (./appendix/transcripts/session-2.txt
-
-[64]
-Underfull \vbox (badness 10000) has occurred while \output is active []
-
-
-
-[65]) (./appendix/transcripts/session-3.txt
-
-[66]
-Underfull \vbox (badness 10000) has occurred while \output is active []
-
-
-
-[67]
-Underfull \vbox (badness 10000) has occurred while \output is active []
-
-
-
-[68]) (./appendix/transcripts/session-4.txt
 
 [69]
 Underfull \vbox (badness 10000) has occurred while \output is active []
 
 
 
-[70]) (./appendix/transcripts/session-5.txt
-
-[71])
+[70]
 Underfull \vbox (badness 10000) has occurred while \output is active []
 
 
 
-[72] (./appendix/transcripts/session-6.txt
+[71]) (./appendix/transcripts/session-2.txt
+
+[72]
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+
 
 [73]
 Underfull \vbox (badness 10000) has occurred while \output is active []
 
 
 
-[74]
-Underfull \vbox (badness 10000) has occurred while \output is active []
-
-
+[74]) (./appendix/transcripts/session-3.txt
 
 [75]
 Underfull \vbox (badness 10000) has occurred while \output is active []
@@ -1720,90 +1783,135 @@ Underfull \vbox (badness 10000) has occurred while \output is active []
 
 
 [76]
-Overfull \hbox (135.16599pt too wide) in paragraph at lines 343--344
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+
+
+[77]) (./appendix/transcripts/session-4.txt
+
+[78]
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+
+
+[79]) (./appendix/transcripts/session-5.txt
+
+[80]
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+
+
+[81]) (./appendix/transcripts/session-6.txt
+
+[82]
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+
+
+[83]
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+
+
+[84]
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+
+
+[85]
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+
+
+[86]
+Overfull \hbox (214.30405pt too wide) in paragraph at lines 343--344
 [][][][] 
  []
 
 
-Overfull \hbox (135.16599pt too wide) in paragraph at lines 345--346
+Overfull \hbox (214.30405pt too wide) in paragraph at lines 345--346
 [][][][] 
  []
 
 )) (./main.bbl
 
-[77]
+[87]
 
-[78
+[88
 
 ]
+Underfull \hbox (badness 1546) in paragraph at lines 119--124
+[]\T1/cmr/m/n/10.95 Naouel Moha, Yann-Gaël Guéhéneuc, Lau-rence Duchien, and An
+ne-Françoise
+ []
 
-[79]
 
-[80]
 
-[81])
+[89]
 
-[82] (./main.aux)
+[90]
+
+[91])
+
+[92] (./main.aux)
  ***********
 LaTeX2e <2024-11-01> patch level 2
 L3 programming layer <2025-01-18>
  ***********
 Package rerunfilecheck Info: File `main.out' has not changed.
-(rerunfilecheck)             Checksum: 7763F36C2ED8FBC61767410C4FCA9872;20673.
+(rerunfilecheck)             Checksum: 16005A1F2B03A5D14D29FAE26F605965;20289.
  ) 
 Here is how much of TeX's memory you used:
  28279 strings out of 473190
- 520522 string characters out of 5715800
- 1962721 words of memory out of 5000000
+ 520609 string characters out of 5715800
+ 1811677 words of memory out of 5000000
  49376 multiletter control sequences out of 15000+600000
- 594483 words of font info for 101 fonts, out of 8000000 for 9000
+ 598172 words of font info for 109 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
  103i,13n,106p,2167b,2184s stack positions out of 10000i,1000n,20000p,200000b,200000s
-</usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx9.pfb>
-</usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb><
-/usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></
-usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi6.pfb></us
-r/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi7.pfb></usr/
-local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi9.pfb></usr/lo
-cal/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></usr/loca
-l/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmr6.pfb></usr/local/t
-exlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmr7.pfb></usr/local/texl
-ive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmr9.pfb></usr/local/texlive
-/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/local/texlive/
-2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy6.pfb></usr/local/texlive/20
-25/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy7.pfb></usr/local/texlive/2025
-/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy9.pfb></usr/local/texlive/2025/t
-exmf-dist/fonts/type1/public/cm-super/sfbx0900.pfb></usr/local/texlive/2025/tex
-mf-dist/fonts/type1/public/cm-super/sfbx1000.pfb></usr/local/texlive/2025/texmf
--dist/fonts/type1/public/cm-super/sfbx1200.pfb></usr/local/texlive/2025/texmf-d
-ist/fonts/type1/public/cm-super/sfbx1440.pfb></usr/local/texlive/2025/texmf-dis
-t/fonts/type1/public/cm-super/sfbx2074.pfb></usr/local/texlive/2025/texmf-dist/
-fonts/type1/public/cm-super/sfbx2488.pfb></usr/local/texlive/2025/texmf-dist/fo
-nts/type1/public/cm-super/sfcc0600.pfb></usr/local/texlive/2025/texmf-dist/font
-s/type1/public/cm-super/sfcc0700.pfb></usr/local/texlive/2025/texmf-dist/fonts/
-type1/public/cm-super/sfcc0900.pfb></usr/local/texlive/2025/texmf-dist/fonts/ty
-pe1/public/cm-super/sfcc1000.pfb></usr/local/texlive/2025/texmf-dist/fonts/type
-1/public/cm-super/sfcc1200.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/
-public/cm-super/sfcc1440.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/pu
-blic/cm-super/sfcc1728.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/publ
-ic/cm-super/sfit0900.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public
-/cm-super/sfrm0600.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/c
-m-super/sfrm0700.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-
-super/sfrm0800.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-su
-per/sfrm0900.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-supe
-r/sfrm1000.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/
-sfrm1200.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sf
-sc0600.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sfti
-0900.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sfti10
-00.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sfti1200
-.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sftt0800.p
-fb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sftt0900.pfb
-></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sftt1000.pfb><
-/usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sfxc0700.pfb>
-Output written on main.pdf (84 pages, 1580908 bytes).
+</usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx10.pfb
+></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb>
+</usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb><
+/usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi7.pfb></u
+sr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi8.pfb></usr
+/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></usr/l
+ocal/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmr7.pfb></usr/loca
+l/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb></usr/local/t
+exlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/local/te
+xlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy7.pfb></usr/local/texl
+ive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy8.pfb></usr/local/texliv
+e/2025/texmf-dist/fonts/type1/public/cm-super/sfbx1000.pfb></usr/local/texlive/
+2025/texmf-dist/fonts/type1/public/cm-super/sfbx1095.pfb></usr/local/texlive/20
+25/texmf-dist/fonts/type1/public/cm-super/sfbx1200.pfb></usr/local/texlive/2025
+/texmf-dist/fonts/type1/public/cm-super/sfbx1440.pfb></usr/local/texlive/2025/t
+exmf-dist/fonts/type1/public/cm-super/sfbx2074.pfb></usr/local/texlive/2025/tex
+mf-dist/fonts/type1/public/cm-super/sfbx2488.pfb></usr/local/texlive/2025/texmf
+-dist/fonts/type1/public/cm-super/sfcc0700.pfb></usr/local/texlive/2025/texmf-d
+ist/fonts/type1/public/cm-super/sfcc0800.pfb></usr/local/texlive/2025/texmf-dis
+t/fonts/type1/public/cm-super/sfcc1000.pfb></usr/local/texlive/2025/texmf-dist/
+fonts/type1/public/cm-super/sfcc1095.pfb></usr/local/texlive/2025/texmf-dist/fo
+nts/type1/public/cm-super/sfcc1200.pfb></usr/local/texlive/2025/texmf-dist/font
+s/type1/public/cm-super/sfcc1440.pfb></usr/local/texlive/2025/texmf-dist/fonts/
+type1/public/cm-super/sfcc1728.pfb></usr/local/texlive/2025/texmf-dist/fonts/ty
+pe1/public/cm-super/sfit1000.pfb></usr/local/texlive/2025/texmf-dist/fonts/type
+1/public/cm-super/sfrm0600.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/
+public/cm-super/sfrm0800.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/pu
+blic/cm-super/sfrm0900.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/publ
+ic/cm-super/sfrm1000.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public
+/cm-super/sfrm1095.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/c
+m-super/sfrm1200.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-
+super/sfsc0700.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-su
+per/sfti1000.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-supe
+r/sfti1095.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/
+sfti1200.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sf
+tt0800.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sftt
+1000.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sftt10
+95.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sfxc0800
+.pfb>
+Output written on main.pdf (93 pages, 1555595 bytes).
 PDF statistics:
- 3408 PDF objects out of 3580 (max. 8388607)
- 3194 compressed objects within 32 object streams
- 1634 named destinations out of 1728 (max. 500000)
- 828 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 3324 PDF objects out of 3580 (max. 8388607)
+ 3106 compressed objects within 32 object streams
+ 1637 named destinations out of 1728 (max. 500000)
+ 820 words of extra memory for PDF output out of 10000 (max. 10000000)
 

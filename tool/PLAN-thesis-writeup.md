@@ -21,8 +21,9 @@ The user study has wrapped (12 human sessions + 6 agent sessions). The results c
 | 8 | Bibliography audit                  | ½ day | ✅ **done** | Communication 15% |
 | 9 | GenAI + ethics disclosure appendix  | ½ day | **pending** | Communication 15% (caps band at 50–59% if absent) |
 | 9b | Port agent transcript into appendix | ½ day | ✅ **done** | Resolves `app:agent-transcript` cross-references from §5.4.2 |
+| 10 | Abstract                            | ½ day | **pending** | Communication 15% — draft last, after §5b read-through, once headline numbers are stable. ~200 words: gap + method + key result. |
 
-**Total remaining: ~1 day of focused writeup.**
+**Total remaining: ~1.5 days of focused writeup.**
 
 ## Where §5 landed (recap of this session's work)
 

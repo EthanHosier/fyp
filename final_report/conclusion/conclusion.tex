@@ -25,7 +25,7 @@ Fourth, both human participants showed near-monotonic improvement in their proce
 
 Fifth, the agent (Claude Code, model \texttt{claude-opus-4-7}, tested on 2026-05-21) course-corrected between sessions on the procedural-discipline behaviours within its tool surface, and correctly identified the one behaviour that lay outside it. Three threads from the transcript (\S\ref{sec:results-userstudy-agent}) show this: commit cadence was revised twice (under-committing in S1, over-correcting in S3, resolved by S6 atomic-edit synthesis); smell-introduction self-diagnosis after S3 prevented recurrence in S4--S5; IDE-replay flags persisted across the arc not because the agent failed to read the feedback but because it edits files via text tool calls and has no IDE refactor surface available to it, a limitation it diagnoses correctly in its own S6 reflection.
 
-\section{What the work supports and what it does not}
+\section{Discussion}
 \label{sec:conclusion-scope}
 
 The chapter substantiates four claims: a divergence-point classifier whose precision and rank-1 prominence are corpus-conditional but reproducible; a score formula whose ranking is locally robust to weight choices, with each term carrying measurable influence; a descriptive observation that two participants showed gain-stripped process-discipline improvement across the six-session arc after receiving feedback; and an observation that a coding agent adjusted its behaviour between sessions in response to the same written feedback, within the limits of its tool surface.
@@ -45,14 +45,6 @@ The suggestions below are ordered by what would most strengthen the main finding
     \item \textbf{Rater-rank validation.} The Cohen's $\kappa$ study validates kind-presence agreement only. A Kendall $\tau$-b study on per-session divergence-point rankings would validate that the score's ordering of divergence points within a session matches a human expert's ranking, which the $\kappa$ figures alone do not establish.
 
     \item \textbf{IDE-refactor-as-agent-tool deployment.} The IDE-replay structural limitation in \S\ref{sec:results-userstudy-agent} is the cleanest example in the chapter of feedback being correctly interpreted but inactionable: the agent acknowledges the IDE refactoring would score better but has no way to invoke it. Exposing IntelliJ's refactor actions as agent tool calls would close that gap and would let the \texttt{IDE\_REPLAY} count actually respond to feedback across sessions.
-
-    \item \textbf{Real-time, live-feedback dashboard.} The current dashboard is a session-replay view of completed analysis reports. A live mode that surfaces divergence points during the session would let participants self-correct in-trajectory rather than between sessions. \S\ref{sec:results-userstudy} flags this as the natural next step.
-
-    \item \textbf{Cross-IDE and cross-language validation.} The plugin's instrumentation uses IntelliJ's PSI and VFS hooks, which have no direct equivalent in VSCode or Eclipse, so a port would require re-implementing the event-capture layer. Cross-language is doubly hard: the refactoring engine is JDT-specific, so a TypeScript or Python port would need a different refactoring miner alongside.
-
-    \item \textbf{Reorder enumerator beam search.} The hard $7$-step window cap (\S\ref{sec:threats-implementation}) means the widest-window reorderings are silently dropped on sessions with long contiguous refactor sequences. Replacing the exhaustive enumerator with a beam search or pruning heuristic would lift the cap without paying the factorial cost.
-
-    \item \textbf{Relaxed validator gate.} The ORDERING recall gap of $0.36$ is documented and deliberate (\S\ref{sec:results-scoped-out}); relaxing the \texttt{splitOnInvalid} criterion would surface more windows. By the same commuting-refactor argument as \S\ref{sec:results-headline} the additional windows would mostly carry magnitude zero, so this would be a cosmetic recall improvement, named here for completeness.
 \end{enumerate}
 
 \section{Closing}
