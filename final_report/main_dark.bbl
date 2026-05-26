@@ -369,14 +369,6 @@ Don Coleman, Dan Ash, Bruce Lowther, and Paul Oman.
 \newblock Eclipse Wiki, 2026.
 \newblock Consulted 2026-05-18.
 
-\bibitem{eclipse_jdtls}
-{Eclipse Foundation}.
-\newblock {Eclipse JDT Language Server} ({eclipse.jdt.ls}).
-\newblock Eclipse Foundation project; reference implementation on GitHub, 2026.
-\newblock Newsletter article by Gorkem Ercan et al., Eclipse Newsletter, May
-  2017; reference implementation \texttt{eclipse-jdtls/eclipse.jdt.ls} on
-  GitHub. Consulted 2026-05-18.
-
 \bibitem{cohen1960kappa}
 Jacob Cohen.
 \newblock A coefficient of agreement for nominal scales.

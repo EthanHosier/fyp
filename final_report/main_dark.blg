@@ -3,44 +3,44 @@ Capacity: max_strings=200000, hash_size=200000, hash_prime=170003
 The top-level auxiliary file: main_dark.aux
 The style file: unsrt.bst
 Database file #1: bibs/sample.bib
-You've used 69 entries,
+You've used 68 entries,
             1791 wiz_defined-function locations,
-            826 strings with 18394 characters,
-and the built_in function-call counts, 18677 in all, are:
-= -- 1731
-> -- 826
+            822 strings with 18103 characters,
+and the built_in function-call counts, 18539 in all, are:
+= -- 1718
+> -- 822
 < -- 24
-+ -- 302
-- -- 233
-* -- 1200
-:= -- 2799
-add.period$ -- 234
-call.type$ -- 69
-change.case$ -- 66
++ -- 300
+- -- 232
+* -- 1199
+:= -- 2777
+add.period$ -- 230
+call.type$ -- 68
+change.case$ -- 65
 chr.to.int$ -- 0
-cite$ -- 69
-duplicate$ -- 879
-empty$ -- 1828
-format.name$ -- 233
-if$ -- 4324
+cite$ -- 68
+duplicate$ -- 874
+empty$ -- 1810
+format.name$ -- 232
+if$ -- 4291
 int.to.chr$ -- 0
-int.to.str$ -- 69
+int.to.str$ -- 68
 missing$ -- 69
-newline$ -- 353
-num.names$ -- 69
-pop$ -- 243
+newline$ -- 347
+num.names$ -- 68
+pop$ -- 237
 preamble$ -- 1
 purify$ -- 0
 quote$ -- 0
-skip$ -- 469
+skip$ -- 467
 stack$ -- 0
 substring$ -- 1239
-swap$ -- 287
+swap$ -- 286
 text.length$ -- 24
 text.prefix$ -- 0
 top$ -- 0
 type$ -- 0
 warning$ -- 0
-while$ -- 180
-width$ -- 71
-write$ -- 786
+while$ -- 179
+width$ -- 70
+write$ -- 774

@@ -221,7 +221,6 @@ The magnitude is uniform across all four kinds:
 \]
 where $\tau^{\ast}_{\mathrm{final}}$ is the alternative path substituted into the user's trajectory at the divergence point, with the rest of the user's later activity left unchanged. $\tau_{\mathrm{final}}$ is the score of the user's actual trajectory. Both scores are therefore compared at the same final point, which makes the magnitude comparable across the four divergence kinds: \emph{``if you had taken this one different path at the divergence point and continued with the rest of your trajectory unchanged, by how many process-score points would your final score have moved?''}
 
-
 Before emitting a divergence point, the detector applies filters specific to each kind. Three thresholds are used. $\emph{min\_rework\_lines} = 2$ removes single-line \emph{Rework} noise. $\emph{min\_commit\_gap} = 6$ requires at least six green-refactor checkpoints between commits before \emph{Commit-Gap} is reported. The $60\,\mathrm{s}$ composite-window boundary~\cite{murphyhill2009howrefactor} defines the refactoring batch boundary used by both \emph{Ordering} and \emph{Hygiene}. The value $6$ is based on Murphy-Hill's batching heuristic rather than on a measured cutoff from prior work. Since the $60\,\mathrm{s}$ window already groups tightly clustered refactorings, requiring six consecutive green checkpoints helps distinguish a real no-commit gap from normal in-batch activity. No published study calibrates this exact threshold, so it is treated as a tunable parameter. The sensitivity analysis in \S\ref{sec:results-sensitivity} tests the associated weight $W_{\textsc{cg}}$, not the threshold itself.
 
 The remainder of the section explains each divergence kind together with the synthesiser that constructs its alternative trajectory. \S\ref{sec:arch-jdt} introduces the Eclipse JDT support used for \emph{Ordering} and \emph{Manual-Refactor}. \S\ref{sec:methodology-detector-ordering}--\S\ref{sec:methodology-detector-hygiene} then cover the four divergence kinds, followed by the bracket-level validator for reordered trajectories in \S\ref{sec:methodology-validator}.
@@ -229,45 +228,88 @@ The remainder of the section explains each divergence kind together with the syn
 \subsection{Applying refactorings via Eclipse JDT}
 \label{sec:arch-jdt}
 
-Synthesising counterfactual trajectories requires actually applying refactorings, not just describing them. Building a refactoring engine from scratch was out of scope, so we rely on an existing one. Eclipse JDT was chosen for two reasons. First, operationally: JDT can be linked as a library and driven programmatically from a JVM, whereas IntelliJ's refactoring engine requires launching a full IDE instance via a custom plugin, adding UI dependencies, process boundaries, and startup cost. Second, capability-wise: JDT covers the refactoring catalogue this analysis needs at a maturity level comparable to its use in the Eclipse IDE.
+Synthesising counterfactual trajectories requires the system to apply refactorings, not just describe them. Rather than building a refactoring engine from scratch, the implementation uses Eclipse JDT. This choice was primarily practical: JDT can be embedded as a library and driven programmatically from a JVM, whereas using IntelliJ's refactoring engine would require a custom plugin running inside a full IDE instance, adding UI dependencies, process boundaries, and startup overhead. JDT also provides the refactoring operations needed for this analysis through the same mature implementation used inside Eclipse.
 
-JDT was designed to run inside Eclipse but can be embedded in other JVMs by hosting the Equinox OSGi framework. The Eclipse JDT FAQ~\cite{eclipse_jdt_faq} distinguishes two deployment modes: bare-classpath (for parser and AST features) and runtime-workbench (for workspace-dependent features). Refactorings require the runtime-workbench mode. The reference implementation is the Eclipse JDT Language Server~\cite{eclipse_jdtls}, maintained by the Eclipse Foundation as a headless JDT distribution.
+Although JDT was designed for use inside Eclipse, it can also be embedded in another JVM by hosting the Equinox OSGi framework. This is necessary because JDT refactorings depend on Eclipse's workspace model, not just on the Java parser or AST library. The simpler bare-classpath setup is enough for parsing and AST analysis, but not for applying refactorings \cite{eclipse_jdt_faq}.
 
 \paragraph{Batch sessions.}
 JDT maintains an indexed project model in memory. Building this model takes roughly a second, so repeatedly rebuilding it between refactorings would be expensive. Instead, the pipeline wraps a whole refactoring window in a single \emph{batch session}: the model is initialized once at the start, reused across all operations, and torn down at the end. Each refactoring then sees a fully indexed model without paying the initialization cost repeatedly.
 
 \paragraph{Anchor resolution.}
-Refactorings need to identify their target, but line numbers shift whenever surrounding code changes. The pipeline addresses this with content-addressed anchors. On the host side, RefactoringMiner's line and column coordinates are used once to locate the AST node, and that node is then summarised as the enclosing type's fully qualified name, the host method's name and parameter-type list, and a canonical hash of the node's own AST subtree. The wire-level spec sent to the JDT bundle carries that anchor; it does not carry the original line and column for range-based operations, and for point-based operations it carries them only as a tiebreaker hint in the rare case that two declarations inside the same method hash equal. The bundle finds the host method by name plus parameter types inside the named type, then searches inside it for a node whose subtree hash matches. The same hashing routine is computed on both sides, so the lookup is robust to formatting changes and to line shifts elsewhere in the file: a method that moved from line 42 to line 47 still resolves correctly, as long as its own subtree was not itself rewritten.
+Refactorings need to identify the code element they should act on, but raw line numbers are fragile because they change when nearby code is edited. The pipeline therefore uses content-addressed anchors. RefactoringMiner's line and column coordinates are used only once, on the host side, to find the relevant AST node. That node is then represented by more stable information: the fully qualified name of the enclosing type, the host method name and parameter types, and a canonical hash of the node's own AST subtree. This anchor is what the host sends to the JDT bundle. For range-based operations, the original line and column are not sent at all; for point-based operations, they are kept only as a tiebreaker in the rare case where two declarations inside the same method have the same subtree hash. The JDT bundle first finds the host method by name and parameter types inside the named type, then searches within it for a node with the matching subtree hash. Because both sides compute the hash in the same way, the lookup is robust to formatting changes and to line shifts elsewhere in the file. For example, a method that moves from line 42 to line 47 still resolves correctly, as long as the method's own subtree has not been rewritten.
 
 \subsection{Ordering}
 \label{sec:methodology-detector-ordering}
 \label{sec:methodology-reorder}
 
-\emph{Ordering} detection works on bracket-validated windows of consecutive refactoring steps (\S\ref{sec:methodology-validator}). For each window, the reorder synthesiser enumerates valid permutations of the steps and computes the process-score delta of each permutation against the user's. One divergence point is emitted per window at its terminal step; the divergence point's magnitude is the best delta across the window's admitted permutations, and all admitted permutations are attached to the divergence point as alternatives. Permutations whose delta is $\leq 0$ are retained on the divergence point for informational use (the dashboard surfaces them so the user can inspect the search space), but downstream analyses - the divergence-detection experiment of \S\ref{sec:results-divergence} and the ``beats user'' counts reported with it - apply a strict $\mathrm{magnitude} > 0$ filter so only divergence points whose best alternative actually improved on the user's trajectory are counted.
+\emph{Ordering} detection is applied to bracket-validated windows of consecutive refactoring steps (\S\ref{sec:methodology-validator}). For each window, the reorder synthesiser computes the valid permutations of those steps and measures how each ordering changes the process score relative to the developer's original order. The system emits at most one divergence point for the window, placed at its final step. Its magnitude is the best score improvement found among the admitted permutations, and the admitted permutations are attached as alternatives.
 
-The reorder synthesiser produces those alternatives by reshuffling the user's refactoring steps into a different order while still reaching the same end state. Correctness is established in six steps: window-splitting on validator outcomes, dependency-DAG construction over the program entities each step reads and writes, single-static-assignment (SSA) versioning across renames, topological enumeration, depth-first search over a prefix trie of candidate permutations, and a terminal AST-equivalence audit.
+The reorder synthesiser produces these alternatives by reshuffling the user's refactoring steps while still requiring the final code state to match the user's. The following describe how candidate reorderings are generated, filtered, and checked before they are scored.
 
 \paragraph{Window splitting on validator verdicts.}
-Only bracket-validated windows (\S\ref{sec:methodology-validator}) are eligible for reordering. The validator returns one of three non-valid verdicts for brackets the synthesiser engine cannot reproduce: \emph{untyped} when RefactoringMiner cannot map the user's edit to a typed JDT refactoring spec (the typical case for unstructured manual edits); \emph{refactor\_failed} when JDT attempts the spec but errors out; and \emph{ast\_diverged} when JDT applies the spec successfully but the resulting AST does not match the user's. Any of the three disqualifies the containing bracket, which is then treated as individual steps that cannot be reordered. The wrap-and-patch layer (\S\ref{sec:arch-wrap-patch}) closes the most common JDT-IntelliJ divergences before this check runs, expanding the set of brackets that pass validation.
+Only bracket-validated windows (\S\ref{sec:methodology-validator}) are eligible for reordering. A bracket is rejected if the synthesiser cannot reproduce it. This can happen in three ways: \emph{untyped} means that RefactoringMiner could not map the user's edit to a typed JDT refactoring spec, which is common for unstructured manual edits; \emph{refactor\_failed} means that JDT tried to apply the spec but failed; and \emph{ast\_diverged} means that JDT applied the spec, but the resulting AST did not match the user's. If any of these verdicts occurs, the containing bracket is split into individual steps that are not reordered. The wrap-and-patch layer (\S\ref{sec:arch-wrap-patch}) handles the most common JDT-IntelliJ differences before this validation step, increasing the number of brackets that pass.
 
 \paragraph{Dependency-DAG construction.}
 Each refactoring step carries a structured \emph{spec} describing what entities it reads, writes, creates, or deletes. The synthesiser builds a dependency graph where an edge from step $u$ to step $v$ means $v$ depends on $u$'s effects. This graph defines the constraints on any valid reordering.
 
 \paragraph{SSA versioning across renames.}
-If a method is renamed at step $t$ from \texttt{foo} to \texttt{bar}, it shows up in later steps under its new name, which breaks simple name-based equality across the trajectory. The synthesiser threads version identifiers through the DAG using single-static-assignment-style versioning: each rename produces a fresh version, and subsequent steps that target the renamed entity bind to the right version. This handles trajectories like Extract Method followed by Rename Method on the extracted method.
+Renames make dependency tracking harder because the same program entity can appear under different names at different points in the trajectory. For example, if a method is renamed from \texttt{foo} to \texttt{bar}, later steps refer to \texttt{bar}, even though it is the same method. The synthesiser handles this by assigning a new version identifier after each rename and carrying that identifier through the dependency graph. Later steps that target the renamed entity are then linked to the correct version. This is needed for cases such as Extract Method followed by Rename Method on the extracted method.
 
 \paragraph{Topological enumeration.}
-The synthesiser enumerates topological orderings of the DAG via recursive backtracking. Each enumeration is a candidate permutation of the window's steps. The enumerator carries a hard size budget - windows with more than $7$ refactoring steps are skipped, and within an admitted window enumeration stops after $7! = 5040$ permutations - because the cost of enumerating all topological orderings grows factorially with window size. In practice the recorded sessions of Chapter~\ref{ch:results} rarely produced reorder windows large enough to exceed this budget, but a session with longer contiguous refactor sequences would have its widest windows silently dropped from \emph{Ordering} enumeration (the threats-to-validity chapter at \S\ref{sec:threats-implementation} discusses this).
+The synthesiser enumerates valid topological orderings of the dependency graph using recursive backtracking. Each ordering is one candidate permutation of the window's refactoring steps. Because the number of possible orderings can grow very quickly, the search has a hard size limit: windows with more than $7$ refactoring steps are skipped, and enumeration within an accepted window stops after at most $7! = 5040$ permutations. In the recorded sessions used in Chapter~\ref{ch:results}, reorder windows rarely reached this limit. However, sessions with longer uninterrupted refactoring sequences could have their largest windows skipped by the \emph{Ordering} detector; this limitation is discussed further in \S\ref{sec:threats-implementation}.
 
 \paragraph{Depth-first search over a prefix trie.}
 \label{sec:arch-reorder-engine}
-The enumeration is implemented as a depth-first walk over a prefix trie of candidate permutations, so orderings that share a prefix reuse the project state across that prefix rather than re-applying it from scratch. Each forward edge applies one refactoring, each back edge rolls the worktree to the parent commit. Two orderings that agree on their first $j$ steps share the first $j$ trie nodes, so each unique prefix is materialised exactly once no matter how many leaves reuse it.
+The enumeration is implemented as a depth-first search over a prefix trie of candidate permutations. This lets the synthesiser reuse work across orderings that begin with the same sequence of refactorings. When the search moves forward, it applies one refactoring to the worktree; when it backtracks, it rolls the worktree back to the previous state. As a result, two orderings that share their first $j$ steps also share the work needed to materialise those $j$ steps, instead of applying the same prefix repeatedly from scratch.
 
 \paragraph{Terminal AST-equivalence audit.}
 \label{sec:methodology-canonical-audit}
-For each permutation that reaches a terminal state, the synthesiser admits it only if its terminal AST is equivalent to the user's modulo syntactic differences that do not change behaviour. This is the correctness guarantee: by construction, an admitted reorder reaches the same end state as the user. At each leaf of the trie -- the terminal state of one full ordering -- the synthesiser hashes the touched files' ASTs into a canonical form and compares those hashes against the user's terminal AST hashes, which are precomputed from the user's own trajectory via \texttt{git show} at the start of the window (no second worktree is needed). The canonicalisation collapses cosmetic differences (whitespace, comment positioning, formatting variation) and reorderings that do not change behaviour - notably method-declaration order within a class - so two ASTs that are structurally identical produce the same hash. The method-declaration-order canonicalisation matters here because permutations that apply, say, an Extract Method at a different position in the bracket place the new declaration at a different lexical offset, even though the resulting class is functionally identical. An ordering passes if and only if its terminal hashes match the user's. Otherwise, it is discarded. Admitted permutations are then scored under Equation~\eqref{eq:process-score}.
+For each full permutation, the synthesiser checks that the final code state matches the user's final code state. This is the correctness check for reordering: a candidate ordering is only kept if it reaches the same end point as the original trajectory. At each leaf of the trie, meaning the terminal state of one complete ordering, the synthesiser hashes the ASTs of the touched files into a canonical form. These hashes are compared with the user's terminal AST hashes, which are precomputed from the user's own trajectory with \texttt{git show} at the start of the window, so a second worktree is not needed. The canonical form ignores differences that should not affect behaviour, such as whitespace, comment position, formatting, and method-declaration order within a class. The method-order case matters because applying an Extract Method earlier or later in the bracket can place the new method at a different lexical position even when the resulting class is otherwise the same. If the terminal hashes match the user's, the ordering is kept and scored under Equation~\eqref{eq:process-score}; otherwise it is discarded.
 
-Three engineering choices make this search possible at session-scale. First, the whole window runs against a single borrowed worktree, so forward edges, back edges, and the final AST audit all reuse the same on-disk checkout rather than paying the cost of a fresh worktree per ordering. Second, the whole window also runs inside a single JDT batch session (\S\ref{sec:arch-jdt}), so every refactoring inside it sees a warm project model and pays only the per-call cost. Third, back edges in the search roll the worktree back via a detached git checkout and then ask the JDT engine to re-stat its files via the same ``files changed under us'' pathway an IDE user exercises constantly.
+Three implementation choices keep this search practical. First, the whole window runs against a single borrowed worktree. Forward steps, backtracking, and the final AST check therefore reuse the same checkout instead of creating a fresh worktree for every candidate ordering. Second, the window runs inside a single JDT batch session (\S\ref{sec:arch-jdt}), so each refactoring can reuse the already-initialized project model. Third, when the search backtracks, the worktree is rolled back with a detached git checkout and JDT is asked to refresh its view of the changed files, just as it would after external file changes in an IDE.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+  >=Stealth,
+  every node/.style={font=\footnotesize},
+  state/.style={draw, circle, inner sep=0.5pt, minimum size=7mm, fill=blue!10},
+  leaf/.style={draw, rectangle, rounded corners=1pt, inner sep=3pt, fill=green!18, font=\scriptsize\ttfamily},
+  depnode/.style={draw, circle, inner sep=1pt, minimum size=6mm, fill=orange!20, font=\footnotesize\bfseries},
+]
+% ---- Left panel: dependency DAG ----
+\node[anchor=south west, font=\small\bfseries] at (-0.5, 3.5) {Dependency DAG};
+\node[depnode] (dA) at (0, 2.5) {A};
+\node[depnode] (dB) at (1.5, 2.5) {B};
+\node[depnode] (dC) at (0.75, 1.0) {C};
+\draw[->, thick] (dA) -- (dB);
+
+% ---- Right panel: prefix trie ----
+\node[anchor=south west, font=\small\bfseries] at (5.5, 3.5) {Prefix Trie (DFS)};
+\node[state] (s0) at (9.5, 3.0) {$s_0$};
+\node[state] (sA) at (7.0, 2.0) {$s_A$};
+\node[state] (sC) at (12.0, 2.0) {$s_C$};
+\node[state] (sAB) at (5.5, 1.0) {$s_{AB}$};
+\node[state] (sAC) at (8.0, 1.0) {$s_{AC}$};
+\node[state] (sCA) at (12.0, 1.0) {$s_{CA}$};
+\node[leaf] (lABC) at (5.5, 0.0) {ABC};
+\node[leaf] (lACB) at (8.0, 0.0) {ACB};
+\node[leaf] (lCAB) at (12.0, 0.0) {CAB};
+\draw[->] (s0) -- node[midway, above left=-1pt, font=\scriptsize] {A} (sA);
+\draw[->] (s0) -- node[midway, above right=-1pt, font=\scriptsize] {C} (sC);
+\draw[->] (sA) -- node[midway, left, font=\scriptsize] {B} (sAB);
+\draw[->] (sA) -- node[midway, right, font=\scriptsize] {C} (sAC);
+\draw[->] (sC) -- node[midway, right, font=\scriptsize] {A} (sCA);
+\draw[->] (sAB) -- (lABC);
+\draw[->] (sAC) -- (lACB);
+\draw[->] (sCA) -- (lCAB);
+% Backtrack annotation — arrow from sAB up to its parent sA, drawn
+% above the nodes so it sits clear of the leaf row below.
+\draw[->, dashed, gray] (sAB.north west) to[bend left=45] node[midway, above left=-1pt and -2pt, font=\scriptsize\itshape, gray, align=center] {Backtrack \\ \texttt{git checkout}\,$s_A$} (sA.south west);
+\end{tikzpicture}
+\caption{Reorder synthesis for a three-step window with one dependency edge ($A \to B$). The dependency graph on the left permits three valid orderings. The prefix trie on the right shows how shared prefixes are reused: the prefix $A$ is applied once, then reused by both orderings that begin with $A$.}
+\label{fig:methodology-reorder-trie}
+\end{figure}
 
 \subsection{Manual-Refactor}
 \label{sec:methodology-detector-manual}
@@ -275,6 +317,61 @@ Three engineering choices make this search possible at session-scale. First, the
 \label{sec:arch-wrap-patch}
 
 A \emph{Manual-Refactor} divergence point is emitted at any user step where (i) the action was performed by hand, and (ii) the resulting diff matches the structural pattern of an IDE-supported refactoring. IDE-driven refactorings arrive pre-tagged in the captured event stream, but a manual refactoring is just a series of edit bursts whose net effect happens to constitute a structured refactoring. The pipeline recovers them by running RefactoringMiner~\cite{alikhanifard2025rminer} -- a standard tool that detects refactorings between two code states by AST-level structural matching -- over a sliding window of commit pairs in the shadow repo. The window matters because a manual refactoring may unfold across several intermediate edit bursts, each of which on its own looks like an unrelated change; only by widening the window to cover the full span does the refactoring become visible to the miner. Each detected refactoring is then cross-checked against the captured event stream: a detection whose window contains a matching IDE-emitted refactoring event is recorded as IDE-driven, and one whose window contains no such event is flagged as manual. Adjacent candidate steps that share the same \texttt{(fromSha, toSha)} bracket are grouped into a single composite that the synthesiser treats as one refactoring.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+  >=Stealth,
+  every node/.style={font=\footnotesize},
+  edit/.style={draw, rectangle, minimum width=7mm, minimum height=6mm, font=\scriptsize, fill=gray!12},
+  manual/.style={edit, fill=orange!35},
+  ide/.style={edit, fill=blue!22},
+]
+% Shift the trace and everything tied to it (braces, arrows, indicator
+% text) right by 1.3, so the squares' midpoint coincides with the
+% legend's natural midpoint and \centering puts the squares on the
+% page midline. The legend itself stays at its original positions.
+\begin{scope}[xshift=1.3cm]
+% Edit-burst trace: t1..t3 manual extract; t4-t5 unrelated; t6-t7 IDE-driven rename; t8 unrelated; t9-t10 manual extract again
+\node[manual] (t1) at (0.0, 0) {$t_1$};
+\node[manual] (t2) at (0.9, 0) {$t_2$};
+\node[manual] (t3) at (1.8, 0) {$t_3$};
+\node[edit]   (t4) at (2.7, 0) {$t_4$};
+\node[edit]   (t5) at (3.6, 0) {$t_5$};
+\node[ide]    (t6) at (4.5, 0) {$t_6$};
+\node[ide]    (t7) at (5.4, 0) {$t_7$};
+\node[edit]   (t8) at (6.3, 0) {$t_8$};
+\node[manual] (t9) at (7.2, 0) {$t_9$};
+\node[manual] (t10) at (8.1, 0) {$t_{10}$};
+
+% Window 1: t1..t3 — miner detects ExtractMethod
+\draw[decorate, decoration={brace, amplitude=4pt}, thick, orange!70!black] (-0.35, 0.5) -- (2.15, 0.5)
+  node[midway, above=4pt, font=\scriptsize, orange!60!black, align=center] {Miner: ExtractMethod \\ No IDE Event};
+% Window 2: t6..t7 — miner detects RenameMethod, IDE event present
+\draw[decorate, decoration={brace, amplitude=4pt}, thick, blue!60!black] (4.15, 0.5) -- (5.75, 0.5)
+  node[midway, above=4pt, font=\scriptsize, blue!60!black, align=center] {Miner: RenameMethod \\ IDE Event Present};
+
+% Result annotations below
+\draw[->, thick, orange!70!black] (0.9, -0.4) -- (0.9, -1.1)
+  node[midway, right=2pt, font=\scriptsize, orange!60!black] {Emit \emph{Manual-Refactor} DP};
+\draw[->, thick, blue!60!black] (4.95, -0.4) -- (4.95, -1.1)
+  node[midway, right=2pt, font=\scriptsize, blue!60!black] {No DP (IDE-Driven)};
+\end{scope}
+
+% Legend — placed above the two-line brace labels (which extend to y≈1.4),
+% with each entry spaced out far enough in x that the text never reaches
+% the next swatch.
+\node[anchor=west, font=\scriptsize] at (-0.5, 2.7) {Legend:};
+\node[manual] at (1.2, 2.7) {};
+\node[anchor=west, font=\scriptsize] at (1.7, 2.7) {Manual Edit Burst};
+\node[ide] at (5.2, 2.7) {};
+\node[anchor=west, font=\scriptsize] at (5.7, 2.7) {IDE-Emitted Refactor Event};
+\node[edit] at (10.4, 2.7) {};
+\node[anchor=west, font=\scriptsize] at (10.9, 2.7) {Unrelated Edit};
+\end{tikzpicture}
+\caption{Manual-Refactor detection over a sliding edit window. RefactoringMiner detects structured refactorings between bracket endpoints, and each detection is checked against the IDE event stream. A detection with no matching IDE event is treated as manual and emits a divergence point; a detection with a matching IDE event is recorded as IDE-driven.}
+\label{fig:methodology-manual-window}
+\end{figure}
 
 The manual-refactor synthesiser applies each detected spec via its IDE-equivalent operator on the JDT engine and then runs a residual three-way merge to layer the user's non-refactoring edits (for example, unrelated bug fixes interleaved with the refactor) on top of the synthesised refactor. The resulting tree is committed to a shadow repository. The residual merge ensures the alt trajectory keeps all the user's non-refactoring edits, so both trajectories end at the same code state and the comparison measures the refactoring method (hand vs IDE), not whether the final states match. Without the residual merge, the alt would diverge on non-refactoring changes and the process-score comparison would be meaningless.
 
@@ -286,6 +383,56 @@ A complication which had to be resolved is that the user records sessions in Int
 \label{sec:methodology-reworksynth}
 
 \emph{Rework} detection looks for pairs of changes within a trajectory where content is added and later removed (or removed and later re-added) such that the two halves net to a no-op, modulo whitespace. The detector parses each step's unified diff into hunks, resolves each hunk to its enclosing method or class scope, content-hashes the affected lines (whitespace-normalised), and greedily pairs add/remove hunks that share the same \texttt{(file, scope, content-hash)}. Each paired \texttt{(originating step, terminal step)} becomes a \emph{Rework} candidate; pairs below the \emph{min\_rework\_lines} floor are dropped as line-noise.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+  >=Stealth,
+  every node/.style={font=\footnotesize},
+  rstep/.style={draw, rectangle, minimum width=16mm, minimum height=6mm, font=\scriptsize, fill=gray!12},
+]
+% Step boxes on a timeline
+\node[rstep] (si) at (0,0) {Step $i$ (Add)};
+\node[font=\small] at (3.2, 0) {$\cdots$};
+\node[rstep]      (sj) at (6.4,0) {Step $j$ (Remove)};
+
+% --- step i column: context line above, green hunk box, context lines below ---
+\node[anchor=north west, font=\ttfamily\scriptsize, align=left, inner sep=2pt]
+  at (-1.6, -0.6)
+  {\phantom{+} void process(Foo x) \{};
+\node[draw, rectangle, fill=green!22, anchor=north west, font=\ttfamily\scriptsize, align=left, inner sep=3pt]
+  (addbox) at (-1.6, -1.05)
+  {\textbf{+} \quad if (x == null) \{\\
+   \textbf{+} \qquad throw new IAEx("x");\\
+   \textbf{+} \quad \}};
+\node[anchor=north west, font=\ttfamily\scriptsize, align=left, inner sep=2pt]
+  at (-1.6, -2.35)
+  {\phantom{+} \quad x.run();\\
+   \phantom{+} \}};
+
+% --- step j column: same context, red hunk box ---
+\node[anchor=north west, font=\ttfamily\scriptsize, align=left, inner sep=2pt]
+  at (4.8, -0.6)
+  {\phantom{-} void process(Foo x) \{};
+\node[draw, rectangle, fill=red!22, anchor=north west, font=\ttfamily\scriptsize, align=left, inner sep=3pt]
+  (rembox) at (4.8, -1.05)
+  {\textbf{-} \quad if (x == null) \{\\
+   \textbf{-} \qquad throw new IAEx("x");\\
+   \textbf{-} \quad \}};
+\node[anchor=north west, font=\ttfamily\scriptsize, align=left, inner sep=2pt]
+  at (4.8, -2.35)
+  {\phantom{-} \quad x.run();\\
+   \phantom{-} \}};
+
+% Pairing dashed connector — anchored below the full code column so the
+% midway label sits clear of the bottom context lines on both sides.
+\draw[<->, thick, dashed] (0.4, -3.4) to[bend right=18]
+  node[midway, below=4pt, font=\scriptsize\itshape] {Paired by (File, Scope, Content Hash)}
+  (6.4, -3.4);
+\end{tikzpicture}
+\caption{Rework detection for an added chunk that is later removed. The detector pairs the two hunks using their \texttt{(file, scope, content-hash)} tuple. The synthesiser then builds a shorter alternative trajectory by removing both halves of the rework and preserving the other intermediate edits.}
+\label{fig:methodology-rework-pair}
+\end{figure}
 
 The rework synthesiser builds an alternative trajectory in which the originating--terminal hunk pair is skipped. For each pair, it replays the $[\mathrm{originating}, \mathrm{terminal}]$ window as a sequence of surgical patches that omit the reworked chunk while preserving every other change in the window. The operation is atomic per trajectory: either all patches apply, or the alt is thrown away - a partial replay never produces a half-baked alternative.
 
@@ -341,26 +488,26 @@ Figure~\ref{fig:arch-overview} shows the dataflow at a glance.
 ]
 
   \node[box] (plugin) at (0, 0) {\texttt{ide-plugin}\\(IntelliJ)};
-  \node[box] (analysis) at (5, 0) {\texttt{analysis}\\(Kotlin pipeline)};
+  \node[box] (analysis) at (5, 0) {\texttt{analysis}\\(Kotlin Pipeline)};
   \node[box] (bundle) at (11, 0) {\texttt{refactoring-}\\\texttt{bundle} (JDT)};
 
-  \node[shadow] (shadow) at (5, -1.8) {\texttt{shadow-repo/}\\(per session)};
+  \node[shadow] (shadow) at (5, -1.8) {\texttt{shadow-repo/}\\(Per Session)};
 
   \node[box] (dashboard) at (0, -3.6) {\texttt{dashboard}\\(React)};
 
-  \draw[arrow] (plugin) -- node[above, font=\scriptsize] {Session events}
+  \draw[arrow] (plugin) -- node[above, font=\scriptsize] {Session Events}
                                 (analysis);
-  \draw[biarrow] (analysis) -- node[above, font=\scriptsize] {in-process via OSGi}
+  \draw[biarrow] (analysis) -- node[above, font=\scriptsize] {In-Process via OSGi}
                                   (bundle);
 
-  \draw[dasharrow] (analysis) -- node[right, font=\scriptsize] {shadow git commits + refs} (shadow);
+  \draw[dasharrow] (analysis) -- node[right, font=\scriptsize] {Shadow Git Commits + Refs} (shadow);
 
   \draw[arrow] (analysis.south west) to[bend right=20]
                                   node[left, font=\scriptsize, pos=0.5] {Analysis Report}
                                   (dashboard.north east);
 
 \end{tikzpicture}
-\caption{High-level dataflow between the recording side (IDE plugin), the analysis pipeline, the embedded Eclipse JDT engine, and the dashboard. The shadow repo holds every reconstructed state -- both user checkpoints and synthesised alternatives -- as git commits in a per-session repository.}
+\caption{High-level dataflow through the tool. The IDE plugin records the session, the analysis pipeline reconstructs and scores the trace, the embedded JDT bundle applies refactorings, and the dashboard displays the resulting report. The shadow repository stores both user checkpoints and synthesised alternatives as per-session git commits.}
 \label{fig:arch-overview}
 \end{figure}
 
@@ -387,7 +534,7 @@ The trajectory chart plots the user's process score over time, with the synthesi
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=\textwidth]{architecture/dashboard_image.png}
-  \caption{The dashboard hosted inside an IntelliJ JCEF window. The trajectory chart (centre) plots the user's process score over the session's $37$ checkpoints, with the synthesised alternative trajectory overlaid as a dashed comparison line and divergence-point flags marked along the path. The left rail lists each per-state cleanliness signal with its session-level sparkline; the right rail shows the per-checkpoint detail panel for the currently selected refactoring (a \texttt{Rename Attribute}), including the divergence point it produced, the IDE-event annotation, and the diff of the underlying file. The bottom strip summarises the session's highest-impact takeaway (left) and the per-metric delta across the selected step (right).}
+  \caption{The dashboard hosted inside an IntelliJ JCEF window. The centre chart plots the user's process score across the session and overlays the synthesised alternative as a dashed comparison line. The side panels show the cleanliness signals, the selected refactoring's details, and the divergence point associated with that step. The bottom strip summarises the highest-impact takeaway for the session and the metric changes for the selected step.}
   \label{fig:arch-dashboard}
 \end{figure}
 
