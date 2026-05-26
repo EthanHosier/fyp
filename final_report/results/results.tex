@@ -1,20 +1,16 @@
 \chapter{Experimentation and Evaluation}
 \label{ch:results}
 
-This chapter evaluates the work of the previous two chapters in three parts. \S\ref{sec:results-metric} tests the score formula directly: a sensitivity sweep asks whether the divergence-point ranking is robust to weight perturbations, an ablation sweep asks whether every term in the formula actually contributes, and a single cross-cutting observation reports that reordering refactoring steps rarely helps under the score formula studied here on the current sessions. \S\ref{sec:results-detector} tests the divergence-point detector against ground truth: how well three independent labellers agreed when labelling the same 45 sessions, then per-kind precision and recall against the labelled sessions, then an account of one known recall weakness that is deliberately left open. \S\ref{sec:results-userstudy} reports two short studies in which the tool is used by people other than us: a 12-session user study with two participants on a new fixture, and a 6-session comparison run on the same fixture by an automated coding agent.
+This chapter tests the system component-by-component. The previous chapter proposed (i) a process-quality score that ranks refactoring trajectories on process behaviours, and (ii) a divergence-point detector that uses that score to identify and synthesise concrete alternative trajectories at points where the user could have done better. Each is testable on its own terms, and end-to-end behaviour can be tested on top.
 
-\paragraph{The 45-session injection set.}
-The primary test data is a set of $45$ refactoring sessions we recorded by hand. Each session follows a scripted playbook scenario that deliberately induces one specific ``bad'' refactoring behaviour --- a step ordering the playbook author intended as worse than its alternatives, an undo-redo cycle on the same chunk of code, a skipped test cadence, a manual edit where an IDE refactor would have worked, and so on --- against a single Java library-style fixture in IntelliJ. The playbook covers all four divergence kinds, with $5$ ordering injections, $9$ rework, $13$ hygiene, and the remainder split between IDE-replay injections and clean-control sessions where no bad behaviour is induced.
+\S\ref{sec:results-metric} tests the score formula directly: whether its divergence-point ranking is stable to weight perturbations, whether every term in the formula actually contributes to the ranking, and an overall finding about what the formula does and does not detect on the session set. \S\ref{sec:results-detector} tests the detector against external ground truth: whether three independent labellers agree on which divergence kinds each session contains, then per-kind precision and recall against those labels, then one known recall weakness that is deliberately left open. \S\ref{sec:results-userstudy} tests the tool end-to-end: a 12-session user study with two participants on a new fixture, and a 6-session comparison run on the same fixture by an automated coding agent. Together the three parts test each contribution against the question that makes it credible --- the formula against weight stability and term contribution, the detector against external labels, the tool against use by people other than us.
 
-Each session carries two distinct labels, used for different parts of the detector evaluation. The first names the deliberately-injected divergence kind — what the experiment was designed to trigger. This is the signal the \emph{injection prominence} claim of \S\ref{sec:results-divergence} is computed against. The second is a separate hand-label naming the full set of divergence kinds the session should fire, computed independently and allowed to name multiple kinds where a session legitimately exercises more than one. This is the signal the per-kind \emph{precision and recall} claims of \S\ref{sec:results-divergence} are computed against, and is also the label set whose inter-rater agreement is reported in \S\ref{sec:results-kappa}. P1 and P2 produced their own independent labelling for all $45$ sessions before either performed a user-study session of their own.
-
-\paragraph{Reporting conventions.}
-Per-cell counts across the four kinds and $45$ sessions are small, so raw counts are reported alongside percentages everywhere they appear. Every magnitude number in this chapter is the trajectory-final $J$ delta defined in \S\ref{sec:methodology-score}, uniform across all four divergence kinds.
+The 45-session injection corpus and its two-label scheme are defined in \S\ref{sec:methodology-rater}. Per-cell counts across the four kinds and $45$ sessions are small, so raw counts are reported alongside percentages everywhere they appear. Every magnitude number in this chapter is the trajectory-final $J$ delta defined in \S\ref{sec:methodology-score}, uniform across all four divergence kinds.
 
 \section{Testing the score formula}
 \label{sec:results-metric}
 
-This section evaluates the process-quality score $J$ directly: how sensitive its divergence-point ranking is to the choice of weights (\S\ref{sec:results-sensitivity}), how much each individual term contributes to the ranking (\S\ref{sec:results-ablation}), and an overall finding about what the formula does and does not detect on the session set (\S\ref{sec:results-headline}).
+This section evaluates the process-quality score on its own terms. The score's weights were set within a literature-supported severity ordering (\S\ref{sec:methodology-weights}) rather than fitted to an external outcome dataset, so the rankings the formula produces are credible only if (a) they are stable to plausibly-different weight choices within that ordering, and (b) every term in the formula actually contributes to those rankings. \S\ref{sec:results-sensitivity} tests stability via single-knob and multi-knob weight perturbations. \S\ref{sec:results-ablation} tests term contribution via a full power-set ablation across $2^6 = 64$ weight subsets. \S\ref{sec:results-headline} then reports one cross-cutting observation that emerges from both: a structural limit on what the formula can detect even when it is otherwise well-behaved.
 
 \subsection{Sensitivity sweep}
 \label{sec:results-sensitivity}
@@ -26,7 +22,7 @@ The single-knob sweep fixes every weight in \texttt{ScoringConfig.PRODUCTION} ex
 
 The experiment is run against three session sets: the $45$ hand-labelled injection sessions of \S\ref{sec:results-divergence}, the $12$ user-study sessions of \S\ref{sec:results-userstudy}, and the $6$ agent sessions of \S\ref{sec:results-userstudy-agent}. These differ in their per-fixture divergence-point profiles. The injection sessions have at most $5$ divergence points per fixture, $66$ in total, and concentrates on single-kind exercises. The user-study sessions have up to $8$ per fixture across naturalistic sessions, $50$ in total. The agent sessions hves up to $3$ per fixture across structurally simpler sessions, $10$ in total.
 
-Three ranking-stability statistics are reported per row. Kendall's $\tau$-b~\cite{kendall1948rank, agresti2010ordinal} is a rank correlation coefficient designed for short rankings on small samples, reported as the percentage of rows where $\tau = 1.0$ (ranking unchanged) and separately as the percentage where $\tau < 0$ (ranking inverted). Top-$N$ hit rate is the fraction of the production top-$N$ that survives in the perturbed top-$N$, reported at $N = 1, 3, 5$. Top-$1$ is the only metric that works across all three session sets, since it bites on any fixture with at least one divergence point. Top-$3$ and top-$5$ are reported on the user-study sessions only, where per-fixture sizes are large enough to make them informative; on the other two session sets every fixture has at most $5$ divergence points and the top-$5$ comparison collapses to set-preservation~\cite{webber2010rbo}. Both metrics require a deterministic ranking, but several divergence-point kinds produce ties: every HYGIENE and COMMIT\_GAP point carry the same magnitude (exactly $W_{\textsc{cg}}$, since the commit-flip alt drops the gap count from one to zero at trajectory-final), and divergence points saturated against the $[0, 100]$ score clamp share a clamp-induced magnitude that is weight-invariant. Ties are broken by ascending step index, applied uniformly across both the production baseline and every perturbed ranking, so the comparison is well-defined.
+Three ranking-stability statistics are reported per row. Kendall's $\tau$-b~\cite{kendall1948rank, agresti2010ordinal} is a rank correlation coefficient designed for short rankings on small samples, reported as the percentage of rows where $\tau = 1.0$ (ranking unchanged) and separately as the percentage where $\tau < 0$ (ranking inverted). Top-$N$ hit rate is the fraction of the production top-$N$ that survives in the perturbed top-$N$, reported at $N = 1, 3, 5$. Top-$1$ is the only metric that works across all three session sets, since it bites on any fixture with at least one divergence point. Top-$3$ and top-$5$ are reported on the user-study sessions only, where per-fixture sizes are large enough to make them informative; on the other two session sets every fixture has at most $5$ divergence points and the top-$5$ comparison collapses to set-preservation~\cite{webber2010rbo}. Both metrics require a deterministic ranking, but several divergence-point kinds produce ties: every \emph{Hygiene} and \emph{Commit-Gap} point carry the same magnitude (exactly $W_{\textsc{cg}}$, since the commit-flip alt drops the gap count from one to zero at trajectory-final), and divergence points saturated against the $[0, 100]$ score clamp share a clamp-induced magnitude that is weight-invariant. Ties are broken by ascending step index, applied uniformly across both the production baseline and every perturbed ranking, so the comparison is well-defined.
 
 \paragraph{Single-knob results.}
 Table~\ref{tab:results-sensitivity-headline} reports top-$1$ stability across the three session sets. The user-study sessions is the most demanding test: it has the longest per-fixture rankings, the highest divergence-point density, and zero clipped baseline divergence points against the $[0, 100]$ score clamp. The injection sessions shows the highest stability, but only because it has shorter rankings to reshuffle in the first place. The agent sessions sit between them, but $30\%$ of its baseline divergence points hit the score suppression clamp, which suppresses the observable effect of weight perturbations. On the user-study sessions the top-$1$ recommendation is preserved on $1{,}239$ of $1{,}296$ rows ($95.6\%$).
@@ -74,7 +70,7 @@ Table~\ref{tab:results-sensitivity-knobs} reports per-knob top-$1$ disruption co
 \paragraph{Multi-knob Monte Carlo.}
 The single-knob sweep only tests one weight at a time. The Monte Carlo approach perturbs every weight together: $200$ samples per fixture, with each weight drawn independently from $\exp(\ln 2 \cdot Z)$ for $Z \sim \mathcal{N}(0, 1)$. Table~\ref{tab:results-sensitivity-mc} reports the distribution of $\tau$ and top-$N$ hit rate across $200 \times \lvert \mathcal{C} \rvert$ joint-perturbation samples per session set.
 
-The multi-knob result is meaningfully weaker than the single-knob headline. On the user-study sessions, the top-$1$ recommendation changes on $19\%$ of joint-perturbation samples, against $4\%$ under single-knob, and mean $\tau$ falls to $0.781$. The injection sessions are much more stable at $\tau = 0.986$ mean, but again only because their per-fixture rankings are too short to allow much reshuffling. The agent sessions sits between them on $\tau$, and its top-$3$ stability is trivially $100\%$ because every agent fixture has at most $3$ divergence points. In short, the formula is robust to small joint perturbations and degrades smoothly with larger ones. It is \emph{not} robust to arbitrary combinations of weights, even within the realistic range we tested.
+The multi-knob result is meaningfully weaker than the single-knob headline. On the user-study sessions, the top-$1$ recommendation changes on $19\%$ of joint-perturbation samples, against $4\%$ under single-knob, and mean $\tau$ falls to $0.781$. The injection sessions are much more stable at $\tau = 0.986$ mean, but again only because their per-fixture rankings are too short to allow much reshuffling. The agent sessions sits between them on $\tau$, and its top-$3$ stability is trivially $100\%$ because every agent fixture has at most $3$ divergence points. In short, the formula is robust to small joint perturbations and degrades smoothly with larger ones. It is not robust to arbitrary combinations of weights, even within the realistic range we tested.
 
 \begin{table}[htbp]
 \centering
@@ -95,10 +91,10 @@ Agent ($6$)             & $1{,}200$ & $0.736$ & $86.1\%$ & $100.0\%$\,$^\dagger$
 \end{table}
 
 \paragraph{Saturation and score-clamp bias.}
-One concern is whether the $\tau$ and top-$N$ numbers reflect the $[0, 100]$ clamp on the process score rather than true stability. When both user and alt scores hit the ceiling, their magnitude is zero regardless of weights, which would inflate $\tau$. Saturation is therefore tracked per fixture. The right-hand column of Table~\ref{tab:results-sensitivity-headline} shows the three session sets differ substantially. The injection sessions has $13.6\%$ saturated baseline divergence points, concentrated on seven short fixtures. The agent sessions has $30.0\%$, because most agent sessions push the score close to the ceiling on the easier playbook sessions. The user-study sessions has \emph{zero} saturation. This is the main reason for leading with the user-study sessions: its $\tau$ and top-$N$ values are clean perturbation responses, not clipping artifacts, and the multi-knob top-$1 = 81\%$ figure isn't explained by saturation.
+One concern is whether the $\tau$ and top-$N$ numbers reflect the $[0, 100]$ clamp on the process score rather than true stability. When both user and alt scores hit the ceiling, their magnitude is zero regardless of weights, which would inflate $\tau$. Saturation is therefore tracked per fixture. The right-hand column of Table~\ref{tab:results-sensitivity-headline} shows the three session sets differ substantially. The injection sessions has $13.6\%$ saturated baseline divergence points, concentrated on seven short fixtures. The agent sessions has $30.0\%$, because most agent sessions push the score close to the ceiling on the easier playbook sessions. The user-study sessions has zero saturation. This is the main reason for leading with the user-study sessions: its $\tau$ and top-$N$ values are clean perturbation responses, not clipping artifacts, and the multi-knob top-$1 = 81\%$ figure isn't explained by saturation.
 
 \paragraph{Caveats and scope.}
-Three main limitations. \emph{First}, the experiment establishes that the formula is stable near the production weights. It does not establish that the production weights themselves are uniquely correct, only that small changes to them mostly preserve the ranking. To properly validate this, we'd need to refit the weights against an external outcome dataset, e.g.\ longitudinal code-quality measurements, but no such dataset exists for this problem. \emph{Second}, the multi-knob test is centered around the production weights and tests the neighborhood within roughly $\pm 2\sigma$ (about $\times 0.25$ to $\times 4$). The formula visibly degrades on the user-study sessions even inside this range ($\tau = 0.78$ mean), so the robustness claim is local rather than global. \emph{Third}, the user-study sessions are $n = 12$ sessions across $2$ participants; we haven't tested it on a broader set of naturalistic sessions. We document these limits as threats to validity in \S\ref{sec:results-scoped-out} and the discussion chapter. The chapter does not claim more than the experiments support.
+Three main limitations. First, the experiment establishes that the formula is stable near the production weights. It does not establish that the production weights themselves are uniquely correct, only that small changes to them mostly preserve the ranking. To properly validate this, we'd need to refit the weights against an external outcome dataset, e.g.\ longitudinal code-quality measurements, but no such dataset exists for this problem. Second, the multi-knob test is centered around the production weights and tests the neighborhood within roughly $\pm 2\sigma$ (about $\times 0.25$ to $\times 4$). The formula visibly degrades on the user-study sessions even inside this range ($\tau = 0.78$ mean), so the robustness claim is local rather than global. Third, the user-study sessions are $n = 12$ sessions across $2$ participants; we haven't tested it on a broader set of naturalistic sessions. We document these limits as threats to validity in \S\ref{sec:results-scoped-out} and the discussion chapter. The chapter does not claim more than the experiments support.
 
 TODO: MOVE ABOVE TO VALIDITY SECTION
 
@@ -162,7 +158,7 @@ Table~\ref{tab:results-ablation-solo} shows how much magnitude each term contrib
 \end{table}
 
 \paragraph{Per-term leave-one-out recovery.}
-Table~\ref{tab:results-ablation-loo} shows what happens when you remove one term from the full formula. Removing \texttt{length} causes the largest drop in recovery ($0.700$), so the step-savings bonus from reorder and rework contributes more than any other single term. Removing \texttt{gain} pushes recovery above $1.000$ to $1.113$ --- the most surprising result: without \texttt{gain}, total magnitude is \emph{larger} than at production. The unit being summed here is the per-divergence-point magnitude defined in \S\ref{sec:methodology-score}, i.e.\ the trajectory-final $J(\tau^\ast) - J(\tau)$ delta between each alternative and the user it is compared against; the sum is over $\lvert \text{magnitude} \rvert$ across every surfaced divergence point, including the ones whose alternative scored \emph{worse} than the user (negative magnitudes contribute their absolute value). The mechanism behind the inflation is that \texttt{gain} $\cdot \Delta C$ is small but typically positive for alternatives, so it partially offsets the penalty terms; remove it and the penalty terms determine the alt-versus-user delta unopposed, producing larger per-DP absolute magnitudes which accumulate in the sum. Were the experiment to filter to alt-beats-user DPs only, removing \texttt{gain} would in fact \emph{lower} the total, since alternatives sitting just above the beats-user threshold flip below it without the offset. The \texttt{gain} term therefore plays a regularising role against the penalty terms rather than acting as a positive contributor in isolation. Removing \texttt{skipTests} or \texttt{commitGap} reshuffles the ranking somewhat but moves recovery less than removing \texttt{length} or \texttt{manualIde} does, so these terms primarily affect \emph{which} divergence point is biggest rather than \emph{how} big.
+Table~\ref{tab:results-ablation-loo} shows what happens when you remove one term from the full formula. Removing \texttt{length} causes the largest drop in recovery ($0.700$), so the step-savings bonus from reorder and rework contributes more than any other single term. Removing \texttt{gain} pushes recovery above $1.000$ to $1.113$ --- the most surprising result: without \texttt{gain}, total magnitude is larger than at production. The unit being summed here is the per-divergence-point magnitude defined in \S\ref{sec:methodology-score}, i.e.\ the trajectory-final $J(\tau^\ast) - J(\tau)$ delta between each alternative and the user it is compared against; the sum is over $\lvert \text{magnitude} \rvert$ across every surfaced divergence point, including the ones whose alternative scored worse than the user (negative magnitudes contribute their absolute value). The mechanism behind the inflation is that \texttt{gain} $\cdot \Delta C$ is small but typically positive for alternatives, so it partially offsets the penalty terms; remove it and the penalty terms determine the alt-versus-user delta unopposed, producing larger per-DP absolute magnitudes which accumulate in the sum. Were the experiment to filter to alt-beats-user DPs only, removing \texttt{gain} would in fact lower the total, since alternatives sitting just above the beats-user threshold flip below it without the offset. The \texttt{gain} term therefore plays a regularising role against the penalty terms rather than acting as a positive contributor in isolation. Removing \texttt{skipTests} or \texttt{commitGap} reshuffles the ranking somewhat but moves recovery less than removing \texttt{length} or \texttt{manualIde} does, so these terms primarily affect which divergence point is biggest rather than how big.
 
 \begin{table}[htbp]
 \centering
@@ -184,7 +180,7 @@ Table~\ref{tab:results-ablation-loo} shows what happens when you remove one term
 \end{table}
 
 \paragraph{Cross-set rerun on the user-study sessions.}
-The ablation above runs on the $45$ injection sessions, which have few divergence points per fixture ($\max 5$, mean $1.5$). Running the same test on the $12$ user-study sessions, which have larger rankings ($\max 8$, mean $4.2$) and no saturation, produces different results. Table~\ref{tab:results-ablation-user-loo} compares leave-one-out $\tau$ across both sets. On user-study sessions, the most important term is commit-gap ($W_{\textsc{cg}}$): removing it drops $\tau$ from $1.000$ to $0.641$, roughly twice the drop of any other term. On injection sessions, $W_{\textsc{cg}}$ is one of the smaller-impact terms ($\tau = 0.930$ on removal). The reverse holds for $W_{\textsc{mi}}$ and $W_{\textsc{l}}$: they drive injection-session ranking but have smaller effects on user-study sessions. This difference matters: \emph{which terms matter depends on the type of sessions}, so the weights have different effects on different session types. Removing the cleanliness-gain term $W_{\textsc{g}}$ still has no effect on either set, so it acts as a regularizer, not a rank-shaper.
+The ablation above runs on the $45$ injection sessions, which have few divergence points per fixture ($\max 5$, mean $1.5$). Running the same test on the $12$ user-study sessions, which have larger rankings ($\max 8$, mean $4.2$) and no saturation, produces different results. Table~\ref{tab:results-ablation-user-loo} compares leave-one-out $\tau$ across both sets. On user-study sessions, the most important term is commit-gap ($W_{\textsc{cg}}$): removing it drops $\tau$ from $1.000$ to $0.641$, roughly twice the drop of any other term. On injection sessions, $W_{\textsc{cg}}$ is one of the smaller-impact terms ($\tau = 0.930$ on removal). The reverse holds for $W_{\textsc{mi}}$ and $W_{\textsc{l}}$: they drive injection-session ranking but have smaller effects on user-study sessions. This difference matters: which terms matter depends on the type of sessions, so the weights have different effects on different session types. Removing the cleanliness-gain term $W_{\textsc{g}}$ still has no effect on either set, so it acts as a regularizer, not a rank-shaper.
 
 \begin{table}[htbp]
 \centering
@@ -214,8 +210,6 @@ Five key limits apply. The cleanliness sub-weights are not ablated because they 
 
 The single most interesting finding is that reordering refactoring steps almost never improves the score on these sessions. The reorder synthesiser tested $194$ permutations across the $45$ sessions, which collapsed into $24$ distinct reorder windows. Of those $24$, only $4$ had a permutation better than the user's order ($16.7\%$; Table~\ref{tab:results-divergence-quality}). On the $5$ sessions where we (as playbook author) selected an ordering with the intent of being worse than its alternatives, none produced a better alternative under the score formula --- which is itself part of the finding rather than separate evidence: the formula and the synthesiser together cannot distinguish the ordering we intended as worse from any of its permutations.
 
-TODO: DELIBERATLEY BAD ORDERINGS IS WEAK!!!!
-
 The reason is straightforward. The reorder synthesiser works correctly, but most IDE refactoring pairs are independent by design: they don't interact, so every permutation reaches the same final state. This means the final cleanliness metrics are identical across permutations, the gain term has zero $\Delta C$, and intermediate quality doesn't affect the score at all. This isn't a bug—it's a real finding: under the current score design, the order of independent refactorings doesn't measurably matter.
 
 This has theoretical support. Mens, Taentzer and Runge~\cite{mens2007graph} show that refactorings as graph transformations with parallel independence (empty critical pairs) means every permutation reaches the same final state, and IDE refactorings are designed to have this property. Prior empirical work either claims order matters based on interactions between code smells~\cite{liu2009smell} or tests on a single small fixture without checking AST equivalence~\cite{khrishe2016empirical}. Our $45$-session, $194$-permutation result is, to our knowledge, the first systematic evidence on real IDE sessions that independent refactorings dominate and that reordering produces zero score improvement in practice.
@@ -228,7 +222,7 @@ This strengthens the chapter's claim. The detector's job is to surface measurabl
 \section{Testing the divergence-point detector}
 \label{sec:results-detector}
 
-This section evaluates the divergence-point detector against external ground truth. \S\ref{sec:results-kappa} reports the inter-rater agreement that establishes the per-kind labels as a defensible ground-truth signal. \S\ref{sec:results-divergence} then measures the detector's precision and recall against those labels on the 45 injection sessions. \S\ref{sec:results-scoped-out} discusses one known recall weakness in the resulting numbers that is deliberately left open.
+This section evaluates the divergence-point detector against external ground truth. Precision and recall numbers on detector output are only meaningful if the per-kind labels they are computed against are themselves defensible, so \S\ref{sec:results-kappa} first establishes that three independent labellers (us, P1, P2) agree on which divergence kinds each session contains --- inter-rater agreement that gives the labels standing as a ground-truth signal. \S\ref{sec:results-divergence} then measures the detector's per-kind precision and recall against those labels on the 45 injection sessions. \S\ref{sec:results-scoped-out} discusses one known recall weakness in the resulting numbers that is deliberately left open.
 
 \subsection{Inter-rater reliability}
 \label{sec:results-kappa}
@@ -241,10 +235,10 @@ P1 and P2 each labelled all $45$ sessions against the multi-label schema in \S\r
 \hline
 \textbf{kind} & \textbf{Author vs P1} & \textbf{Author vs P2} & \textbf{P1 vs P2} \\
 \hline
-ORDERING    & $1.000$ & $1.000$ & $1.000$ \\
-IDE\_REPLAY & $1.000$ & $1.000$ & $1.000$ \\
-REWORK      & $0.861$ & $0.861$ & $1.000$ \\
-HYGIENE     & $0.848$ & $0.723$ & $0.862$ \\
+\emph{Ordering}    & $1.000$ & $1.000$ & $1.000$ \\
+\emph{IDE-Replay} & $1.000$ & $1.000$ & $1.000$ \\
+\emph{Rework}      & $0.861$ & $0.861$ & $1.000$ \\
+\emph{Hygiene}     & $0.848$ & $0.723$ & $0.862$ \\
 \hline
 \end{tabular}
 \caption{Per-kind Cohen's $\kappa$ on the 45-session set between us and the two independent raters and between the two independent raters. Ordering and IDE-replay are perfect on every pair; rework and hygiene reach substantial-to-almost-perfect agreement on every pair under Landis and Koch's interpretation thresholds.}
@@ -271,10 +265,10 @@ Table~\ref{tab:results-divergence-prec-recall} reports per-kind precision and re
 \hline
 \textbf{kind} & \textbf{precision} & \textbf{recall (injection)} & \textbf{recall (any expected)} \\
 \hline
-ORDERING   & 1.00 & 0.40 & 0.36 \\
-IDE\_REPLAY & 1.00 & 0.76 & 0.76 \\
-REWORK     & 1.00 & 1.00 & 1.00 \\
-HYGIENE    & 1.00 & 1.00 & 1.00 \\
+\emph{Ordering}   & 1.00 & 0.40 & 0.36 \\
+\emph{IDE-Replay} & 1.00 & 0.76 & 0.76 \\
+\emph{Rework}     & 1.00 & 1.00 & 1.00 \\
+\emph{Hygiene}    & 1.00 & 1.00 & 1.00 \\
 \hline
 \end{tabular}
 \caption{Per-kind precision and recall on the 45-session set. The ``injection'' recall column counts only the kind the playbook explicitly injected; ``any expected'' counts any kind the session's \texttt{expected\_kinds} label includes.}
@@ -286,7 +280,7 @@ A precision/recall number says nothing about whether the alternatives the detect
 
 Hygiene never proposes a useless alternative: every one of its $13$ divergence points is a real improvement over the user's trajectory ($100\%$). IDE-replay proposes a real improvement in $12$ of $16$ fires ($75.0\%$); the four misses break down as three sessions where the user's process score was already pinned at the lower end of the $[0,100]$ range so neither the user nor the IDE-driven alternative can score below it (the magnitude is mechanically zero rather than evidence about the \texttt{manualIde} penalty), and one session where the IDE alt scored $5$ points lower than the user's manual edit. The four misses are a property of the score-range floor, not a calibration finding about \texttt{manualIde}.
 
-Rework beats the user in $6$ of $13$ fires ($46.2\%$); one of the seven non-beats is a magnitude-zero no-op (stripping the rework loop did not move the final score) and the other six produce an alternative with negative magnitude. Two readings sit on top of each other here. The first is implementation: the rework synthesiser is intentionally simple, stripping out the user's add-then-undo edits without modelling what the intermediate states were \emph{for} --- if the user added a guard, ran the tests, decided the guard was unnecessary and removed it, the synthesiser treats the whole excursion as wasted motion, but the user's trajectory may have legitimately benefited from the validation step (one more checkpoint, one fewer commit-gap, a test run that pushed cleanliness up). The second is methodological: undoing work is not inherently a bad behaviour. A careful user who paths through a slightly longer trajectory to verify intermediate correctness can, and on these sessions sometimes does, score higher than a trajectory that takes the shortest line to the same final state. The $46.2\%$ beat rate is therefore not evidence that the rework detector is miscalibrated, but evidence that the score formula correctly distinguishes ``rework that wasted process signal'' (the six beats) from ``rework that earned process signal en route'' (the seven non-beats) --- and that the simple loop-stripping synthesiser cannot tell the two apart by inspection of the diff alone.
+Rework beats the user in $6$ of $13$ fires ($46.2\%$); one of the seven non-beats is a magnitude-zero no-op (stripping the rework loop did not move the final score) and the other six produce an alternative with negative magnitude. Two readings sit on top of each other here. The first is implementation: the rework synthesiser is intentionally simple, stripping out the user's add-then-undo edits without modelling what the intermediate states were for --- if the user added a guard, ran the tests, decided the guard was unnecessary and removed it, the synthesiser treats the whole excursion as wasted motion, but the user's trajectory may have legitimately benefited from the validation step (one more checkpoint, one fewer commit-gap, a test run that pushed cleanliness up). The second is methodological: undoing work is not inherently a bad behaviour. A careful user who paths through a slightly longer trajectory to verify intermediate correctness can, and on these sessions sometimes does, score higher than a trajectory that takes the shortest line to the same final state. The $46.2\%$ beat rate is therefore not evidence that the rework detector is miscalibrated, but evidence that the score formula correctly distinguishes ``rework that wasted process signal'' (the six beats) from ``rework that earned process signal en route'' (the seven non-beats) --- and that the simple loop-stripping synthesiser cannot tell the two apart by inspection of the diff alone.
 
 Ordering surfaces $24$ distinct divergence points from $194$ enumerated permutations, but only $4$ of the $24$ windows ($16.7\%$) have a best permutation that beats the user's order. The $194 / 24 / 4$ breakdown explains the headline result in \S\ref{sec:results-headline}: the synthesiser enumerates $194$ permutations across the session set, those collapse to $24$ reorder windows (one divergence point per from-SHA / to-SHA window, magnitude set to the best permutation in the window), and only $4$ of those $24$ windows produce any positive magnitude improvement at all.
 
@@ -297,10 +291,10 @@ Ordering surfaces $24$ distinct divergence points from $194$ enumerated permutat
 \hline
 \textbf{kind} & \textbf{DPs} & \textbf{alts enum.} & \textbf{beats user} & \textbf{beats fraction} & \textbf{max magnitude} \\
 \hline
-REWORK     & 13 &  13 &  6 & \textbf{46.2\%} &  8 points \\
-HYGIENE    & 13 &  13 & 13 & \textbf{100\%}  &  9 points \\
-IDE\_REPLAY & 16 &  16 & 12 & \textbf{75.0\%} & 23 points \\
-ORDERING   & 24 & 194 &  4 & \textbf{16.7\%} &  9 points \\
+\emph{Rework}     & 13 &  13 &  6 & \textbf{46.2\%} &  8 points \\
+\emph{Hygiene}    & 13 &  13 & 13 & \textbf{100\%}  &  9 points \\
+\emph{IDE-Replay} & 16 &  16 & 12 & \textbf{75.0\%} & 23 points \\
+\emph{Ordering}   & 24 & 194 &  4 & \textbf{16.7\%} &  9 points \\
 \hline
 \end{tabular}
 \caption{Per-kind detection quality. ``DPs'' is the number of divergence points the detector fires; ``alts enum.'' is the total number of alternative paths enumerated across those DPs (a single ordering DP enumerates up to $k!$ permutations of a $k$-step window); ``beats user'' is the number of DPs whose best alternative trajectory beats the user's trajectory.}
@@ -317,10 +311,10 @@ The most user-facing claim in this chapter is in Table~\ref{tab:results-divergen
 \hline
 \textbf{injected kind} & \textbf{n caught} & \textbf{@ rank 1} & \textbf{mean rank} \\
 \hline
-HYGIENE     &  8 &  8 & 1.00 \\
-IDE\_REPLAY & 12 & 12 & 1.00 \\
-ORDERING    &  0 & --- & ---  \\
-REWORK      &  5 &  5 & 1.00 \\
+\emph{Hygiene}     &  8 &  8 & 1.00 \\
+\emph{IDE-Replay} & 12 & 12 & 1.00 \\
+\emph{Ordering}    &  0 & --- & ---  \\
+\emph{Rework}      &  5 &  5 & 1.00 \\
 \hline
 \end{tabular}
 \caption{Injection prominence: when an injection's kind is caught, where does the corresponding divergence point sit in the session's per-magnitude ranking? Top-$1$ on every catch across all four kinds.}
@@ -339,12 +333,12 @@ One known weakness in the divergence numbers is deliberately left open. Ordering
 \section{User and agent studies}
 \label{sec:results-studies}
 
-This section reports two short studies in which the tool is used by people other than us. \S\ref{sec:results-userstudy} is a 12-session user study with two participants on a new fixture. \S\ref{sec:results-userstudy-agent} is a 6-session comparison run on the same fixture by an automated coding agent.
+\S\ref{sec:results-metric} and \S\ref{sec:results-detector} test the score formula and the detector in isolation; this section tests the tool end-to-end. The end-to-end question is whether the feedback the dashboard surfaces --- divergence points ranked by score-delta magnitude, with concrete alternative trajectories attached --- actually changes behaviour for users who did not build the tool. \S\ref{sec:results-userstudy} reports a 12-session user study with two human participants on a new fixture. \S\ref{sec:results-userstudy-agent} reports a 6-session comparison run on the same fixture by an automated coding agent, included as a contrastive observation rather than a co-equal study.
 
 \subsection{User study}
 \label{sec:results-userstudy}
 
-The 12-session user study steps outside the controlled-injection sessions to two new questions. First, on sessions recorded by independent participants on a different codebase and without the playbook's controlled-injection structure, does the detector's per-kind output remain coherent? Second, do per-session divergence-point rates evolve as participants accumulate tool feedback across a multi-session arc? The two participants, referred to throughout as P1 and P2, were recruited as senior MEng Computing students at Imperial College London. Both performed six recorded refactoring sessions each on a new order-processing fixture (\texttt{user-study-fixture/}) structurally disjoint from the library fixture used in \S\ref{sec:results-divergence}. Both also produced an independent labelling of the 45-session set \emph{before} participating; that work feeds the inter-rater agreement reported in \S\ref{sec:results-kappa} and is not repeated here.
+The 12-session user study steps outside the controlled-injection sessions to two new questions. First, on sessions recorded by independent participants on a different codebase and without the playbook's controlled-injection structure, does the detector's per-kind output remain coherent? Second, do per-session divergence-point rates evolve as participants accumulate tool feedback across a multi-session arc? The two participants, referred to throughout as P1 and P2, were recruited as senior MEng Computing students at Imperial College London. Both performed six recorded refactoring sessions each on a new order-processing fixture (\texttt{user-study-fixture/}) structurally disjoint from the library fixture used in \S\ref{sec:results-divergence}. Both also produced an independent labelling of the 45-session set before participating; that work feeds the inter-rater agreement reported in \S\ref{sec:results-kappa} and is not repeated here.
 
 \paragraph{Descriptive findings on the participants' sessions.}
 P1 and P2 each performed six recorded refactoring sessions on the order-processing fixture: $12$ sessions in total. The playbook gives each session a what-not-how prompt naming the area of code to address but never the IntelliJ action to use, the testing or commit cadence to follow, or the divergence kinds the detector surfaces.\footnote{Quotes throughout this section are paraphrased from session-end notes taken during the post-study interview; full audio transcription was not feasible within the study budget. The source notes are retained as private study artefacts and are not reproduced here.} Because the playbook deliberately omits pre-declared \texttt{expected\_kinds}, the participants' sessions admits no precision/recall claim of the form reported in \S\ref{sec:results-divergence}; what it does admit is a descriptive per-kind distribution and a descriptive per-session count, which Table~\ref{tab:results-userstudy-distribution} gives in full.
@@ -354,7 +348,7 @@ P1 and P2 each performed six recorded refactoring sessions on the order-processi
 \small
 \begin{tabular}{lrrrrr}
 \hline
-\textbf{session} & \textbf{IDE\_REPLAY} & \textbf{REWORK} & \textbf{HYGIENE} & \textbf{ORDERING} & \textbf{total} \\
+\textbf{session} & \textbf{\emph{IDE-Replay}} & \textbf{\emph{Rework}} & \textbf{\emph{Hygiene}} & \textbf{\emph{Ordering}} & \textbf{total} \\
 \hline
 P1 S1 &  $5$ & $0$ & $1$ & $1$ &  $7$ \\
 P1 S2 &  $0$ & $0$ & $3$ & $0$ &  $3$ \\
@@ -388,10 +382,10 @@ A second question from the participants' sessions is whether per-kind divergence
 \hline
 \textbf{kind} & \textbf{S1} & \textbf{S2} & \textbf{S3} & \textbf{S4} & \textbf{S5} & \textbf{S6} & \textbf{$\Delta$} \\
 \hline
-IDE\_REPLAY & $8$ & $2$ & $6$ & $0$ & $3$ & $1$ & $-7$ \\
-HYGIENE    & $3$ & $7$ & $3$ & $0$ & $2$ & $1$ & $-2$ \\
-ORDERING   & $1$ & $0$ & $1$ & $0$ & $0$ & $0$ & $-1$ \\
-REWORK     & $0$ & $0$ & $2$ & $0$ & $0$ & $3$ & $+3$ \\
+\emph{IDE-Replay} & $8$ & $2$ & $6$ & $0$ & $3$ & $1$ & $-7$ \\
+\emph{Hygiene}    & $3$ & $7$ & $3$ & $0$ & $2$ & $1$ & $-2$ \\
+\emph{Ordering}   & $1$ & $0$ & $1$ & $0$ & $0$ & $0$ & $-1$ \\
+\emph{Rework}     & $0$ & $0$ & $2$ & $0$ & $0$ & $3$ & $+3$ \\
 \hline
 \end{tabular}
 \caption{Per-kind divergence-point trajectory across the six-session arc, summed across both participants. IDE-replay and hygiene show a downward trajectory consistent with self-reported behavioural change; ordering and rework are episodic, firing on the sessions whose prompts inherently involve them.}
@@ -442,7 +436,7 @@ Both participants singled out the dashboard's per-checkpoint detail panel as a p
 
 An automated coding agent --- Claude Code (Anthropic, model \texttt{claude-opus-4-7}, run on 2026-05-21) --- performed the same six-session playbook on the same fixture. Between sessions, the human facilitator pasted the markdown output of the \texttt{feedbackForAgent} task (\texttt{tool/analysis/.../experiment/FeedbackForAgent.kt}) into the agent's prompt at the start of the next session. The task renders an analysis report's divergence points and trajectory advice into the same plain-text summary that a human participant would read on the dashboard, so the agent received the same information the human participants did, just in textual rather than rendered form. The agent honoured a small setup contract before any session ran: tests were invoked via a wrapper script that brackets the gradle call with \texttt{TEST\_RUN\_STARTED} / \texttt{TEST\_RUN\_FINISHED} events in the plugin trace, and commits were made via standard \texttt{git commit} which the plugin's reflog watcher captured as \texttt{GIT\_COMMIT} events. Apart from starting and stopping the plugin's recording at session boundaries and pasting the previous session's feedback into the next prompt, no human intervened during a session.
 
-Table~\ref{tab:results-userstudy-agent-distribution} reports the agent's per-kind divergence-point totals against each participant's six-session total from Table~\ref{tab:results-userstudy-trajectory}. The agent produced $5$ divergence points across six sessions, against $20$ from P1 and $23$ from P2 over the same six sessions each --- but the \emph{shape} of the comparison is the headline, not the count. All five of the agent's divergence points are IDE-replay; rework, hygiene, and ordering fired zero times across the entire six-session arc. Both participants exercise all four kinds.
+Table~\ref{tab:results-userstudy-agent-distribution} reports the agent's per-kind divergence-point totals against each participant's six-session total from Table~\ref{tab:results-userstudy-trajectory}. The agent produced $5$ divergence points across six sessions, against $20$ from P1 and $23$ from P2 over the same six sessions each --- but the shape of the comparison is the headline, not the count. All five of the agent's divergence points are IDE-replay; rework, hygiene, and ordering fired zero times across the entire six-session arc. Both participants exercise all four kinds.
 
 \begin{table}[htbp]
 \centering
@@ -451,10 +445,10 @@ Table~\ref{tab:results-userstudy-agent-distribution} reports the agent's per-kin
 \hline
 \textbf{kind} & \textbf{Agent} & \textbf{P1} & \textbf{P2} & \textbf{Agent / P1} & \textbf{Agent / P2} \\
 \hline
-IDE\_REPLAY  & $5$ & $11$ &  $9$ & $0.45$ & $0.56$ \\
-REWORK       & $0$ &  $2$ &  $3$ & $0.00$ & $0.00$ \\
-HYGIENE      & $0$ &  $6$ & $10$ & $0.00$ & $0.00$ \\
-ORDERING     & $0$ &  $1$ &  $1$ & $0.00$ & $0.00$ \\
+\emph{IDE-Replay}  & $5$ & $11$ &  $9$ & $0.45$ & $0.56$ \\
+\emph{Rework}       & $0$ &  $2$ &  $3$ & $0.00$ & $0.00$ \\
+\emph{Hygiene}      & $0$ &  $6$ & $10$ & $0.00$ & $0.00$ \\
+\emph{Ordering}     & $0$ &  $1$ &  $1$ & $0.00$ & $0.00$ \\
 \hline
 \textbf{total} & $\mathbf{5}$ & $\mathbf{20}$ & $\mathbf{23}$ & $\mathbf{0.25}$ & $\mathbf{0.22}$ \\
 \hline
@@ -472,10 +466,10 @@ Table~\ref{tab:results-userstudy-agent-trajectory} mirrors the human trajectory 
 \hline
 \textbf{kind} & \textbf{S1} & \textbf{S2} & \textbf{S3} & \textbf{S4} & \textbf{S5} & \textbf{S6} & \textbf{$\Delta$} \\
 \hline
-IDE\_REPLAY  & $0$ & $0$  & $1$  & $0$   & $2$  & $2$  & $+2$ \\
-REWORK       & $0$ & $0$  & $0$  & $0$   & $0$  & $0$  & $0$  \\
-HYGIENE      & $0$ & $0$  & $0$  & $0$   & $0$  & $0$  & $0$  \\
-ORDERING     & $0$ & $0$  & $0$  & $0$   & $0$  & $0$  & $0$  \\
+\emph{IDE-Replay}  & $0$ & $0$  & $1$  & $0$   & $2$  & $2$  & $+2$ \\
+\emph{Rework}       & $0$ & $0$  & $0$  & $0$   & $0$  & $0$  & $0$  \\
+\emph{Hygiene}      & $0$ & $0$  & $0$  & $0$   & $0$  & $0$  & $0$  \\
+\emph{Ordering}     & $0$ & $0$  & $0$  & $0$   & $0$  & $0$  & $0$  \\
 \hline
 \textbf{final score} & $0$ & $79$ & $30$ & $100$ & $72$ & $39$ & --- \\
 \hline
@@ -500,7 +494,7 @@ After S3 the agent fired \texttt{REFACTORING\_INTRODUCED\_SMELLS} alongside the 
 \paragraph{Thread 3: agent acknowledges the structural IDE-replay limitation.}
 The persistent failure mode is IDE-replay. All five of the agent's divergence points are IDE-replay flags, and the count does not decline across the arc; it is concentrated on the structurally heavier sessions (S3, S5, S6) where the agent performed enough structural refactoring to surface any divergence points at all. The agent has no IDE refactor surface to switch to: Claude Code edits files via text tool calls, not through IntelliJ's Refactor menu, so every refactoring it performs is classified as a manual edit by the detector. The agent itself acknowledges the structural nature of this in its S6 reflection, observing that ``the IDE-replay flags persist --- manual extracts consistently underperform the IntelliJ refactoring; in a real run I'd use the Extract Method action.'' The signal is real and the recommendation correct, but the agent lacks the tool to execute it. The agent cannot drive the IDE-replay count toward zero however well it works, and this is the cleanest example in the arc of feedback being correctly interpreted but structurally inactionable. A setup that exposed IDE refactor actions as agent tool calls would close the gap - that work is named in the future-work section.
 
-The two failure profiles are nearly complementary. Humans are \emph{procedurally noisy and architecturally capable}: high IDE-replay and hygiene counts, scattered rework on the hard sessions, but able to switch to IntelliJ refactor actions when they remember to. The agent is \emph{procedurally disciplined and architecturally limited}: zero on rework, hygiene, and ordering --- the three kinds where the tool measures process cadence and sequencing --- and IDE-replay only on the sessions where it performed structural refactoring at all, because the actuator that would resolve IDE-replay does not exist in its interface. The tool surfaces both kinds of failure correctly; neither profile is the ``right'' one to target, and the comparison demonstrates that the detector's four kinds are pulling apart genuinely different dimensions of refactoring practice rather than collapsing onto a single dimension.
+The two failure profiles are nearly complementary. Humans are procedurally noisy and architecturally capable: high IDE-replay and hygiene counts, scattered rework on the hard sessions, but able to switch to IntelliJ refactor actions when they remember to. The agent is procedurally disciplined and architecturally limited: zero on rework, hygiene, and ordering --- the three kinds where the tool measures process cadence and sequencing --- and IDE-replay only on the sessions where it performed structural refactoring at all, because the actuator that would resolve IDE-replay does not exist in its interface. The tool surfaces both kinds of failure correctly; neither profile is the ``right'' one to target, and the comparison demonstrates that the detector's four kinds are pulling apart genuinely different dimensions of refactoring practice rather than collapsing onto a single dimension.
 
 The agent comparison is descriptive at $n = 1$ agent over six sessions with one model version on one date; it is illustrative of the detector's behaviour on a non-human actor rather than a generalisable claim about coding agents. A multi-agent extension, and an agent-side IDE refactor capability that would let the IDE-replay count actually respond to feedback, are flagged as future work.
 

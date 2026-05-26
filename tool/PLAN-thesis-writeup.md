@@ -8,19 +8,20 @@ The user study has wrapped (12 human sessions + 6 agent sessions). The results c
 
 ## Chronological writeup order
 
-| # | Section                             | Estimate | Status | Rubric criterion |
-|---|-------------------------------------|---|---|---|
-| 1 | Introduction                        | ½ day | ✅ **done** | Framing 15% |
-| 2 | Background trim + new citations     | 2 days | ✅ **done** | Framing 15% |
-| 3 | Methodology chapter                 | 1 week | ✅ **done** | Execution 50% |
-| 4 | Tool architecture chapter           | 2 days | ✅ **done** | Execution 50% |
-| 5 | Experiments + results chapter       | 1 week | ✅ **done** (substantive) | Execution 50% + Evaluation 20% |
+| #  | Section                             | Estimate | Status | Rubric criterion |
+|----|-------------------------------------|---|---|---|
+| 1  | Introduction                        | ½ day | ✅ **done** | Framing 15% |
+| 2  | Background trim + new citations     | 2 days | ✅ **done** | Framing 15% |
+| 3  | Methodology chapter                 | 1 week | ✅ **done** | Execution 50% |
+| 4  | Tool architecture chapter           | 2 days | ✅ **done** | Execution 50% |
+| 5  | Experiments + results chapter       | 1 week | ✅ **done** (substantive) | Execution 50% + Evaluation 20% |
 | 5b | §5 final read-through               | ½ day | **pending** | Communication 15% |
-| 6 | Threats-to-validity / discussion    | 2 days | ✅ **done** | Evaluation 20% (highest leverage) |
-| 7 | Conclusion + future work            | 1 day | ✅ **done** | Evaluation 20% + Framing 15% |
-| 8 | Bibliography audit                  | ½ day | ✅ **done** | Communication 15% |
-| 9 | GenAI + ethics disclosure appendix  | ½ day | **pending** | Communication 15% (caps band at 50–59% if absent) |
+| 6  | Threats-to-validity / discussion    | 2 days | ✅ **done** | Evaluation 20% (highest leverage) |
+| 7  | Conclusion + future work            | 1 day | ✅ **done** | Evaluation 20% + Framing 15% |
+| 8  | Bibliography audit                  | ½ day | ✅ **done** | Communication 15% |
+| 9  | GenAI + ethics disclosure appendix  | ½ day | **pending** | Communication 15% (caps band at 50–59% if absent) |
 | 9b | Port agent transcript into appendix | ½ day | ✅ **done** | Resolves `app:agent-transcript` cross-references from §5.4.2 |
+| 9c | add user interviews into appendix   |       |             |                                                                                                                                  |
 | 10 | Abstract                            | ½ day | **pending** | Communication 15% — draft last, after §5b read-through, once headline numbers are stable. ~200 words: gap + method + key result. |
 
 **Total remaining: ~1.5 days of focused writeup.**

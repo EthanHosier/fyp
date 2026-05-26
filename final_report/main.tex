@@ -46,7 +46,9 @@
 \input{title/title.tex}
 
 \begin{abstract}
-Your abstract goes here
+We propose (a) a process-quality score that measures refactoring trajectories on the process, not just the endpoint, and (b) a divergence-point detector that uses that score to identify points where the developer's trajectory diverged from a higher-scoring alternative, classify the divergence by kind, and synthesise a concrete counterfactual reference trajectory at each. An IntelliJ plugin captures developer sessions and a dashboard surfaces both outputs.
+
+We evaluate the system on a 45 hand-recorded refactoring sessions on a Java codebase, a 12-session multi-participant user study on a separate codebase, and a 6-session comparison run by an automated coding agent. Per-kind precision on the injection corpus is 1.00 against inter-rater-agreed labels (Cohen's $\kappa \geq 0.72$ across three rater pairs on all four kinds), and the score formula's top-$1$ ranking is stable to single-knob weight perturbations on $95.0\%$ of cases ($77.0\%$ under simultaneous multi-knob Monte Carlo perturbation). Both human participants show near-monotonic discipline improvement across the six-session study arc, and the coding agent course-corrects its procedural behviours between sessions.
 \end{abstract}
 
 \tableofcontents
@@ -54,7 +56,6 @@ Your abstract goes here
 \input{introduction/introduction.tex}
 \input{background/background.tex}
 \input{methodology/methodology.tex}
-\input{architecture/architecture.tex}
 \input{results/results.tex}
 \input{threats/threats.tex}
 \input{conclusion/conclusion.tex}
