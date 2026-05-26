@@ -27,7 +27,7 @@ To go beyond scoring a single observed refactoring trace we also construct \emph
   every node/.style={font=\small},
 ]
   % Axes
-  \draw[->, thick] (-0.3, 35) -- (7.3, 35) node[right] {step};
+  \draw[->, thick] (-0.3, 35) -- (7.3, 35) node[right] {Step};
   \draw[->, thick] (-0.3, 35) -- (-0.3, 78) node[above] {$J$};
   \node[left] at (-0.3, 40) {\footnotesize 40};
   \node[left] at (-0.3, 60) {\footnotesize 60};
@@ -42,28 +42,28 @@ To go beyond scoring a single observed refactoring trace we also construct \emph
     \filldraw[black] \p circle (0.06 and 0.6);
   \node[anchor=west] at (6.1, 60) {$s_T^{\,\mathrm{user}}$};
 
-  % Alternative trajectory (dashed) — diverges at step 3, then mirrors
-  % the user's deltas on the diverged state (same Δ per step, parallel).
-  \draw[thick, dashed] (3,50) -- (4,63) -- (5,60) -- (6,68);
+  % Alternative trajectory (dashed, coloured to match the orange used
+  % for divergent / counterfactual material elsewhere in the thesis).
+  \draw[thick, dashed, orange!70!black] (3,50) -- (4,63) -- (5,60) -- (6,68);
   \foreach \p in {(4,63),(5,60),(6,68)}
-    \draw[thick, fill=white] \p circle (0.06 and 0.6);
-  \node[anchor=west] at (6.1, 68) {$s_T^{\,\mathrm{alt}}$};
+    \draw[thick, orange!70!black, fill=white] \p circle (0.06 and 0.6);
+  \node[anchor=west, orange!70!black] at (6.1, 68) {$s_T^{\,\mathrm{alt}}$};
 
   % Divergence-point marker
   \draw[->, gray, thick] (3, 30) -- (3, 49);
-  \node[gray, anchor=north] at (3, 30) {\footnotesize divergence point};
+  \node[gray, anchor=north] at (3, 30) {\footnotesize Divergence point};
 
   % Gain bracket between the two terminal scores
-  \draw[decorate, decoration={brace, amplitude=4pt}, gray]
+  \draw[decorate, decoration={brace, mirror, amplitude=4pt}, gray]
     (7.30, 60) -- (7.30, 68);
   \node[gray, anchor=west] at (7.40, 64)
     {\footnotesize $\Delta J$};
 
   % Legend
   \draw[thick] (0.2, 76) -- (1.0, 76);
-  \node[anchor=west] at (1.0, 76) {\footnotesize user trajectory};
-  \draw[thick, dashed] (3.6, 76) -- (4.4, 76);
-  \node[anchor=west] at (4.4, 76) {\footnotesize alternative trajectory};
+  \node[anchor=west] at (1.0, 76) {\footnotesize User trajectory};
+  \draw[thick, dashed, orange!70!black] (3.6, 76) -- (4.4, 76);
+  \node[anchor=west] at (4.4, 76) {\footnotesize Alternative trajectory};
 \end{tikzpicture}
 \caption{Illustration of two refactoring trajectories scored by the process-quality metric $J$. The solid line shows the developer's observed trajectory, while the dashed line shows a higher-scoring reference trajectory that diverges at an intermediate state. The gap $\Delta J$ is the estimated contribution of that divergence to the final score difference.}
 \label{fig:divergence}

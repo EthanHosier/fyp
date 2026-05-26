@@ -95,12 +95,6 @@ M.~Mohan and Des Greer.
 \newblock Using a many-objective approach to investigate automated refactoring.
 \newblock {\em Information and Software Technology}, 112:83--101, 2019.
 
-\bibitem{wang2018traceability}
-Ally~S. Nyamawe, Hui Liu, Zhendong Niu, Wentao Wang, and Nan Niu.
-\newblock Recommending refactoring solutions based on traceability and code
-  metrics.
-\newblock {\em IEEE Access}, 6:49460--49475, 2018.
-
 \bibitem{nikolaidis2024metricsbased}
 Nikolaos Nikolaidis, Nikolaos Mittas, Apostolos Ampatzoglou, Daniel Feitosa,
   and Alexander Chatzigeorgiou.
@@ -149,47 +143,11 @@ Danilo Silva and Marco~Tulio Valente.
 \newblock In {\em Proceedings of the International Conference on Mining
   Software Repositories (MSR)}, pages 269--279. IEEE Press, 2017.
 
-\bibitem{rolim2017refazer}
-Reudismam Rolim, Gustavo Soares, Loris D'Antoni, Oleksandr Polozov, Sumit
-  Gulwani, Rohit Gheyi, Ryo Suzuki, and Bj{\"o}rn Hartmann.
-\newblock Learning syntactic program transformations from examples.
-\newblock In {\em Proceedings of the 39th International Conference on Software
-  Engineering (ICSE)}, pages 404--415. IEEE, 2017.
-
 \bibitem{cortellessa2023manyobjective}
 Vittorio Cortellessa, Daniele Di~Pompeo, Vincenzo Stoico, and Michele Tucci.
 \newblock Many-objective optimization of non-functional attributes based on
   refactoring of software models.
 \newblock {\em Information and Software Technology}, 157:107159, 2023.
-
-\bibitem{chen2024morcora}
-Lei Chen and Shinpei Hayashi.
-\newblock {MORCoRA}: Multi-objective refactoring recommendation considering
-  review availability.
-\newblock {\em International Journal of Software Engineering and Knowledge
-  Engineering}, 34(12):1919--1947, 2024.
-
-\bibitem{alizadeh2020interactive}
-Vahid Alizadeh, Marouane Kessentini, Mohamed~Wiem Mkaouer, Mel
-  {\'O}~Cinn{\'e}ide, Ali Ouni, and Yuanfang Cai.
-\newblock An interactive and dynamic search-based approach to software
-  refactoring recommendations.
-\newblock {\em IEEE Transactions on Software Engineering}, 46(9):932--961,
-  2020.
-
-\bibitem{whydevelopersrefactor2020}
-Jevgenija Pantiuchina, Fiorella Zampetti, Simone Scalabrino, Valentina
-  Piantadosi, Rocco Oliveto, Gabriele Bavota, and Massimiliano Di~Penta.
-\newblock Why developers refactor source code: A mining-based study.
-\newblock {\em ACM Transactions on Software Engineering and Methodology},
-  29(4), 2020.
-
-\bibitem{metricsmotivation2024}
-Mikel Robredo, Matteo Esposito, Fabio Palomba, Rafael Pe{\~n}aloza, and
-  Valentina Lenarduzzi.
-\newblock What were you thinking? an llm-driven large-scale study of
-  refactoring motivations in open-source projects, 2025.
-\newblock arXiv:2509.07763.
 
 \bibitem{pan2025swegym}
 Jiayi Pan, Xingyao Wang, Graham Neubig, Navdeep Jaitly, Heng Ji, Alane Suhr,
@@ -369,16 +327,6 @@ Don Coleman, Dan Ash, Bruce Lowther, and Paul Oman.
 \newblock Eclipse Wiki, 2026.
 \newblock Consulted 2026-05-18.
 
-\bibitem{cohen1960kappa}
-Jacob Cohen.
-\newblock A coefficient of agreement for nominal scales.
-\newblock {\em Educational and Psychological Measurement}, 20(1):37--46, 1960.
-
-\bibitem{landis1977kappa}
-J.~Richard Landis and Gary~G. Koch.
-\newblock The measurement of observer agreement for categorical data.
-\newblock {\em Biometrics}, 33(1):159--174, 1977.
-
 \bibitem{kendall1948rank}
 Maurice~G. Kendall.
 \newblock {\em Rank Correlation Methods}.
@@ -388,12 +336,6 @@ Maurice~G. Kendall.
 Alan Agresti.
 \newblock {\em Analysis of Ordinal Categorical Data}.
 \newblock John Wiley \& Sons, Hoboken, NJ, 2 edition, 2010.
-
-\bibitem{webber2010rbo}
-William Webber, Alistair Moffat, and Justin Zobel.
-\newblock A similarity measure for indefinite rankings.
-\newblock {\em ACM Transactions on Information Systems}, 28(4):20:1--20:38,
-  2010.
 
 \bibitem{saisana2005composite}
 Michaela Saisana, Andrea Saltelli, and Stefano Tarantola.
@@ -413,6 +355,16 @@ Erik {\v{S}}trumbelj and Igor Kononenko.
 \newblock Explaining prediction models and individual predictions with feature
   contributions.
 \newblock {\em Knowledge and Information Systems}, 41(3):647--665, 2014.
+
+\bibitem{cohen1960kappa}
+Jacob Cohen.
+\newblock A coefficient of agreement for nominal scales.
+\newblock {\em Educational and Psychological Measurement}, 20(1):37--46, 1960.
+
+\bibitem{landis1977kappa}
+J.~Richard Landis and Gary~G. Koch.
+\newblock The measurement of observer agreement for categorical data.
+\newblock {\em Biometrics}, 33(1):159--174, 1977.
 
 \bibitem{mens2007graph}
 Tom Mens, Gabriele Taentzer, and Olga Runge.
