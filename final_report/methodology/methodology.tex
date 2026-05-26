@@ -244,7 +244,7 @@ Refactorings need to identify the code element they should act on, but raw line 
 
 \emph{Ordering} detection is applied to bracket-validated windows of consecutive refactoring steps (\S\ref{sec:methodology-validator}). For each window, the reorder synthesiser computes the valid permutations of those steps and measures how each ordering changes the process score relative to the developer's original order. The system emits at most one divergence point for the window, placed at its final step. Its magnitude is the best score improvement found among the admitted permutations, and the admitted permutations are attached as alternatives.
 
-The reorder synthesiser produces these alternatives by reshuffling the user's refactoring steps while still requiring the final code state to match the user's. The following describe how candidate reorderings are generated, filtered, and checked before they are scored.
+The reorder synthesiser produces these alternatives by reshuffling the user's refactoring steps while still requiring the final code state to match the user's. The following paragraphs describe how candidate reorderings are generated, filtered, and checked before they are scored.
 
 \paragraph{Window splitting on validator verdicts.}
 Only bracket-validated windows (\S\ref{sec:methodology-validator}) are eligible for reordering. A bracket is rejected if the synthesiser cannot reproduce it. This can happen in three ways: \emph{untyped} means that RefactoringMiner could not map the user's edit to a typed JDT refactoring spec, which is common for unstructured manual edits; \emph{refactor\_failed} means that JDT tried to apply the spec but failed; and \emph{ast\_diverged} means that JDT applied the spec, but the resulting AST did not match the user's. If any of these verdicts occurs, the containing bracket is split into individual steps that are not reordered. The wrap-and-patch layer (\S\ref{sec:arch-wrap-patch}) handles the most common JDT-IntelliJ differences before this validation step, increasing the number of brackets that pass.
@@ -332,17 +332,17 @@ A \emph{Manual-Refactor} divergence point is emitted at any user step where (i) 
 % legend's natural midpoint and \centering puts the squares on the
 % page midline. The legend itself stays at its original positions.
 \begin{scope}[xshift=1.3cm]
-% Edit-burst trace: t1..t3 manual extract; t4-t5 unrelated; t6-t7 IDE-driven rename; t8 unrelated; t9-t10 manual extract again
-\node[manual] (t1) at (0.0, 0) {$t_1$};
-\node[manual] (t2) at (0.9, 0) {$t_2$};
-\node[manual] (t3) at (1.8, 0) {$t_3$};
-\node[edit]   (t4) at (2.7, 0) {$t_4$};
-\node[edit]   (t5) at (3.6, 0) {$t_5$};
-\node[ide]    (t6) at (4.5, 0) {$t_6$};
-\node[ide]    (t7) at (5.4, 0) {$t_7$};
-\node[edit]   (t8) at (6.3, 0) {$t_8$};
-\node[manual] (t9) at (7.2, 0) {$t_9$};
-\node[manual] (t10) at (8.1, 0) {$t_{10}$};
+% State sequence: s1..s3 manual extract; s4-s5 unrelated; s6-s7 IDE-driven rename; s8 unrelated; s9-s10 manual extract again
+\node[manual] (s1) at (0.0, 0) {$s_1$};
+\node[manual] (s2) at (0.9, 0) {$s_2$};
+\node[manual] (s3) at (1.8, 0) {$s_3$};
+\node[edit]   (s4) at (2.7, 0) {$s_4$};
+\node[edit]   (s5) at (3.6, 0) {$s_5$};
+\node[ide]    (s6) at (4.5, 0) {$s_6$};
+\node[ide]    (s7) at (5.4, 0) {$s_7$};
+\node[edit]   (s8) at (6.3, 0) {$s_8$};
+\node[manual] (s9) at (7.2, 0) {$s_9$};
+\node[manual] (s10) at (8.1, 0) {$s_{10}$};
 
 % Window 1: t1..t3 — miner detects ExtractMethod
 \draw[decorate, decoration={brace, amplitude=4pt}, thick, orange!70!black] (-0.35, 0.5) -- (2.15, 0.5)
@@ -373,16 +373,16 @@ A \emph{Manual-Refactor} divergence point is emitted at any user step where (i) 
 \label{fig:methodology-manual-window}
 \end{figure}
 
-The manual-refactor synthesiser applies each detected spec via its IDE-equivalent operator on the JDT engine and then runs a residual three-way merge to layer the user's non-refactoring edits (for example, unrelated bug fixes interleaved with the refactor) on top of the synthesised refactor. The resulting tree is committed to a shadow repository. The residual merge ensures the alt trajectory keeps all the user's non-refactoring edits, so both trajectories end at the same code state and the comparison measures the refactoring method (hand vs IDE), not whether the final states match. Without the residual merge, the alt would diverge on non-refactoring changes and the process-score comparison would be meaningless.
+The manual-refactor synthesiser applies each detected refactoring spec through the corresponding IDE-style operation in JDT. It then runs a residual three-way merge to add back the user's other edits, such as bug fixes or small unrelated changes that were interleaved with the refactor. The resulting tree is committed to the shadow repository. This merge step is needed so that the alternative trajectory keeps the user's non-refactoring edits and still ends at the same code state as the original trajectory. The comparison then measures the difference between doing the refactoring by hand and doing it through the IDE, rather than being distorted by missing edits in the final state. Without this merge, the alternative trajectory would diverge from the user's final code and the process-score comparison would not be meaningful.
 
 \paragraph{The wrap-and-patch layer.}
-A complication which had to be resolved is that the user records sessions in IntelliJ but the pipeline applies refactorings via JDT, and the two engines sometimes produce different terminal ASTs even when they agree on a refactoring's semantics. A wrap-and-patch layer closes this gap between the two engines. Two concrete divergences observed during testing: JDT only adds the \texttt{static} modifier to an extracted method when the body requires it, while IntelliJ adds it whenever the body permits; and JDT under-detects outer-scope-variable liveness in conditional branches, producing a void-returning method where IntelliJ would produce a value-returning one. A host-side post-pass detects each pattern and rewrites the bundle's output to match. Where the residual gap cannot be patched safely, the bracket is marked as diverged and not reordered: the wrap-and-patch layer expands the set of allowed brackets but does not fully bridge the two engines. Fully covering all JDT-IntelliJ structural differences remains future work (discussed in \S\ref{sec:methodology-validator}).
+One practical issue is that sessions are recorded in IntelliJ, while the pipeline replays refactorings through JDT. The two engines can produce slightly different ASTs even when they are carrying out the same refactoring. To reduce these false divergences, the pipeline includes a wrap-and-patch layer between the JDT output and the validator. During testing, two recurring differences were observed. First, JDT adds the \texttt{static} modifier to an extracted method only when the method body requires it, whereas IntelliJ adds it whenever the body permits it. Second, JDT sometimes under-detects outer-scope-variable liveness in conditional branches, producing a void-returning method where IntelliJ produces a value-returning one. A host-side post-pass detects these patterns and rewrites the JDT output to match IntelliJ's structure. If a remaining difference cannot be patched safely, the bracket is marked as diverged and is not reordered. The wrap-and-patch layer therefore increases the number of usable brackets, but it does not cover every possible JDT-IntelliJ difference; full coverage is left as future work and discussed further in \S\ref{sec:methodology-validator}.
 
 \subsection{Rework}
 \label{sec:methodology-detector-rework}
 \label{sec:methodology-reworksynth}
 
-\emph{Rework} detection looks for pairs of changes within a trajectory where content is added and later removed (or removed and later re-added) such that the two halves net to a no-op, modulo whitespace. The detector parses each step's unified diff into hunks, resolves each hunk to its enclosing method or class scope, content-hashes the affected lines (whitespace-normalised), and greedily pairs add/remove hunks that share the same \texttt{(file, scope, content-hash)}. Each paired \texttt{(originating step, terminal step)} becomes a \emph{Rework} candidate; pairs below the \emph{min\_rework\_lines} floor are dropped as line-noise.
+\emph{Rework} detection looks for edits that are later undone. In practice, this means finding content that is added and then removed, or removed and then added back, so that the two changes cancel out apart from whitespace. The detector parses each step's unified diff into hunks, maps each hunk to its enclosing method or class, and hashes the affected lines after normalising whitespace. It then greedily pairs added and removed hunks that share the same \texttt{(file, scope, content-hash)}. Each matched \texttt{(originating step, terminal step)} pair becomes a \emph{Rework} candidate, while pairs below the \emph{min\_rework\_lines} threshold are discarded as line-level noise.
 
 \begin{figure}[H]
 \centering
@@ -434,47 +434,47 @@ A complication which had to be resolved is that the user records sessions in Int
 \label{fig:methodology-rework-pair}
 \end{figure}
 
-The rework synthesiser builds an alternative trajectory in which the originating--terminal hunk pair is skipped. For each pair, it replays the $[\mathrm{originating}, \mathrm{terminal}]$ window as a sequence of surgical patches that omit the reworked chunk while preserving every other change in the window. The operation is atomic per trajectory: either all patches apply, or the alt is thrown away - a partial replay never produces a half-baked alternative.
+The rework synthesiser builds an alternative trajectory that skips the matched originating--terminal hunk pair. For each pair, it replays the $[\mathrm{originating}, \mathrm{terminal}]$ window as a sequence of small patches, leaving out the reworked chunk while preserving the other changes in the window. The replay is treated atomically: if any patch fails to apply, the whole alternative is discarded, so the system never scores a partially reconstructed trajectory.
 
-A key issue is that the intermediate edits have shifted line numbers around the chunk, so the terminal-step surgery has to translate its line coordinates from the user's tree (where the chunk reappears) to the synthesised tree (where the chunk was never written, so the file is several lines shorter). A per-file drift tracker maintains the divergence between the two trees as a set of zones; each intermediate user hunk shifts every zone past it by the hunk's net line delta, so each zone stays anchored at the same logical content as the user's tree grows or shrinks around it.
+A key issue is that the intermediate edits have shifted line numbers around the chunk. The terminal-step patch therefore has to translate its line coordinates from the user's tree, where the chunk reappears, to the synthesised tree, where the chunk was never written and the file may be several lines shorter. To do this, the synthesiser keeps a per-file drift tracker. It records the line offset between the two trees as a set of zones, and each intermediate user hunk shifts the zones after it by that hunk's net line change. This keeps each zone tied to the same logical content as the user's tree grows or shrinks around it.
 
-After surgery, some of the intermediate checkpoints have no remaining content of their own -- their only change was the wasted work the surgery has now excised -- and some only contain whitespace changes, such as blank-line edits that surrounded the reworked chunk. Empty checkpoints are dropped from the alt trajectory entirely rather than being committed as no-op steps; checkpoints whose surviving change is purely whitespace are folded into the preceding checkpoint. Both moves shorten the alt's step count, which lifts its process score directly through the step-savings term defined in \S\ref{sec:methodology-score}.
+After the reworked chunk is removed, some intermediate checkpoints no longer contain any substantive change: their only edit was the content that has now been omitted. Others contain only whitespace changes, such as blank-line edits around the removed chunk. Empty checkpoints are dropped from the alternative trajectory instead of being committed as no-op steps, while checkpoints whose remaining change is purely whitespace are folded into the preceding checkpoint. Both cases shorten the alternative's step count, which improves its process score through the step-savings term defined in \S\ref{sec:methodology-score}.
 
 \subsection{Hygiene}
 \label{sec:methodology-detector-hygiene}
 \label{sec:methodology-hygiene}
 
-\emph{Hygiene} detection has two sub-kinds. \emph{Tests-Skipped} fires once per composite window (60-second batch~\cite{murphyhill2009howrefactor}) that contains at least one refactoring step and no successful test run in between. \emph{Commit-Gap} fires once per stretch of $\geq 6$ green-refactor checkpoints (checkpoints whose tests passed and whose refactoring applied cleanly) without an intervening user commit. Both sub-kinds emit one divergence point per finding.
+\emph{Hygiene} detection covers two cases where the refactoring process remains technically valid but lacks a useful safety checkpoint. \emph{Tests-Skipped} is reported once for each 60-second composite window~\cite{murphyhill2009howrefactor} that contains at least one refactoring step but no successful test run. \emph{Commit-Gap} is reported once for each stretch of at least six green-refactor checkpoints, meaning checkpoints where the tests passed and the refactoring applied cleanly, without an intervening user commit. Each finding emits one divergence point.
 
-The hygiene synthesiser builds alternatives where the user ran tests or committed at points where they didn't, without changing the code itself. For \emph{Tests-Skipped}, the alt represents a trajectory in which the user ran the test suite at the anchor checkpoint; the synthesiser injects a synthetic \texttt{TEST\_RUN\_FINISHED} event at that checkpoint but does not touch the test outcome (\texttt{tests.success} or \texttt{tests.wasSkipped} are left as the user recorded them). The counterfactual is ``you should have run the tests here'', not ``they would have passed if you had'': $W_{\textsc{st}}$, which is gated on whether tests were run, correctly lifts; $W_{\textsc{b}}$, which is gated on the broken/passing outcome, is untouched. For \emph{Commit-Gap}, the alt represents a trajectory in which the user committed at the anchor checkpoint, breaking what would otherwise have been a long stretch of uncommitted refactor checkpoints.
+The hygiene synthesiser builds alternatives in which the user ran tests or made a commit at the relevant checkpoint, without changing the code. For \emph{Tests-Skipped}, the alternative adds a synthetic \texttt{TEST\_RUN\_FINISHED} event at the anchor checkpoint. It does not change the recorded test outcome: \texttt{tests.success} and \texttt{tests.wasSkipped} remain as they were in the user's trace. The counterfactual is therefore ``the user should have run the tests here'', not ``the tests would have passed here''. This affects $W_{\textsc{st}}$, which depends on whether tests were run, but leaves $W_{\textsc{b}}$ unchanged because that term depends on the broken/passing outcome. For \emph{Commit-Gap}, the alternative adds a commit at the anchor checkpoint, breaking what would otherwise have been a long stretch of uncommitted green-refactor checkpoints.
 
-Both alter the process metadata at the anchor checkpoint, not the code-because hygiene is fundamentally a process property (when did tests run, when did commits happen). Synthesis amounts to flipping the relevant process flag on the anchor checkpoint and feeding the trajectory back through Phase B (\S\ref{sec:arch-phases}). By rescoring the trajectory with adjusted metadata and comparing final scores, we measure the cost in process-score points of the skipped hygiene event.
+In both cases, the alternative changes only the process metadata at the anchor checkpoint, not the code. This is because hygiene concerns the process around the refactoring: when tests were run and when commits were made. Synthesis therefore amounts to flipping the relevant process flag at the anchor checkpoint and feeding the trajectory back through Phase B (\S\ref{sec:arch-phases}). The difference between the original and adjusted final scores gives the process-score cost of the skipped hygiene event.
 
 \subsection{Validator and behaviour preservation}
 \label{sec:methodology-validator}
 
-The bracket-level validator checks that replaying the user's specs in order reaches the user's final state. For each \texttt{(fromSha, toSha)} bracket, it replays the specs and verifies that (i) the set of \texttt{.java} files changed matches \texttt{git diff fromSha..toSha}, and (ii) the terminal AST hash of each file matches the user's. Brackets that pass both checks are admitted as \emph{valid} and become reorder windows; those that fail are treated as individual steps that can't be reordered. The replay reuses the same worktree-borrow and JDT-batch-session machinery as the reorder engine (\S\ref{sec:arch-reorder-engine}).
+The bracket-level validator checks whether the user's specs can be replayed in order to reach the same final state as the user's trajectory. For each \texttt{(fromSha, toSha)} bracket, it replays the specs and then applies two checks. First, the set of changed \texttt{.java} files must match \texttt{git diff fromSha..toSha}. Second, the terminal AST hash for each changed file must match the user's version. Brackets that pass both checks are marked as \emph{valid} and can be used as reorder windows. Brackets that fail are split into individual steps and are not reordered. The replay uses the same borrowed worktree and JDT batch-session machinery as the reorder engine (\S\ref{sec:arch-reorder-engine}).
 
-The validator's admission rate is limited by JDT-IntelliJ engine differences (detailed in \S\ref{sec:arch-wrap-patch}): when the wrap-and-patch layer covers a divergence, the bracket is admitted; when it doesn't, the bracket fails validation even though the refactoring was correct. Covering all JDT-IntelliJ structural differences is future work and is the main reason \emph{Ordering} recall isn't higher (reported in \S\ref{sec:results-divergence}).
+The number of brackets that pass validation is limited by differences between JDT and IntelliJ, as discussed in \S\ref{sec:arch-wrap-patch}. If the wrap-and-patch layer covers the difference, the bracket can still be marked as valid. If it does not, the bracket fails validation even when the original refactoring was correct. Covering all structural differences between JDT and IntelliJ is left as future work, and this limitation is the main reason \emph{Ordering} recall is not higher in \S\ref{sec:results-divergence}.
 
 \section{System architecture and pipeline phases}
 \label{sec:arch-phases}
 
-This section sketches the four JVM modules that make up the tool and how they are staged across the analysis pipeline. \S\ref{sec:arch-overview} shows the modules and their dataflow; \S\ref{sec:methodology-phases-split} describes the Phase A / Phase B split that the implementation uses.
+This section describes the four JVM modules that make up the tool and explains how they fit into the analysis pipeline. \S\ref{sec:arch-overview} gives the module-level overview and dataflow, while \S\ref{sec:methodology-phases-split} explains the Phase A / Phase B split used by the implementation.
 
 \subsection{Architecture at a glance}
 \label{sec:arch-overview}
 
-The tool consists of four JVM modules (\texttt{:ide-plugin}, \texttt{:analysis}, \texttt{:refactoring-bundle}, \texttt{:shared}) plus a standalone React/TypeScript dashboard (\texttt{dashboard/}):
+The tool is split into four JVM modules (\texttt{:ide-plugin}, \texttt{:analysis}, \texttt{:refactoring-bundle}, and \texttt{:shared}) and a separate React/TypeScript dashboard (\texttt{dashboard/}):
 
 \begin{itemize}
-  \item \texttt{ide-plugin/} -- an IntelliJ plugin that records the developer's session as a stream of typed events and uploads it to the analysis server. The user manually starts and stops recording a button in the IDE.
-  \item \texttt{analysis/} -- the Kotlin pipeline; it ingests sessions, reconstructs a shadow git repo, mines and synthesises trajectories, computes per-checkpoint metrics, and emits an \texttt{AnalysisReport}.
-  \item \texttt{refactoring-bundle/} -- a headless Eclipse JDT distribution wrapped in an embedded Equinox OSGi framework; the analysis module talks to it across the OSGi class\-loader boundary (details in \S\ref{sec:arch-wrap-patch}).
+  \item \texttt{ide-plugin/} -- an IntelliJ plugin that records the developer's session as a stream of typed events and uploads it to the analysis server. The user starts and stops recording with a button in the IDE.
+  \item \texttt{analysis/} -- the Kotlin analysis pipeline. It ingests recorded sessions, reconstructs a shadow git repository, mines and synthesises trajectories, computes per-checkpoint metrics, and emits an \texttt{AnalysisReport}.
+  \item \texttt{refactoring-bundle/} -- a headless Eclipse JDT distribution wrapped in an embedded Equinox OSGi framework. The analysis module calls into it across the OSGi class\-loader boundary (details in \S\ref{sec:arch-wrap-patch}).
   \item \texttt{dashboard/} -- a React/TypeScript single-page app that renders the \texttt{AnalysisReport} (details in \S\ref{sec:arch-dashboard}).
 \end{itemize}
 
-Figure~\ref{fig:arch-overview} shows the dataflow at a glance.
+Figure~\ref{fig:arch-overview} summarises the dataflow between these components.
 
 \begin{figure}[H]
 \centering
@@ -507,34 +507,34 @@ Figure~\ref{fig:arch-overview} shows the dataflow at a glance.
                                   (dashboard.north east);
 
 \end{tikzpicture}
-\caption{High-level dataflow through the tool. The IDE plugin records the session, the analysis pipeline reconstructs and scores the trace, the embedded JDT bundle applies refactorings, and the dashboard displays the resulting report. The shadow repository stores both user checkpoints and synthesised alternatives as per-session git commits.}
+\caption{High-level dataflow through the tool. The IDE plugin records the session, the analysis pipeline reconstructs and scores the trace, and the embedded JDT bundle applies synthesised refactorings. The dashboard displays the resulting report, while the shadow repository stores user checkpoints and synthesised alternatives as per-session git commits.}
 \label{fig:arch-overview}
 \end{figure}
 
 \subsection{Phase A / Phase B split}
 \label{sec:methodology-phases-split}
 
-The detector and synthesisers above run as stages of an offline analysis pipeline split into two phases on either side of a single kotlinx-serialisable boundary type, \texttt{PhaseAResult}.
+The detector and synthesisers above run as part of an offline analysis pipeline. The pipeline is split into two phases, with \texttt{PhaseAResult} acting as the serialisable boundary between them.
 
 \paragraph{Phase A.}
-Phase A covers every stage above -- event ingestion, normalisation, shadow-repo reconstruction, refactoring mining, the four synthesisers, the validator, the per-checkpoint metrics computation, and the PMD / CPD cross-checkpoint tracking. It takes on the order of minutes per session, dominated by the per-checkpoint Gradle build and JUnit test runs of \S\ref{sec:arch-metrics} and the Equinox-hosted JDT applications of \S\ref{sec:arch-jdt}. Phase A emits a \texttt{PhaseAResult} containing the trace, the reconstruction, the mined steps and their typed refactoring specs, the per-checkpoint metrics for both the user's trajectory and every synthesised alt SHA, the diff bundle, the PMD / CPD tracking edges, and the reorder trajectories.
+Phase A performs the expensive work: ingesting and normalising events, reconstructing the shadow repository, mining refactorings, running the four synthesisers and the validator, computing per-checkpoint metrics, and tracking PMD / CPD findings across checkpoints. It usually takes minutes per session. Most of that time comes from the per-checkpoint Gradle builds and JUnit runs described in \S\ref{sec:arch-metrics}, plus the Equinox-hosted JDT refactoring calls described in \S\ref{sec:arch-jdt}. The output is a \texttt{PhaseAResult}. This contains the reconstructed trace, mined steps and typed refactoring specs, metrics for the user's trajectory and each synthesised alternative SHA, the diff bundle, PMD / CPD tracking edges, and the generated reorder trajectories.
 
 \paragraph{Phase B.}
-Phase B takes that record together with a \texttt{ScoringConfig} (the six process-score weights of \S\ref{sec:methodology-weights}) and runs the \texttt{ReportAssembler}, which calculates and clamps the trajectory's process score to the [0,100] range, attaches alt-vs-user deltas at every checkpoint, and emits the final \texttt{AnalysisReport}. Phase B does no filesystem I/O, no JDT work, and no test runs; it is pure in-memory tree-walking and finishes in milliseconds.
+Phase B takes the \texttt{PhaseAResult} and a \texttt{ScoringConfig}, which contains the six process-score weights from \S\ref{sec:methodology-weights}. It then runs the \texttt{ReportAssembler}. This computes the process score, clamps it to the [0,100] range, attaches alternative-vs-user deltas at each checkpoint, and emits the final \texttt{AnalysisReport}. Unlike Phase A, Phase B does not touch the filesystem, run JDT, or execute tests. It only walks the cached data in memory, so it finishes in milliseconds.
 
-This split matters because weights only enter at Phase B: changing them won't break any cached results from Phase A. The sensitivity experiment of Chapter~\ref{ch:results} exploits this directly: $12 \times 9 \times 45 = 4{,}860$ scoring configurations are evaluated against the same cached set of \texttt{PhaseAResult} dumps in roughly $2.6$ seconds of wall-clock time, because each configuration only re-runs \texttt{ReportAssembler}. Two Gradle entrypoints make the boundary visible at the CLI layer: \texttt{:analysis:phaseA} dumps a \texttt{PhaseAResult} JSON to disk, and \texttt{:analysis:phaseB} re-runs the cheap second phase against a Phase-A dump and a chosen \texttt{ScoringConfig}.
+This split matters because the weights are only used in Phase B. Changing them does not invalidate the cached Phase A results. The sensitivity experiment in Chapter~\ref{ch:results} uses this property directly: $12 \times 9 \times 45 = 4{,}860$ scoring configurations are evaluated against the same cached set of \texttt{PhaseAResult} dumps in roughly $2.6$ seconds of wall-clock time, because each configuration only re-runs \texttt{ReportAssembler}. The CLI exposes the split through two Gradle entrypoints: \texttt{:analysis:phaseA} writes a \texttt{PhaseAResult} JSON file to disk, and \texttt{:analysis:phaseB} reruns the cheap second phase using a Phase A dump and a chosen \texttt{ScoringConfig}.
 
 \section{Dashboard}
 \label{sec:arch-dashboard}
 
-The detector and synthesisers above produce an analysis report; the dashboard surfaces it to participants. The dashboard is a React web app that consumes the analysis report and presents the session interactively. It is hosted inside the IDE rather than served as a separate web page: the plugin opens a non-modal IntelliJ dialog containing a \texttt{JBCefBrowser}, the IDE's JCEF (Java Chromium Embedded Framework) wrapper, and points it at the React app. Once the page finishes loading, the plugin injects the freshly produced \texttt{analysis-report.json} into the page as \texttt{window.\_\_REPORT\_\_} and dispatches a \texttt{refdash:report-loaded} event; a \texttt{useReport()} hook on the React side picks the report up from there. Keeping the renderer inside JCEF means the dashboard is always shown next to the IDE state that produced it (no external server, no cross-origin handshake), while keeping the React + TypeScript developer ergonomics of a normal SPA. Figure~\ref{fig:arch-dashboard} shows the dashboard in use on one of the user-study sessions.
+The detector and synthesisers produce an analysis report, and the dashboard presents that report to participants. The dashboard is a React web app hosted inside the IDE through JCEF, IntelliJ's embedded Chromium browser, rather than a separate browser page. The plugin opens it in a non-modal IntelliJ dialog and passes the completed report to the page once analysis has finished. Keeping the dashboard inside the IDE means participants can inspect the results beside the code and session context that produced them, without running a separate server or switching to an external tool. Figure~\ref{fig:arch-dashboard} shows the dashboard in use on one of the user-study sessions.
 
-The trajectory chart plots the user's process score over time, with the synthesised alternative trajectories overlaid as comparison lines so the developer can see how each counterfactual would have scored against their own. Clicking on a refactoring step opens a detail panel showing what the step did, which smells it introduced or eliminated, and which code-quality metrics shifted across it. Each sub-signal of the cleanliness score (PMD violations, CPD duplications, readability, Chidamber--Kemerer measures) is itself click-through: the panel drills down to the underlying per-file readings so the developer can inspect why a step's cleanliness score moved, not just by how much. Divergence points appear as flagged moments on the trajectory, each one a click-through to the counterfactual that scored higher. A separate panel summarises the highest-impact suggestions for the session as a whole, so the developer has both a per-step view and a session-level takeaway.
+The main view is a trajectory chart showing the user's process score over time, with synthesised alternatives overlaid for comparison. Participants can toggle the individual code-cleanliness signals on the chart, such as readability, complexity, duplication, code smells, coupling, and cohesion, to see how different aspects of the code changed across the session. Selecting a step opens a detail panel for the exact edit made at that point, including the affected code, the metrics that changed, and any divergence point associated with the step. Divergence points are clickable: they explain what went wrong, what alternative action the developer \emph{could} have taken, and how much that alternative would have changed the process score. The dashboard also surfaces the locations of code smells and duplicated code, and shows build and test status over time so participants can see where the session became broken and where it recovered. It also highlights the highest-impact and actionable takeaways from the session as a whole.
 
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=\textwidth]{architecture/dashboard_image.png}
-  \caption{The dashboard hosted inside an IntelliJ JCEF window. The centre chart plots the user's process score across the session and overlays the synthesised alternative as a dashed comparison line. The side panels show the cleanliness signals, the selected refactoring's details, and the divergence point associated with that step. The bottom strip summarises the highest-impact takeaway for the session and the metric changes for the selected step.}
+  \caption{The dashboard hosted inside an IntelliJ JCEF window. The centre chart plots the user's process score across the session and can overlay alternative trajectories and individual cleanliness signals. The side panels show the selected step, metric changes, build/test status, smell and duplication locations, and any divergence point associated with that step, including the suggested alternative and its score impact. The lower panel summarises the highest-impact takeaways for the session.}
   \label{fig:arch-dashboard}
 \end{figure}
 

@@ -273,7 +273,7 @@
 \@writefile{toc}{\contentsline {subsection}{\numberline {3.3.2}Ordering}{28}{subsection.3.3.2}\protected@file@percent }
 \newlabel{sec:methodology-detector-ordering}{{3.3.2}{28}{Ordering}{subsection.3.3.2}{}}
 \newlabel{sec:methodology-reorder}{{3.3.2}{28}{Ordering}{subsection.3.3.2}{}}
-\@writefile{toc}{\contentsline {paragraph}{Window splitting on validator verdicts.}{28}{section*.26}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Window splitting on validator verdicts.}{29}{section*.26}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{Dependency-DAG construction.}{29}{section*.27}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{SSA versioning across renames.}{29}{section*.28}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{Topological enumeration.}{29}{section*.29}\protected@file@percent }
@@ -306,26 +306,26 @@
 \newlabel{sec:arch-phases}{{3.4}{33}{System architecture and pipeline phases}{section.3.4}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {3.4.1}Architecture at a glance}{33}{subsection.3.4.1}\protected@file@percent }
 \newlabel{sec:arch-overview}{{3.4.1}{33}{Architecture at a glance}{subsection.3.4.1}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {3.4}{\ignorespaces High-level dataflow through the tool. The IDE plugin records the session, the analysis pipeline reconstructs and scores the trace, the embedded JDT bundle applies refactorings, and the dashboard displays the resulting report. The shadow repository stores both user checkpoints and synthesised alternatives as per-session git commits.}}{34}{figure.caption.36}\protected@file@percent }
-\newlabel{fig:arch-overview}{{3.4}{34}{High-level dataflow through the tool. The IDE plugin records the session, the analysis pipeline reconstructs and scores the trace, the embedded JDT bundle applies refactorings, and the dashboard displays the resulting report. The shadow repository stores both user checkpoints and synthesised alternatives as per-session git commits}{figure.caption.36}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {3.4}{\ignorespaces High-level dataflow through the tool. The IDE plugin records the session, the analysis pipeline reconstructs and scores the trace, and the embedded JDT bundle applies synthesised refactorings. The dashboard displays the resulting report, while the shadow repository stores user checkpoints and synthesised alternatives as per-session git commits.}}{34}{figure.caption.36}\protected@file@percent }
+\newlabel{fig:arch-overview}{{3.4}{34}{High-level dataflow through the tool. The IDE plugin records the session, the analysis pipeline reconstructs and scores the trace, and the embedded JDT bundle applies synthesised refactorings. The dashboard displays the resulting report, while the shadow repository stores user checkpoints and synthesised alternatives as per-session git commits}{figure.caption.36}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {3.4.2}Phase A / Phase B split}{34}{subsection.3.4.2}\protected@file@percent }
 \newlabel{sec:methodology-phases-split}{{3.4.2}{34}{Phase A / Phase B split}{subsection.3.4.2}{}}
 \@writefile{toc}{\contentsline {paragraph}{Phase A.}{34}{section*.37}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{Phase B.}{34}{section*.38}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {3.5}Dashboard}{34}{section.3.5}\protected@file@percent }
-\newlabel{sec:arch-dashboard}{{3.5}{34}{Dashboard}{section.3.5}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {3.5}{\ignorespaces The dashboard hosted inside an IntelliJ JCEF window. The centre chart plots the user's process score across the session and overlays the synthesised alternative as a dashed comparison line. The side panels show the cleanliness signals, the selected refactoring's details, and the divergence point associated with that step. The bottom strip summarises the highest-impact takeaway for the session and the metric changes for the selected step.}}{35}{figure.caption.39}\protected@file@percent }
-\newlabel{fig:arch-dashboard}{{3.5}{35}{The dashboard hosted inside an IntelliJ JCEF window. The centre chart plots the user's process score across the session and overlays the synthesised alternative as a dashed comparison line. The side panels show the cleanliness signals, the selected refactoring's details, and the divergence point associated with that step. The bottom strip summarises the highest-impact takeaway for the session and the metric changes for the selected step}{figure.caption.39}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {3.6}Session dataset and labelling}{35}{section.3.6}\protected@file@percent }
-\newlabel{sec:methodology-rater}{{3.6}{35}{Session dataset and labelling}{section.3.6}{}}
-\citation{cohen1960kappa}
-\citation{landis1977kappa}
+\@writefile{toc}{\contentsline {section}{\numberline {3.5}Dashboard}{35}{section.3.5}\protected@file@percent }
+\newlabel{sec:arch-dashboard}{{3.5}{35}{Dashboard}{section.3.5}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {3.5}{\ignorespaces The dashboard hosted inside an IntelliJ JCEF window. The centre chart plots the user's process score across the session and can overlay alternative trajectories and individual cleanliness signals. The side panels show the selected step, metric changes, build/test status, smell and duplication locations, and any divergence point associated with that step, including the suggested alternative and its score impact. The lower panel summarises the highest-impact takeaways for the session.}}{35}{figure.caption.39}\protected@file@percent }
+\newlabel{fig:arch-dashboard}{{3.5}{35}{The dashboard hosted inside an IntelliJ JCEF window. The centre chart plots the user's process score across the session and can overlay alternative trajectories and individual cleanliness signals. The side panels show the selected step, metric changes, build/test status, smell and duplication locations, and any divergence point associated with that step, including the suggested alternative and its score impact. The lower panel summarises the highest-impact takeaways for the session}{figure.caption.39}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {3.6}Session dataset and labelling}{36}{section.3.6}\protected@file@percent }
+\newlabel{sec:methodology-rater}{{3.6}{36}{Session dataset and labelling}{section.3.6}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {3.6.1}The 45-session injection set}{36}{subsection.3.6.1}\protected@file@percent }
 \newlabel{sec:methodology-injection-set}{{3.6.1}{36}{The 45-session injection set}{subsection.3.6.1}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {3.6.2}Two label streams}{36}{subsection.3.6.2}\protected@file@percent }
 \newlabel{sec:methodology-labels}{{3.6.2}{36}{Two label streams}{subsection.3.6.2}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {3.6.3}Rater protocol}{36}{subsection.3.6.3}\protected@file@percent }
 \newlabel{sec:methodology-rater-protocol}{{3.6.3}{36}{Rater protocol}{subsection.3.6.3}{}}
+\citation{cohen1960kappa}
+\citation{landis1977kappa}
 \@writefile{toc}{\contentsline {subsection}{\numberline {3.6.4}Cohen's $\kappa $ computation}{37}{subsection.3.6.4}\protected@file@percent }
 \newlabel{sec:methodology-kappa}{{3.6.4}{37}{Cohen's $\kappa $ computation}{subsection.3.6.4}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {3.6.5}Treatment of disagreements}{37}{subsection.3.6.5}\protected@file@percent }

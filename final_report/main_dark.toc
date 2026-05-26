@@ -65,7 +65,7 @@
 \contentsline {paragraph}{Batch sessions.}{28}{section*.24}%
 \contentsline {paragraph}{Anchor resolution.}{28}{section*.25}%
 \contentsline {subsection}{\numberline {3.3.2}Ordering}{28}{subsection.3.3.2}%
-\contentsline {paragraph}{Window splitting on validator verdicts.}{28}{section*.26}%
+\contentsline {paragraph}{Window splitting on validator verdicts.}{29}{section*.26}%
 \contentsline {paragraph}{Dependency-DAG construction.}{29}{section*.27}%
 \contentsline {paragraph}{SSA versioning across renames.}{29}{section*.28}%
 \contentsline {paragraph}{Topological enumeration.}{29}{section*.29}%
@@ -81,8 +81,8 @@
 \contentsline {subsection}{\numberline {3.4.2}Phase A / Phase B split}{34}{subsection.3.4.2}%
 \contentsline {paragraph}{Phase A.}{34}{section*.37}%
 \contentsline {paragraph}{Phase B.}{34}{section*.38}%
-\contentsline {section}{\numberline {3.5}Dashboard}{34}{section.3.5}%
-\contentsline {section}{\numberline {3.6}Session dataset and labelling}{35}{section.3.6}%
+\contentsline {section}{\numberline {3.5}Dashboard}{35}{section.3.5}%
+\contentsline {section}{\numberline {3.6}Session dataset and labelling}{36}{section.3.6}%
 \contentsline {subsection}{\numberline {3.6.1}The 45-session injection set}{36}{subsection.3.6.1}%
 \contentsline {subsection}{\numberline {3.6.2}Two label streams}{36}{subsection.3.6.2}%
 \contentsline {subsection}{\numberline {3.6.3}Rater protocol}{36}{subsection.3.6.3}%
