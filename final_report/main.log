@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.10.5)  26 MAY 2026 15:12
+This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.10.5)  26 MAY 2026 16:02
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -1240,37 +1240,37 @@ Underfull \hbox (badness 1874) in paragraph at lines 98--99
 [22]
 
 [23]
-Underfull \hbox (badness 3260) in paragraph at lines 141--142
+Underfull \hbox (badness 3260) in paragraph at lines 153--154
 []|\T1/cmr/m/n/10 CK li-brary, per-class
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 142--143
+Underfull \hbox (badness 10000) in paragraph at lines 154--155
 []|\T1/cmr/m/n/10 CPD-detected cloned
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 143--144
+Underfull \hbox (badness 10000) in paragraph at lines 155--156
 []|\T1/cmr/m/n/10 Five-feature blend,
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 144--144
+Underfull \hbox (badness 10000) in paragraph at lines 156--156
 []|\T1/cmr/m/n/10 Marinescu 2004 [[]]; Ar-celli
  []
 
 
-Underfull \hbox (badness 2662) in paragraph at lines 144--145
+Underfull \hbox (badness 2662) in paragraph at lines 156--157
 []|\T1/cmr/m/n/10 PMD vi-o-la-tion count
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 145--146
+Underfull \hbox (badness 10000) in paragraph at lines 157--158
 []|\T1/cmr/m/n/10 Per-class mean,
  []
 
 
-Overfull \hbox (5.44229pt too wide) in paragraph at lines 136--148
+Overfull \hbox (5.44229pt too wide) in paragraph at lines 148--160
  [][] 
  []
 
@@ -1279,11 +1279,6 @@ Overfull \hbox (5.44229pt too wide) in paragraph at lines 136--148
 [24]
 
 [25]
-Overfull \hbox (2.6115pt too wide) in paragraph at lines 175--176
-\T1/cmr/m/n/10.95 keystroke, but we de-bounce these to avoid noise. A de-bounc-ing layer ac-cu-mu-lates keystrokes
- []
-
-
 
 [26]
 
@@ -1294,60 +1289,56 @@ Overfull \hbox (2.6115pt too wide) in paragraph at lines 175--176
 [29]
 
 [30]
-
-[31]
-Overfull \hbox (3.33188pt too wide) in paragraph at lines 285--286
+Overfull \hbox (3.33188pt too wide) in paragraph at lines 290--291
 []\T1/cmr/m/n/10.95 The re-work syn-the-siser builds an al-ter-na-tive tra-jec-tory in which the originating--terminal
  []
 
 
 
-[32]
+[31]
 
-[33]
-Overfull \hbox (37.33537pt too wide) in paragraph at lines 378--379
+[32]
+Overfull \hbox (37.33537pt too wide) in paragraph at lines 383--384
 \T1/cmr/m/n/10.95 app. Once the page fin-ishes load-ing, the plu-gin in-jects the freshly pro-duced \T1/cmtt/m/n/10.95 analysis-report.json
  []
 
 
 
-[34]
-<architecture/dashboard_image.png, id=1068, 1641.13126pt x 908.39375pt>
+[33]
+<architecture/dashboard_image.png, id=1058, 1641.13126pt x 908.39375pt>
 File: architecture/dashboard_image.png Graphic file (type png)
 <use architecture/dashboard_image.png>
-Package pdftex.def Info: architecture/dashboard_image.png  used on input line 384.
+Package pdftex.def Info: architecture/dashboard_image.png  used on input line 389.
 (pdftex.def)             Requested size: 426.79135pt x 236.23225pt.
 
-Underfull \vbox (badness 2799) has occurred while \output is active []
 
-
-
-[35 <./architecture/dashboard_image.png>]
-Overfull \hbox (5.36623pt too wide) in paragraph at lines 406--407
+[34 <./architecture/dashboard_image.png>]
+Overfull \hbox (5.36623pt too wide) in paragraph at lines 411--412
 \T1/cmr/m/n/10.95 Each ses-sion car-ries a row in \T1/cmtt/m/n/10.95 fixtures/sessions/manifest-v2.csv \T1/cmr/m/n/10.95 whose \T1/cmtt/m/n/10.95 expected_kinds
  []
 
 
-Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `math shift' on input line 413.
 
-
-Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `\kappa' on input line 413.
-
+[35]
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `math shift' on input line 413.
+(hyperref)                removing `math shift' on input line 418.
 
 
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `\kappa' on input line 418.
 
-[36]) (./results/results.tex
 
-[37]
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `math shift' on input line 418.
+
+) (./results/results.tex
+
+[36]
 Chapter 4.
 
 
-[38
+[37
 
 ]
 Overfull \hbox (21.56076pt too wide) in paragraph at lines 21--22
@@ -1361,6 +1352,8 @@ Overfull \hbox (2.87447pt too wide) in paragraph at lines 21--22
 
 
 
+[38]
+
 [39]
 
 [40]
@@ -1369,32 +1362,32 @@ Overfull \hbox (2.87447pt too wide) in paragraph at lines 21--22
 
 [42]
 
+LaTeX Font Warning: Font shape `T1/cmr/m/scit' undefined
+(Font)              using `T1/cmr/m/scsl' instead on input line 205.
+
+
+LaTeX Font Warning: Font shape `T1/cmr/m/scit' undefined
+(Font)              using `T1/cmr/m/scsl' instead on input line 205.
+
+
+LaTeX Font Warning: Font shape `T1/cmr/m/scit' undefined
+(Font)              using `T1/cmr/m/scsl' instead on input line 205.
+
+
+LaTeX Font Warning: Font shape `T1/cmr/m/scit' undefined
+(Font)              using `T1/cmr/m/scsl' instead on input line 205.
+
+
+LaTeX Font Warning: Font shape `T1/cmr/m/scit' undefined
+(Font)              using `T1/cmr/m/scsl' instead on input line 205.
+
+
+LaTeX Font Warning: Font shape `T1/cmr/m/scit' undefined
+(Font)              using `T1/cmr/m/scsl' instead on input line 205.
+
+
+
 [43]
-
-LaTeX Font Warning: Font shape `T1/cmr/m/scit' undefined
-(Font)              using `T1/cmr/m/scsl' instead on input line 205.
-
-
-LaTeX Font Warning: Font shape `T1/cmr/m/scit' undefined
-(Font)              using `T1/cmr/m/scsl' instead on input line 205.
-
-
-LaTeX Font Warning: Font shape `T1/cmr/m/scit' undefined
-(Font)              using `T1/cmr/m/scsl' instead on input line 205.
-
-
-LaTeX Font Warning: Font shape `T1/cmr/m/scit' undefined
-(Font)              using `T1/cmr/m/scsl' instead on input line 205.
-
-
-LaTeX Font Warning: Font shape `T1/cmr/m/scit' undefined
-(Font)              using `T1/cmr/m/scsl' instead on input line 205.
-
-
-LaTeX Font Warning: Font shape `T1/cmr/m/scit' undefined
-(Font)              using `T1/cmr/m/scsl' instead on input line 205.
-
-
 
 [44]
 
@@ -1402,35 +1395,35 @@ LaTeX Font Warning: Font shape `T1/cmr/m/scit' undefined
 
 [46]
 
+LaTeX Font Warning: Font shape `T1/cmr/m/scit' undefined
+(Font)              using `T1/cmr/m/scsl' instead on input line 303.
+
+
+LaTeX Font Warning: Font shape `T1/cmr/m/scit' undefined
+(Font)              using `T1/cmr/m/scsl' instead on input line 303.
+
+
+LaTeX Font Warning: Font shape `T1/cmr/m/scit' undefined
+(Font)              using `T1/cmr/m/scsl' instead on input line 303.
+
+
+LaTeX Font Warning: Font shape `T1/cmr/m/scit' undefined
+(Font)              using `T1/cmr/m/scsl' instead on input line 303.
+
+
+
 [47]
 
 LaTeX Font Warning: Font shape `T1/cmr/m/scit' undefined
-(Font)              using `T1/cmr/m/scsl' instead on input line 303.
+(Font)              using `T1/cmr/m/scsl' instead on input line 326.
 
 
 LaTeX Font Warning: Font shape `T1/cmr/m/scit' undefined
-(Font)              using `T1/cmr/m/scsl' instead on input line 303.
-
-
-LaTeX Font Warning: Font shape `T1/cmr/m/scit' undefined
-(Font)              using `T1/cmr/m/scsl' instead on input line 303.
-
-
-LaTeX Font Warning: Font shape `T1/cmr/m/scit' undefined
-(Font)              using `T1/cmr/m/scsl' instead on input line 303.
+(Font)              using `T1/cmr/m/scsl' instead on input line 326.
 
 
 
 [48]
-
-LaTeX Font Warning: Font shape `T1/cmr/m/scit' undefined
-(Font)              using `T1/cmr/m/scsl' instead on input line 326.
-
-
-LaTeX Font Warning: Font shape `T1/cmr/m/scit' undefined
-(Font)              using `T1/cmr/m/scsl' instead on input line 326.
-
-
 
 [49]
 
@@ -1439,33 +1432,33 @@ LaTeX Font Warning: Font shape `T1/cmr/m/scit' undefined
 [51]
 
 [52]
-
-[53]
 Overfull \hbox (7.43883pt too wide) in paragraph at lines 487--488
 \T1/cmr/m/n/10.95 procedural-discipline con-tract writ-ten into the agent's setup prompt be-ing hon-oured through-
  []
 
 
 
-[54]
+[53]
 Overfull \hbox (40.45795pt too wide) in paragraph at lines 495--496
 \T1/cmr/m/n/10.95 fired three IDE-replay di-ver-gence points (one at mag-ni-tude $\OMS/cmsy/m/n/10.95 ^^@\OT1/cmr/m/n/10.95 6$\T1/cmr/m/n/10.95 ), \T1/cmtt/m/n/10.95 REFACTORING_INTRODUCED_SMELLS\T1/cmr/m/n/10.95 ,
  []
 
 
 
-[55]) (./threats/threats.tex
+[54]) (./threats/threats.tex
 
-[56]
+[55]
 Chapter 5.
 
 
-[57
+[56
 
 ]
 LaTeX Font Info:    Font shape `T1/cmtt/bx/n' in size <10.95> not available
 (Font)              Font shape `T1/cmtt/m/n' tried instead on input line 19.
 
+
+[57]
 
 [58]
 Overfull \hbox (2.73546pt too wide) in paragraph at lines 49--50
@@ -1488,15 +1481,13 @@ Overfull \hbox (31.95566pt too wide) in paragraph at lines 49--50
 
 [60]
 
-[61]
+[61]) (./conclusion/conclusion.tex
 
-[62]) (./conclusion/conclusion.tex
-
-[63]
+[62]
 Chapter 6.
 
 
-[64
+[63
 
 ]
 Overfull \hbox (2.58556pt too wide) in paragraph at lines 22--23
@@ -1505,13 +1496,13 @@ Overfull \hbox (2.58556pt too wide) in paragraph at lines 22--23
 
 
 
-[65]) (./declarations/declarations.tex
+[64]) (./declarations/declarations.tex
 
-[66]
+[65]
 Chapter 7.
 ) (./appendix/appendix.tex
 
-[67
+[66
 
 ]
 Appendix A.
@@ -1528,7 +1519,7 @@ Overfull \hbox (214.30405pt too wide) in paragraph at lines 12--14
 
 
 
-[68
+[67
 
 ]
 Overfull \hbox (214.30405pt too wide) in paragraph at lines 43--44
@@ -1540,55 +1531,60 @@ Underfull \vbox (badness 10000) has occurred while \output is active []
 
 
 
+[68]
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+
+
 [69]
 Underfull \vbox (badness 10000) has occurred while \output is active []
 
 
 
-[70]
+[70]) (./appendix/transcripts/session-2.txt
+
+[71]
 Underfull \vbox (badness 10000) has occurred while \output is active []
 
 
-
-[71]) (./appendix/transcripts/session-2.txt
 
 [72]
 Underfull \vbox (badness 10000) has occurred while \output is active []
 
 
 
-[73]
+[73]) (./appendix/transcripts/session-3.txt
+
+[74]
 Underfull \vbox (badness 10000) has occurred while \output is active []
 
 
-
-[74]) (./appendix/transcripts/session-3.txt
 
 [75]
 Underfull \vbox (badness 10000) has occurred while \output is active []
 
 
 
-[76]
+[76]) (./appendix/transcripts/session-4.txt
+
+[77]
 Underfull \vbox (badness 10000) has occurred while \output is active []
 
 
 
-[77]) (./appendix/transcripts/session-4.txt
+[78]) (./appendix/transcripts/session-5.txt
 
-[78]
+[79]
 Underfull \vbox (badness 10000) has occurred while \output is active []
 
 
 
-[79]) (./appendix/transcripts/session-5.txt
+[80]) (./appendix/transcripts/session-6.txt
 
-[80]
+[81]
 Underfull \vbox (badness 10000) has occurred while \output is active []
 
 
-
-[81]) (./appendix/transcripts/session-6.txt
 
 [82]
 Underfull \vbox (badness 10000) has occurred while \output is active []
@@ -1606,11 +1602,6 @@ Underfull \vbox (badness 10000) has occurred while \output is active []
 
 
 [85]
-Underfull \vbox (badness 10000) has occurred while \output is active []
-
-
-
-[86]
 Overfull \hbox (214.30405pt too wide) in paragraph at lines 343--344
 [][][][] 
  []
@@ -1622,46 +1613,46 @@ Overfull \hbox (214.30405pt too wide) in paragraph at lines 345--346
 
 )) (./main.bbl
 
-[87]
+[86]
 
-[88
+[87
 
 ]
-Underfull \hbox (badness 1546) in paragraph at lines 119--124
+Underfull \hbox (badness 1546) in paragraph at lines 94--97
 []\T1/cmr/m/n/10.95 Naouel Moha, Yann-Gaël Guéhéneuc, Lau-rence Duchien, and Anne-Françoise
  []
 
 
 
+[88]
+
 [89]
 
 [90]
 
-[91]
+[91])
 
-[92])
-
-[93] (./main.aux)
+[92] (./main.aux)
  ***********
 LaTeX2e <2024-11-01> patch level 2
 L3 programming layer <2025-01-18>
  ***********
 Package rerunfilecheck Info: File `main.out' has not changed.
-(rerunfilecheck)             Checksum: AAFF1CC76A7CA73FD4EE711B30C5492B;20248.
+(rerunfilecheck)             Checksum: 6BE36FD0816E63F2007AE8BA6339BC81;20253.
  ) 
 Here is how much of TeX's memory you used:
- 28764 strings out of 473190
- 537132 string characters out of 5715800
- 1821689 words of memory out of 5000000
+ 28759 strings out of 473190
+ 537077 string characters out of 5715800
+ 1821588 words of memory out of 5000000
  49843 multiletter control sequences out of 15000+600000
  601383 words of font info for 116 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
  103i,13n,106p,2218b,2184s stack positions out of 10000i,1000n,20000p,200000b,200000s
 </usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx10.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi12.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi7.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi8.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi9.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmr7.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmr9.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy7.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy8.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sfbi1000.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sfbx1000.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sfbx1095.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sfbx1200.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sfbx1440.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sfbx2074.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sfbx2488.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sfcc0700.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sfcc0800.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sfcc1000.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sfcc1095.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sfcc1200.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sfcc1440.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sfcc1728.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sfit1000.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sfrm0600.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sfrm0800.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sfrm0900.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sfrm1000.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sfrm1095.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sfrm1200.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sfsc0700.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sfti1000.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sfti1095.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sfti1200.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sftt0800.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sftt1000.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sftt1095.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sfxc0800.pfb>
-Output written on main.pdf (94 pages, 1563964 bytes).
+Output written on main.pdf (93 pages, 1560471 bytes).
 PDF statistics:
- 3365 PDF objects out of 3580 (max. 8388607)
- 3140 compressed objects within 32 object streams
- 1640 named destinations out of 1728 (max. 500000)
+ 3355 PDF objects out of 3580 (max. 8388607)
+ 3131 compressed objects within 32 object streams
+ 1635 named destinations out of 1728 (max. 500000)
  823 words of extra memory for PDF output out of 10000 (max. 10000000)
 
