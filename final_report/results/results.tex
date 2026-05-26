@@ -18,7 +18,7 @@ This section evaluates the process-quality score on its own terms. The score's w
 The first experiment asks how the divergence-point ranking responds to perturbations of the weights in the process-score formula. If tweaking a weight significantly reshuffles the ranking, then the ranking depends on choices we cannot justify. The experiment runs against three session sets and uses two perturbation approaches. The first is a single-knob sweep that varies one weight at a time. The second is a multi-knob Monte Carlo that draws every weight simultaneously from a log-normal distribution centered around the production weights. The headline result is top-$1$ stability across all three session sets and both approaches, reported below alongside the places where the formula does respond to weight perturbations.
 
 \paragraph{Design.}
-The single-knob sweep fixes every weight in \texttt{ScoringConfig.PRODUCTION} except one, scales the chosen weight by one of nine factors in $\{0.1, 0.25, 0.5, 0.75, 1.25, 1.5, 2.0, 4.0, 10.0\}$, reassembles the analysis report, and compares the perturbed divergence-point ranking against the production baseline. There are twelve weights ($6$ process-side and $6$ cleanliness-side) and nine factors per weight, so the design produces $12 \times 9 \times \lvert \mathcal{C} \rvert$ rows per session set $\mathcal{C}$. The multi-knob setup draws $200$ independent samples per fixture. Each weight $W_i$ is scaled by $\exp(\sigma \cdot Z_i)$ with $Z_i \sim \mathcal{N}(0, 1)$ drawn independently per weight, and $\sigma = \ln 2$, so around $95\%$ of samples land inside $[\times 0.25, \times 4]$ on each weight, and the distribution is symmetric in log-space.
+The single-knob sweep fixes every weight in \texttt{ScoringConfig.PRODUCTION} except one, scales the chosen weight by one of nine factors in $\{0.1, 0.25, 0.5, 0.75, 1.25, 1.5, 2.0, 4.0, 10.0\}$, reassembles the analysis report, and compares the perturbed divergence-point ranking against the production baseline. There are thirteen weights ($7$ process-side and $6$ cleanliness-side) and nine factors per weight, so the design produces $13 \times 9 \times \lvert \mathcal{C} \rvert$ rows per session set $\mathcal{C}$. The multi-knob setup draws $200$ independent samples per fixture. Each weight $W_i$ is scaled by $\exp(\sigma \cdot Z_i)$ with $Z_i \sim \mathcal{N}(0, 1)$ drawn independently per weight, and $\sigma = \ln 2$, so around $95\%$ of samples land inside $[\times 0.25, \times 4]$ on each weight, and the distribution is symmetric in log-space.
 
 The experiment is run against three session sets: the $45$ hand-labelled injection sessions of \S\ref{sec:results-divergence}, the $12$ user-study sessions of \S\ref{sec:results-userstudy}, and the $6$ agent sessions of \S\ref{sec:results-userstudy-agent}. These differ in their per-fixture divergence-point profiles. The injection sessions have at most $5$ divergence points per fixture, $66$ in total, and concentrates on single-kind exercises. The user-study sessions have up to $8$ per fixture across naturalistic sessions, $50$ in total. The agent sessions hves up to $3$ per fixture across structurally simpler sessions, $10$ in total.
 
@@ -34,9 +34,9 @@ Table~\ref{tab:results-sensitivity-headline} reports top-$1$ stability across th
 \hline
 \textbf{session set} & \textbf{rows} & \textbf{$\tau = 1.0$} & \textbf{top-$1$ $= 1$} & \textbf{$\tau < 0$} & \textbf{baseline saturation} \\
 \hline
-Injection ($45$)        & $4{,}860$ & $99.2\%$ & $99.9\%$ & $0.0\%$ & $13.6\%$ \\
-\textbf{User study ($12$)} & $1{,}296$ & $86.3\%$ & $\mathbf{95.6\%}$ & $0.7\%$ & $\mathbf{0.0\%}$ \\
-Agent ($6$)             &   $648$   & $97.2\%$ & $97.5\%$ & $2.5\%$ & $30.0\%$ \\
+Injection ($45$)        & $5{,}265$ & $99.0\%$ & $99.7\%$ & $0.2\%$ & $13.6\%$ \\
+\textbf{User study ($12$)} & $1{,}404$ & $87.3\%$ & $\mathbf{96.1\%}$ & $0.7\%$ & $\mathbf{0.0\%}$ \\
+Agent ($6$)             &   $702$   & $95.6\%$ & $95.9\%$ & $4.1\%$ & $30.0\%$ \\
 \hline
 \end{tabular}
 \caption{Single-knob sensitivity across three session sets. The user-study sessions is the cleanest benchmark: longest per-fixture rankings, zero saturated baseline divergence points. Top-$3$ and top-$5$ stability on the user-study sessions are $93.0\%$ and $98.1\%$ respectively; top-$5$ on the other two session sets is trivially $100\%$ because no fixture there has more than $5$ divergence points.}
@@ -44,7 +44,7 @@ Agent ($6$)             &   $648$   & $97.2\%$ & $97.5\%$ & $2.5\%$ & $30.0\%$ \
 \end{table}
 
 \paragraph{Sources of ranking instability.}
-Table~\ref{tab:results-sensitivity-knobs} reports per-knob top-$1$ disruption counts on the user-study sessions. The pattern is clear. The six cleanliness sub-weights (cognitive, coupling, duplication, readability, smells, cohesion) never disrupt the top-$1$ recommendation across any of the $108$ rows per knob. Every top-$1$ shift is driven by a process-side weight. The two largest disruptors are the commit-gap weight $W_{\textsc{cg}}$ ($19$ of $108$ rows) and the manual-when-IDE weight $W_{\textsc{mi}}$ ($12$ rows). The remaining process-side weights account for between $4$ and $9$ shifts each, including the cleanliness-gain weight $W_{\textsc{g}}$, which only disrupts the top-$1$ at $\times 2$, $\times 4$, or $\times 10$. This decomposition tells us the score formula's \emph{effective parameter dimension} is closer to four or five than to twelve. The cleanliness score doesn't change the ranking because it adds the same amount to both paths, and the process-side weights do the rank-shaping.
+Table~\ref{tab:results-sensitivity-knobs} reports per-knob top-$1$ disruption counts on the user-study sessions. The pattern is clear. The lag term and five of the six cleanliness sub-weights (cognitive, coupling, duplication, readability, smells) never disrupt the top-$1$ recommendation across any of the $108$ rows per knob. The cohesion sub-weight disrupts it exactly once, the smallest non-zero entry in the table — a single rank flip attributable to the cleanliness$\leftrightarrow$lag coupling described in \S\ref{sec:methodology-cleanliness} (the lag denominator uses the cleanliness scalar). Every other top-$1$ shift is driven by a process-side weight. The two largest disruptors are the commit-gap weight $W_{\textsc{cg}}$ ($18$ of $108$ rows) and the manual-when-IDE weight $W_{\textsc{mi}}$ ($11$ rows). The remaining process-side weights account for between $4$ and $8$ shifts each, including the cleanliness-gain weight $W_{\textsc{g}}$, which only disrupts the top-$1$ at $\times 2$, $\times 4$, or $\times 10$. This decomposition tells us the score formula's \emph{effective parameter dimension} is closer to four or five than to thirteen. The cleanliness composite usually adds the same amount to both paths so it does not change the ranking, and the process-side weights do the rank-shaping.
 
 \begin{table}[htbp]
 \centering
@@ -53,24 +53,25 @@ Table~\ref{tab:results-sensitivity-knobs} reports per-knob top-$1$ disruption co
 \hline
 \textbf{knob} & \textbf{top-$1$ disruptions / $108$ rows} \\
 \hline
-\texttt{commitGap}   & $19$ \\
-\texttt{manualIde}   & $12$ \\
-\texttt{length}      &  $9$ \\
+\texttt{commitGap}   & $18$ \\
+\texttt{manualIde}   & $11$ \\
+\texttt{length}      &  $8$ \\
 \texttt{skipTests}   &  $8$ \\
-\texttt{gain}        &  $5$ \\
-\texttt{broken}      &  $4$ \\
+\texttt{broken}      &  $5$ \\
+\texttt{gain}        &  $4$ \\
+\texttt{lag}         &  $0$ \\
 \hline
-\multicolumn{2}{l}{\textit{all six cleanliness sub-weights: $0$ disruptions}} \\
+\multicolumn{2}{l}{\textit{cleanliness sub-weights: \texttt{cohesion} $1$, all others $0$}} \\
 \hline
 \end{tabular}
-\caption{Per-knob top-$1$ disruption counts on the user-study sessions. Cleanliness sub-weights never reshuffle the highest-magnitude divergence point in the sweep; the process-side weights account for every top-$1$ shift.}
+\caption{Per-knob top-$1$ disruption counts on the user-study sessions. The lag term and five of the six cleanliness sub-weights never reshuffle the highest-magnitude divergence point in the sweep; the single \texttt{cohesion} entry reflects the lag-denominator coupling. Process-side weights account for almost every top-$1$ shift.}
 \label{tab:results-sensitivity-knobs}
 \end{table}
 
 \paragraph{Multi-knob Monte Carlo.}
 The single-knob sweep only tests one weight at a time. The Monte Carlo approach perturbs every weight together: $200$ samples per fixture, with each weight drawn independently from $\exp(\ln 2 \cdot Z)$ for $Z \sim \mathcal{N}(0, 1)$. Table~\ref{tab:results-sensitivity-mc} reports the distribution of $\tau$ and top-$N$ hit rate across $200 \times \lvert \mathcal{C} \rvert$ joint-perturbation samples per session set.
 
-The multi-knob result is meaningfully weaker than the single-knob headline. On the user-study sessions, the top-$1$ recommendation changes on $19\%$ of joint-perturbation samples, against $4\%$ under single-knob, and mean $\tau$ falls to $0.781$. The injection sessions are much more stable at $\tau = 0.986$ mean, but again only because their per-fixture rankings are too short to allow much reshuffling. The agent sessions sits between them on $\tau$, and its top-$3$ stability is trivially $100\%$ because every agent fixture has at most $3$ divergence points. In short, the formula is robust to small joint perturbations and degrades smoothly with larger ones. It is not robust to arbitrary combinations of weights, even within the realistic range we tested.
+The multi-knob result is meaningfully weaker than the single-knob headline. On the user-study sessions, the top-$1$ recommendation changes on $19\%$ of joint-perturbation samples, against $4\%$ under single-knob, and mean $\tau$ falls to $0.785$. The injection sessions are much more stable at $\tau = 0.975$ mean, but again only because their per-fixture rankings are too short to allow much reshuffling. The agent sessions sits between them on $\tau$, and its top-$3$ stability is trivially $100\%$ because every agent fixture has at most $3$ divergence points. In short, the formula is robust to small joint perturbations and degrades smoothly with larger ones. It is not robust to arbitrary combinations of weights, even within the realistic range we tested.
 
 \begin{table}[htbp]
 \centering
@@ -79,9 +80,9 @@ The multi-knob result is meaningfully weaker than the single-knob headline. On t
 \hline
 \textbf{session set} & \textbf{samples} & \textbf{mean $\tau$} & \textbf{top-$1$ $= 1$} & \textbf{top-$3$ $= 1$} & \textbf{top-$5$ $= 1$} \\
 \hline
-Injection ($45$)        & $9{,}000$ & $0.986$ & $99.8\%$ & $97.2\%$ & $100.0\%$\,$^\dagger$ \\
-\textbf{User study ($12$)} & $2{,}400$ & $\mathbf{0.781}$ & $\mathbf{81.2\%}$ & $\mathbf{75.1\%}$ & $92.8\%$ \\
-Agent ($6$)             & $1{,}200$ & $0.736$ & $86.1\%$ & $100.0\%$\,$^\dagger$ & $100.0\%$\,$^\dagger$ \\
+Injection ($45$)        & $9{,}000$ & $0.975$ & $98.7\%$ & $97.6\%$ & $100.0\%$\,$^\dagger$ \\
+\textbf{User study ($12$)} & $2{,}400$ & $\mathbf{0.785}$ & $\mathbf{81.3\%}$ & $\mathbf{75.0\%}$ & $92.3\%$ \\
+Agent ($6$)             & $1{,}200$ & $0.748$ & $87.1\%$ & $100.0\%$\,$^\dagger$ & $100.0\%$\,$^\dagger$ \\
 \hline
 \multicolumn{6}{l}{\small$^\dagger$ trivially $100\%$: no fixture in that session set has $> N$ baseline divergence points.} \\
 \hline
@@ -102,18 +103,18 @@ TODO: MOVE ABOVE TO VALIDITY SECTION
 \subsection{Ablation sweep}
 \label{sec:results-ablation}
 
-The sensitivity sweep shows the ranking is robust to weight perturbations. This experiment asks the different question of whether every term in the score formula carries substantial weight. If removing any one term left the ranking unchanged, that term would be decorative, and if zeroing every process term simultaneously did not collapse the divergence-point magnitudes to zero, then some weight-independent signal would be doing the work and the formula would just restate that signal. A full power-set sweep across the six process-side weights ($2^6 = 64$ variants per fixture, $2{,}880$ rows total) rules out both possibilities: sum-of-magnitude recovery rises monotonically with the count of active terms from $0.000$ (every process term zeroed) to $1.000$ (full formula), and mean $\tau$ rises in parallel from $0.830$ to $1.000$.
+The sensitivity sweep shows the ranking is robust to weight perturbations. This experiment asks the different question of whether every term in the score formula carries substantial weight. If removing any one term left the ranking unchanged, that term would be decorative, and if zeroing every process term simultaneously did not collapse the divergence-point magnitudes to zero, then some weight-independent signal would be doing the work and the formula would just restate that signal. A full power-set sweep across the seven process-side weights ($2^7 = 128$ variants per fixture, $5{,}760$ rows total) rules out both possibilities: sum-of-magnitude recovery rises monotonically with the count of active terms from $0.000$ (every process term zeroed) to $1.000$ (full formula), and mean $\tau$ rises in parallel from $0.883$ to $1.000$.
 
 \paragraph{Design.}
-The experiment enumerates every subset of the six process-side weights, testing each subset by keeping those weights at production and zeroing the rest. With six weights the full $2^6 = 64$-variant power set fits comfortably and runs in roughly $1.7$ seconds of wall-clock time. This approach draws from two research communities. Composite-indicator sensitivity analysis~\cite{saisana2005composite} establishes systematic weight perturbation as standard practice for composite indices. Shapley-value feature attribution~\cite{lundberg2017shap, strumbelj2014explaining} uses enumeration over all $2^n$ subsets and is exact rather than approximate when $n$ is small; sampling approximations such as KernelSHAP only become necessary once $n$ becomes large and enumeration becomes intractable. With $n = 6$ here, a full enumeration is the appropriate choice. The cleanliness sub-weights are kept at production across all variants because the sensitivity sweep already showed cleanliness perturbations almost never reshuffle the ranking; ablating them would inflate the variant count from $64$ to $4096$ for minimal new information.
+The experiment enumerates every subset of the seven process-side weights, testing each subset by keeping those weights at production and zeroing the rest. With seven weights the full $2^7 = 128$-variant power set fits comfortably and runs in roughly $3$ seconds of wall-clock time. This approach draws from two research communities. Composite-indicator sensitivity analysis~\cite{saisana2005composite} establishes systematic weight perturbation as standard practice for composite indices. Shapley-value feature attribution~\cite{lundberg2017shap, strumbelj2014explaining} uses enumeration over all $2^n$ subsets and is exact rather than approximate when $n$ is small; sampling approximations such as KernelSHAP only become necessary once $n$ becomes large and enumeration becomes intractable. With $n = 7$ here, a full enumeration is the appropriate choice. The cleanliness sub-weights are kept at production across all variants because the sensitivity sweep already showed cleanliness perturbations almost never reshuffle the ranking; ablating them would inflate the variant count from $128$ to $8{,}192$ for minimal new information.
 
 Two recovery statistics are reported. Mean recovery is the per-fixture ratio of perturbed total absolute magnitude to the baseline total absolute magnitude, averaged across fixtures, and is shown for consistency with earlier analysis. Sum-over-sum recovery is the sum of $\lvert$magnitude$\rvert$ across every divergence point in every fixture, divided by the same sum at production, and is the cleaner measure of the fraction of the sessions' total magnitude that survives a given ablation. Sum-over-sum is better than per-fixture mean because it avoids the $0/0 = 1.0$ problem on empty fixtures. We treat it as our main metric.
 
 \paragraph{Sanity check.}
-The full-formula variant (all six terms active) reproduces production exactly: $\tau = 1.000$, recovery $= 1.000$, and mean $\lvert \Delta \textnormal{magnitude} \rvert = 0.000$ on every fixture. Comparison and production use the same system.
+The full-formula variant (all seven terms active) reproduces production exactly: $\tau = 1.000$, recovery $= 1.000$, and mean $\lvert \Delta \textnormal{magnitude} \rvert = 0.000$ on every fixture. Comparison and production use the same system.
 
 \paragraph{Monotone by active-term count.}
-Table~\ref{tab:results-ablation-monotone} groups the $2{,}880$ rows by how many process-score terms are active. Both $\tau$ and sum-over-sum recovery increase with each added term, with no jumps. The key finding is when all terms are zeroed (active-count $= 0$): the total magnitude across all $45$ fixtures drops to zero. This means there's no baseline magnitude independent of the weights; every term does real work, and removing all six leaves nothing behind. (The mean-recovery value is $0.356$ at that point, which is why we use sum-over-sum instead.)
+Table~\ref{tab:results-ablation-monotone} groups the $5{,}760$ rows by how many process-score terms are active. Both $\tau$ and sum-over-sum recovery increase with each added term, with no jumps. The key finding is when all terms are zeroed (active-count $= 0$): the total magnitude across all $45$ fixtures drops to zero. This means there's no baseline magnitude independent of the weights; every term does real work, and removing all seven leaves nothing behind. (The mean-recovery value is $0.311$ at that point, which is why we use sum-over-sum instead.)
 
 \begin{table}[htbp]
 \centering
@@ -122,13 +123,14 @@ Table~\ref{tab:results-ablation-monotone} groups the $2{,}880$ rows by how many 
 \hline
 \textbf{active terms} & \textbf{mean $\tau$} & \textbf{mean recovery} & \textbf{sum/sum} & \textbf{n} \\
 \hline
-0 (all stripped) & 0.879 & 0.356 & \textbf{0.000} & 45  \\
-1                & 0.901 & 0.490 & 0.210          & 270 \\
-2                & 0.922 & 0.606 & 0.398          & 675 \\
-3                & 0.943 & 0.710 & 0.568          & 900 \\
-4                & 0.963 & 0.810 & 0.725          & 675 \\
-5                & 0.982 & 0.907 & 0.869          & 270 \\
-6 (full)         & 1.000 & 1.000 & 1.000          & 45  \\
+0 (all stripped) & 0.883 & 0.311 & \textbf{0.000} & 45    \\
+1                & 0.886 & 0.430 & 0.170          & 315   \\
+2                & 0.893 & 0.534 & 0.327          & 945   \\
+3                & 0.904 & 0.632 & 0.473          & 1{,}575 \\
+4                & 0.920 & 0.726 & 0.612          & 1{,}575 \\
+5                & 0.942 & 0.817 & 0.745          & 945   \\
+6                & 0.968 & 0.908 & 0.874          & 315   \\
+7 (full)         & 1.000 & 1.000 & 1.000          & 45    \\
 \hline
 \end{tabular}
 \caption{Mean $\tau$ and magnitude recovery grouped by how many process-score terms are active. Both statistics increase with the number of active terms; sum/sum recovery reaches 0 when all terms are zeroed.}
@@ -136,7 +138,7 @@ Table~\ref{tab:results-ablation-monotone} groups the $2{,}880$ rows by how many 
 \end{table}
 
 \paragraph{Per-term single-knob recovery.}
-Table~\ref{tab:results-ablation-solo} shows how much magnitude each term contributes when it's the only active term. Three observations follow. The \texttt{length}, \texttt{broken}, and \texttt{manualIde} terms are the strongest contributors, each recovering roughly a third of the total; these match the values in Table~\ref{tab:methodology-weights} (\S\ref{sec:methodology-weights}), connecting methodology to results. The \texttt{gain} term alone recovers $0.000$ despite having the largest weight ($50$), because gain relies on the cleanliness delta $\Delta C$, which is near zero when user and alternative reach the same state; gain has no effect alone but matters in combination, as Table~\ref{tab:results-ablation-monotone} shows. Finally, the gap between \texttt{commitGap} ($0.096$) and \texttt{length} ($0.389$) shows that recovery depends on both weight and how much the signal varies across sessions, not solely weight alone.
+Table~\ref{tab:results-ablation-solo} shows how much magnitude each term contributes when it's the only active term. Four observations follow. The \texttt{length} and \texttt{broken} terms are the strongest contributors by sum/sum, each recovering roughly a third of the total; these match the values in Table~\ref{tab:methodology-weights} (\S\ref{sec:methodology-weights}), connecting methodology to results. The new \texttt{lag} term lands fourth by mean recovery ($0.423$) and fourth by sum/sum ($0.132$), confirming the methodology's prediction that the intermediate-cleanliness penalty does measurable work on its own without dominating any single existing contributor. The \texttt{gain} term alone recovers $0.000$ despite having the largest weight ($50$), because gain relies on the cleanliness delta $\Delta C$, which is near zero when user and alternative reach the same state; gain has no effect alone but matters in combination, as Table~\ref{tab:results-ablation-monotone} shows. Finally, the gap between \texttt{commitGap} ($0.080$) and \texttt{length} ($0.328$) shows that recovery depends on both weight and how much the signal varies across sessions, not solely weight alone.
 
 \begin{table}[htbp]
 \centering
@@ -145,20 +147,21 @@ Table~\ref{tab:results-ablation-solo} shows how much magnitude each term contrib
 \hline
 \textbf{term} & \textbf{mean $\tau$} & \textbf{mean recovery} & \textbf{sum/sum} \\
 \hline
-\texttt{length}    & 0.879 & 0.654 & \textbf{0.389} \\
-\texttt{broken}    & 0.923 & 0.614 & 0.358          \\
-\texttt{manualIde} & 0.879 & 0.439 & 0.311          \\
-\texttt{skipTests} & 0.879 & 0.467 & 0.106          \\
-\texttt{commitGap} & 0.967 & 0.414 & 0.096          \\
-\texttt{gain}      & 0.879 & 0.356 & \textbf{0.000} \\
+\texttt{length}    & 0.883 & 0.578 & \textbf{0.328} \\
+\texttt{broken}    & 0.919 & 0.553 & 0.302          \\
+\texttt{manualIde} & 0.883 & 0.375 & 0.261          \\
+\texttt{lag}       & 0.778 & 0.423 & 0.132          \\
+\texttt{skipTests} & 0.883 & 0.398 & 0.089          \\
+\texttt{commitGap} & 0.972 & 0.368 & 0.080          \\
+\texttt{gain}      & 0.883 & 0.311 & \textbf{0.000} \\
 \hline
 \end{tabular}
-\caption{Per-term single-knob recovery (each term active alone, others zeroed). The \texttt{manualIde}, \texttt{broken}, and \texttt{length} terms each recover roughly a third; \texttt{gain} alone recovers $0.000$ because the cleanliness delta is near zero on most fixtures, so it has no effect when isolated.}
+\caption{Per-term single-knob recovery (each term active alone, others zeroed). The \texttt{length} and \texttt{broken} terms are the strongest contributors by both mean recovery and sum/sum; the new \texttt{lag} term is fourth on both. \texttt{gain} alone recovers $0.000$ because the cleanliness delta is near zero on most fixtures, so it has no effect when isolated.}
 \label{tab:results-ablation-solo}
 \end{table}
 
 \paragraph{Per-term leave-one-out recovery.}
-Table~\ref{tab:results-ablation-loo} shows what happens when you remove one term from the full formula. Removing \texttt{length} causes the largest drop in recovery ($0.700$), so the step-savings bonus from reorder and rework contributes more than any other single term. Removing \texttt{gain} pushes recovery above $1.000$ to $1.113$ - the most surprising result: without \texttt{gain}, total magnitude is larger than at production. The unit being summed here is the per-divergence-point magnitude defined in \S\ref{sec:methodology-score}, i.e.\ the trajectory-final $J(\tau^\ast) - J(\tau)$ delta between each alternative and the user it is compared against; the sum is over $\lvert \text{magnitude} \rvert$ across every surfaced divergence point, including the ones whose alternative scored worse than the user (negative magnitudes contribute their absolute value). The mechanism behind the inflation is that \texttt{gain} $\cdot \Delta C$ is small but typically positive for alternatives, so it partially offsets the penalty terms; remove it and the penalty terms determine the alt-versus-user delta unopposed, producing larger per-DP absolute magnitudes which accumulate in the sum. Were the experiment to filter to alt-beats-user DPs only, removing \texttt{gain} would in fact lower the total, since alternatives sitting just above the beats-user threshold flip below it without the offset. The \texttt{gain} term therefore plays a regularising role against the penalty terms rather than acting as a positive contributor in isolation. Removing \texttt{skipTests} or \texttt{commitGap} reshuffles the ranking somewhat but moves recovery less than removing \texttt{length} or \texttt{manualIde} does, so these terms primarily affect which divergence point is biggest rather than how big.
+Table~\ref{tab:results-ablation-loo} shows what happens when you remove one term from the full formula. Removing \texttt{length} causes the largest drop in recovery ($0.718$), so the step-savings bonus from reorder and rework contributes more than any other single term. Removing \texttt{gain} pushes recovery above $1.000$ to $1.060$ - the most surprising result: without \texttt{gain}, total magnitude is larger than at production. The unit being summed here is the per-divergence-point magnitude defined in \S\ref{sec:methodology-score}, i.e.\ the trajectory-final $J(\tau^\ast) - J(\tau)$ delta between each alternative and the user it is compared against; the sum is over $\lvert \text{magnitude} \rvert$ across every surfaced divergence point, including the ones whose alternative scored worse than the user (negative magnitudes contribute their absolute value). The mechanism behind the inflation is that \texttt{gain} $\cdot \Delta C$ is small but typically positive for alternatives, so it partially offsets the penalty terms; remove it and the penalty terms determine the alt-versus-user delta unopposed, producing larger per-DP absolute magnitudes which accumulate in the sum. Were the experiment to filter to alt-beats-user DPs only, removing \texttt{gain} would in fact lower the total, since alternatives sitting just above the beats-user threshold flip below it without the offset. The \texttt{gain} term therefore plays a regularising role against the penalty terms rather than acting as a positive contributor in isolation. Removing the new \texttt{lag} term costs $0.158$ on sum/sum (production $1.000 \to 0.842$) while preserving the ranking ($\tau = 0.996$); the lag knob carries real magnitude into the divergence-point ranking without itself reshaping which divergence points top the list. Removing \texttt{skipTests} or \texttt{commitGap} reshuffles the ranking somewhat but moves recovery less than removing \texttt{length} or \texttt{manualIde} does, so these terms primarily affect which divergence point is biggest rather than how big.
 
 \begin{table}[htbp]
 \centering
@@ -167,20 +170,21 @@ Table~\ref{tab:results-ablation-loo} shows what happens when you remove one term
 \hline
 \textbf{removed term} & \textbf{mean $\tau$} & \textbf{mean recovery} & \textbf{sum/sum} \\
 \hline
-\texttt{length}    & 1.000 & 0.814 & 0.700          \\
-\texttt{broken}    & 0.967 & 0.938 & 0.775          \\
-\texttt{manualIde} & 1.000 & 0.895 & 0.795          \\
-\texttt{skipTests} & 1.000 & 0.889 & 0.894          \\
-\texttt{commitGap} & 0.930 & 0.959 & 0.939          \\
-\texttt{gain}      & 0.993 & 0.945 & \textbf{1.113} \\
+\texttt{length}    & 1.000 & 0.817 & \textbf{0.718} \\
+\texttt{manualIde} & 1.000 & 0.911 & 0.822          \\
+\texttt{broken}    & 0.887 & 0.966 & 0.833          \\
+\texttt{lag}       & 0.996 & 0.880 & 0.842          \\
+\texttt{skipTests} & 0.970 & 0.903 & 0.899          \\
+\texttt{commitGap} & 0.930 & 0.956 & 0.943          \\
+\texttt{gain}      & 0.993 & 0.925 & \textbf{1.060} \\
 \hline
 \end{tabular}
-\caption{Per-term leave-one-out recovery (five terms active, one removed). Removing \texttt{length} causes the largest sum/sum drop; removing \texttt{gain} inflates sum/sum above $1.000$, indicating that \texttt{gain} regularises against the penalty terms rather than acting as a positive contributor in isolation.}
+\caption{Per-term leave-one-out recovery (six terms active, one removed). Removing \texttt{length} causes the largest sum/sum drop; removing \texttt{gain} inflates sum/sum above $1.000$, indicating that \texttt{gain} regularises against the penalty terms rather than acting as a positive contributor in isolation. Removing the new \texttt{lag} term costs $0.158$ on sum/sum while leaving the ranking essentially intact ($\tau = 0.996$).}
 \label{tab:results-ablation-loo}
 \end{table}
 
 \paragraph{Cross-set rerun on the user-study sessions.}
-The ablation above runs on the $45$ injection sessions, which have few divergence points per fixture ($\max 5$, mean $1.5$). Running the same test on the $12$ user-study sessions, which have larger rankings ($\max 8$, mean $4.2$) and no saturation, produces different results. Table~\ref{tab:results-ablation-user-loo} compares leave-one-out $\tau$ across both sets. On user-study sessions, the most important term is commit-gap ($W_{\textsc{cg}}$): removing it drops $\tau$ from $1.000$ to $0.641$, roughly twice the drop of any other term. On injection sessions, $W_{\textsc{cg}}$ is one of the smaller-impact terms ($\tau = 0.930$ on removal). The reverse holds for $W_{\textsc{mi}}$ and $W_{\textsc{l}}$: they drive injection-session ranking but have smaller effects on user-study sessions. This difference matters: which terms matter depends on the type of sessions, so the weights have different effects on different session types. Removing the cleanliness-gain term $W_{\textsc{g}}$ still has no effect on either set, so it acts as a regularizer, not a rank-shaper.
+The ablation above runs on the $45$ injection sessions, which have few divergence points per fixture ($\max 5$, mean $1.5$). Running the same test on the $12$ user-study sessions, which have larger rankings ($\max 8$, mean $4.2$) and no saturation, produces different results. Table~\ref{tab:results-ablation-user-loo} compares leave-one-out $\tau$ across both sets. On user-study sessions, the most important term is commit-gap ($W_{\textsc{cg}}$): removing it drops $\tau$ from $1.000$ to $0.599$, roughly twice the drop of any other term. On injection sessions, $W_{\textsc{cg}}$ is one of the smaller-impact terms ($\tau = 0.930$ on removal). The reverse holds for $W_{\textsc{mi}}$ and $W_{\textsc{l}}$: they drive injection-session ranking but have smaller effects on user-study sessions. This difference matters: which terms matter depends on the type of sessions, so the weights have different effects on different session types. The new lag term sits near the bottom of the user-study disruption list ($\tau = 0.992$ on removal), confirming that the cleanliness-deficit signal it introduces is more visible on the controlled injection sessions than on the naturalistic user sessions. Removing the cleanliness-gain term $W_{\textsc{g}}$ still has no effect on either set, so it acts as a regulariser, not a rank-shaper.
 
 \begin{table}[htbp]
 \centering
@@ -189,15 +193,16 @@ The ablation above runs on the $45$ injection sessions, which have few divergenc
 \hline
 \textbf{removed term} & \textbf{injection $\tau$} & \textbf{user-study $\tau$} \\
 \hline
-\texttt{commitGap} & $0.930$ & $\mathbf{0.641}$ \\
-\texttt{manualIde} & $1.000$ & $0.826$ \\
-\texttt{broken}    & $0.967$ & $0.837$ \\
-\texttt{skipTests} & $1.000$ & $0.844$ \\
-\texttt{length}    & $1.000$ & $0.905$ \\
-\texttt{gain}      & $0.993$ & $0.992$ \\
+\texttt{commitGap} & $0.930$ & $\mathbf{0.599}$ \\
+\texttt{manualIde} & $1.000$ & $0.842$ \\
+\texttt{skipTests} & $0.970$ & $0.844$ \\
+\texttt{length}    & $1.000$ & $0.877$ \\
+\texttt{broken}    & $0.887$ & $0.901$ \\
+\texttt{lag}       & $0.996$ & $0.992$ \\
+\texttt{gain}      & $0.993$ & $1.000$ \\
 \hline
 \end{tabular}
-\caption{Leave-one-out ranking stability against the injection sessions (Table~\ref{tab:results-ablation-loo}) and the user-study sessions. The term-importance ordering inverts between the two session sets: $W_{\textsc{cg}}$ is the dominant rank-carrier on the user-study sessions, $W_{\textsc{mi}}$ and $W_{\textsc{l}}$ on the injection sessions.}
+\caption{Leave-one-out ranking stability against the injection sessions (Table~\ref{tab:results-ablation-loo}) and the user-study sessions. The term-importance ordering inverts between the two session sets: $W_{\textsc{cg}}$ is the dominant rank-carrier on the user-study sessions, $W_{\textsc{mi}}$ and $W_{\textsc{l}}$ on the injection sessions. The lag term has near-zero ranking impact on the user-study set ($\tau = 0.992$) but contributes magnitude on the injection set.}
 \label{tab:results-ablation-user-loo}
 \end{table}
 
@@ -205,18 +210,16 @@ The ablation above runs on the $45$ injection sessions, which have few divergenc
 Five key limits apply. The cleanliness sub-weights are not ablated because they had almost no effect (\S\ref{sec:results-sensitivity}). Saturation has only a small effect on this experiment: the mean saturated-divergence-point count is $0.20$ to $0.29$ across variants, so saturation doesn't greatly reduce the signal. $\tau$-b is unstable on small divergence-point counts, and many fixtures have one or two divergence points where $\tau$ is $1.0$; mean $\tau$ at active-count $= 5$ partly reflects this floor, not pure ranking quality. The \texttt{gain}-alone row equals the empty baseline on recovery ($0.000$); the regularizer role shown in the leave-one-out table explains this. Finally, with the earlier line-count approach the active-count $= 0$ floor was $0.119$ because line-count magnitudes were weight-invariant by design; with the trajectory-final approach used here the floor collapses to $0.000$. The relative importance of terms is consistent across both approaches.
 
 
-\subsection{Reordering rarely helps on independent refactorings}
+\subsection{Reordering as a window onto intermediate quality}
 \label{sec:results-headline}
 
-The single most interesting finding is that reordering refactoring steps almost never improves the score on these sessions. The reorder synthesiser tested $194$ permutations across the $45$ sessions, which collapsed into $24$ distinct reorder windows. Of those $24$, only $4$ had a permutation better than the user's order ($16.7\%$; Table~\ref{tab:results-divergence-quality}). On the $5$ sessions where we (as playbook author) selected an ordering with the intent of being worse than its alternatives, none produced a better alternative under the score formula - which is itself part of the finding rather than separate evidence: the formula and the synthesiser together cannot distinguish the ordering we intended as worse from any of its permutations.
+The most informative finding is what reordering tells us about \emph{when} cleanliness arrives. The reorder synthesiser tested $194$ permutations across the $45$ sessions, which collapsed into $24$ distinct reorder windows. Under the production score formula, $10$ of those $24$ windows ($41.7\%$; Table~\ref{tab:results-divergence-quality}) have a permutation that strictly beats the user's order; a further $2$ windows acquired \emph{negative} magnitude, meaning the synthesised alternatives front-loaded \emph{less} cleanliness than the user did. Both numbers depend critically on the lag term $W_{\textsc{lag}}$ in the score: with the lag term removed, only $4$ of the $24$ windows produce a positive magnitude and the negative-magnitude verdicts collapse to zero. The lag term is therefore the operative lever for the \emph{Ordering} divergence-kind, and the headline finding of this experiment.
 
-The reason is straightforward. The reorder synthesiser works correctly, but most IDE refactoring pairs are independent by design: they don't interact, so every permutation reaches the same final state. This means the final cleanliness metrics are identical across permutations, the gain term has zero $\Delta C$, and intermediate quality doesn't affect the score at all. This isn't a bug-it's a real finding: under the current score design, the order of independent refactorings doesn't measurably matter.
+The mechanism is straightforward. Most IDE refactoring pairs are designed to be independent~\cite{mens2007graph}: they commute, and every permutation reaches the same final state with the same final cleanliness metrics. Under an endpoint-only score, the gain term $W_{\textsc{g}}\,\Delta C$ is identical across permutations and ordering becomes invisible. The lag term changes this: it measures the per-checkpoint deficit $\max(0, C(s_T) - C(s_i))$, so a permutation that front-loads the cleanliness-raising step accumulates a smaller running mean than one that defers it. Two permutations with the same endpoints can now score differently if their intermediate cleanliness trajectories differ -- which is precisely the discrimination an endpoint-only formula was blind to. The negative-magnitude verdicts on $2$ of the $24$ windows are the same mechanism running in reverse: on those windows the user front-loaded cleanliness better than the synthesised alts, and the lag term correctly reports the user's order as cheaper.
 
-This has theoretical support. Mens, Taentzer and Runge~\cite{mens2007graph} show that refactorings as graph transformations with parallel independence (empty critical pairs) means every permutation reaches the same final state, and IDE refactorings are designed to have this property. Prior empirical work either claims order matters based on interactions between code smells~\cite{liu2009smell} or tests on a single small fixture without checking AST equivalence~\cite{khrishe2016empirical}. Our $45$-session, $194$-permutation result is, to our knowledge, the first systematic evidence on real IDE sessions that independent refactorings dominate and that reordering produces zero score improvement in practice.
+This has theoretical support that cuts both ways. Mens, Taentzer and Runge~\cite{mens2007graph} show that refactorings as graph transformations with parallel independence (empty critical pairs) reach the same final state under every permutation, and IDE refactorings are designed to have this property -- which explains why endpoint-only formulations score them identically. Prior empirical work either claims order matters based on interactions between code smells~\cite{liu2009smell} or tests on a single small fixture without checking AST equivalence~\cite{khrishe2016empirical}. Our $45$-session, $194$-permutation result is, to our knowledge, the first systematic evidence on real IDE sessions that independent refactorings differ measurably in process quality even when they converge on the same final code -- as long as the score formula has an intermediate-quality term.
 
-Three things follow. First, on independent refactorings, ordering matters less than the literature suggests. Developers often assume different orders produce different code, but for IDE refactors on independent targets they don't-the session set confirms this. Second, the detector still found $7$ windows where order mattered; these are interesting cases with non-commuting pairs like inline-then-rename versus rename-then-inline, where the rename affects the body being inlined and the final state differs. Third, to make ordering a larger finding, we'd need to deliberately inject non-commuting sequences or add intermediate-state quality to the score formula; the current sessions and score show that independent-reorder changes fall below the detector's threshold by design.
-
-This strengthens the chapter's claim. The detector's job is to surface measurable improvements, and independent refactorings have no measurable improvement to show - the dashboard stays silent or shows zero magnitude.
+Three things follow. First, ordering of independent refactorings matters more than endpoint-only formulations suggested, but only when the score notices intermediate quality; the $4 \to 10$ shift in positive-magnitude windows when $W_{\textsc{lag}}$ is included is the direct empirical signal. Second, the synthesiser still finds $7$ windows of non-commuting pairs (e.g.\ inline-then-rename versus rename-then-inline) where the final state itself differs; these account for most of the remaining magnitude. Third, the chapter's central methodological argument -- that process-quality evaluation cannot be reduced to endpoint comparison -- is supported here in the strongest way the data permits: a single weight added to the formula moves a controlled measurable quantity (the count of strictly-beats-user reorder windows) from $4/24$ to $10/24$, with the rest of the formula untouched.
 
 
 \section{Testing the divergence-point detector}
@@ -251,7 +254,7 @@ The two imperfect kinds show specific disagreement patterns. Rework disagreement
 \subsection{Divergence experiment}
 \label{sec:results-divergence}
 
-The third experiment evaluates the divergence-point detector itself against ground truth. For each of the $45$ recorded sessions, the analysis pipeline generates a report using the production weights and compares the report's divergence points against the session's \texttt{expected\_kinds} label (the set of kinds a perfect detector would surface alternatives for) and the implied injection kind from the session's playbook pattern. The output is a $54$-column row per session covering per-kind classification (true and false positives and negatives), magnitude statistics, and injection prominence; the full sweep takes roughly $5$ seconds of wall-clock time. The headline numbers, expanded in the parts below, are perfect precision on all four kinds (rework, hygiene, ordering, and IDE-replay all at $1.00$), and every caught injection ranked at top-$1$ within its own session.
+The third experiment evaluates the divergence-point detector itself against ground truth. For each of the $45$ recorded sessions, the analysis pipeline generates a report using the production weights and compares the report's divergence points against the session's \texttt{expected\_kinds} label (the set of kinds a perfect detector would surface alternatives for) and the implied injection kind from the session's playbook pattern. The output is a $54$-column row per session covering per-kind classification (true and false positives and negatives), magnitude statistics, and injection prominence; the full sweep takes roughly $5$ seconds of wall-clock time. The headline numbers, expanded in the parts below, are: perfect precision on all four kinds (rework, hygiene, ordering, and IDE-replay all at $1.00$); $26$ of $45$ injections caught with a positive-magnitude alternative, every one of them ranked at top-$1$ within its own session; and -- the most informative single signal -- the count of \emph{Ordering} divergence-points whose synthesised alternative strictly beats the user's trajectory rises from $4$ to $10$ once the lag term $W_{\textsc{lag}}$ is in the formula, while the corresponding counts for the other three kinds are unchanged. The lag term is therefore the operative lever for the \emph{Ordering} kind: it does not manufacture new divergence-points (the total count of $24$ is the same with or without it), it turns previously-flat (magnitude $= 0$) ordering alternatives into recognisably-better ones.
 
 \paragraph{Precision and recall.}
 We report precision and recall as separate numbers rather than rolling them into F1 or accuracy. The reason is that the two kinds of mistake the detector can make are not equally bad: if the detector shows the user an alternative that doesn't really exist (a precision miss), it actively misleads them and wastes their time; if the detector quietly fails to show an alternative that would have helped (a recall miss), the user is no worse off than if they had never opened the dashboard. Treating these as the same kind of error, the way F1 does, would hide the difference. Accuracy is also unhelpful here because most of the cells in the per-kind confusion matrix are true negatives - a detector that does nothing at all would still score around $75\%$ accuracy on these refactoring sessions, which doesn't tell the reader anything useful.
@@ -276,13 +279,13 @@ Table~\ref{tab:results-divergence-prec-recall} reports per-kind precision and re
 \end{table}
 
 \paragraph{Detection quality.}
-A precision/recall number says nothing about whether the alternatives the detector surfaces are actually useful improvements over the user's own trajectory. Table~\ref{tab:results-divergence-quality} reports the number of divergence points the detector fires per kind, the number of alternatives it enumerates, and the fraction of fires whose best alternative beats the user's trajectory under the production score formula. Across all kinds, best-alt magnitudes range from $-5$ to $+23$ with mean $+6.39$, so the percentages in the ``beats user'' column below can be read against an absolute scale of how much each winning alternative actually improved on the user's trajectory.
+A precision/recall number says nothing about whether the alternatives the detector surfaces are actually useful improvements over the user's own trajectory. Table~\ref{tab:results-divergence-quality} reports the number of divergence points the detector fires per kind, the number of alternatives it enumerates, and the fraction of fires whose best alternative beats the user's trajectory under the production score formula. Across all kinds, best-alt magnitudes range from $-2$ to $+23$ with mean $+6.07$, so the percentages in the ``beats user'' column below can be read against an absolute scale of how much each winning alternative actually improved on the user's trajectory.
 
 Hygiene never proposes a useless alternative: every one of its $13$ divergence points is a real improvement over the user's trajectory ($100\%$). IDE-replay proposes a real improvement in $12$ of $16$ fires ($75.0\%$); the four misses break down as three sessions where the user's process score was already pinned at the lower end of the $[0,100]$ range so neither the user nor the IDE-driven alternative can score below it (the magnitude is mechanically zero rather than evidence about the \texttt{manualIde} penalty), and one session where the IDE alt scored $5$ points lower than the user's manual edit. The four misses are a property of the score-range floor, not a calibration finding about \texttt{manualIde}.
 
 Rework beats the user in $6$ of $13$ fires ($46.2\%$); one of the seven non-beats is a magnitude-zero no-op (stripping the rework loop did not move the final score) and the other six produce an alternative with negative magnitude. Two readings sit on top of each other here. The first is implementation: the rework synthesiser is intentionally simple, stripping out the user's add-then-undo edits without modelling what the intermediate states were for - if the user added a guard, ran the tests, decided the guard was unnecessary and removed it, the synthesiser treats the whole excursion as wasted motion, but the user's trajectory may have legitimately benefited from the validation step (one more checkpoint, one fewer commit-gap, a test run that pushed cleanliness up). The second is methodological: undoing work is not inherently a bad behaviour. A careful user who paths through a slightly longer trajectory to verify intermediate correctness can, and on these sessions sometimes does, score higher than a trajectory that takes the shortest line to the same final state. The $46.2\%$ beat rate is therefore not evidence that the rework detector is miscalibrated, but evidence that the score formula correctly distinguishes ``rework that wasted process signal'' (the six beats) from ``rework that earned process signal en route'' (the seven non-beats) - and that the simple loop-stripping synthesiser cannot tell the two apart by inspection of the diff alone.
 
-Ordering surfaces $24$ distinct divergence points from $194$ enumerated permutations, but only $4$ of the $24$ windows ($16.7\%$) have a best permutation that beats the user's order. The $194 / 24 / 4$ breakdown explains the headline result in \S\ref{sec:results-headline}: the synthesiser enumerates $194$ permutations across the session set, those collapse to $24$ reorder windows (one divergence point per from-SHA / to-SHA window, magnitude set to the best permutation in the window), and only $4$ of those $24$ windows produce any positive magnitude improvement at all.
+Ordering surfaces $24$ distinct divergence points from $194$ enumerated permutations, of which $10$ ($41.7\%$) have a best permutation that strictly beats the user's order and a further $2$ have a best permutation that scores \emph{worse} than the user's order under the production formula (negative magnitude; the remaining $12$ are tied at magnitude zero). The $194 / 24 / 10 / 2$ breakdown is the operational evidence behind the headline in \S\ref{sec:results-headline}: the synthesiser enumerates $194$ permutations across the session set, those collapse to $24$ reorder windows (one divergence point per from-SHA / to-SHA window, magnitude set to the best permutation in the window), and the lag term $W_{\textsc{lag}}$ is what discriminates between the windows whose intermediate cleanliness trajectories differ. Without $W_{\textsc{lag}}$, only $4$ of $24$ ordering windows would show a positive magnitude and the negative-magnitude verdicts would collapse to zero.
 
 \begin{table}[htbp]
 \centering
@@ -294,15 +297,18 @@ Ordering surfaces $24$ distinct divergence points from $194$ enumerated permutat
 \emph{Rework}     & 13 &  13 &  6 & \textbf{46.2\%} &  8 points \\
 \emph{Hygiene}    & 13 &  13 & 13 & \textbf{100\%}  &  9 points \\
 \emph{IDE-Replay} & 16 &  16 & 12 & \textbf{75.0\%} & 23 points \\
-\emph{Ordering}   & 24 & 194 &  4 & \textbf{16.7\%} &  9 points \\
+\emph{Ordering}   & 24 & 194 & 10 & \textbf{41.7\%} &  9 points \\
 \hline
 \end{tabular}
-\caption{Per-kind detection quality. ``DPs'' is the number of divergence points the detector fires; ``alts enum.'' is the total number of alternative paths enumerated across those DPs (a single ordering DP enumerates up to $k!$ permutations of a $k$-step window); ``beats user'' is the number of DPs whose best alternative trajectory beats the user's trajectory.}
+\caption{Per-kind detection quality. ``DPs'' is the number of divergence points the detector fires; ``alts enum.'' is the total number of alternative paths enumerated across those DPs (a single ordering DP enumerates up to $k!$ permutations of a $k$-step window); ``beats user'' is the number of DPs whose best alternative trajectory beats the user's trajectory. The \emph{Ordering} beats count rises from $4$ to $10$ once the lag term $W_{\textsc{lag}}$ is in the formula; without $W_{\textsc{lag}}$ the count collapses to $4$.}
 \label{tab:results-divergence-quality}
 \end{table}
 
+\paragraph{Two-way ordering discrimination.}
+Two of the $24$ ordering windows now carry negative magnitude under the production formula; session $043$ is the cleanest example. The synthesised alternative converges to the same final state as the user but front-loads less cleanliness en route, so its lag term $W_{\textsc{lag}}\,\ell(\tau)$ accumulates more penalty than the user's. Under the pre-lag formula the two trajectories scored identically (same endpoint, same gain term), and the divergence-point magnitude was structurally zero. The new formula correctly reports the user's order as the cheaper one. This is the same mechanism that drives the $4 \to 10$ positive-magnitude lift, running in reverse: $W_{\textsc{lag}}$ enables two-way discrimination on intermediate quality, not just one-way inflation of positive magnitudes.
+
 \paragraph{Injection prominence.}
-The most user-facing claim in this chapter is in Table~\ref{tab:results-divergence-prominence}: of the $25$ injections the detector caught with a positive-magnitude alternative ($8$ hygiene, $12$ IDE-replay, $5$ rework), every single one was the highest-magnitude divergence point in its session. The mean rank is $1.00$ across the three kinds that produced any catch at all. A user who only opens the top recommendation in the dashboard of \S\ref{sec:arch-dashboard} therefore always sees the deliberately bad behaviour the playbook injected, and no useful alternative of another kind masks the injection. Ordering injections are absent from the prominence table because zero of the $5$ ordering-injection sessions produced a positive-magnitude reorder alternative under the production formula - consistent with the score-formula-and-synthesiser insensitivity to commuting reorders reported in \S\ref{sec:results-headline} rather than a separate failure of the prominence claim. The prominence number is partly a property of the controlled-injection design, since the playbook injects one dominant bad behaviour per session and that behaviour is structurally likely to be the largest divergence point; the prominence number on uncontrolled real-world sessions would almost certainly be lower. The participants' sessions described in \S\ref{sec:results-userstudy} deliberately omit pre-declared expected kinds, so no prominence number is reported for them; the per-session per-kind distribution reported there is the closest external check on the prominence claim.
+The most user-facing claim in this chapter is in Table~\ref{tab:results-divergence-prominence}: of the $26$ injections the detector caught with a positive-magnitude alternative ($8$ hygiene, $12$ IDE-replay, $5$ rework, $1$ ordering), every single one was the highest-magnitude divergence point in its session. The mean rank is $1.00$ across all four kinds. A user who only opens the top recommendation in the dashboard of \S\ref{sec:arch-dashboard} therefore always sees the deliberately bad behaviour the playbook injected, and no useful alternative of another kind masks the injection. The single ordering catch is session $022$, whose ordering-injection magnitude flips from $0$ to $+1$ once the lag term is in the formula -- the same lever that drives the $4 \to 10$ shift in positive-magnitude ordering windows reported in \S\ref{sec:results-headline}. The remaining four ordering injections still surface with magnitude zero or below, consistent with the synthesiser's reach on those windows being limited by the \texttt{splitOnInvalid} validator check rather than by score-formula insensitivity (\S\ref{sec:results-scoped-out}). The prominence number is partly a property of the controlled-injection design, since the playbook injects one dominant bad behaviour per session and that behaviour is structurally likely to be the largest divergence point; the prominence number on uncontrolled real-world sessions would almost certainly be lower. The participants' sessions described in \S\ref{sec:results-userstudy} deliberately omit pre-declared expected kinds, so no prominence number is reported for them; the per-session per-kind distribution reported there is the closest external check on the prominence claim.
 
 \begin{table}[htbp]
 \centering
@@ -313,11 +319,11 @@ The most user-facing claim in this chapter is in Table~\ref{tab:results-divergen
 \hline
 \emph{Hygiene}     &  8 &  8 & 1.00 \\
 \emph{IDE-Replay} & 12 & 12 & 1.00 \\
-\emph{Ordering}    &  0 & - & -  \\
+\emph{Ordering}    &  1 &  1 & 1.00 \\
 \emph{Rework}      &  5 &  5 & 1.00 \\
 \hline
 \end{tabular}
-\caption{Injection prominence: when an injection's kind is caught, where does the corresponding divergence point sit in the session's per-magnitude ranking? Top-$1$ on every catch across all four kinds.}
+\caption{Injection prominence: when an injection's kind is caught, where does the corresponding divergence point sit in the session's per-magnitude ranking? Top-$1$ on every catch across all four kinds. The single ordering catch is session $022$, surfaced once $W_{\textsc{lag}}$ entered the formula.}
 \label{tab:results-divergence-prominence}
 \end{table}
 

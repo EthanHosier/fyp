@@ -191,6 +191,16 @@ Mohsen Vakilian, Nicholas Chen, Stas Negara, Balaji~Ambresh Rajkumar, Brian~P. B
 \newblock Use, disuse, and misuse of automated refactorings.
 \newblock In {\em Proceedings of the 34th International Conference on Software Engineering (ICSE)}, pages 233--243. IEEE, 2012.
 
+\bibitem{cunningham1992wycash}
+Ward Cunningham.
+\newblock The {WyCash} portfolio management system.
+\newblock In {\em Addendum to the Proceedings on Object-Oriented Programming Systems, Languages, and Applications (OOPSLA '92)}, pages 29--30. ACM, 1992.
+
+\bibitem{kruchten2012technicaldebt}
+Philippe Kruchten, Robert~L. Nord, and Ipek Ozkaya.
+\newblock Technical debt: from metaphor to theory and practice.
+\newblock {\em IEEE Software}, 29(6):18--21, 2012.
+
 \bibitem{taokim2015partitioning}
 Yida Tao and Sunghun Kim.
 \newblock Partitioning composite code changes to facilitate code review.

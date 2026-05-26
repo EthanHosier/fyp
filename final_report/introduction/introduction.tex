@@ -74,7 +74,7 @@ To go beyond scoring a single observed refactoring trace we also construct \emph
 The main contributions of the project are:
 
 \begin{itemize}
-  \item A process-quality metric for refactoring trajectories. The metric combines terms from prior work on code quality and developer process signals, and we test how much the results change under sensitivity and ablation experiments.
+  \item A process-quality metric for refactoring trajectories. The metric combines terms from prior work on code quality and developer process signals -- including both endpoint cleanliness gain and an intermediate-cleanliness lag penalty so that two trajectories which finish at the same code can still score differently if one front-loaded the cleanup -- and we test how much the results change under sensitivity and ablation experiments.
   \item A divergence-point detector that compares an observed trace with a higher-scoring reference trajectory. The detector groups divergences into four kinds: \emph{Ordering}, \emph{Manual-Refactor}, \emph{Rework}, and \emph{Hygiene}.
   \item A 45-session corpus of recorded refactoring sessions on a purpose-built Java codebase. We provide multi-label ground-truth annotations and the experimental scripts used for the sensitivity, ablation, and divergence analyses.
   \item An empirical evaluation of the detector, reporting precision and recall for each divergence kind. The evaluation also shows which parts of the score formula are useful in practice, and which kinds of process improvement it does not capture well.
