@@ -138,7 +138,7 @@ object MultiKnobMonteCarloExperiment {
 
     /**
      * Draws one sample from the multi-knob log-normal perturbation
-     * distribution. Each of the 12 weights gets its own independent
+     * distribution. Each of the 13 weights gets its own independent
      * scale factor drawn from exp(sigma * N(0, 1)).
      */
     private fun drawPerturbedConfig(rng: Random, sigma: Double): ScoringConfig {
@@ -152,6 +152,7 @@ object MultiKnobMonteCarloExperiment {
                 manualIde = prod.process.manualIde * draw(),
                 length = prod.process.length * draw(),
                 commitGap = prod.process.commitGap * draw(),
+                lag = prod.process.lag * draw(),
             ),
             cleanliness = CleanlinessWeights(
                 cognitive = prod.cleanliness.cognitive * draw(),

@@ -170,9 +170,9 @@
 \contentsline {section}{\numberline {7.4}Availability of Data and Materials}{66}{section.7.4}%
 \contentsline {chapter}{\numberline {A}Appendix}{67}{appendix.A}%
 \contentsline {section}{\numberline {A.1}Agent session transcript}{67}{section.A.1}%
-\contentsline {subsection}{\numberline {A.1.1}Session 1 --- Names}{67}{subsection.A.1.1}%
-\contentsline {subsection}{\numberline {A.1.2}Session 2 --- Magic numbers}{71}{subsection.A.1.2}%
-\contentsline {subsection}{\numberline {A.1.3}Session 3 --- Within-class duplication}{74}{subsection.A.1.3}%
-\contentsline {subsection}{\numberline {A.1.4}Session 4 --- Cross-class duplication}{77}{subsection.A.1.4}%
-\contentsline {subsection}{\numberline {A.1.5}Session 5 --- Misplaced behaviour}{79}{subsection.A.1.5}%
-\contentsline {subsection}{\numberline {A.1.6}Session 6 --- Reshape and cleanup}{81}{subsection.A.1.6}%
+\contentsline {subsection}{\numberline {A.1.1}Session 1 - Names}{67}{subsection.A.1.1}%
+\contentsline {subsection}{\numberline {A.1.2}Session 2 - Magic numbers}{71}{subsection.A.1.2}%
+\contentsline {subsection}{\numberline {A.1.3}Session 3 - Within-class duplication}{74}{subsection.A.1.3}%
+\contentsline {subsection}{\numberline {A.1.4}Session 4 - Cross-class duplication}{77}{subsection.A.1.4}%
+\contentsline {subsection}{\numberline {A.1.5}Session 5 - Misplaced behaviour}{79}{subsection.A.1.5}%
+\contentsline {subsection}{\numberline {A.1.6}Session 6 - Reshape and cleanup}{81}{subsection.A.1.6}%

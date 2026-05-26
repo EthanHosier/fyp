@@ -113,6 +113,7 @@ object AblationExperiment {
             "manualIde" to { p, v -> p.copy(manualIde = v) },
             "length" to { p, v -> p.copy(length = v) },
             "commitGap" to { p, v -> p.copy(commitGap = v) },
+            "lag" to { p, v -> p.copy(lag = v) },
         )
 
     /** Power-set of [PROCESS_KNOBS] as (variant-name, ScoringConfig) pairs. */

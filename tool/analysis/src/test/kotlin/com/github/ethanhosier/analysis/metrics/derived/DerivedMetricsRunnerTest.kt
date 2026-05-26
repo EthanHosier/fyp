@@ -118,8 +118,13 @@ class DerivedMetricsRunnerTest {
 
         val a0 = result.main.getValue("a").process
         val b0 = result.main.getValue("b").process
-        assertEquals(50, a0.total)            // baseline at c0 — gain is 0 vs self
+        // c0 starts below the trajectory's final cleanliness, so the
+        // lag term contributes a small penalty at the first checkpoint.
+        // The terminal checkpoint should still finish above baseline:
+        // gain term outweighs the residual lag.
+        assertTrue(a0.total <= 50, "c0 should sit at-or-below baseline; got ${a0.total}")
         assertTrue(b0.total > 50, "b should score above baseline; got ${b0.total}")
+        assertTrue(b0.total > a0.total, "trajectory should climb; got a=${a0.total} b=${b0.total}")
     }
 
     @Test

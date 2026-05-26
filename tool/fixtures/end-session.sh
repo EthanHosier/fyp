@@ -3,8 +3,7 @@
 #   1. Move the single freshly-captured
 #      library-fixture/.refactoring-traces/<uuid>/ dir to
 #      fixtures/sessions/<id>/.
-#   2. If the corresponding playbook file documents a manifest row,
-#      append it to fixtures/sessions/manifest.csv.
+#
 #
 # Run from anywhere; this script resolves paths relative to itself.
 #

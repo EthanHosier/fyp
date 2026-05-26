@@ -10,6 +10,7 @@ data class ProcessScoreWeights(
     val manualIde: Double = 11.0,
     val length: Double = 11.0,
     val commitGap: Double = 7.0,
+    val lag: Double = 11.0,
     val baseline: Int = 50,
     val minCommitGap: Int = 6,
     val compositeGapMs: Long = 60_000L,

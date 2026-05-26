@@ -107,6 +107,7 @@ object SensitivityExperiment {
         proc("manualIde") { p, f -> p.copy(manualIde = p.manualIde * f) },
         proc("length") { p, f -> p.copy(length = p.length * f) },
         proc("commitGap") { p, f -> p.copy(commitGap = p.commitGap * f) },
+        proc("lag") { p, f -> p.copy(lag = p.lag * f) },
         clean("cognitive") { c, f -> c.copy(cognitive = c.cognitive * f) },
         clean("coupling") { c, f -> c.copy(coupling = c.coupling * f) },
         clean("duplication") { c, f -> c.copy(duplication = c.duplication * f) },

@@ -650,6 +650,19 @@ class DerivedMetricsRunner(
          *  then the continuation walk inherits the locked-in value. */
         val altLengthBonusPoints: Double,
         val cleanliness0: Double?,
+        /** Final cleanliness scalar of the user's main trajectory.
+         *  Constant across the walk; used by the lag term to penalise
+         *  intermediate states whose cleanliness sits below the final
+         *  value (the trajectory's terminal cleanliness target).
+         *  Threaded through alt and continuation snapshots so all
+         *  walks share the same reference. Null when the user's final
+         *  cleanliness is itself null (degenerate trajectory). */
+        val cleanlinessFinal: Double?,
+        /** Cumulative sum of per-checkpoint cleanliness deficit
+         *  `max(0, cleanlinessFinal - cleanT)`. Divided by
+         *  [checkpointsSoFar] at score time to get the running-mean
+         *  lag fraction in [0, 1]. */
+        val lagSum: Double,
         val checkpointsSoFar: Int,
     )
 
@@ -671,8 +684,9 @@ class DerivedMetricsRunner(
 
         val stepsByIndex = stepsByCheckpointIndex(refactoringSteps)
         val cleanliness0 = cleanliness.firstOrNull()?.scalar
+        val cleanlinessFinal = cleanliness.lastOrNull()?.scalar
         val durations = computeDurations(checkpoints)
-        var snap = initialMainSnapshot(cleanliness0)
+        var snap = initialMainSnapshot(cleanliness0, cleanlinessFinal)
 
         val scores = mutableListOf<ProcessScore>()
         val snapshots = LinkedHashMap<String, ProcessSnapshot>()
@@ -728,7 +742,10 @@ class DerivedMetricsRunner(
     }
 
     /** Zero snapshot for the start of a main walk. */
-    private fun initialMainSnapshot(cleanliness0: Double?): ProcessSnapshot = ProcessSnapshot(
+    private fun initialMainSnapshot(
+        cleanliness0: Double?,
+        cleanlinessFinal: Double?,
+    ): ProcessSnapshot = ProcessSnapshot(
         brokenCount = 0,
         brokenMs = 0L,
         elapsedMs = 0L,
@@ -742,6 +759,8 @@ class DerivedMetricsRunner(
         commitGapEvents = 0,
         altLengthBonusPoints = 0.0,
         cleanliness0 = cleanliness0,
+        cleanlinessFinal = cleanlinessFinal,
+        lagSum = 0.0,
         checkpointsSoFar = 0,
     )
 
@@ -847,6 +866,17 @@ class DerivedMetricsRunner(
         val cleanlinessGain = if (cleanT == null || snap.cleanliness0 == null) 0.0
             else cleanT - snap.cleanliness0
 
+        // Intermediate cleanliness lag — penalises trajectories that
+        // linger in states below the final cleanliness target. The
+        // increment is the non-negative deficit `cleanlinessFinal - cleanT`
+        // (zero at the terminal checkpoint by construction; positive
+        // for intermediate states still below target). Reordering
+        // cleanup-earlier reduces the running mean.
+        val lagInc = if (cleanT == null || snap.cleanlinessFinal == null) 0.0
+            else max(0.0, snap.cleanlinessFinal - cleanT)
+        val lagSum = snap.lagSum + lagInc
+        val lagFrac = if (checkpointsSoFar == 0) 0.0 else lagSum / checkpointsSoFar.toDouble()
+
         val score = buildProcessScore(
             cleanlinessGain = cleanlinessGain,
             brokenFrac = brokenFrac,
@@ -862,6 +892,7 @@ class DerivedMetricsRunner(
             ideRelevantCount = ideRelevantCount,
             commitGapEvents = commitGapEvents,
             altLengthBonusPoints = altLengthBonusPoints,
+            lagFrac = lagFrac,
         )
 
         val next = ProcessSnapshot(
@@ -878,6 +909,8 @@ class DerivedMetricsRunner(
             commitGapEvents = commitGapEvents,
             altLengthBonusPoints = altLengthBonusPoints,
             cleanliness0 = snap.cleanliness0,
+            cleanlinessFinal = snap.cleanlinessFinal,
+            lagSum = lagSum,
             checkpointsSoFar = checkpointsSoFar,
         )
         return next to score
@@ -1290,6 +1323,17 @@ class DerivedMetricsRunner(
         val cleanlinessGain = if (cleanT == null || snap.cleanliness0 == null) 0.0
             else cleanT - snap.cleanliness0
 
+        // Lag accumulator on the alt walk uses the same `cleanlinessFinal`
+        // reference as the main walk (threaded in via the anchor snapshot
+        // — alts converge to the user's trajectory at `userToSha`, so the
+        // user's terminal cleanliness is the natural shared target). An
+        // alt that gets clean earlier than the user therefore accumulates
+        // a smaller lag mean by the merge point.
+        val lagInc = if (cleanT == null || snap.cleanlinessFinal == null) 0.0
+            else max(0.0, snap.cleanlinessFinal - cleanT)
+        val lagSum = snap.lagSum + lagInc
+        val lagFrac = if (checkpointsSoFar == 0) 0.0 else lagSum / checkpointsSoFar.toDouble()
+
         val score = buildProcessScore(
             cleanlinessGain = cleanlinessGain,
             brokenFrac = brokenFrac,
@@ -1305,6 +1349,7 @@ class DerivedMetricsRunner(
             ideRelevantCount = ideRelevantCount,
             commitGapEvents = commitGapEvents,
             altLengthBonusPoints = altLengthBonusPoints,
+            lagFrac = lagFrac,
         )
 
         val next = ProcessSnapshot(
@@ -1321,6 +1366,8 @@ class DerivedMetricsRunner(
             commitGapEvents = commitGapEvents,
             altLengthBonusPoints = altLengthBonusPoints,
             cleanliness0 = snap.cleanliness0,
+            cleanlinessFinal = snap.cleanlinessFinal,
+            lagSum = lagSum,
             checkpointsSoFar = checkpointsSoFar,
         )
         return next to score
@@ -1429,6 +1476,7 @@ class DerivedMetricsRunner(
         ideRelevantCount: Int,
         commitGapEvents: Int,
         altLengthBonusPoints: Double,
+        lagFrac: Double,
     ): ProcessScore {
         val cleanlinessPoints = weights.gain * cleanlinessGain
         val brokenPoints = -weights.broken * brokenFrac
@@ -1439,6 +1487,11 @@ class DerivedMetricsRunner(
         // clamp is the only ceiling. Each event = MIN_COMMIT_GAP green
         // refactor checkpoints without a commit.
         val commitGapPoints = -weights.commitGap * commitGapEvents.toDouble()
+        // Running-mean cleanliness lag in [0, 1] — fraction of the
+        // final cleanliness gap the trajectory has averaged over its
+        // checkpoints so far. Penalises lingering below the terminal
+        // target; rewards getting clean earlier.
+        val lagPoints = -weights.lag * lagFrac
 
         val contributions = listOf(
             ProcessContribution(
@@ -1486,11 +1539,20 @@ class DerivedMetricsRunner(
                 else "alt covers the user's window in fewer steps " +
                     "(bonus locked in at merge)",
             ),
+            ProcessContribution(
+                id = "lag",
+                label = "Intermediate cleanliness lag",
+                points = lagPoints,
+                detail = if (lagFrac <= 0.0) "no lag below final cleanliness"
+                else "mean deficit ${pct(lagFrac)} of cleanliness range " +
+                    "below the trajectory's final value",
+            ),
         )
 
         val unclamped = weights.baseline +
             cleanlinessPoints + brokenPoints +
-            skipPoints + manualPoints + commitGapPoints + altLengthBonusPoints
+            skipPoints + manualPoints + commitGapPoints + altLengthBonusPoints +
+            lagPoints
         val clampedValue = max(0.0, min(100.0, unclamped))
         val total = clampedValue.roundToLong().toInt()
         val clamped = unclamped != clampedValue
