@@ -51,11 +51,20 @@ if [ "$current" = "baseline" ]; then
   git checkout -q -B recording baseline
 fi
 
-# Preserve agent-session helper scripts that live in the fixture root so
-# they survive both `git reset --hard baseline` (would remove them if they
-# were ever staged) and `git clean -fdxq` (would remove untracked files).
-# Belt-and-suspenders: copy aside to a temp dir, run reset+clean, restore.
-HELPERS=(poll-intellij-vfs-refresh.sh finalize-agent-session.sh)
+# Preserve agent-session helper scripts and docs that live in the fixture
+# root so they survive both `git reset --hard baseline` (would remove them
+# if they were ever staged) and `git clean -fdxq` (would remove untracked
+# files). Belt-and-suspenders: copy aside to a temp dir, run reset+clean,
+# restore.
+#
+# Covered:
+#   - any file matching `agent-*` (e.g. agent-test, agent-finalize)
+#   - poll-intellij-vfs-refresh.sh
+#   - finalize-agent-session.sh
+#   - AGENT-SETUP.md, PROTOCOL.md (session protocol docs)
+shopt -s nullglob
+HELPERS=( agent-* poll-intellij-vfs-refresh.sh finalize-agent-session.sh finalize-user-session.sh AGENT-SETUP.md PROTOCOL.md )
+shopt -u nullglob
 helper_stash="$(mktemp -d)"
 trap 'rm -rf "$helper_stash"' EXIT
 for h in "${HELPERS[@]}"; do
