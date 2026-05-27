@@ -20,7 +20,7 @@
 set -euo pipefail
 
 # ---- config ----
-USER_NAME="ethan"
+USER_NAME="vlad-baseline"
 
 # ---- paths ----
 fixture_dir="$(cd "$(dirname "$0")" && pwd)"
