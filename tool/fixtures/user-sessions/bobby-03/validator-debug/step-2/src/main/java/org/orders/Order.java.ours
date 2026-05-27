@@ -1,0 +1,93 @@
+package org.orders;
+
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+public class Order {
+    private final String id;
+    private final String customerEmail;
+    private final String customerName;
+    private final String shippingStreet;
+    private final String shippingCity;
+    private final String shippingPostcode;
+    private final String billingStreet;
+    private final String billingCity;
+    private final String billingPostcode;
+    private final List<LineItem> items;
+    private final Instant createdAt;
+    private OrderStatus status;
+    private long totalCents;
+
+    public Order(
+            String id,
+            String customerEmail,
+            String customerName,
+            String shippingStreet, String shippingCity, String shippingPostcode,
+            String billingStreet, String billingCity, String billingPostcode,
+            List<LineItem> items,
+            Instant createdAt
+    ) {
+        this.id = id;
+        this.customerEmail = customerEmail;
+        this.customerName = customerName;
+        this.shippingStreet = shippingStreet;
+        this.shippingCity = shippingCity;
+        this.shippingPostcode = shippingPostcode;
+        this.billingStreet = billingStreet;
+        this.billingCity = billingCity;
+        this.billingPostcode = billingPostcode;
+        this.items = new ArrayList<>(items);
+        this.createdAt = createdAt;
+        this.status = OrderStatus.PENDING;
+    }
+
+    public String getId() { return id; }
+    public String getCustomerEmail() { return customerEmail; }
+    public String getCustomerName() { return customerName; }
+    public String getShippingStreet() { return shippingStreet; }
+    public String getShippingCity() { return shippingCity; }
+    public String getShippingPostcode() { return shippingPostcode; }
+    public String getBillingStreet() { return billingStreet; }
+    public String getBillingCity() { return billingCity; }
+    public String getBillingPostcode() { return billingPostcode; }
+    public List<LineItem> getItems() { return Collections.unmodifiableList(items); }
+    public Instant getCreatedAt() { return createdAt; }
+    public OrderStatus getStatus() { return status; }
+    public void setStatus(OrderStatus status) { this.status = status; }
+    public long getTotalCents() { return totalCents; }
+    public void setTotalCents(long totalCents) { this.totalCents = totalCents; }
+
+    private String formatAddress() {
+        StringBuilder sb = new StringBuilder();
+        sb.append(customerName).append("\n");
+        sb.append(shippingStreet).append("\n");
+        sb.append(shippingCity).append(" ").append(shippingPostcode);
+        return sb.toString();
+    }
+    
+    public String getShippingLabel() {
+        return formatAddress();
+    }
+
+    public String getBillingLabel() {
+        return formatAddress();
+    }
+
+    private String formatAddress() {
+        StringBuilder sb = new StringBuilder();
+        sb.append(customerName).append("\n");
+        sb.append(billingStreet).append("\n");
+        sb.append(billingCity).append(" ").append(billingPostcode);
+        return sb.toString();
+    }
+
+    public int totalWeightGrams() {
+        int total = 0;
+        for (LineItem item : items) {
+            total += item.totalWeightGrams();
+        }
+        return total;
+    }
+}

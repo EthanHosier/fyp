@@ -1,0 +1,80 @@
+#!/usr/bin/env bash
+# agent-finalize — reconcile events.jsonl into session.json after the
+# plugin has stopped recording.
+#
+# The plugin writes session.json on clean session end with its own
+# in-memory view of the events. If the agent injected events via
+# `./agent-test` during the session (which appends straight to
+# events.jsonl), those events are NOT in session.json yet. Phase A's
+# `TraceLoader` cross-references the two files and aborts if their
+# event counts disagree, so we have to copy events.jsonl over.
+#
+# Behaviour: replace `session.json.events` with the contents of
+# events.jsonl (line-by-line decoded). Other top-level keys of
+# session.json (e.g. `metadata`) are preserved unchanged.
+#
+# Run from the fixture root after stopping plugin recording:
+#   ./agent-finalize
+
+set -uo pipefail
+
+fixture_dir="$(cd "$(dirname "$0")" && pwd)"
+traces_dir="$fixture_dir/.refactoring-traces"
+
+if [ ! -d "$traces_dir" ]; then
+    echo "agent-finalize: no .refactoring-traces/ at $traces_dir." >&2
+    exit 2
+fi
+
+session_dirs=()
+while IFS= read -r d; do
+    session_dirs+=("$d")
+done < <(find "$traces_dir" -mindepth 1 -maxdepth 1 -type d -print)
+
+if [ "${#session_dirs[@]}" -ne 1 ]; then
+    echo "agent-finalize: expected exactly one session directory under $traces_dir, found ${#session_dirs[@]}." >&2
+    printf '  %s\n' "${session_dirs[@]}" >&2
+    exit 2
+fi
+
+session_dir="${session_dirs[0]}"
+events_file="$session_dir/events.jsonl"
+session_file="$session_dir/session.json"
+
+if [ ! -f "$events_file" ]; then
+    echo "agent-finalize: missing $events_file" >&2
+    exit 2
+fi
+if [ ! -f "$session_file" ]; then
+    echo "agent-finalize: missing $session_file (plugin still recording? stop it first)." >&2
+    exit 2
+fi
+
+python3 - "$events_file" "$session_file" <<'PYEOF'
+import json, sys
+
+events_file, session_file = sys.argv[1:]
+
+with open(events_file) as f:
+    events = []
+    for i, line in enumerate(f, 1):
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            events.append(json.loads(line))
+        except json.JSONDecodeError as e:
+            sys.exit(f"agent-finalize: events.jsonl line {i}: {e}")
+
+with open(session_file) as f:
+    session = json.load(f)
+
+before = len(session.get("events", []))
+session["events"] = events
+after = len(events)
+
+with open(session_file, "w") as f:
+    json.dump(session, f, indent=4)
+
+print(f"agent-finalize: session.json events updated ({before} -> {after}).")
+PYEOF

@@ -676,22 +676,25 @@ internal fun buildAnalysisReport(
     config: ScoringConfig = ScoringConfig.PRODUCTION,
 ): AnalysisReport {
     val (eventsBySha, membersBySha) = computeBySha(reconstruction, trace)
-    val gitShasActuallyCommitedByUser = trace.events.asSequence()
-        .filter { it.type == EventType.GIT_COMMIT }
-        .mapNotNull { it.payload["sha"] }
-        .toSet()
 
     // First pass: assemble checkpoints + alts WITHOUT derived metrics, so
     // `DerivedMetricsRunner` can read their already-stitched-in events,
     // pmdTracking, and metrics blocks. Second pass below splices the
     // derived metrics back onto each.
+    //
+    // `isUserCommit` is set from the checkpoint's grouped GIT_COMMIT events.
+    // We do NOT compare the shadow-repo `m.sha` against the user-repo SHA
+    // carried on the event's payload — the shadow repo and the user's
+    // fixture repo are independent git repositories with disjoint parent
+    // chains, so their SHAs never coincide. Event-based detection avoids
+    // that mistake.
     val baseCheckpoints = metrics.checkpoints.map { m ->
         val events = eventsBySha[m.sha].orEmpty()
         CheckpointReport(
             sha = m.sha,
             events = events,
             metrics = m,
-            isUserCommit = m.sha in gitShasActuallyCommitedByUser,
+            isUserCommit = events.any { it.type == EventType.GIT_COMMIT },
             diff = metrics.diffBySha[m.sha] ?: DiffStats.ZERO,
             touchedMembers = membersBySha[m.sha]?.toList().orEmpty(),
             pmdTracking = trackedCodeSmells.trackingBySha[m.sha] ?: PmdTracking.EMPTY,

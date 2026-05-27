@@ -1,0 +1,97 @@
+#!/usr/bin/env bash
+# agent-test — wrapper an AI agent uses in place of `./gradlew test`.
+#
+# The IntelliJ plugin captures TEST_RUN_STARTED / TEST_RUN_FINISHED
+# events by listening to IntelliJ's test-runner. An agent driving the
+# fixture from outside IntelliJ never fires those events, so we inject
+# them by hand: locate the active session's events.jsonl under
+# .refactoring-traces/<session-uuid>/ and append two JSONL events
+# bracketing the gradle invocation. All other event kinds (commits,
+# file edits) are still captured by the plugin's file-watcher.
+#
+# session.json doesn't exist while the session is live (the plugin
+# writes it only at session end), so we derive the sessionId from the
+# trace directory name (the plugin uses the UUID as the dir name).
+# Pair with `./agent-finalize` after the plugin stops to reconcile
+# events.jsonl into session.json.
+#
+# Contract for the agent:
+#   - From the fixture root, run `./agent-test [extra-gradle-args]`
+#     instead of `./gradlew test`.
+#   - Exit code matches gradle's: 0 on green tests, non-zero otherwise.
+
+set -uo pipefail
+
+fixture_dir="$(cd "$(dirname "$0")" && pwd)"
+traces_dir="$fixture_dir/.refactoring-traces"
+
+if [ ! -d "$traces_dir" ]; then
+    echo "agent-test: no .refactoring-traces/ directory at $traces_dir — start the plugin recording first." >&2
+    exit 2
+fi
+
+# Find the single active session directory. The plugin writes one
+# directory per session, named by its UUID, containing events.jsonl.
+# If there are zero or more than one, bail.
+session_dirs=()
+while IFS= read -r d; do
+    session_dirs+=("$d")
+done < <(find "$traces_dir" -mindepth 1 -maxdepth 1 -type d -print)
+
+if [ "${#session_dirs[@]}" -eq 0 ]; then
+    echo "agent-test: no session directory under $traces_dir — start the plugin recording first." >&2
+    exit 2
+fi
+if [ "${#session_dirs[@]}" -gt 1 ]; then
+    echo "agent-test: found ${#session_dirs[@]} session directories under $traces_dir; expected exactly one." >&2
+    printf '  %s\n' "${session_dirs[@]}" >&2
+    exit 2
+fi
+
+session_dir="${session_dirs[0]}"
+events_file="$session_dir/events.jsonl"
+
+if [ ! -f "$events_file" ]; then
+    echo "agent-test: missing $events_file" >&2
+    exit 2
+fi
+
+# The trace directory name is the sessionId (a UUID).
+session_id="$(basename "$session_dir")"
+
+# Append a single JSONL event. POSIX guarantees atomic writes of < PIPE_BUF
+# bytes via O_APPEND, so concurrent appends from the plugin and this
+# script don't tear lines.
+append_event() {
+    local type="$1"
+    local passed="$2"  # empty for STARTED, "true"/"false" for FINISHED
+    python3 - "$events_file" "$type" "$session_id" "$passed" <<'PYEOF'
+import json, sys, time, uuid
+events_file, ev_type, session_id, passed = sys.argv[1:]
+ev = {
+    "id": str(uuid.uuid4()),
+    "type": ev_type,
+    "timestamp": int(time.time() * 1000),
+    "sessionId": session_id,
+    "changedFiles": [],
+    "relatedFiles": [],
+    "payload": {"suite": "[root]"} if not passed else {"suite": "[root]", "passed": passed},
+}
+with open(events_file, "a") as f:
+    f.write(json.dumps(ev, separators=(",", ":")) + "\n")
+PYEOF
+}
+
+append_event "TEST_RUN_STARTED" ""
+
+# Forward any extra args to gradle test (e.g. --tests SomePattern).
+(cd "$fixture_dir" && ./gradlew test "$@")
+test_exit=$?
+
+if [ $test_exit -eq 0 ]; then
+    append_event "TEST_RUN_FINISHED" "true"
+else
+    append_event "TEST_RUN_FINISHED" "false"
+fi
+
+exit $test_exit

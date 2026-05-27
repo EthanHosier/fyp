@@ -98,7 +98,7 @@ export function CheckpointBody({
         <StatusRow build={checkpoint.build} tests={checkpoint.tests} />
       </section>
 
-      <DivergenceIndicators vm={vm} stepIndex={checkpoint.index} />
+      <DivergenceIndicators vm={vm} checkpointIndex={checkpoint.index} />
 
       {pitfalls ||
       hasSmellSignals(checkpoint) ||

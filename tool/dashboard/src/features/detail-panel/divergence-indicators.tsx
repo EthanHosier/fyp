@@ -22,21 +22,35 @@ const KIND_LABEL: Record<DivergencePointVM["kind"], string> = {
 }
 
 /**
- * Renders all [DivergencePointVM]s anchored at a given user step as a
- * stack of clickable cards. Each card opens the corresponding
- * alternative trajectory's detail card so the user can drill into the
- * counterfactual's stats. Returns null when no DPs anchor here so the
- * surrounding layout doesn't render an empty section.
+ * Renders all [DivergencePointVM]s anchored at the refactoring step(s)
+ * that landed at the given checkpoint as a stack of clickable cards.
+ * Each card opens the corresponding alternative trajectory's detail card
+ * so the user can drill into the counterfactual's stats. Returns null
+ * when no DPs anchor here so the surrounding layout doesn't render an
+ * empty section.
+ *
+ * `dp.stepIndex` in the report is a refactoring-step index (0..n-1
+ * across the chronological refactoring list), NOT a checkpoint index.
+ * The two differ because (a) refactoring steps don't exist on every
+ * checkpoint (only on the ones a refactor lands on), and (b) a single
+ * checkpoint can be the landing for multiple steps. We resolve the
+ * mapping from the view-model's refactoringSteps and filter DPs whose
+ * stepIndex matches any of the steps landing on this checkpoint.
  */
 export function DivergenceIndicators({
   vm,
-  stepIndex,
+  checkpointIndex,
 }: {
   vm: DashboardViewModel
-  stepIndex: number
+  checkpointIndex: number
 }) {
   const setSelection = useDashboardStore((s) => s.setSelection)
-  const dps = vm.divergencePoints.filter((dp) => dp.stepIndex === stepIndex)
+  const stepIndexes = new Set(
+    vm.refactoringSteps
+      .filter((s) => s.checkpointIndex === checkpointIndex)
+      .map((s) => s.index),
+  )
+  const dps = vm.divergencePoints.filter((dp) => stepIndexes.has(dp.stepIndex))
   if (dps.length === 0) return null
 
   return (

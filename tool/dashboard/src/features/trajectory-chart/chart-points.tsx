@@ -31,13 +31,25 @@ export function ChartPoints({
   // Flash policy: a manual highlight (e.g. the rework alt's "Code added
   // at <ckpt>" link setting `highlightedCheckpointIndex`) always wins,
   // and flashes that single checkpoint. With no manual highlight, the
-  // chart falls back to flashing every divergence-point's anchor step
-  // by default — so DPs draw the eye on first load. Clicking any link
-  // that sets a manual highlight collapses the set to just that one.
+  // chart falls back to flashing every divergence-point's anchor
+  // checkpoint by default — so DPs draw the eye on first load. Clicking
+  // any link that sets a manual highlight collapses the set to just
+  // that one.
+  //
+  // `dp.stepIndex` is a refactoring-step index (0..n-1 across the
+  // chronological refactoring list); the chart needs checkpoint
+  // indexes. Resolve via `vm.refactoringSteps[].checkpointIndex`.
+  const checkpointIndexByStepIndex = new Map(
+    vm.refactoringSteps.map((s) => [s.index, s.checkpointIndex] as const),
+  )
   const flashingIndexes: ReadonlySet<number> =
     highlightedCheckpointIndex != null
       ? new Set([highlightedCheckpointIndex])
-      : new Set(vm.divergencePoints.map((dp) => dp.stepIndex))
+      : new Set(
+          vm.divergencePoints
+            .map((dp) => checkpointIndexByStepIndex.get(dp.stepIndex))
+            .filter((i): i is number => i != null),
+        )
 
   return (
     <g className={cn(TONE_TEXT[primary.tone])}>
