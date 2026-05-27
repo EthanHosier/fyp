@@ -51,8 +51,28 @@ if [ "$current" = "baseline" ]; then
   git checkout -q -B recording baseline
 fi
 
+# Preserve agent-session helper scripts that live in the fixture root so
+# they survive both `git reset --hard baseline` (would remove them if they
+# were ever staged) and `git clean -fdxq` (would remove untracked files).
+# Belt-and-suspenders: copy aside to a temp dir, run reset+clean, restore.
+HELPERS=(poll-intellij-vfs-refresh.sh finalize-agent-session.sh)
+helper_stash="$(mktemp -d)"
+trap 'rm -rf "$helper_stash"' EXIT
+for h in "${HELPERS[@]}"; do
+  if [ -f "$h" ]; then
+    cp -p "$h" "$helper_stash/$h"
+  fi
+done
+
 git reset --hard --quiet baseline
 git clean -fdxq
 rm -rf .refactoring-traces
+
+# Restore helpers.
+for h in "${HELPERS[@]}"; do
+  if [ -f "$helper_stash/$h" ]; then
+    cp -p "$helper_stash/$h" "$h"
+  fi
+done
 
 echo "Reset complete. Reload IntelliJ from disk if it's open."

@@ -11,6 +11,7 @@
         <toolWindow factoryClass="com.github.ethanhosier.ideplugin.toolWindow.TracerToolWindowFactory" id="Refactoring Tracer" anchor="left"/>
         <postStartupActivity implementation="com.github.ethanhosier.ideplugin.startup.TracerStartupActivity" />
         <notificationGroup id="RefactoringTracer.Analysis" displayType="BALLOON" />
+        <httpRequestHandler implementation="com.github.ethanhosier.ideplugin.http.VfsRefreshHttpHandler"/>
     </extensions>
 
     <applicationListeners>

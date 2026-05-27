@@ -46,12 +46,13 @@ public class LibrarySystem {
         boolean overdueFlag = helperA(loan);
         if (overdueFlag) {
             long daysLate = loan.daysOverdue(today);
-            double rate = 0.25;
+            double baseRate = 0.25;
+            double rate = baseRate;
             if (daysLate > 7) {
-                rate = 0.25 * 1.5;
+                rate = baseRate * 1.5;
             }
             if (daysLate > 30) {
-                rate = 0.25 * 2.5;
+                rate = baseRate * 2.5;
             }
             double premiumFactor = 1.0;
             if (helperB(member)) {
@@ -89,35 +90,32 @@ public class LibrarySystem {
     public double bulkLendBooks(String memberId, List<String> bookIds) {
         Member member = members.get(memberId);
         if (member == null) return 0.0;
-        double accruedTotal = 0.0;
+        double total = 0.0;
         for (String bid : bookIds) {
             Book book = books.get(bid);
             if (book == null) continue;
             if (book.getStatus() != BookStatus.AVAILABLE) continue;
-            accruedTotal = accruedTotal + 5.0;
+            total = total + 5.0;
             book.setStatus(BookStatus.LENT);
         }
         double discount = 1.0;
         if (bookIds.size() >= 10) {
-            double LARGE_TIER = 0.85;
-            discount = LARGE_TIER;
+            discount = 0.85;
         } else if (bookIds.size() >= 5) {
-            double MEDIUM_TIER = 0.95;
-            discount = MEDIUM_TIER;
+            discount = 0.95;
         }
         if (helperB(member)) {
-            double PREMIUM_DISCOUNT = 0.70;
-            discount = discount * PREMIUM_DISCOUNT;
+            discount = discount * 0.70;
         }
         // touch helperA so spec count is met
         for (Loan ln : loans.values()) {
             if (ln.getMemberId().equals(memberId) && helperA(ln)) {
-                accruedTotal = accruedTotal + 0.0;
+                total = total + 0.0;
                 break;
             }
         }
         fooBar(memberId, LocalDate.now());
-        return accruedTotal * discount;
+        return total * discount;
     }
 
     public boolean helperA(Loan loan) {
@@ -137,21 +135,17 @@ public class LibrarySystem {
         return true;
     }
 
-    public List<Loan> listOverdueLoans(LocalDate today) {
+    public List<Loan> findOverdueLoans(LocalDate today) {
         List<Loan> out = new ArrayList<>();
-        collectOverdue(out);
-        if (!out.isEmpty()) {
-            fooBar(out.get(0).getMemberId(), today);
-        }
-        return out;
-    }
-
-    private void collectOverdue(List<Loan> out) {
         for (Loan loan : loans.values()) {
             if (helperA(loan)) {
                 out.add(loan);
             }
         }
+        if (!out.isEmpty()) {
+            fooBar(out.get(0).getMemberId(), today);
+        }
+        return out;
     }
 
     public String fooBar(String memberId, LocalDate today) {
