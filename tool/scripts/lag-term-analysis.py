@@ -7,7 +7,7 @@ from collections import defaultdict
 from pathlib import Path
 from statistics import mean, median
 
-ROOT = Path("/Users/ethanhosier/Desktop/random/fyp/tool/notebooks/data")
+ROOT = Path("/Users/ethanhosier/Desktop/random/fyp/tool/fixtures/notebooks/data")
 BASE = ROOT / "baseline-no-lag"
 
 def load_csv(p):
