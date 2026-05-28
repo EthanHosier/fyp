@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.10.5)  28 MAY 2026 21:54
+This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.10.5)  28 MAY 2026 22:09
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -1485,15 +1485,15 @@ Overfull \hbox (2.58556pt too wide) in paragraph at lines 22--23
 [64]
 Chapter 7.
 
-Overfull \hbox (107.32933pt too wide) in paragraph at lines 10--11
-\T1/cmtt/m/n/10.95 RenameLocalVariable\T1/cmr/m/n/10.95 , \T1/cmtt/m/n/10.95 ExtractMethod\T1/cmr/m/n/10.95 , \T1/cmtt/m/n/10.95 InlineMethod\T1/cmr/m/n/10.95 , \T1/cmtt/m/n/10.95 ChangeMethodSignature\T1/cmr/m/n/10.95 , \T1/cmtt/m/n/10.95 ParameterizeVariable\T1/cmr/m/n/10.95 ,
- []
-
-
 
 [65
 
-]) (./appendix/appendix.tex
+]
+Overfull \hbox (36.66382pt too wide) in paragraph at lines 45--46
+\T1/cmr/m/n/10.95 play-book prompts, fix-tures, and session-recording pro-to-col are stored un-der \T1/cmtt/m/n/10.95 tool/fixtures/\T1/cmr/m/n/10.95 .
+ []
+
+) (./appendix/appendix.tex
 
 [66]
 Appendix A.
@@ -1619,7 +1619,22 @@ Underfull \hbox (badness 1546) in paragraph at lines 89--92
 
 [89]
 
-[90])
+[90]
+Underfull \hbox (badness 10000) in paragraph at lines 313--317
+[]\T1/cmr/m/n/10.95 Imperial Col-lege Lon-don.  Re-search ethics.  [][]$\T1/cmtt/m/n/10.95 https : / / www .
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 313--317
+\T1/cmtt/m/n/10.95 imperial . ac . uk / admin-[]services / early-[]career-[]researcher-[]institute /
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 313--317
+\T1/cmtt/m/n/10.95 learning-[]and-[]development / policies-[]and-[]guidance / research-[]ethics/$[][]\T1/cmr/m/n/10.95 , 2026.
+ []
+
+)
 
 [91] (./main_dark.aux)
  ***********
@@ -1630,18 +1645,18 @@ Package rerunfilecheck Info: File `main_dark.out' has not changed.
 (rerunfilecheck)             Checksum: 99C73BEFC773F1DA28460DB5E649A73F;19183.
  ) 
 Here is how much of TeX's memory you used:
- 29100 strings out of 473190
- 543030 string characters out of 5715800
- 1840873 words of memory out of 5000000
- 50185 multiletter control sequences out of 15000+600000
+ 29102 strings out of 473190
+ 543085 string characters out of 5715800
+ 1840920 words of memory out of 5000000
+ 50186 multiletter control sequences out of 15000+600000
  602161 words of font info for 117 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
  103i,13n,106p,2223b,2191s stack positions out of 10000i,1000n,20000p,200000b,200000s
 </usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx10.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi12.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi6.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi7.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi8.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi9.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmr6.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmr7.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmr9.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy7.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy8.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sfbi1000.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sfbx0900.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sfbx1000.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sfbx1095.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sfbx1200.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sfbx1440.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sfbx2074.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sfbx2488.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sfcc0700.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sfcc0800.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sfcc1000.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sfcc1095.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sfcc1200.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sfcc1440.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sfcc1728.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sfit0800.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sfit1000.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sfrm0600.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sfrm0800.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sfrm0900.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sfrm1000.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sfrm1095.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sfrm1200.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sfsc0700.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sfti0800.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sfti1000.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sfti1095.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sfti1200.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sftt0800.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sftt1000.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sftt1095.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sfxc0800.pfb>
-Output written on main_dark.pdf (92 pages, 1627884 bytes).
+Output written on main_dark.pdf (92 pages, 1627744 bytes).
 PDF statistics:
- 3354 PDF objects out of 3580 (max. 8388607)
- 3121 compressed objects within 32 object streams
- 1629 named destinations out of 1728 (max. 500000)
+ 3359 PDF objects out of 3580 (max. 8388607)
+ 3126 compressed objects within 32 object streams
+ 1630 named destinations out of 1728 (max. 500000)
  815 words of extra memory for PDF output out of 10000 (max. 10000000)
 
