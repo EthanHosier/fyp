@@ -182,7 +182,6 @@
 \newlabel{sec:methodology-weights}{{3.2.2}{20}{Process-score weights}{subsection.3.2.2}{}}
 \@writefile{lot}{\contentsline {table}{\numberline {3.2}{\ignorespaces Weights used in Equation~\eqref  {eq:process-score} and the literature supporting each term. The empirical contribution of each term is examined in the ablation analysis of \S  \ref {sec:results-ablation}.}}{20}{table.caption.8}\protected@file@percent }
 \newlabel{tab:methodology-weights}{{3.2}{20}{Weights used in Equation~\eqref {eq:process-score} and the literature supporting each term. The empirical contribution of each term is examined in the ablation analysis of \S \ref {sec:results-ablation}}{table.caption.8}{}}
-\@writefile{toc}{\contentsline {paragraph}{$W_{\textsc  {g}}$ (gain, 50).}{20}{section*.9}\protected@file@percent }
 \citation{paixao2017balancing}
 \citation{gautam2025refactorbench}
 \citation{murphyhill2009howrefactor}
@@ -192,6 +191,7 @@
 \citation{harman2007pareto}
 \citation{mohan2019manyobjective}
 \citation{cortellessa2023manyobjective}
+\@writefile{toc}{\contentsline {paragraph}{$W_{\textsc  {g}}$ (gain, 50).}{21}{section*.9}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{$W_{\textsc  {b}}$ (broken, 28).}{21}{section*.10}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{$W_{\textsc  {st}}$ (skip-tests, 14).}{21}{section*.11}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{$W_{\textsc  {mi}}$ (manual-when-IDE, 11).}{21}{section*.12}\protected@file@percent }
@@ -218,7 +218,6 @@
 \@writefile{toc}{\contentsline {paragraph}{$W_{\textsc  {cg}}$ (commit-gap, 7).}{22}{section*.15}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {3.2.3}The cleanliness sub-score}{22}{subsection.3.2.3}\protected@file@percent }
 \newlabel{sec:methodology-cleanliness}{{3.2.3}{22}{The cleanliness sub-score}{subsection.3.2.3}{}}
-\@writefile{toc}{\contentsline {paragraph}{Composition rule and sub-weights.}{22}{section*.17}\protected@file@percent }
 \citation{wagner2015quamoco}
 \citation{bansiya2002qmood}
 \citation{coleman1994maintainability}
@@ -227,8 +226,9 @@
 \citation{lavazza2023cognitive}
 \@writefile{lot}{\contentsline {table}{\numberline {3.3}{\ignorespaces The six sub-signals used to compute the cleanliness sub-score $C(s)$. Each is given weight 1.0; the rationale for using equal weights is given in the composition rule below.}}{23}{table.caption.16}\protected@file@percent }
 \newlabel{tab:methodology-cleanliness}{{3.3}{23}{The six sub-signals used to compute the cleanliness sub-score $C(s)$. Each is given weight 1.0; the rationale for using equal weights is given in the composition rule below}{table.caption.16}{}}
+\@writefile{toc}{\contentsline {paragraph}{Composition rule and sub-weights.}{23}{section*.17}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{Caveats.}{23}{section*.18}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Coupling to the process score.}{23}{section*.19}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Coupling to the process score.}{24}{section*.19}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {3.2.4}Event capture}{24}{subsection.3.2.4}\protected@file@percent }
 \newlabel{sec:arch-events}{{3.2.4}{24}{Event capture}{subsection.3.2.4}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {3.2.5}Shadow repo reconstruction and worktree pool}{24}{subsection.3.2.5}\protected@file@percent }
@@ -290,27 +290,27 @@
 \newlabel{sec:arch-dashboard}{{3.5}{33}{Dashboard}{section.3.5}{}}
 \@writefile{lof}{\contentsline {figure}{\numberline {3.5}{\ignorespaces The dashboard hosted inside an IntelliJ JCEF window. The centre chart plots the user's process score across the session and can overlay alternative trajectories and individual cleanliness signals. The side panels show the selected step, metric changes, build/test status, smell and duplication locations, and any divergence point associated with that step, including the suggested alternative and its score impact. The lower panel summarises the highest-impact takeaways for the session.}}{33}{figure.caption.35}\protected@file@percent }
 \newlabel{fig:arch-dashboard}{{3.5}{33}{The dashboard hosted inside an IntelliJ JCEF window. The centre chart plots the user's process score across the session and can overlay alternative trajectories and individual cleanliness signals. The side panels show the selected step, metric changes, build/test status, smell and duplication locations, and any divergence point associated with that step, including the suggested alternative and its score impact. The lower panel summarises the highest-impact takeaways for the session}{figure.caption.35}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {3.6}Score-formula evaluation design}{33}{section.3.6}\protected@file@percent }
+\newlabel{sec:methodology-score-eval}{{3.6}{33}{Score-formula evaluation design}{section.3.6}{}}
 \citation{kendall1948rank}
 \citation{agresti2010ordinal}
 \citation{saisana2005composite}
 \citation{lundberg2017shap}
 \citation{strumbelj2014explaining}
-\@writefile{toc}{\contentsline {section}{\numberline {3.6}Score-formula evaluation design}{34}{section.3.6}\protected@file@percent }
-\newlabel{sec:methodology-score-eval}{{3.6}{34}{Score-formula evaluation design}{section.3.6}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {3.6.1}Sensitivity perturbations}{34}{subsection.3.6.1}\protected@file@percent }
 \newlabel{sec:methodology-sensitivity-design}{{3.6.1}{34}{Sensitivity perturbations}{subsection.3.6.1}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {3.6.2}Ablation design}{34}{subsection.3.6.2}\protected@file@percent }
 \newlabel{sec:methodology-ablation-design}{{3.6.2}{34}{Ablation design}{subsection.3.6.2}{}}
 \@writefile{toc}{\contentsline {section}{\numberline {3.7}Evaluation dataset and labelling protocol}{34}{section.3.7}\protected@file@percent }
 \newlabel{sec:methodology-rater}{{3.7}{34}{Evaluation dataset and labelling protocol}{section.3.7}{}}
+\citation{cohen1960kappa}
+\citation{landis1977kappa}
 \@writefile{toc}{\contentsline {subsection}{\numberline {3.7.1}The 45-session injection set}{35}{subsection.3.7.1}\protected@file@percent }
 \newlabel{sec:methodology-injection-set}{{3.7.1}{35}{The 45-session injection set}{subsection.3.7.1}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {3.7.2}Two label streams}{35}{subsection.3.7.2}\protected@file@percent }
 \newlabel{sec:methodology-labels}{{3.7.2}{35}{Two label streams}{subsection.3.7.2}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {3.7.3}Rater protocol}{35}{subsection.3.7.3}\protected@file@percent }
 \newlabel{sec:methodology-rater-protocol}{{3.7.3}{35}{Rater protocol}{subsection.3.7.3}{}}
-\citation{cohen1960kappa}
-\citation{landis1977kappa}
 \@writefile{toc}{\contentsline {subsection}{\numberline {3.7.4}Cohen's $\kappa $ computation}{36}{subsection.3.7.4}\protected@file@percent }
 \newlabel{sec:methodology-kappa}{{3.7.4}{36}{Cohen's $\kappa $ computation}{subsection.3.7.4}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {3.7.5}Treatment of disagreements}{36}{subsection.3.7.5}\protected@file@percent }

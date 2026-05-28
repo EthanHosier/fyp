@@ -37,7 +37,7 @@
 \contentsline {section}{\numberline {3.2}Computing the process score}{19}{section.3.2}%
 \contentsline {subsection}{\numberline {3.2.1}The process score}{19}{subsection.3.2.1}%
 \contentsline {subsection}{\numberline {3.2.2}Process-score weights}{20}{subsection.3.2.2}%
-\contentsline {paragraph}{$W_{\textsc {g}}$ (gain, 50).}{20}{section*.9}%
+\contentsline {paragraph}{$W_{\textsc {g}}$ (gain, 50).}{21}{section*.9}%
 \contentsline {paragraph}{$W_{\textsc {b}}$ (broken, 28).}{21}{section*.10}%
 \contentsline {paragraph}{$W_{\textsc {st}}$ (skip-tests, 14).}{21}{section*.11}%
 \contentsline {paragraph}{$W_{\textsc {mi}}$ (manual-when-IDE, 11).}{21}{section*.12}%
@@ -45,9 +45,9 @@
 \contentsline {paragraph}{$W_{\textsc {lag}}$ (lag, 11).}{22}{section*.14}%
 \contentsline {paragraph}{$W_{\textsc {cg}}$ (commit-gap, 7).}{22}{section*.15}%
 \contentsline {subsection}{\numberline {3.2.3}The cleanliness sub-score}{22}{subsection.3.2.3}%
-\contentsline {paragraph}{Composition rule and sub-weights.}{22}{section*.17}%
+\contentsline {paragraph}{Composition rule and sub-weights.}{23}{section*.17}%
 \contentsline {paragraph}{Caveats.}{23}{section*.18}%
-\contentsline {paragraph}{Coupling to the process score.}{23}{section*.19}%
+\contentsline {paragraph}{Coupling to the process score.}{24}{section*.19}%
 \contentsline {subsection}{\numberline {3.2.4}Event capture}{24}{subsection.3.2.4}%
 \contentsline {subsection}{\numberline {3.2.5}Shadow repo reconstruction and worktree pool}{24}{subsection.3.2.5}%
 \contentsline {subsection}{\numberline {3.2.6}Metrics calculation}{24}{subsection.3.2.6}%
@@ -73,7 +73,7 @@
 \contentsline {paragraph}{Phase A.}{32}{section*.33}%
 \contentsline {paragraph}{Phase B.}{32}{section*.34}%
 \contentsline {section}{\numberline {3.5}Dashboard}{33}{section.3.5}%
-\contentsline {section}{\numberline {3.6}Score-formula evaluation design}{34}{section.3.6}%
+\contentsline {section}{\numberline {3.6}Score-formula evaluation design}{33}{section.3.6}%
 \contentsline {subsection}{\numberline {3.6.1}Sensitivity perturbations}{34}{subsection.3.6.1}%
 \contentsline {subsection}{\numberline {3.6.2}Ablation design}{34}{subsection.3.6.2}%
 \contentsline {section}{\numberline {3.7}Evaluation dataset and labelling protocol}{34}{section.3.7}%
