@@ -72,15 +72,15 @@
 \contentsline {subsection}{\numberline {3.4.2}Phase A / Phase B split}{32}{subsection.3.4.2}%
 \contentsline {paragraph}{Phase A.}{32}{section*.33}%
 \contentsline {paragraph}{Phase B.}{32}{section*.34}%
-\contentsline {section}{\numberline {3.5}Dashboard}{33}{section.3.5}%
+\contentsline {section}{\numberline {3.5}Dashboard}{32}{section.3.5}%
 \contentsline {section}{\numberline {3.6}Score-formula evaluation design}{33}{section.3.6}%
-\contentsline {subsection}{\numberline {3.6.1}Sensitivity perturbations}{34}{subsection.3.6.1}%
+\contentsline {subsection}{\numberline {3.6.1}Sensitivity perturbations}{33}{subsection.3.6.1}%
 \contentsline {subsection}{\numberline {3.6.2}Ablation design}{34}{subsection.3.6.2}%
 \contentsline {section}{\numberline {3.7}Evaluation dataset and labelling protocol}{34}{section.3.7}%
 \contentsline {subsection}{\numberline {3.7.1}The 45-session injection set}{35}{subsection.3.7.1}%
 \contentsline {subsection}{\numberline {3.7.2}Two label streams}{35}{subsection.3.7.2}%
 \contentsline {subsection}{\numberline {3.7.3}Rater protocol}{35}{subsection.3.7.3}%
-\contentsline {subsection}{\numberline {3.7.4}Cohen's $\kappa $ computation}{36}{subsection.3.7.4}%
+\contentsline {subsection}{\numberline {3.7.4}Cohen's $\kappa $ computation}{35}{subsection.3.7.4}%
 \contentsline {subsection}{\numberline {3.7.5}Treatment of disagreements}{36}{subsection.3.7.5}%
 \contentsline {subsection}{\numberline {3.7.6}Divergence-detector evaluation protocol}{36}{subsection.3.7.6}%
 \contentsline {chapter}{\numberline {4}Experimentation and Evaluation}{37}{chapter.4}%
@@ -160,13 +160,13 @@
 \contentsline {chapter}{\numberline {7}Declarations}{65}{chapter.7}%
 \contentsline {section}{\numberline {7.1}Use of Generative AI}{65}{section.7.1}%
 \contentsline {section}{\numberline {7.2}Ethical Considerations}{65}{section.7.2}%
-\contentsline {section}{\numberline {7.3}Sustainability}{65}{section.7.3}%
-\contentsline {section}{\numberline {7.4}Availability of Data and Materials}{65}{section.7.4}%
-\contentsline {chapter}{\numberline {A}Appendix}{66}{appendix.A}%
-\contentsline {section}{\numberline {A.1}Agent session transcript}{66}{section.A.1}%
-\contentsline {subsection}{\numberline {A.1.1}Session 1 - Names}{66}{subsection.A.1.1}%
-\contentsline {subsection}{\numberline {A.1.2}Session 2 - Magic numbers}{70}{subsection.A.1.2}%
-\contentsline {subsection}{\numberline {A.1.3}Session 3 - Within-class duplication}{73}{subsection.A.1.3}%
-\contentsline {subsection}{\numberline {A.1.4}Session 4 - Cross-class duplication}{76}{subsection.A.1.4}%
-\contentsline {subsection}{\numberline {A.1.5}Session 5 - Misplaced behaviour}{78}{subsection.A.1.5}%
-\contentsline {subsection}{\numberline {A.1.6}Session 6 - Reshape and cleanup}{80}{subsection.A.1.6}%
+\contentsline {section}{\numberline {7.3}Sustainability}{66}{section.7.3}%
+\contentsline {section}{\numberline {7.4}Availability of Data and Materials}{66}{section.7.4}%
+\contentsline {chapter}{\numberline {A}Appendix}{67}{appendix.A}%
+\contentsline {section}{\numberline {A.1}Agent session transcript}{67}{section.A.1}%
+\contentsline {subsection}{\numberline {A.1.1}Session 1 - Names}{67}{subsection.A.1.1}%
+\contentsline {subsection}{\numberline {A.1.2}Session 2 - Magic numbers}{71}{subsection.A.1.2}%
+\contentsline {subsection}{\numberline {A.1.3}Session 3 - Within-class duplication}{74}{subsection.A.1.3}%
+\contentsline {subsection}{\numberline {A.1.4}Session 4 - Cross-class duplication}{77}{subsection.A.1.4}%
+\contentsline {subsection}{\numberline {A.1.5}Session 5 - Misplaced behaviour}{79}{subsection.A.1.5}%
+\contentsline {subsection}{\numberline {A.1.6}Session 6 - Reshape and cleanup}{81}{subsection.A.1.6}%

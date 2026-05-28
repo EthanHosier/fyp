@@ -514,15 +514,15 @@ Figure~\ref{fig:arch-overview} summarises the dataflow between these components.
 \subsection{Phase A / Phase B split}
 \label{sec:methodology-phases-split}
 
-The detector and synthesisers above run as part of an offline analysis pipeline. The pipeline is split into two phases, with \texttt{PhaseAResult} acting as the serialisable boundary between them.
+The detector and synthesisers run as part of an offline analysis pipeline split into two phases. The first phase performs the expensive work: it ingests the recorded events, reconstructs the shadow repository, mines refactorings, runs the synthesisers and validator, computes per-checkpoint metrics, and tracks PMD / CPD findings across checkpoints. This phase usually takes minutes per session, mainly because it runs builds, tests, and JDT refactorings.
 
 \paragraph{Phase A.}
-Phase A performs the expensive work: ingesting and normalising events, reconstructing the shadow repository, mining refactorings, running the four synthesisers and the validator, computing per-checkpoint metrics, and tracking PMD / CPD findings across checkpoints. It usually takes minutes per session. Most of that time comes from the per-checkpoint Gradle builds and JUnit runs described in \S\ref{sec:arch-metrics}, plus the Equinox-hosted JDT refactoring calls described in \S\ref{sec:arch-jdt}. The output is a \texttt{PhaseAResult}. This contains the reconstructed trace, mined steps and typed refactoring specs, metrics for the user's trajectory and each synthesised alternative SHA, the diff bundle, PMD / CPD tracking edges, and the generated reorder trajectories.
+The output of the first phase is a cached analysis bundle containing the reconstructed trace, mined refactoring steps, per-checkpoint metrics, synthesised alternatives, and supporting diff/quality data. It is saved so that the expensive reconstruction work does not need to be repeated.
 
 \paragraph{Phase B.}
-Phase B takes the \texttt{PhaseAResult} and a \texttt{ScoringConfig}, which contains the six process-score weights from \S\ref{sec:methodology-weights}. It then runs the \texttt{ReportAssembler}. This computes the process score, clamps it to the [0,100] range, attaches alternative-vs-user deltas at each checkpoint, and emits the final \texttt{AnalysisReport}. Unlike Phase A, Phase B does not touch the filesystem, run JDT, or execute tests. It only walks the cached data in memory, so it finishes in milliseconds.
+The second phase takes this cached bundle and a chosen set of score weights. It computes the process score, attaches alternative-vs-user deltas, and produces the final report. Unlike the first phase, it does not reconstruct repositories, apply refactorings, or rerun builds and tests; it only re-scores the cached analysis data, so it finishes in milliseconds.
 
-This split matters because the weights are only used in Phase B. Changing them does not invalidate the cached Phase A results. The sensitivity experiment in Chapter~\ref{ch:results} uses this property directly: $12 \times 9 \times 45 = 4{,}860$ scoring configurations are evaluated against the same cached set of \texttt{PhaseAResult} dumps in roughly $2.6$ seconds of wall-clock time, because each configuration only re-runs \texttt{ReportAssembler}. The CLI exposes the split through two Gradle entrypoints: \texttt{:analysis:phaseA} writes a \texttt{PhaseAResult} JSON file to disk, and \texttt{:analysis:phaseB} reruns the cheap second phase using a Phase A dump and a chosen \texttt{ScoringConfig}.
+This split is important for the sensitivity experiments in Chapter~\ref{ch:results}. Changing the score weights only affects the second phase, so thousands of scoring configurations can be evaluated against the same cached first-phase output without rebuilding trajectories or rerunning tests.
 
 \section{Dashboard}
 \label{sec:arch-dashboard}
