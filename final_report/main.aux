@@ -327,8 +327,8 @@
 \newlabel{sec:results-sensitivity}{{4.1.1}{37}{Sensitivity sweep}{subsection.4.1.1}{}}
 \@writefile{toc}{\contentsline {paragraph}{Experiment setup.}{37}{section*.36}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{Single-knob results.}{38}{section*.37}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {4.1}{\ignorespaces Single-knob sensitivity across the rankable subsets of the three session types ($\geq 2$ detected divergence points per session). The clamp-frozen rate is the share of $(\text  {DP} \times \text  {perturbation})$ cells where the user trajectory-final and the DP's alt trajectory-final both sit at the same $[0, 100]$ clamp value in baseline and in perturbed; for those cells the magnitude $J(\text  {alt}_T) - J(\text  {user}_T)$ is identical by construction, contributing trivially to $\tau = 1$. Only $1.8\%$ of user-study cells are clamp-frozen, so the $96.5\%$ top-$1$ figure is overwhelmingly genuine perturbation response rather than clamp-driven invariance.}}{38}{table.caption.38}\protected@file@percent }
-\newlabel{tab:results-sensitivity-headline}{{4.1}{38}{Single-knob sensitivity across the rankable subsets of the three session types ($\geq 2$ detected divergence points per session). The clamp-frozen rate is the share of $(\text {DP} \times \text {perturbation})$ cells where the user trajectory-final and the DP's alt trajectory-final both sit at the same $[0, 100]$ clamp value in baseline and in perturbed; for those cells the magnitude $J(\text {alt}_T) - J(\text {user}_T)$ is identical by construction, contributing trivially to $\tau = 1$. Only $1.8\%$ of user-study cells are clamp-frozen, so the $96.5\%$ top-$1$ figure is overwhelmingly genuine perturbation response rather than clamp-driven invariance}{table.caption.38}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {4.1}{\ignorespaces Single-knob sensitivity across the rankable subsets of the three session types ($\geq 2$ detected divergence points per session). The clamp-frozen rate is the share of $(\text  {DP} \times \text  {perturbation})$ cases where the user trajectory-final and the DP's alt trajectory-final both sit at the same $[0, 100]$ clamp value in baseline and in perturbed; for those cases the magnitude $J(\text  {alt}_T) - J(\text  {user}_T)$ is identical by construction, contributing trivially to $\tau = 1$. Only $1.8\%$ of user-study cases are clamp-frozen, so the $96.5\%$ top-$1$ figure is overwhelmingly genuine perturbation response rather than clamp-driven invariance.}}{38}{table.caption.38}\protected@file@percent }
+\newlabel{tab:results-sensitivity-headline}{{4.1}{38}{Single-knob sensitivity across the rankable subsets of the three session types ($\geq 2$ detected divergence points per session). The clamp-frozen rate is the share of $(\text {DP} \times \text {perturbation})$ cases where the user trajectory-final and the DP's alt trajectory-final both sit at the same $[0, 100]$ clamp value in baseline and in perturbed; for those cases the magnitude $J(\text {alt}_T) - J(\text {user}_T)$ is identical by construction, contributing trivially to $\tau = 1$. Only $1.8\%$ of user-study cases are clamp-frozen, so the $96.5\%$ top-$1$ figure is overwhelmingly genuine perturbation response rather than clamp-driven invariance}{table.caption.38}{}}
 \@writefile{toc}{\contentsline {paragraph}{Sources of ranking instability.}{38}{section*.39}\protected@file@percent }
 \@writefile{lot}{\contentsline {table}{\numberline {4.2}{\ignorespaces Per-knob top-$1$ disruption counts on the user-study rankable subset (25 sessions $\times $ 9 perturbation factors $=$ 225 cases per weight). Most top-$1$ shifts come from the process-side weights, especially $W_{\textsc  {g}}$; the lag weight changes the top-ranked item only once, and the cleanliness sub-weights have little effect.}}{39}{table.caption.40}\protected@file@percent }
 \newlabel{tab:results-sensitivity-knobs}{{4.2}{39}{Per-knob top-$1$ disruption counts on the user-study rankable subset (25 sessions $\times $ 9 perturbation factors $=$ 225 cases per weight). Most top-$1$ shifts come from the process-side weights, especially $W_{\textsc {g}}$; the lag weight changes the top-ranked item only once, and the cleanliness sub-weights have little effect}{table.caption.40}{}}
@@ -364,16 +364,15 @@
 \@writefile{lot}{\contentsline {table}{\numberline {4.9}{\ignorespaces Per-kind precision and recall on the 45-session set. The ``injection'' recall column counts only the kind the playbook explicitly injected; ``any expected'' counts any kind the session's \texttt  {expected\_kinds} label includes.}}{44}{table.caption.56}\protected@file@percent }
 \newlabel{tab:results-divergence-prec-recall}{{4.9}{44}{Per-kind precision and recall on the 45-session set. The ``injection'' recall column counts only the kind the playbook explicitly injected; ``any expected'' counts any kind the session's \texttt {expected\_kinds} label includes}{table.caption.56}{}}
 \@writefile{toc}{\contentsline {paragraph}{Detection quality.}{44}{section*.57}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {4.10}{\ignorespaces Per-kind detection quality. ``DPs'' is the number of divergence points the detector fires. ``beats user'' / ``ties user'' / ``loses to user'' partition each DP by the sign of its magnitude $J(\text  {alt}_T) - J(\text  {user}_T)$ under the production formula. Beats $+$ ties $+$ loses $=$ DPs in every row. \emph  {Hygiene} is perfect (every alt strictly improves); \emph  {Ordering} is dominated by ties (the synthesised alternative reaches the same end state and the same final score under the production formula on $12$ of $24$ windows). The \emph  {Ordering} beats count rises from $4$ to $10$ once the lag term $W_{\textsc  {lag}}$ is in the formula; without $W_{\textsc  {lag}}$ the loses count collapses to $0$ and the ties count rises to $20$.}}{45}{table.caption.58}\protected@file@percent }
-\newlabel{tab:results-divergence-quality}{{4.10}{45}{Per-kind detection quality. ``DPs'' is the number of divergence points the detector fires. ``beats user'' / ``ties user'' / ``loses to user'' partition each DP by the sign of its magnitude $J(\text {alt}_T) - J(\text {user}_T)$ under the production formula. Beats $+$ ties $+$ loses $=$ DPs in every row. \emph {Hygiene} is perfect (every alt strictly improves); \emph {Ordering} is dominated by ties (the synthesised alternative reaches the same end state and the same final score under the production formula on $12$ of $24$ windows). The \emph {Ordering} beats count rises from $4$ to $10$ once the lag term $W_{\textsc {lag}}$ is in the formula; without $W_{\textsc {lag}}$ the loses count collapses to $0$ and the ties count rises to $20$}{table.caption.58}{}}
-\@writefile{toc}{\contentsline {paragraph}{Two-way ordering discrimination.}{45}{section*.59}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {4.10}{\ignorespaces Per-kind detection quality. ``DPs'' gives the number of emitted divergence points. The beats, ties, and loses columns group those points by the sign of $J(\text  {alt}_T) - J(\text  {user}_T)$ under the production formula. Hygiene improves on the user in every case; Ordering has many ties because several reordered alternatives reach the same final state with the same final score.}}{45}{table.caption.58}\protected@file@percent }
+\newlabel{tab:results-divergence-quality}{{4.10}{45}{Per-kind detection quality. ``DPs'' gives the number of emitted divergence points. The beats, ties, and loses columns group those points by the sign of $J(\text {alt}_T) - J(\text {user}_T)$ under the production formula. Hygiene improves on the user in every case; Ordering has many ties because several reordered alternatives reach the same final state with the same final score}{table.caption.58}{}}
+\@writefile{toc}{\contentsline {paragraph}{Ordering can also favour the user.}{45}{section*.59}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{Injection prominence.}{45}{section*.60}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {4.11}{\ignorespaces Injection prominence: rank of the caught injection's divergence point within its session's magnitude ordering. Every positive-magnitude catch is ranked top-$1$ across all four kinds.}}{45}{table.caption.61}\protected@file@percent }
+\newlabel{tab:results-divergence-prominence}{{4.11}{45}{Injection prominence: rank of the caught injection's divergence point within its session's magnitude ordering. Every positive-magnitude catch is ranked top-$1$ across all four kinds}{table.caption.61}{}}
 \@writefile{toc}{\contentsline {paragraph}{Caveats.}{45}{section*.62}\protected@file@percent }
-\citation{mens2007graph}
-\@writefile{lot}{\contentsline {table}{\numberline {4.11}{\ignorespaces Injection prominence: when an injection's kind is caught, where does the corresponding divergence point sit in the session's per-magnitude ranking? Top-$1$ on every catch across all four kinds. The single ordering catch is session $022$, surfaced once $W_{\textsc  {lag}}$ entered the formula.}}{46}{table.caption.61}\protected@file@percent }
-\newlabel{tab:results-divergence-prominence}{{4.11}{46}{Injection prominence: when an injection's kind is caught, where does the corresponding divergence point sit in the session's per-magnitude ranking? Top-$1$ on every catch across all four kinds. The single ordering catch is session $022$, surfaced once $W_{\textsc {lag}}$ entered the formula}{table.caption.61}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.2.3}Scoped-out fix: ordering recall}{46}{subsection.4.2.3}\protected@file@percent }
-\newlabel{sec:results-scoped-out}{{4.2.3}{46}{Scoped-out fix: ordering recall}{subsection.4.2.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.2.3}Known limitation: ordering recall}{46}{subsection.4.2.3}\protected@file@percent }
+\newlabel{sec:results-scoped-out}{{4.2.3}{46}{Known limitation: ordering recall}{subsection.4.2.3}{}}
 \@writefile{toc}{\contentsline {section}{\numberline {4.3}User and agent studies}{46}{section.4.3}\protected@file@percent }
 \newlabel{sec:results-studies}{{4.3}{46}{User and agent studies}{section.4.3}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {4.3.1}User study}{46}{subsection.4.3.1}\protected@file@percent }
@@ -385,25 +384,25 @@
 \@writefile{lot}{\contentsline {table}{\numberline {4.13}{\ignorespaces Per-kind divergence-point trajectory across the six-session arc, summed within each arm. The with-feedback aggregate drops from $12$ at S1 to $2$ at S6 ($\Delta = -10$); the baseline aggregate rises from $10$ to $15$ ($\Delta = +5$). The two arms are comparable at S1 and diverge from S3 onwards. Both arms register $0$ divergence points on S04 (a clean-consolidation prompt all participants discharged in a couple of edits). IDE-replay and hygiene carry most of the arm-level signal in both directions.}}{48}{table.caption.66}\protected@file@percent }
 \newlabel{tab:results-userstudy-trajectory}{{4.13}{48}{Per-kind divergence-point trajectory across the six-session arc, summed within each arm. The with-feedback aggregate drops from $12$ at S1 to $2$ at S6 ($\Delta = -10$); the baseline aggregate rises from $10$ to $15$ ($\Delta = +5$). The two arms are comparable at S1 and diverge from S3 onwards. Both arms register $0$ divergence points on S04 (a clean-consolidation prompt all participants discharged in a couple of edits). IDE-replay and hygiene carry most of the arm-level signal in both directions}{table.caption.66}{}}
 \@writefile{toc}{\contentsline {paragraph}{Process scores under the production and gain-stripped weightings.}{49}{section*.67}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {4.14}{\ignorespaces Trajectory-final process score across the six-session arc for each participant under the cleanliness-gain-zeroed weighting ($W_g = 0$), grouped by arm. The production-weighted view is dominated by the cleanliness-gain term and is reported per-session in the reproducibility notebook. $\Delta $ is $S6 - S1$ and slope is $\Delta / 5$ in score units per session. The arm means aggregate across participants within the arm.}}{50}{table.caption.68}\protected@file@percent }
-\newlabel{tab:results-userstudy-scores}{{4.14}{50}{Trajectory-final process score across the six-session arc for each participant under the cleanliness-gain-zeroed weighting ($W_g = 0$), grouped by arm. The production-weighted view is dominated by the cleanliness-gain term and is reported per-session in the reproducibility notebook. $\Delta $ is $S6 - S1$ and slope is $\Delta / 5$ in score units per session. The arm means aggregate across participants within the arm}{table.caption.68}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {4.14}{\ignorespaces Trajectory-final process score across the six-session arc for each participant under the cleanliness-gain-zeroed weighting ($W_g = 0$), grouped by arm. The production-weighted view is dominated by the cleanliness-gain term and is reported per-session in the reproducibility notebook. $\Delta $ is $S6 - S1$ and slope is $\Delta / 5$ in score units per session. The arm means aggregate across participants within the arm.}}{49}{table.caption.68}\protected@file@percent }
+\newlabel{tab:results-userstudy-scores}{{4.14}{49}{Trajectory-final process score across the six-session arc for each participant under the cleanliness-gain-zeroed weighting ($W_g = 0$), grouped by arm. The production-weighted view is dominated by the cleanliness-gain term and is reported per-session in the reproducibility notebook. $\Delta $ is $S6 - S1$ and slope is $\Delta / 5$ in score units per session. The arm means aggregate across participants within the arm}{table.caption.68}{}}
 \@writefile{toc}{\contentsline {paragraph}{With-feedback vs no-feedback baseline arm.}{50}{section*.69}\protected@file@percent }
+\newlabel{sec:results-userstudy-stepui}{{4.3.1}{50}{Per-step inspection as a usability win}{section*.70}{}}
+\@writefile{toc}{\contentsline {paragraph}{Per-step inspection as a usability win.}{50}{section*.70}\protected@file@percent }
 \citation{murphyhill2009howrefactor}
-\newlabel{sec:results-userstudy-stepui}{{4.3.1}{51}{Per-step inspection as a usability win}{section*.70}{}}
-\@writefile{toc}{\contentsline {paragraph}{Per-step inspection as a usability win.}{51}{section*.70}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {4.3.2}Agent extension experiment}{51}{subsection.4.3.2}\protected@file@percent }
 \newlabel{sec:results-userstudy-agent}{{4.3.2}{51}{Agent extension experiment}{subsection.4.3.2}{}}
 \@writefile{toc}{\contentsline {paragraph}{Framing.}{51}{section*.71}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{Setup.}{51}{section*.72}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Per-cell descriptive arc.}{52}{section*.73}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {4.15}{\ignorespaces Per-cell gain-stripped trajectory and total divergence-point count across the eight agent stacks. Cells 1--6 are with-feedback (named for the model $\times $ harness combination); cells 7 and 8 are no-feedback baselines, named with the \texttt  {-baseline} suffix. The arm means aggregate across cells within the arm.}}{52}{table.caption.74}\protected@file@percent }
-\newlabel{tab:results-userstudy-agent-trajectory}{{4.15}{52}{Per-cell gain-stripped trajectory and total divergence-point count across the eight agent stacks. Cells 1--6 are with-feedback (named for the model $\times $ harness combination); cells 7 and 8 are no-feedback baselines, named with the \texttt {-baseline} suffix. The arm means aggregate across cells within the arm}{table.caption.74}{}}
+\@writefile{toc}{\contentsline {paragraph}{Per-stack descriptive arc.}{51}{section*.73}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {4.15}{\ignorespaces Per-stack gain-stripped trajectory and total divergence-point count across the eight agent stacks. Stacks 1--6 are with-feedback (named for the model $\times $ harness combination); stacks 7 and 8 are no-feedback baselines, named with the \texttt  {-baseline} suffix. The arm means aggregate across stacks within the arm.}}{52}{table.caption.74}\protected@file@percent }
+\newlabel{tab:results-userstudy-agent-trajectory}{{4.15}{52}{Per-stack gain-stripped trajectory and total divergence-point count across the eight agent stacks. Stacks 1--6 are with-feedback (named for the model $\times $ harness combination); stacks 7 and 8 are no-feedback baselines, named with the \texttt {-baseline} suffix. The arm means aggregate across stacks within the arm}{table.caption.74}{}}
 \@writefile{toc}{\contentsline {paragraph}{With-feedback vs no-feedback baseline arm.}{52}{section*.75}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Cross-stack effects.}{53}{section*.76}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Cross-stack effects.}{52}{section*.76}\protected@file@percent }
 \newlabel{sec:results-userstudy-agent-limits}{{4.3.2}{53}{Detector-bias limitations on agent traces}{section*.77}{}}
 \@writefile{toc}{\contentsline {paragraph}{Detector-bias limitations on agent traces.}{53}{section*.77}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Feedback engagement varies by model family.}{54}{section*.78}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Qualitative threads from cell 1 (\texttt  {claude-2-opus-4.7-claude-code}).}{54}{section*.79}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Feedback engagement varies by model family.}{53}{section*.78}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Qualitative threads from stack 1 (\texttt  {claude-2-opus-4.7-claude-code}).}{54}{section*.79}\protected@file@percent }
 \citation{wohlin2012experimentation}
 \citation{coleman1994maintainability}
 \@writefile{toc}{\contentsline {chapter}{\numberline {5}Threats to validity}{56}{chapter.5}\protected@file@percent }
@@ -464,25 +463,25 @@
 \newlabel{sec:conclusion-future-work}{{6.4}{66}{Future work}{section.6.4}{}}
 \@writefile{toc}{\contentsline {section}{\numberline {6.5}Closing}{66}{section.6.5}\protected@file@percent }
 \newlabel{sec:conclusion-closing}{{6.5}{66}{Closing}{section.6.5}{}}
-\@writefile{toc}{\contentsline {chapter}{\numberline {7}Declarations}{67}{chapter.7}\protected@file@percent }
+\@writefile{toc}{\contentsline {chapter}{\numberline {7}Declarations}{68}{chapter.7}\protected@file@percent }
 \@writefile{lof}{\addvspace {10\p@ }}
 \@writefile{lot}{\addvspace {10\p@ }}
-\newlabel{ch:declarations}{{7}{67}{Declarations}{chapter.7}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {7.1}Use of Generative AI}{67}{section.7.1}\protected@file@percent }
-\newlabel{sec:declarations-genai}{{7.1}{67}{Use of Generative AI}{section.7.1}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {7.2}Ethical Considerations}{67}{section.7.2}\protected@file@percent }
-\newlabel{sec:declarations-ethics}{{7.2}{67}{Ethical Considerations}{section.7.2}{}}
+\newlabel{ch:declarations}{{7}{68}{Declarations}{chapter.7}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {7.1}Use of Generative AI}{68}{section.7.1}\protected@file@percent }
+\newlabel{sec:declarations-genai}{{7.1}{68}{Use of Generative AI}{section.7.1}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {7.2}Ethical Considerations}{68}{section.7.2}\protected@file@percent }
+\newlabel{sec:declarations-ethics}{{7.2}{68}{Ethical Considerations}{section.7.2}{}}
 \citation{imperial_research_ethics}
-\@writefile{toc}{\contentsline {section}{\numberline {7.3}Sustainability}{68}{section.7.3}\protected@file@percent }
-\newlabel{sec:declarations-sustainability}{{7.3}{68}{Sustainability}{section.7.3}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {7.4}Availability of Data and Materials}{68}{section.7.4}\protected@file@percent }
-\newlabel{sec:declarations-availability}{{7.4}{68}{Availability of Data and Materials}{section.7.4}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {7.3}Sustainability}{69}{section.7.3}\protected@file@percent }
+\newlabel{sec:declarations-sustainability}{{7.3}{69}{Sustainability}{section.7.3}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {7.4}Availability of Data and Materials}{69}{section.7.4}\protected@file@percent }
+\newlabel{sec:declarations-availability}{{7.4}{69}{Availability of Data and Materials}{section.7.4}{}}
 \bibstyle{unsrt}
 \bibdata{bibs/sample}
-\@writefile{toc}{\contentsline {chapter}{\numberline {A}Appendix}{69}{appendix.A}\protected@file@percent }
+\@writefile{toc}{\contentsline {chapter}{\numberline {A}Appendix}{70}{appendix.A}\protected@file@percent }
 \@writefile{lof}{\addvspace {10\p@ }}
 \@writefile{lot}{\addvspace {10\p@ }}
-\newlabel{ch:appendix}{{A}{69}{Appendix}{appendix.A}{}}
+\newlabel{ch:appendix}{{A}{70}{Appendix}{appendix.A}{}}
 \bibcite{opdyke1992refactoring}{1}
 \bibcite{fowler1999refactoring}{2}
 \bibcite{fowler2018refactoring}{3}
@@ -540,7 +539,6 @@
 \bibcite{strumbelj2014explaining}{55}
 \bibcite{cohen1960kappa}{56}
 \bibcite{landis1977kappa}{57}
-\bibcite{mens2007graph}{58}
-\bibcite{wohlin2012experimentation}{59}
-\bibcite{imperial_research_ethics}{60}
-\gdef \@abspage@last{75}
+\bibcite{wohlin2012experimentation}{58}
+\bibcite{imperial_research_ethics}{59}
+\gdef \@abspage@last{76}

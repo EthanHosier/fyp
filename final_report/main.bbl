@@ -366,11 +366,6 @@ J.~Richard Landis and Gary~G. Koch.
 \newblock The measurement of observer agreement for categorical data.
 \newblock {\em Biometrics}, 33(1):159--174, 1977.
 
-\bibitem{mens2007graph}
-Tom Mens, Gabriele Taentzer, and Olga Runge.
-\newblock Analysing refactoring dependencies using graph transformation.
-\newblock {\em Software and Systems Modeling (SoSyM)}, 6(3):269--285, 2007.
-
 \bibitem{wohlin2012experimentation}
 Claes Wohlin, Per Runeson, Martin H{\"o}st, Magnus~C. Ohlsson, Bj{\"o}rn
   Regnell, and Anders Wessl{\'e}n.

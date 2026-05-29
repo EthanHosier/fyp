@@ -43,6 +43,8 @@ The suggestions below are ordered by what would most strengthen the main finding
     \item \textbf{Rater-rank validation.} The Cohen's $\kappa$ study validates kind-presence agreement only. A Kendall $\tau$-b study on per-session divergence-point rankings would validate that the score's ordering of divergence points within a session matches a human expert's ranking, which the $\kappa$ figures alone do not establish.
 
     \item \textbf{IDE-refactor-as-agent-tool deployment.} The IDE-replay structural limitation in \S\ref{sec:results-userstudy-agent} is the cleanest example in the chapter of feedback being correctly interpreted but inactionable: the agent acknowledges the IDE refactoring would score better but has no way to invoke it. Exposing IntelliJ's refactor actions as agent tool calls would close that gap and would let the \emph{IDE-Replay} count actually respond to feedback across sessions.
+
+    \item \textbf{Extend the reorder synthesiser to lift Ordering recall.} \S\ref{sec:results-scoped-out} documents the $0.36$ Ordering recall as a real limit: with the lag term $W_{\textsc{lag}}$ in the production formula, commuting permutations can have different magnitudes, so the windows currently rejected by \texttt{splitOnInvalid} would contribute non-zero magnitudes if the synthesiser could replay them. Extending the synthesiser engine to reproduce the currently-unsupported step kinds would directly lift recall and surface additional positive-magnitude Ordering divergence points.
 \end{enumerate}
 
 \section{Closing}

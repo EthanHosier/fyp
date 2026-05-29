@@ -103,26 +103,26 @@
 \contentsline {subsection}{\numberline {4.2.2}Divergence experiment}{43}{subsection.4.2.2}%
 \contentsline {paragraph}{Precision and recall.}{43}{section*.55}%
 \contentsline {paragraph}{Detection quality.}{44}{section*.57}%
-\contentsline {paragraph}{Two-way ordering discrimination.}{45}{section*.59}%
+\contentsline {paragraph}{Ordering can also favour the user.}{45}{section*.59}%
 \contentsline {paragraph}{Injection prominence.}{45}{section*.60}%
 \contentsline {paragraph}{Caveats.}{45}{section*.62}%
-\contentsline {subsection}{\numberline {4.2.3}Scoped-out fix: ordering recall}{46}{subsection.4.2.3}%
+\contentsline {subsection}{\numberline {4.2.3}Known limitation: ordering recall}{46}{subsection.4.2.3}%
 \contentsline {section}{\numberline {4.3}User and agent studies}{46}{section.4.3}%
 \contentsline {subsection}{\numberline {4.3.1}User study}{46}{subsection.4.3.1}%
 \contentsline {paragraph}{Descriptive findings on the participants' sessions.}{47}{section*.63}%
 \contentsline {paragraph}{Behavioural trajectory across the six-session arc.}{48}{section*.65}%
 \contentsline {paragraph}{Process scores under the production and gain-stripped weightings.}{49}{section*.67}%
 \contentsline {paragraph}{With-feedback vs no-feedback baseline arm.}{50}{section*.69}%
-\contentsline {paragraph}{Per-step inspection as a usability win.}{51}{section*.70}%
+\contentsline {paragraph}{Per-step inspection as a usability win.}{50}{section*.70}%
 \contentsline {subsection}{\numberline {4.3.2}Agent extension experiment}{51}{subsection.4.3.2}%
 \contentsline {paragraph}{Framing.}{51}{section*.71}%
 \contentsline {paragraph}{Setup.}{51}{section*.72}%
-\contentsline {paragraph}{Per-cell descriptive arc.}{52}{section*.73}%
+\contentsline {paragraph}{Per-stack descriptive arc.}{51}{section*.73}%
 \contentsline {paragraph}{With-feedback vs no-feedback baseline arm.}{52}{section*.75}%
-\contentsline {paragraph}{Cross-stack effects.}{53}{section*.76}%
+\contentsline {paragraph}{Cross-stack effects.}{52}{section*.76}%
 \contentsline {paragraph}{Detector-bias limitations on agent traces.}{53}{section*.77}%
-\contentsline {paragraph}{Feedback engagement varies by model family.}{54}{section*.78}%
-\contentsline {paragraph}{Qualitative threads from cell 1 (\texttt {claude-2-opus-4.7-claude-code}).}{54}{section*.79}%
+\contentsline {paragraph}{Feedback engagement varies by model family.}{53}{section*.78}%
+\contentsline {paragraph}{Qualitative threads from stack 1 (\texttt {claude-2-opus-4.7-claude-code}).}{54}{section*.79}%
 \contentsline {chapter}{\numberline {5}Threats to validity}{56}{chapter.5}%
 \contentsline {section}{\numberline {5.1}Construct validity}{56}{section.5.1}%
 \contentsline {paragraph}{There is no external ground truth for ``true refactoring quality''.}{56}{section*.80}%
@@ -161,9 +161,9 @@
 \contentsline {section}{\numberline {6.3}Discussion}{65}{section.6.3}%
 \contentsline {section}{\numberline {6.4}Future work}{66}{section.6.4}%
 \contentsline {section}{\numberline {6.5}Closing}{66}{section.6.5}%
-\contentsline {chapter}{\numberline {7}Declarations}{67}{chapter.7}%
-\contentsline {section}{\numberline {7.1}Use of Generative AI}{67}{section.7.1}%
-\contentsline {section}{\numberline {7.2}Ethical Considerations}{67}{section.7.2}%
-\contentsline {section}{\numberline {7.3}Sustainability}{68}{section.7.3}%
-\contentsline {section}{\numberline {7.4}Availability of Data and Materials}{68}{section.7.4}%
-\contentsline {chapter}{\numberline {A}Appendix}{69}{appendix.A}%
+\contentsline {chapter}{\numberline {7}Declarations}{68}{chapter.7}%
+\contentsline {section}{\numberline {7.1}Use of Generative AI}{68}{section.7.1}%
+\contentsline {section}{\numberline {7.2}Ethical Considerations}{68}{section.7.2}%
+\contentsline {section}{\numberline {7.3}Sustainability}{69}{section.7.3}%
+\contentsline {section}{\numberline {7.4}Availability of Data and Materials}{69}{section.7.4}%
+\contentsline {chapter}{\numberline {A}Appendix}{70}{appendix.A}%
