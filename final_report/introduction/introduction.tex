@@ -86,5 +86,7 @@ The approach is intended for realistic refactoring sessions, where IDE-supported
 
 The work does not attempt to enumerate every possible refactoring sequence or prove that a generated trajectory is globally optimal. Instead, it uses the analysis component to find a plausible higher-scoring reference path between the same start and end states. This keeps the task focused on explaining the developer's observed process, rather than replacing the developer with an automated refactoring planner.
 
+The work is scoped to human developer sessions. The agent comparison in Chapter~\ref{ch:results} is a feasibility extension on the same tooling rather than a co-equal evaluation target: the detectors are designed against human edit patterns (IDE refactor invocations, edit-burst structure, commit-cadence windows) and do not map cleanly onto agent traces. We treat that mismatch itself as one of the things Chapter~\ref{ch:results} surfaces.
+
 \section{Thesis Roadmap}
 The remainder of the thesis is organised as follows. Chapter~2 reviews related work on refactoring evaluation, refactoring mining, and refactoring recommendation. Chapter~3 defines the process-quality metric and divergence-point detector. Chapter~4 describes the implementation of the tool. Chapter~5 presents the evaluation and discusses threats to validity. Chapter~6 concludes the thesis and outlines possible future work.
