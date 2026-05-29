@@ -94,77 +94,76 @@
 \contentsline {paragraph}{Caveats and scope.}{40}{section*.44}%
 \contentsline {subsection}{\numberline {4.1.2}Ablation sweep}{40}{subsection.4.1.2}%
 \contentsline {paragraph}{Monotone by active-term count.}{40}{section*.45}%
-\contentsline {paragraph}{Per-term single-knob recovery.}{41}{section*.47}%
+\contentsline {paragraph}{Per-term single-knob recovery.}{40}{section*.47}%
 \contentsline {paragraph}{Per-term leave-one-out recovery.}{41}{section*.49}%
 \contentsline {paragraph}{Cross-set rerun on the user-study sessions.}{42}{section*.51}%
 \contentsline {paragraph}{Caveats.}{42}{section*.53}%
-\contentsline {subsection}{\numberline {4.1.3}Reordering as a window onto intermediate quality}{43}{subsection.4.1.3}%
-\contentsline {section}{\numberline {4.2}Testing the divergence-point detector}{44}{section.4.2}%
-\contentsline {subsection}{\numberline {4.2.1}Inter-rater reliability}{44}{subsection.4.2.1}%
-\contentsline {subsection}{\numberline {4.2.2}Divergence experiment}{44}{subsection.4.2.2}%
-\contentsline {paragraph}{Precision and recall.}{45}{section*.55}%
-\contentsline {paragraph}{Detection quality.}{45}{section*.57}%
-\contentsline {paragraph}{Two-way ordering discrimination.}{46}{section*.59}%
-\contentsline {paragraph}{Injection prominence.}{46}{section*.60}%
-\contentsline {paragraph}{Caveats.}{47}{section*.62}%
-\contentsline {subsection}{\numberline {4.2.3}Scoped-out fix: ordering recall}{47}{subsection.4.2.3}%
-\contentsline {section}{\numberline {4.3}User and agent studies}{47}{section.4.3}%
-\contentsline {subsection}{\numberline {4.3.1}User study}{48}{subsection.4.3.1}%
-\contentsline {paragraph}{Descriptive findings on the participants' sessions.}{48}{section*.63}%
-\contentsline {paragraph}{Behavioural trajectory across the six-session arc.}{49}{section*.65}%
-\contentsline {paragraph}{Process scores under the production and gain-stripped weightings.}{50}{section*.67}%
-\contentsline {paragraph}{With-feedback vs no-feedback baseline arm.}{51}{section*.69}%
-\contentsline {paragraph}{Per-step inspection as a usability win.}{52}{section*.70}%
-\contentsline {subsection}{\numberline {4.3.2}Agent extension experiment}{52}{subsection.4.3.2}%
-\contentsline {paragraph}{Framing.}{52}{section*.71}%
-\contentsline {paragraph}{Setup.}{52}{section*.72}%
-\contentsline {paragraph}{Per-cell descriptive arc.}{53}{section*.73}%
-\contentsline {paragraph}{With-feedback vs no-feedback baseline arm.}{53}{section*.75}%
-\contentsline {paragraph}{Cross-stack effects.}{54}{section*.76}%
-\contentsline {paragraph}{Detector-bias limitations on agent traces.}{54}{section*.77}%
-\contentsline {paragraph}{Feedback engagement varies by model family.}{55}{section*.78}%
-\contentsline {paragraph}{Qualitative threads from cell 1 (\texttt {claude-2-opus-4.7-claude-code}).}{55}{section*.79}%
-\contentsline {chapter}{\numberline {5}Threats to validity}{57}{chapter.5}%
-\contentsline {section}{\numberline {5.1}Construct validity}{57}{section.5.1}%
-\contentsline {paragraph}{There is no external ground truth for ``true refactoring quality''.}{57}{section*.80}%
-\contentsline {paragraph}{The score is not a maintainability index.}{57}{section*.81}%
-\contentsline {paragraph}{The four-kind taxonomy is a methodology choice, not a discovered structure.}{57}{section*.82}%
-\contentsline {paragraph}{\texttt {SuboptimalOrdering} is author-claimed, not measured.}{58}{section*.83}%
-\contentsline {paragraph}{The AST-equivalence audit uses an informal definition.}{58}{section*.84}%
-\contentsline {section}{\numberline {5.2}Internal validity}{58}{section.5.2}%
-\contentsline {paragraph}{The single-knob sensitivity sweep is combined with a multi-knob design rather than replaced.}{58}{section*.85}%
-\contentsline {paragraph}{Kind-presence agreement does not imply rank-order agreement.}{58}{section*.86}%
-\contentsline {paragraph}{Cleanliness sub-weights are uniform $1.0$ by Laplace's principle of insufficient reason.}{59}{section*.87}%
-\contentsline {paragraph}{The lag term couples the cleanliness sub-score to the process score.}{59}{section*.88}%
-\contentsline {paragraph}{Two batching primitives are heuristic and not sensitivity-tested.}{59}{section*.89}%
-\contentsline {paragraph}{The production weight vector is hand-picked within a literature-grounded ordering.}{59}{section*.90}%
-\contentsline {paragraph}{Which terms carry the ranking varies by session type.}{59}{section*.91}%
-\contentsline {paragraph}{The reorder dependency analysis is deliberately coarse, and anchors are content-addressed.}{60}{section*.92}%
-\contentsline {paragraph}{Cleanliness sub-signals are clamped to the user's range on alternative trajectories.}{60}{section*.93}%
-\contentsline {section}{\numberline {5.3}External validity}{60}{section.5.3}%
-\contentsline {paragraph}{The injection sessions are scoped exercises, not naturalistic sessions.}{60}{section*.94}%
-\contentsline {paragraph}{The user study has five participants split into a randomised three-vs-two arm.}{61}{section*.95}%
-\contentsline {paragraph}{The agent extension is a feasibility experiment, not an agent evaluation.}{61}{section*.96}%
-\contentsline {paragraph}{All sessions are single-author IntelliJ sessions on a Gradle Java project.}{61}{section*.97}%
-\contentsline {paragraph}{The detectors are designed for human edit patterns.}{61}{section*.98}%
-\contentsline {paragraph}{Refactoring kinds the synthesiser cannot handle are excluded by construction.}{62}{section*.99}%
-\contentsline {section}{\numberline {5.4}Statistical conclusion validity}{62}{section.5.4}%
-\contentsline {section}{\numberline {5.5}Per-experiment threats}{62}{section.5.5}%
-\contentsline {paragraph}{The kind classifier (\S \ref {sec:results-divergence}).}{62}{section*.100}%
-\contentsline {paragraph}{The user study (\S \ref {sec:results-userstudy}).}{62}{section*.101}%
-\contentsline {paragraph}{The agent extension (\S \ref {sec:results-userstudy-agent}).}{63}{section*.102}%
-\contentsline {paragraph}{The rater study (\S \ref {sec:results-kappa}).}{63}{section*.103}%
-\contentsline {section}{\numberline {5.6}Implementation threats}{63}{section.5.6}%
-\contentsline {section}{\numberline {5.7}Out of scope}{64}{section.5.7}%
-\contentsline {chapter}{\numberline {6}Discussion and Conclusions}{65}{chapter.6}%
-\contentsline {section}{\numberline {6.1}Summary of contributions}{65}{section.6.1}%
-\contentsline {section}{\numberline {6.2}Headline findings}{65}{section.6.2}%
-\contentsline {section}{\numberline {6.3}Discussion}{66}{section.6.3}%
-\contentsline {section}{\numberline {6.4}Future work}{67}{section.6.4}%
-\contentsline {section}{\numberline {6.5}Closing}{67}{section.6.5}%
-\contentsline {chapter}{\numberline {7}Declarations}{69}{chapter.7}%
-\contentsline {section}{\numberline {7.1}Use of Generative AI}{69}{section.7.1}%
-\contentsline {section}{\numberline {7.2}Ethical Considerations}{69}{section.7.2}%
-\contentsline {section}{\numberline {7.3}Sustainability}{70}{section.7.3}%
-\contentsline {section}{\numberline {7.4}Availability of Data and Materials}{70}{section.7.4}%
-\contentsline {chapter}{\numberline {A}Appendix}{71}{appendix.A}%
+\contentsline {section}{\numberline {4.2}Testing the divergence-point detector}{43}{section.4.2}%
+\contentsline {subsection}{\numberline {4.2.1}Inter-rater reliability}{43}{subsection.4.2.1}%
+\contentsline {subsection}{\numberline {4.2.2}Divergence experiment}{43}{subsection.4.2.2}%
+\contentsline {paragraph}{Precision and recall.}{43}{section*.55}%
+\contentsline {paragraph}{Detection quality.}{44}{section*.57}%
+\contentsline {paragraph}{Ordering can also favour the user.}{45}{section*.59}%
+\contentsline {paragraph}{Injection prominence.}{45}{section*.60}%
+\contentsline {paragraph}{Caveats.}{45}{section*.62}%
+\contentsline {subsection}{\numberline {4.2.3}Scoped-out fix: ordering recall}{46}{subsection.4.2.3}%
+\contentsline {section}{\numberline {4.3}User and agent studies}{46}{section.4.3}%
+\contentsline {subsection}{\numberline {4.3.1}User study}{46}{subsection.4.3.1}%
+\contentsline {paragraph}{Descriptive findings on the participants' sessions.}{47}{section*.63}%
+\contentsline {paragraph}{Behavioural trajectory across the six-session arc.}{48}{section*.65}%
+\contentsline {paragraph}{Process scores under the production and gain-stripped weightings.}{49}{section*.67}%
+\contentsline {paragraph}{With-feedback vs no-feedback baseline arm.}{50}{section*.69}%
+\contentsline {paragraph}{Per-step inspection as a usability win.}{50}{section*.70}%
+\contentsline {subsection}{\numberline {4.3.2}Agent extension experiment}{51}{subsection.4.3.2}%
+\contentsline {paragraph}{Framing.}{51}{section*.71}%
+\contentsline {paragraph}{Setup.}{51}{section*.72}%
+\contentsline {paragraph}{Per-stack descriptive arc.}{51}{section*.73}%
+\contentsline {paragraph}{With-feedback vs no-feedback baseline arm.}{52}{section*.75}%
+\contentsline {paragraph}{Cross-stack effects.}{52}{section*.76}%
+\contentsline {paragraph}{Detector-bias limitations on agent traces.}{53}{section*.77}%
+\contentsline {paragraph}{Feedback engagement varies by model family.}{53}{section*.78}%
+\contentsline {paragraph}{Qualitative threads from stack 1 (\texttt {claude-2-opus-4.7-claude-code}).}{54}{section*.79}%
+\contentsline {chapter}{\numberline {5}Threats to validity}{56}{chapter.5}%
+\contentsline {section}{\numberline {5.1}Construct validity}{56}{section.5.1}%
+\contentsline {paragraph}{There is no external ground truth for ``true refactoring quality''.}{56}{section*.80}%
+\contentsline {paragraph}{The score is not a maintainability index.}{56}{section*.81}%
+\contentsline {paragraph}{The four-kind taxonomy is a methodology choice, not a discovered structure.}{56}{section*.82}%
+\contentsline {paragraph}{\texttt {SuboptimalOrdering} is author-claimed, not measured.}{57}{section*.83}%
+\contentsline {paragraph}{The AST-equivalence audit uses an informal definition.}{57}{section*.84}%
+\contentsline {section}{\numberline {5.2}Internal validity}{57}{section.5.2}%
+\contentsline {paragraph}{The single-knob sensitivity sweep is combined with a multi-knob design rather than replaced.}{57}{section*.85}%
+\contentsline {paragraph}{Kind-presence agreement does not imply rank-order agreement.}{57}{section*.86}%
+\contentsline {paragraph}{Cleanliness sub-weights are uniform $1.0$ by Laplace's principle of insufficient reason.}{58}{section*.87}%
+\contentsline {paragraph}{The lag term couples the cleanliness sub-score to the process score.}{58}{section*.88}%
+\contentsline {paragraph}{Two batching primitives are heuristic and not sensitivity-tested.}{58}{section*.89}%
+\contentsline {paragraph}{The production weight vector is hand-picked within a literature-grounded ordering.}{58}{section*.90}%
+\contentsline {paragraph}{Which terms carry the ranking varies by session type.}{58}{section*.91}%
+\contentsline {paragraph}{The reorder dependency analysis is deliberately coarse, and anchors are content-addressed.}{59}{section*.92}%
+\contentsline {paragraph}{Cleanliness sub-signals are clamped to the user's range on alternative trajectories.}{59}{section*.93}%
+\contentsline {section}{\numberline {5.3}External validity}{59}{section.5.3}%
+\contentsline {paragraph}{The injection sessions are scoped exercises, not naturalistic sessions.}{59}{section*.94}%
+\contentsline {paragraph}{The user study has five participants split into a randomised three-vs-two arm.}{60}{section*.95}%
+\contentsline {paragraph}{The agent extension is a feasibility experiment, not an agent evaluation.}{60}{section*.96}%
+\contentsline {paragraph}{All sessions are single-author IntelliJ sessions on a Gradle Java project.}{60}{section*.97}%
+\contentsline {paragraph}{The detectors are designed for human edit patterns.}{60}{section*.98}%
+\contentsline {paragraph}{Refactoring kinds the synthesiser cannot handle are excluded by construction.}{61}{section*.99}%
+\contentsline {section}{\numberline {5.4}Statistical conclusion validity}{61}{section.5.4}%
+\contentsline {section}{\numberline {5.5}Per-experiment threats}{61}{section.5.5}%
+\contentsline {paragraph}{The kind classifier (\S \ref {sec:results-divergence}).}{61}{section*.100}%
+\contentsline {paragraph}{The user study (\S \ref {sec:results-userstudy}).}{61}{section*.101}%
+\contentsline {paragraph}{The agent extension (\S \ref {sec:results-userstudy-agent}).}{62}{section*.102}%
+\contentsline {paragraph}{The rater study (\S \ref {sec:results-kappa}).}{62}{section*.103}%
+\contentsline {section}{\numberline {5.6}Implementation threats}{62}{section.5.6}%
+\contentsline {section}{\numberline {5.7}Out of scope}{63}{section.5.7}%
+\contentsline {chapter}{\numberline {6}Discussion and Conclusions}{64}{chapter.6}%
+\contentsline {section}{\numberline {6.1}Summary of contributions}{64}{section.6.1}%
+\contentsline {section}{\numberline {6.2}Headline findings}{64}{section.6.2}%
+\contentsline {section}{\numberline {6.3}Discussion}{65}{section.6.3}%
+\contentsline {section}{\numberline {6.4}Future work}{66}{section.6.4}%
+\contentsline {section}{\numberline {6.5}Closing}{66}{section.6.5}%
+\contentsline {chapter}{\numberline {7}Declarations}{67}{chapter.7}%
+\contentsline {section}{\numberline {7.1}Use of Generative AI}{67}{section.7.1}%
+\contentsline {section}{\numberline {7.2}Ethical Considerations}{67}{section.7.2}%
+\contentsline {section}{\numberline {7.3}Sustainability}{68}{section.7.3}%
+\contentsline {section}{\numberline {7.4}Availability of Data and Materials}{68}{section.7.4}%
+\contentsline {chapter}{\numberline {A}Appendix}{69}{appendix.A}%

@@ -371,22 +371,6 @@ Tom Mens, Gabriele Taentzer, and Olga Runge.
 \newblock Analysing refactoring dependencies using graph transformation.
 \newblock {\em Software and Systems Modeling (SoSyM)}, 6(3):269--285, 2007.
 
-\bibitem{liu2009smell}
-Hui Liu, Lu~Yang, Zhendong Niu, Zhiyi Ma, and Weizhong Shao.
-\newblock Facilitating software refactoring with appropriate resolution order
-  of bad smells.
-\newblock In {\em Proceedings of the 7th Joint Meeting of the European Software
-  Engineering Conference and the ACM SIGSOFT Symposium on the Foundations of
-  Software Engineering (ESEC/FSE)}, pages 265--268. ACM, 2009.
-
-\bibitem{khrishe2016empirical}
-Younes Khrishe and Mohammad Alshayeb.
-\newblock An empirical study on the effect of the order of applying software
-  refactoring.
-\newblock In {\em Proceedings of the 7th International Conference on Computer
-  Science and Information Technology (CSIT)}, pages 1--4, Amman, Jordan, 2016.
-  IEEE.
-
 \bibitem{wohlin2012experimentation}
 Claes Wohlin, Per Runeson, Martin H{\"o}st, Magnus~C. Ohlsson, Bj{\"o}rn
   Regnell, and Anders Wessl{\'e}n.

@@ -458,68 +458,86 @@ val ablAgent = ablationSweep("Agent (48)",      agent)
 val ablInjRankable  = ablationSweep("Injection (rankable, 15)",  rankableSubset(injection))
 val ablUserRankable = ablationSweep("User study (rankable, 25)", rankableSubset(userStudy))""")
 
-md("Monotone-by-active-count on the injection set (reproduces Table 5.4).")
+md("Monotone-by-active-count across all three session sets (reproduces Table 5.4). Sum-over-sum recovery is computed per set: injection (45), user-study (30), agent (48).")
 
-code(r"""ablInj.groupBy("active_count").aggregate {
-    val sumPert = sum { "perturbed_mag"<Double>() }
-    val sumBase = sum { "baseline_mag"<Double>() }
-    (if (sumBase > 0.0) sumPert / sumBase else 0.0) into "sum_over_sum"
-    count() into "n"
-}.sortBy("active_count")""")
-
-md(r"""Per-term single-knob recovery on the injection set (reproduces Table 5.5): each
-process-side term active alone, the other five zeroed. Columns: mean $\tau$ against
-production ranking, mean per-fixture recovery, and sum-over-sum recovery.""")
-
-code(r"""fun soloRow(df: AnyFrame, term: String): Map<String, Any> {
-    val rows = df.filter { "variant"<String>() == term }
-    // mean per-fixture recovery: |perturbed_mag| / |baseline_mag|, averaged
-    val perFixture = (0 until rows.rowsCount()).map { i ->
-        val b = rows["baseline_mag"][i] as Double
-        val p = rows["perturbed_mag"][i] as Double
-        if (b > 0.0) p / b else 1.0
+code(r"""fun monotoneSumOverSum(df: AnyFrame): Map<Int, Double> {
+    val grouped = df.groupBy("active_count").aggregate {
+        val sumPert = sum { "perturbed_mag"<Double>() }
+        val sumBase = sum { "baseline_mag"<Double>() }
+        (if (sumBase > 0.0) sumPert / sumBase else 0.0) into "sum_over_sum"
+        count() into "n"
+    }.sortBy("active_count")
+    val out = mutableMapOf<Int, Double>()
+    for (i in 0 until grouped.rowsCount()) {
+        out[grouped["active_count"][i] as Int] = grouped["sum_over_sum"][i] as Double
     }
-    val meanRec = perFixture.average()
-    val sumPert = rows["perturbed_mag"].cast<Double>().sum()
-    val sumBase = rows["baseline_mag"].cast<Double>().sum()
-    val sumOverSum = if (sumBase > 0.0) sumPert / sumBase else 0.0
-    return mapOf(
-        "term" to term,
-        "mean recovery" to "%.3f".format(meanRec),
-        "sum/sum" to "%.3f".format(sumOverSum),
-    )
+    return out
 }
 
-PROC_TERMS.map { soloRow(ablInj, it) }
-    .sortedByDescending { (it["sum/sum"] as String).toDouble() }
+val monoInj   = monotoneSumOverSum(ablInj)
+val monoUser  = monotoneSumOverSum(ablUser)
+val monoAgent = monotoneSumOverSum(ablAgent)
+
+(0..PROC_TERMS.size).map { k ->
+    val n = when (k) {
+        0, PROC_TERMS.size -> 45
+        else -> {
+            // n choose k = number of variants with k active terms; per fixture
+            // each variant contributes one row, so n = C(7,k) * 45.
+            var c = 1L
+            for (j in 0 until k) c = c * (PROC_TERMS.size - j) / (j + 1)
+            (c * 45).toInt()
+        }
+    }
+    mapOf(
+        "active_count"     to k,
+        "injection sum/sum"  to "%.3f".format(monoInj[k]   ?: 0.0),
+        "user-study sum/sum" to "%.3f".format(monoUser[k]  ?: 0.0),
+        "agent sum/sum"      to "%.3f".format(monoAgent[k] ?: 0.0),
+        "n (per set)"        to n,
+    )
+}.toDataFrame()""")
+
+md(r"""Per-term single-knob recovery across all three session sets (reproduces Table 5.5):
+each process-side term active alone, the other six zeroed. Sum-over-sum recovery is
+reported per set.""")
+
+code(r"""fun soloSumOverSum(df: AnyFrame, term: String): Double {
+    val rows = df.filter { "variant"<String>() == term }
+    val sumPert = rows["perturbed_mag"].cast<Double>().sum()
+    val sumBase = rows["baseline_mag"].cast<Double>().sum()
+    return if (sumBase > 0.0) sumPert / sumBase else 0.0
+}
+
+PROC_TERMS.map { term ->
+    mapOf(
+        "term"               to term,
+        "injection sum/sum"  to "%.3f".format(soloSumOverSum(ablInj,   term)),
+        "user-study sum/sum" to "%.3f".format(soloSumOverSum(ablUser,  term)),
+        "agent sum/sum"      to "%.3f".format(soloSumOverSum(ablAgent, term)),
+    )
+}.sortedByDescending { (it["injection sum/sum"] as String).toDouble() }
     .toDataFrame()""")
 
-md(r"""Per-term leave-one-out recovery on the injection set (reproduces Table 5.6): five
-process-side terms active, one removed. Removing $W_{\textsc{l}}$ should produce the
-largest sum/sum drop; removing $W_{\textsc{g}}$ should push sum/sum above 1.0 (the
-regulariser-against-penalties effect discussed in the chapter).""")
+md(r"""Per-term leave-one-out recovery across all three session sets (reproduces Table 5.6):
+six process-side terms active, one removed. Sum-over-sum recovery reported per set.""")
 
-code(r"""fun looRow(df: AnyFrame, removed: String): Map<String, Any> {
+code(r"""fun looSumOverSum(df: AnyFrame, removed: String): Double {
     val target = (allTerms - removed).toSortedSet()
     val rows = df.filter { "variant"<String>().split("+").toSortedSet() == target }
-    val perFixture = (0 until rows.rowsCount()).map { i ->
-        val b = rows["baseline_mag"][i] as Double
-        val p = rows["perturbed_mag"][i] as Double
-        if (b > 0.0) p / b else 1.0
-    }
-    val meanRec = perFixture.average()
     val sumPert = rows["perturbed_mag"].cast<Double>().sum()
     val sumBase = rows["baseline_mag"].cast<Double>().sum()
-    val sumOverSum = if (sumBase > 0.0) sumPert / sumBase else 0.0
-    return mapOf(
-        "removed term" to removed,
-        "mean recovery" to "%.3f".format(meanRec),
-        "sum/sum" to "%.3f".format(sumOverSum),
-    )
+    return if (sumBase > 0.0) sumPert / sumBase else 0.0
 }
 
-PROC_TERMS.map { looRow(ablInj, it) }
-    .sortedBy { (it["sum/sum"] as String).toDouble() }
+PROC_TERMS.map { term ->
+    mapOf(
+        "removed term"       to term,
+        "injection sum/sum"  to "%.3f".format(looSumOverSum(ablInj,   term)),
+        "user-study sum/sum" to "%.3f".format(looSumOverSum(ablUser,  term)),
+        "agent sum/sum"      to "%.3f".format(looSumOverSum(ablAgent, term)),
+    )
+}.sortedBy { (it["injection sum/sum"] as String).toDouble() }
     .toDataFrame()""")
 
 md("Cross-set leave-one-out τ (reproduces Table 5.7).")
@@ -670,12 +688,18 @@ code(r"""kinds.map { kind ->
     val divKind = com.github.ethanhosier.analysis.pipeline.DivergenceKind.valueOf(kind)
     var fires = 0
     var beats = 0
+    var ties = 0
+    var loses = 0
     for ((_, phaseA) in injection) {
         val report = ReportAssembler.assemble(phaseA, ScoringConfig.PRODUCTION)
         for (dp in report.divergencePoints) {
             if (dp.kind == divKind) {
                 fires += 1
-                if (dp.magnitude > 0.0) beats += 1
+                when {
+                    dp.magnitude > 0.0 -> beats += 1
+                    dp.magnitude == 0.0 -> ties += 1
+                    else -> loses += 1
+                }
             }
         }
     }
@@ -684,6 +708,8 @@ code(r"""kinds.map { kind ->
         "kind" to kind,
         "DPs fired" to fires,
         "beats user" to beats,
+        "ties user" to ties,
+        "loses to user" to loses,
         "beats fraction" to "%.3f".format(frac),
     )
 }.toDataFrame()""")
