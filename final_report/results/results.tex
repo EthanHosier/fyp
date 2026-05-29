@@ -15,188 +15,192 @@ The score weights were chosen from a literature-supported severity ordering (\S\
 \subsection{Sensitivity sweep}
 \label{sec:results-sensitivity}
 
-The first experiment measures how sensitive the divergence-point ranking is to the weights in the process-score formula. Large ranking changes under small weight perturbations would indicate that the reported priorities depend too strongly on arbitrary parameter choices. The experiment uses the single-knob and multi-knob perturbation methods defined in \S\ref{sec:methodology-sensitivity-design}. The main result is that the top-ranked divergence point is usually stable across all three session sets, although some terms do affect the ranking in identifiable cases.
+The first experiment measures how sensitive the divergence-point ranking is to the weights in the process-score formula. Large ranking changes under small weight perturbations would indicate that the order of divergence points depends too strongly on arbitrary parameter choices. The experiment uses the single-knob and multi-knob perturbation methods defined in \S\ref{sec:methodology-sensitivity-design}. The main result is that the top-ranked divergence point is usually stable across all three session types, although some terms do affect the ranking in identifiable cases.
 
 \paragraph{Experiment setup.}
-For the single-knob sweep, the chosen weight is scaled by one of nine factors in $\{0.1, 0.25, 0.5, 0.75, 1.25, 1.5, 2.0, 4.0, 10.0\}$. With twelve weights ($6$ process-side and $6$ cleanliness-side), this gives $12 \times 9 \times \lvert \mathcal{C} \rvert$ perturbation runs per session set $\mathcal{C}$. The multi-knob sweep draws $200$ independent samples per session using the log-normal sampling scheme defined in \S\ref{sec:methodology-sensitivity-design}.
+For the single-knob sweep, the chosen weight is scaled by one of nine factors in $\{0.1, 0.25, 0.5, 0.75, 1.25, 1.5, 2.0, 4.0, 10.0\}$. With thirteen weights ($7$ process-side and $6$ cleanliness-side), this gives $13 \times 9 \times \lvert \mathcal{C} \rvert$ perturbation runs per session set $\mathcal{C}$. The multi-knob sweep draws $200$ independent samples per session using the log-normal sampling scheme defined in \S\ref{sec:methodology-sensitivity-design}.
 
-The experiment is run against three session sets: the $45$ hand-labelled injection sessions of \S\ref{sec:results-divergence}, the $30$ user-study sessions of \S\ref{sec:results-userstudy}, and the $48$ agent extension sessions of \S\ref{sec:results-userstudy-agent}. These differ in their per-session divergence-point profiles. The injection sessions have at most $5$ divergence points per session and concentrate on single-kind exercises. The user-study sessions have up to $13$ per session across naturalistic sessions ($121$ in total, mean $4.0$ per session, with the no-feedback baseline arm carrying most of the high-count sessions). The agent sessions have at most $3$ per session across the eight agent stacks ($42$ in total, mean $0.9$ per session), consistent with the structural detector biases against agent edit patterns discussed in \S\ref{sec:results-userstudy-agent}.
+The experiment is run against three session types: the $45$ hand-labelled injection sessions of \S\ref{sec:results-divergence}, the $30$ user-study sessions of \S\ref{sec:results-userstudy}, and the $48$ agent extension sessions of \S\ref{sec:results-userstudy-agent}. These differ in their per-session divergence-point profiles. The injection sessions have at most $5$ detected divergence points per session and concentrate on single-kind exercises. The user-study sessions have up to $15$ detected divergence points per session across more natural sessions. The agent sessions have at most $4$ detected divergence points per session across the eight agent configurations, partly because the detector is designed around human IDE edit patterns rather than agent file-edit patterns (\S\ref{sec:results-userstudy-agent}).
 
-As defined in \S\ref{sec:methodology-sensitivity-design}, ranking stability is reported using Kendall's $\tau$-b and top-$N$ hit rate. Top-$1$ is the only metric that works across all three session sets, since it applies to any session with at least one divergence point. Top-$3$ and top-$5$ are reported on the user-study sessions only, where the per-session rankings are large enough to make them informative. Several divergence-point kinds produce ties, so ties are broken by ascending step index in both the production and perturbed rankings.
+Rank-based statistics ($\tau$-b, top-$N$) are computed on the \emph{rankable subset} of each session set: sessions whose analysis report contains $\geq 2$ detected divergence points. Both metrics are mechanically $1.0$ on smaller rankings (a single-item ranking cannot be perturbed and a zero-item ranking is undefined), so including those sessions inflates the headline figures without testing anything. This leaves $15$ of $45$ injection sessions, $25$ of $30$ user-study sessions, and $20$ of $48$ agent sessions in scope for the rank statistics. The magnitude-recovery statistics in \S\ref{sec:results-ablation} (sum-over-sum, mean recovery) continue to use the full session sets, since magnitudes are well-defined on every session including those with $\leq 1$ DP.
+
+As defined in \S\ref{sec:methodology-sensitivity-design}, ranking stability is reported using Kendall's $\tau$-b and top-$N$ hit rate. Top-$1$ is defined for every rankable session, so it can be compared across all three session types. Top-$3$ and top-$5$ are reported on the user-study sessions, where the per-session rankings are large enough to make them informative. Several divergence-point kinds produce ties, so ties are broken by ascending step index in both the production and perturbed rankings.
 
 \paragraph{Single-knob results.}
-Table~\ref{tab:results-sensitivity-headline} reports top-$1$ stability across the three session sets. The user-study sessions are the most demanding test: they have the longest per-session rankings, the highest divergence-point density, and the lowest baseline saturation. The injection sessions show the highest top-$1$ stability, but only because the per-session rankings are shorter and offer less surface area to reshuffle. The agent sessions sit between them, and $17.5\%$ of their baseline divergence points hit the score-clamp ceiling, which suppresses the observable effect of weight perturbations on a non-trivial slice of the agent set. On the user-study sessions the top-$1$ recommendation is preserved on $3{,}141$ of $3{,}240$ rows ($96.9\%$).
+Table~\ref{tab:results-sensitivity-headline} reports top-$1$ stability across the rankable subsets of the three session types. The user-study set is the strongest test of ranking stability because it carries the largest rankable subset ($25$ of $30$ sessions), the longest per-session rankings, and a low ceiling-hit rate. The injection rankable subset is the smallest ($15$ sessions); its top-$1$ stability is high but rests on a smaller per-session corpus. The agent rankable subset ($20$ sessions) sits between the two, although $21.6\%$ of its divergence points hit the score-clamp ceiling before perturbation, which limits how much weight perturbations can change the observed rankings. On the user-study rankable subset, the top-$1$ recommendation is preserved in $2{,}823$ of $2{,}925$ perturbation cases ($96.5\%$).
 
 \begin{table}[htbp]
 \centering
 \small
 \begin{tabular}{lrrrrr}
 \hline
-\textbf{session set} & \textbf{rows} & \textbf{$\tau = 1.0$} & \textbf{top-$1$ $= 1$} & \textbf{$\tau < 0$} & \textbf{baseline saturation} \\
+\textbf{session set (rankable)} & \textbf{cases} & \textbf{$\tau = 1.0$} & \textbf{top-$1$ $= 1$} & \textbf{$\tau < 0$} & \textbf{ceiling-hit rate} \\
 \hline
-Injection ($45$)         & $4{,}860$ & $77.0\%$ & $99.8\%$ & $0.3\%$ & $10.6\%$ \\
-\textbf{User study ($30$)} & $3{,}240$ & $51.5\%$ & $\mathbf{96.9\%}$ & $0.8\%$ & $\mathbf{6.4\%}$ \\
-Agent ($48$)              & $5{,}184$ & $88.5\%$ & $98.5\%$ & $1.2\%$ & $17.5\%$ \\
+Injection ($15$)         & $1{,}755$ & $30.7\%$ & $99.0\%$ & $1.3\%$ & $8.9\%$ \\
+\textbf{User study ($25$)} & $2{,}925$ & $41.9\%$ & $\mathbf{96.5\%}$ & $1.0\%$ & $\mathbf{6.4\%}$ \\
+Agent ($20$)              & $2{,}340$ & $72.4\%$ & $96.3\%$ & $3.0\%$ & $21.6\%$ \\
 \hline
 \end{tabular}
-\caption{Single-knob sensitivity across three session sets. The user-study sessions are the discriminating benchmark: longest per-session rankings and lowest baseline saturation. The $\tau = 1.0$ share is meaningfully lower on the user-study set ($51.5\%$) than on the injection set ($77.0\%$) or the agent set ($88.5\%$) because user-study rankings are long enough to allow tail reshuffling under arbitrary single-knob perturbation, even when the top-of-ranking decision is preserved on $96.9\%$ of rows.}
+\caption{Single-knob sensitivity across the rankable subsets of the three session types ($\geq 2$ detected divergence points per session). The user-study set is the strongest test of ranking stability because it carries the largest rankable subset ($25$ of $30$ sessions) and the longest per-session rankings. The $\tau = 1.0$ shares are lower than the headline figures from earlier corpus-wide reports because the rankable filter removes the mechanically-saturated $\leq 1$-DP sessions; what remains is genuine perturbation response. Even so, the top-ranked divergence point is preserved in $96.5\%$ of user-study perturbation cases.}
 \label{tab:results-sensitivity-headline}
 \end{table}
 
 \paragraph{Sources of ranking instability.}
-Table~\ref{tab:results-sensitivity-knobs} reports per-knob top-$1$ disruption counts on the user-study sessions. Every process-side weight produces measurable disruption between $4.4\%$ and $8.9\%$ of rows; the six cleanliness sub-weights produce at most $0.7\%$ disruption each, with three of them producing none at all. The largest disruptor is the cleanliness-gain weight $W_{\textsc{g}}$ ($24$ of $270$ rows, $8.9\%$), followed by the manual-when-IDE weight $W_{\textsc{mi}}$ ($17$ rows), the skipped-tests weight $W_{\textsc{st}}$ ($15$), and the commit-gap weight $W_{\textsc{cg}}$ ($15$). The length-bonus and broken-build weights are close behind ($14$ and $12$). The decomposition tells us the score formula's \emph{effective parameter dimension} is closer to six (the process-side terms) than to twelve: the cleanliness composite usually adds the same amount to both paths so it does not change the ranking, and the process-side weights do almost all of the rank-shaping.
+Table~\ref{tab:results-sensitivity-knobs} reports how often each individual weight changes the top-ranked divergence point on the rankable user-study subset. Six of the seven process-side weights change the top-$1$ result in between $5.3\%$ and $10.7\%$ of cases. The lag weight $W_{\textsc{lag}}$ is the exception: it changes the top-$1$ result in only $1$ of $225$ cases ($0.4\%$), in line with the cross-set leave-one-out finding in \S\ref{sec:results-ablation} that the lag term contributes magnitude on the injection set but does not noticeably reshape the user-study ranking. Each cleanliness sub-weight changes at most $0.9\%$ of cases, and three of the six do not change the top-ranked item at all. The cleanliness-gain weight $W_{\textsc{g}}$ has the largest effect ($24$ of $225$ cases, $10.7\%$), followed by the manual-when-IDE weight $W_{\textsc{mi}}$ ($17$ cases, $7.6\%$), the skipped-tests weight $W_{\textsc{st}}$ ($15$, $6.7\%$), and the commit-gap weight $W_{\textsc{cg}}$ ($15$, $6.7\%$). The length-bonus and broken-build weights are close behind ($14$ and $12$). In practice, this means the user-study ranking is shaped mostly by six of the seven process-side terms. The cleanliness composite often changes both paths by a similar amount, so changing its internal weights rarely changes which divergence point is ranked first.
 
 \begin{table}[htbp]
 \centering
 \small
 \begin{tabular}{lrr}
 \hline
-\textbf{knob} & \textbf{top-$1$ disruptions / $270$ rows} & \textbf{share} \\
+\textbf{knob} & \textbf{top-$1$ changes / $225$ cases} & \textbf{share} \\
 \hline
-\texttt{gain}        & $24$ & $8.9\%$ \\
-\texttt{manualIde}   & $17$ & $6.3\%$ \\
-\texttt{skipTests}   & $15$ & $5.6\%$ \\
-\texttt{commitGap}   & $15$ & $5.6\%$ \\
-\texttt{length}      & $14$ & $5.2\%$ \\
-\texttt{broken}      & $12$ & $4.4\%$ \\
+\texttt{gain}        & $24$ & $10.7\%$ \\
+\texttt{manualIde}   & $17$ & $7.6\%$ \\
+\texttt{skipTests}   & $15$ & $6.7\%$ \\
+\texttt{commitGap}   & $15$ & $6.7\%$ \\
+\texttt{length}      & $14$ & $6.2\%$ \\
+\texttt{broken}      & $12$ & $5.3\%$ \\
+\texttt{lag}         &  $1$ & $0.4\%$ \\
 \hline
-\multicolumn{3}{l}{\textit{cleanliness sub-weights: \texttt{coupling} $2$ ($0.7\%$), \texttt{smells} $1$, \texttt{cohesion} $1$, all others $0$}} \\
+\multicolumn{3}{l}{\textit{cleanliness sub-weights: \texttt{coupling} $2$ ($0.9\%$), \texttt{smells} $1$, \texttt{cohesion} $1$, all others $0$}} \\
 \hline
 \end{tabular}
-\caption{Per-knob top-$1$ disruption counts on the user-study sessions (30 sessions $\times$ 9 perturbation factors $=$ 270 rows per knob). The six process-side weights account for almost every top-$1$ shift; cleanliness sub-weights produce at most $0.7\%$ disruption each. The cleanliness-gain weight $W_{\textsc{g}}$ is the most leverage-y single knob on this corpus.}
+\caption{Per-knob top-$1$ disruption counts on the user-study rankable subset (25 sessions $\times$ 9 perturbation factors $=$ 225 cases per weight). Six of the seven process-side weights account for almost every top-$1$ shift; the lag weight produces only $1$ disruption on the user-study rankable subset, and the cleanliness sub-weights produce at most $0.9\%$ disruption each. The cleanliness-gain weight $W_{\textsc{g}}$ has the largest single-weight effect on this corpus.}
 \label{tab:results-sensitivity-knobs}
 \end{table}
 
 \paragraph{Multi-knob Monte Carlo.}
 The single-knob sweep only tests one weight at a time. The multi-knob Monte Carlo perturbs every weight together. Table~\ref{tab:results-sensitivity-mc} reports the distribution of $\tau$ and top-$N$ hit rate across $200 \times \lvert \mathcal{C} \rvert$ joint-perturbation samples per session set.
 
-The multi-knob result is meaningfully weaker than the single-knob headline. On the user-study sessions, the top-$1$ recommendation changes on $13.1\%$ of joint-perturbation samples, against $3.1\%$ under single-knob, and mean $\tau$ falls to $0.656$. The injection sessions are more stable on top-$1$ ($99.1\%$) but their multi-knob mean $\tau$ falls to $0.805$, comparable in magnitude to the user-study drop, because joint perturbation can reshuffle long stretches of the tail even when the highest-magnitude divergence point is preserved. The agent sessions sit between the two on mean $\tau$ ($0.848$), with top-$1$ stability at $92.6\%$. The formula is robust to small joint perturbations and degrades smoothly with larger ones. It is not robust to arbitrary combinations of weights, even within the realistic range we tested.
+The multi-knob result is meaningfully weaker than the single-knob headline. On the user-study rankable subset, the top-$1$ recommendation changes on $15.4\%$ of joint-perturbation samples, against $3.5\%$ under single-knob, and mean $\tau$ falls to $0.586$. The injection rankable subset stays high on top-$1$ ($95.7\%$) but its multi-knob mean $\tau$ falls to $0.385$, lower than the user-study figure because the injection rankings are short and joint perturbation can reshuffle most of the tail with a single unlucky draw. The agent rankable subset sits between the two on mean $\tau$ ($0.645$), with top-$1$ stability at $82.5\%$. The formula is robust to small joint perturbations and degrades smoothly with larger ones. It is not robust to arbitrary combinations of weights, even within the realistic range we tested.
 
 \begin{table}[htbp]
 \centering
 \small
 \begin{tabular}{lrrrrr}
 \hline
-\textbf{session set} & \textbf{samples} & \textbf{mean $\tau$} & \textbf{top-$1$ $= 1$} & \textbf{top-$3$ $= 1$} & \textbf{top-$5$ $= 1$} \\
+\textbf{session set (rankable)} & \textbf{samples} & \textbf{mean $\tau$} & \textbf{top-$1$ $= 1$} & \textbf{top-$3$ $= 1$} & \textbf{top-$5$ $= 1$} \\
 \hline
-Injection ($45$)         & $9{,}000$ & $0.805$ & $99.1\%$ & $77.8\%$ & $77.8\%$ \\
-\textbf{User study ($30$)} & $6{,}000$ & $\mathbf{0.656}$ & $\mathbf{86.9\%}$ & $\mathbf{68.0\%}$ & $66.6\%$ \\
-Agent ($48$)              & $9{,}600$ & $0.848$ & $92.6\%$ & $91.0\%$ & $89.6\%$ \\
+Injection ($15$)         & $3{,}000$ & $0.385$ & $95.7\%$ & $32.9\%$ & $33.3\%$ \\
+\textbf{User study ($25$)} & $5{,}000$ & $\mathbf{0.586}$ & $\mathbf{84.6\%}$ & $\mathbf{61.7\%}$ & $59.5\%$ \\
+Agent ($20$)              & $4{,}000$ & $0.645$ & $82.5\%$ & $78.3\%$ & $75.0\%$ \\
 \hline
 \end{tabular}
-\caption{Multi-knob Monte Carlo robustness across three session sets ($200$ samples per session, log-normal $\sigma = \ln 2$). The user-study sessions are the discriminating benchmark; the multi-knob top-$1$ stability is $\sim 10$ percentage points lower than the single-knob result on the same set. Top-$3$ and top-$5$ track top-$1$ on the agent set ($91.0\%$ and $89.6\%$) but drop substantially on the user-study set ($68.0\%$ and $66.6\%$) where per-session rankings are longer and the tail is more reshuffleable.}
+\caption{Multi-knob Monte Carlo robustness across the rankable subsets ($200$ samples per session, log-normal $\sigma = \ln 2$). The user-study set carries the headline because it has the largest rankable subset and the longest per-session rankings. Multi-knob top-$1$ stability is $\sim 12$ percentage points lower than the single-knob result on the same set. Top-$3$ and top-$5$ track top-$1$ on the agent set ($78.3\%$ and $75.0\%$) but drop on the user-study set ($61.7\%$ and $59.5\%$) where per-session rankings are longer and the tail is more reshuffleable. The injection top-$3$/top-$5$ figures fall sharply because injection rankings have at most $5$ items, so a single tail flip propagates through top-$3$ and top-$5$ simultaneously.}
 \label{tab:results-sensitivity-mc}
 \end{table}
 
-\paragraph{Saturation and score-clamp bias.}
-One concern is whether the $\tau$ and top-$N$ numbers reflect the $[0, 100]$ clamp on the process score rather than true stability. When both user and alt scores hit the ceiling, their magnitude is zero regardless of weights, which would inflate $\tau$. Saturation is therefore tracked per session. The right-hand column of Table~\ref{tab:results-sensitivity-headline} shows the three session sets differ substantially. The injection sessions have $10.6\%$ saturated baseline divergence points, concentrated on the short single-kind sessions. The agent sessions have $17.5\%$, because many agent sessions push the score close to the ceiling on the easier playbook sessions (the S4 no-op session in particular runs at $J = 45$ across every agent cell). The user-study sessions sit lowest at $6.4\%$. The user-study set is therefore the cleanest benchmark for the perturbation statistics: its $\tau$ and top-$N$ values are dominated by real perturbation response rather than clipping artefacts.
+\paragraph{Ceiling hits and score-clamp bias.}
+One concern is whether the $\tau$ and top-$N$ numbers reflect the $[0, 100]$ clamp on the process score rather than true stability. When both user and alt scores hit the ceiling, their magnitude is zero regardless of weights, which would inflate $\tau$. The ceiling-hit rate is therefore tracked per session. The right-hand column of Table~\ref{tab:results-sensitivity-headline} shows the three rankable subsets differ substantially. The injection rankable subset has an $8.9\%$ ceiling-hit rate. The agent rankable subset has $21.6\%$, because many agent sessions push the score close to the ceiling on the easier playbook sessions (the S4 no-op session in particular runs at $J = 45$ across every agent cell). The user-study rankable subset sits lowest at $6.4\%$. The user-study set is therefore the cleanest benchmark for the perturbation statistics: its $\tau$ and top-$N$ values mostly reflect genuine responses to the weight changes, not the score ceiling.
 
 \paragraph{Caveats and scope.}
-Three main limitations. First, the experiment establishes that the formula is stable near the production weights. It does not establish that the production weights themselves are uniquely correct, only that small changes to them mostly preserve the ranking. To properly validate this, we'd need to refit the weights against an external outcome dataset, e.g.\ longitudinal code-quality measurements, but no such dataset exists for this problem. Second, the multi-knob test is centred around the production weights and covers the neighbourhood within roughly $\pm 2\sigma$ (about $\times 0.25$ to $\times 4$). The formula visibly degrades on the user-study sessions even inside this range ($\tau = 0.656$ mean), so the robustness claim is local rather than global. Third, the user-study sessions are $n = 30$ across $5$ participants split into a with-feedback arm ($n = 3$) and a no-feedback baseline arm ($n = 2$); both arms feed the robustness corpus on the basis that they exercise the same scoring formula on the same codebase. We document these limits as threats to validity in \S\ref{sec:results-scoped-out} and the discussion chapter. The chapter does not claim more than the experiments support.
+There are three main limitations. First, the experiment establishes that the formula is stable near the production weights. It does not establish that the production weights themselves are uniquely correct, only that small changes to them mostly preserve the ranking. To properly validate this, we'd need to refit the weights against an external outcome dataset, e.g.\ longitudinal code-quality measurements, but no such dataset exists for this problem. Second, the multi-knob test is centred around the production weights and covers the neighbourhood within roughly $\pm 2\sigma$ (about $\times 0.25$ to $\times 4$). The formula visibly degrades on the user-study rankable subset even inside this range ($\tau = 0.586$ mean), so the robustness claim is local rather than global. Third, the rank statistics are reported on the rankable subset of each set ($N = 15 / 25 / 20$); the smaller injection rankable subset is a known statistical-power limit on the per-set rank comparison, though the magnitude-recovery statistics in \S\ref{sec:results-ablation} continue to use all $45$ injection sessions. We document these limits as threats to validity in \S\ref{sec:results-scoped-out} and the discussion chapter. The chapter does not claim more than the experiments support.
 
 \subsection{Ablation sweep}
 \label{sec:results-ablation}
 
-The sensitivity sweep shows the ranking is robust to weight perturbations. This experiment asks the different question of whether every term in the score formula carries substantial weight. Using the ablation design defined in \S\ref{sec:methodology-ablation-design}, the experiment enumerates all $2^7 = 128$ subsets of the seven process-side weights (including the intermediate-cleanliness lag weight $W_{\textsc{lag}}$), producing $5{,}760$ rows across the $45$ injection sessions. The cleanliness sub-weights are kept at production because the sensitivity sweep showed that perturbing them almost never reshuffles the ranking; ablating them would inflate the variant count from $128$ to $8{,}192$ for little additional information. The sweep rules out two failure modes: sum-over-sum recovery rises from exactly $0.000$ when every process term is zeroed to $1.000$ under the full formula, and mean $\tau$ rises in parallel from $0.744$ to $0.833$.
-
-\paragraph{Sanity check.}
-The full-formula variant (all seven terms active) reproduces production exactly: $\tau = 0.833$ (set by the saturation floor on the injection set, not by ablation), recovery $= 1.000$, and mean $\lvert \Delta \textnormal{magnitude} \rvert = 0.000$ on every session. Comparison and production use the same system.
+The sensitivity sweep shows that the ranking is fairly stable under weight changes on the rankable subset. The ablation sweep asks a different question: whether each process-side term is actually doing useful work. Following the design in \S\ref{sec:methodology-ablation-design}, it tests all $2^7 = 128$ subsets of the seven process-side weights. Across the $45$ injection sessions, this gives $5{,}760$ ablation cases. The cleanliness sub-weights are left at their production values because the sensitivity sweep showed that changing them almost never reshuffles the ranking - including them would increase the number of variants from $128$ to $8{,}192$ for little information gain. The ablation tables in this subsection report magnitude metrics (sum-over-sum and mean recovery) on all $45$ injection sessions, since magnitudes are well-defined on every session regardless of per-session DP count; the cross-set rank comparison in Table~\ref{tab:results-ablation-user-loo} reports $\tau$ on the rankable subsets of injection ($15$ sessions) and user-study ($25$ sessions). This gives a useful sanity check: when every process-side term is removed, sum-over-sum recovery falls to exactly $0.000$; under the full formula it rises to $1.000$.
 
 \paragraph{Monotone by active-term count.}
-Table~\ref{tab:results-ablation-monotone} groups the $5{,}760$ rows by how many process-score terms are active. Both $\tau$ and sum-over-sum recovery increase with each added term, with no jumps. The key sanity check is the all-stripped row: when every process term is zeroed, total magnitude across all $45$ sessions drops cleanly to zero, so there is no baseline magnitude independent of the weights and every term does real work.
+Table~\ref{tab:results-ablation-monotone} groups the $5{,}760$ ablation cases by how many process-score terms are active. Sum-over-sum recovery rises steadily as more terms are restored, from $0.000$ with every process term removed to $1.000$ under the full formula. The important sanity check is the all-stripped case: when every process term is zeroed, total magnitude across all $45$ sessions drops to zero. This means there is no baseline magnitude independent of the weights; the reported divergence magnitudes come from the process terms themselves.
 
 \begin{table}[htbp]
 \centering
 \small
-\begin{tabular}{rrrr}
+\begin{tabular}{rrr}
 \hline
-\textbf{active terms} & \textbf{mean $\tau$} & \textbf{sum/sum} & \textbf{n} \\
+\textbf{active terms} & \textbf{sum/sum} & \textbf{n} \\
 \hline
-0 (all stripped) & 0.744 & \textbf{0.000} & 45    \\
-1                & 0.743 & 0.170 & 315   \\
-2                & 0.746 & 0.327 & 945   \\
-3                & 0.754 & 0.473 & 1{,}575 \\
-4                & 0.765 & 0.612 & 1{,}575 \\
-5                & 0.782 & 0.745 & 945   \\
-6                & 0.805 & 0.874 & 315   \\
-7 (full)         & 0.833 & \textbf{1.000} & 45    \\
+0 (all stripped) & \textbf{0.000} & 45    \\
+1                & 0.170 & 315   \\
+2                & 0.327 & 945   \\
+3                & 0.473 & 1{,}575 \\
+4                & 0.612 & 1{,}575 \\
+5                & 0.745 & 945   \\
+6                & 0.874 & 315   \\
+7 (full)         & \textbf{1.000} & 45    \\
 \hline
 \end{tabular}
-\caption{Mean $\tau$ and sum-over-sum magnitude recovery grouped by how many process-score terms are active. Both statistics increase monotonically with the number of active terms; sum/sum reaches $1.000$ under the full seven-term formula and drops cleanly to $0.000$ when every term is zeroed.}
+\caption{Sum-over-sum magnitude recovery grouped by how many process-score terms are active, on all $45$ injection sessions. Sum/sum rises steadily with the number of active terms, reaching $1.000$ under the full seven-term formula and dropping to $0.000$ when every process term is zeroed.}
 \label{tab:results-ablation-monotone}
 \end{table}
 
 \paragraph{Per-term single-knob recovery.}
-Table~\ref{tab:results-ablation-solo} shows how much magnitude each term contributes when it is the only active term. The \texttt{length} and \texttt{broken} terms are the strongest single-term contributors by sum/sum at $0.328$ and $0.302$, each recovering roughly a third of the total magnitude on its own; \texttt{manualIde} sits next at $0.261$. The lag term lands fourth at $0.132$, confirming the methodology's prediction that the intermediate-cleanliness penalty does measurable work on its own without dominating any existing contributor. \texttt{skipTests} and \texttt{commitGap} are mid-table at $0.089$ and $0.080$ respectively, and the \texttt{gain} term recovers $0.000$ on its own despite having the largest production weight ($50$). The latter is the regulariser signature: $\Delta C$ is comparable across user and alternative on most sessions, so \texttt{gain}-alone contributes no rank-shaping magnitude when the penalty terms it normally offsets are absent. The gap between \texttt{commitGap} ($0.080$) and \texttt{length} ($0.328$) shows recovery depends on both the weight and how much the signal varies across sessions, not on weight alone.
-
-\begin{table}[htbp]
-\centering
-\small
-\begin{tabular}{lrrr}
-\hline
-\textbf{term} & \textbf{mean $\tau$} & \textbf{mean recovery} & \textbf{sum/sum} \\
-\hline
-\texttt{length}    & 0.744 & 0.578 & \textbf{0.328} \\
-\texttt{broken}    & 0.789 & 0.553 & 0.302          \\
-\texttt{manualIde} & 0.744 & 0.442 & 0.261          \\
-\texttt{lag}       & 0.669 & 0.423 & 0.132          \\
-\texttt{skipTests} & 0.718 & 0.398 & 0.089          \\
-\texttt{commitGap} & 0.796 & 0.368 & 0.080          \\
-\texttt{gain}      & 0.744 & 0.311 & \textbf{0.000} \\
-\hline
-\end{tabular}
-\caption{Per-term single-knob recovery on the injection set (each term active alone, the other six zeroed). The \texttt{length} and \texttt{broken} terms are the strongest single-term contributors; the lag term contributes $0.132$ on its own, fourth-largest of the seven. The \texttt{gain} term recovers $0.000$ alone because the cleanliness delta is comparable across user and alternative on most sessions.}
-\label{tab:results-ablation-solo}
-\end{table}
-
-\paragraph{Per-term leave-one-out recovery.}
-Table~\ref{tab:results-ablation-loo} shows what happens when you remove one term from the full seven-term formula. Removing \texttt{length} causes the largest drop in recovery ($0.718$), so the step-savings bonus contributes more single-term magnitude than any other term. Removing \texttt{gain} pushes recovery above $1.000$ to $1.060$ - the most surprising result: without \texttt{gain}, total magnitude is larger than at production. The unit being summed here is the per-divergence-point magnitude defined in \S\ref{sec:methodology-score}, i.e.\ the trajectory-final $J(\tau^\ast) - J(\tau)$ delta between each alternative and the user it is compared against; the sum is over $\lvert \text{magnitude} \rvert$ across every surfaced divergence point, including the ones whose alternative scored worse than the user (negative magnitudes contribute their absolute value). The mechanism behind the inflation is that \texttt{gain} $\cdot \Delta C$ is small but typically positive for alternatives, so it partially offsets the penalty terms; remove it and the penalty terms determine the alt-versus-user delta unopposed, producing larger per-DP absolute magnitudes which accumulate in the sum. Were the experiment to filter to alt-beats-user DPs only, removing \texttt{gain} would in fact lower the total, since alternatives sitting just above the beats-user threshold flip below it without the offset. The \texttt{gain} term therefore plays a regularising role against the penalty terms rather than acting as a positive contributor in isolation. Removing the lag term costs $0.158$ on sum/sum (production $1.000 \to 0.842$) while preserving most of the ranking ($\tau = 0.803$); the lag knob carries real magnitude into the divergence-point ranking without dominating which divergence points top the list on the injection set. Removing \texttt{skipTests} or \texttt{commitGap} reshuffles the ranking somewhat but moves recovery less than removing \texttt{length} or \texttt{manualIde} does, so these terms primarily affect which divergence point is biggest rather than how big.
-
-\begin{table}[htbp]
-\centering
-\small
-\begin{tabular}{lrrr}
-\hline
-\textbf{removed term} & \textbf{mean $\tau$} & \textbf{mean recovery} & \textbf{sum/sum} \\
-\hline
-\texttt{length}    & 0.833 & 0.817 & \textbf{0.718} \\
-\texttt{manualIde} & 0.833 & 0.911 & 0.822          \\
-\texttt{broken}    & 0.731 & 0.966 & 0.833          \\
-\texttt{lag}       & 0.803 & 0.880 & 0.842          \\
-\texttt{skipTests} & 0.815 & 0.903 & 0.899          \\
-\texttt{commitGap} & 0.791 & 0.956 & 0.943          \\
-\texttt{gain}      & 0.826 & 0.991 & \textbf{1.060} \\
-\hline
-\end{tabular}
-\caption{Per-term leave-one-out recovery (six terms active, one removed). Removing \texttt{length} causes the largest sum/sum drop; removing \texttt{gain} inflates sum/sum above $1.000$, indicating that \texttt{gain} regularises against the penalty terms rather than acting as a positive contributor in isolation. Removing the lag term costs $0.158$ on sum/sum while leaving the ranking mostly intact ($\tau = 0.803$).}
-\label{tab:results-ablation-loo}
-\end{table}
-
-\paragraph{Cross-set rerun on the user-study sessions.}
-The ablation above runs on the $45$ injection sessions, which have few divergence points per session ($\max 5$, mean $1.5$). Running the same test on the $30$ user-study sessions, which have larger rankings (up to $13$ per session, mean $4.0$, with the no-feedback baseline arm carrying most of the high-count sessions), produces a partly different importance ordering. Table~\ref{tab:results-ablation-user-loo} compares leave-one-out $\tau$ across both sets. The dominant rank-carrier on the user-study set is \texttt{length}: removing it drops $\tau$ to $0.606$, the lowest figure in the table and a substantially larger drop than any other term on either set. \texttt{manualIde} and \texttt{commitGap} are the next two terms by user-study impact ($\tau = 0.657$ and $0.713$ on removal); \texttt{skipTests}, \texttt{gain}, and \texttt{broken} cluster between $\tau = 0.689$ and $\tau = 0.736$. The lag term has the smallest user-study impact ($\tau = 0.820$ on removal), so its role on the user-study set is closer to a magnitude contributor than a rank shaper, in contrast to the injection set where its leave-one-out $\tau$ is $0.803$ - comparable in magnitude to the other terms. On the injection set the figures are flatter overall ($\tau$ between $0.731$ and $0.833$), consistent with shorter per-session rankings offering less surface area for any single term to dominate. The cleanliness-gain term \texttt{gain} sits near the top of both columns ($\tau = 0.826$ on injection, $0.736$ on user-study), so it shapes the ranking more than the single-knob sweep suggested.
+Table~\ref{tab:results-ablation-solo} isolates each process term by leaving that term active and zeroing the other six. On this test, \texttt{length} and \texttt{broken} carry the most magnitude, with sum/sum values of $0.328$ and $0.302$; \texttt{manualIde} follows at $0.261$. The lag term contributes less, but still has a visible effect at $0.132$, which is consistent with its role as a secondary intermediate-cleanliness penalty rather than a dominant signal. \texttt{skipTests} and \texttt{commitGap} are smaller again at $0.089$ and $0.080$. By contrast, \texttt{gain} has sum/sum $0.000$ when used alone, despite having the largest production weight. This is expected: user and alternative trajectories are validated against the same terminal AST, so their endpoint cleanliness gain is the same and cancels out in a direct comparison. The spread between \texttt{commitGap} and \texttt{length} also shows that recovery depends not only on the assigned weight, but on how much that signal actually varies across the sessions.
 
 \begin{table}[htbp]
 \centering
 \small
 \begin{tabular}{lrr}
 \hline
-\textbf{removed term} & \textbf{injection $\tau$} & \textbf{user-study $\tau$} \\
+\textbf{term} & \textbf{mean recovery} & \textbf{sum/sum} \\
 \hline
-\texttt{length}    & $0.833$ & $\mathbf{0.606}$ \\
-\texttt{manualIde} & $0.833$ & $0.657$ \\
-\texttt{commitGap} & $0.791$ & $0.713$ \\
-\texttt{skipTests} & $0.815$ & $0.719$ \\
-\texttt{gain}      & $0.826$ & $0.736$ \\
-\texttt{broken}    & $0.731$ & $0.689$ \\
-\texttt{lag}       & $0.803$ & $0.820$ \\
+\texttt{length}    & 0.578 & \textbf{0.328} \\
+\texttt{broken}    & 0.553 & 0.302          \\
+\texttt{manualIde} & 0.442 & 0.261          \\
+\texttt{lag}       & 0.423 & 0.132          \\
+\texttt{skipTests} & 0.398 & 0.089          \\
+\texttt{commitGap} & 0.368 & 0.080          \\
+\texttt{gain}      & 0.311 & \textbf{0.000} \\
 \hline
 \end{tabular}
-\caption{Leave-one-out ranking stability against the injection sessions (Table~\ref{tab:results-ablation-loo}) and the user-study sessions, sorted by user-study impact. The \texttt{length} term is the dominant rank-carrier on the user-study set ($\tau = 0.606$ on removal). The lag term has the smallest user-study impact of the seven terms but a measurable injection-set impact ($\tau = 0.803$).}
+\caption{Per-term single-knob recovery on all $45$ injection sessions (each term active alone, the other six zeroed). The \texttt{length} and \texttt{broken} terms are the strongest single-term contributors; the lag term contributes $0.132$ on its own, fourth-largest of the seven. The \texttt{gain} term has sum/sum $0.000$ alone because user and alternative trajectories have the same terminal AST and therefore the same endpoint cleanliness gain.}
+\label{tab:results-ablation-solo}
+\end{table}
+
+\paragraph{Per-term leave-one-out recovery.}
+Table~\ref{tab:results-ablation-loo} shows the complementary leave-one-out view: each row removes one term from the full seven-term formula. Removing \texttt{length} causes the largest loss of magnitude, with sum/sum falling to $0.718$, so the step-savings term is the strongest contributor in this setting. Removing \texttt{manualIde}, \texttt{broken}, or \texttt{lag} also reduces recovery, but less sharply.
+
+The unusual row is \texttt{gain}. Removing it increases sum/sum to $1.060$, meaning the absolute divergence magnitudes become larger than under the production formula. This does not mean that \texttt{gain} is harmful. Because user and alternative trajectories have the same terminal AST, the gain term is a shared endpoint component rather than a source of separation by itself. Its effect in the full formula comes through the $[0,100]$ score clamp: a shared positive or negative gain can push both trajectories towards a clamp boundary, compressing the visible difference created by the penalty terms. When \texttt{gain} is removed, that compression is reduced and the penalty differences can produce larger absolute gaps. The lag term has the opposite profile: removing it lowers sum/sum to $0.842$ while keeping the rest of the formula intact, so it contributes measurable magnitude without dominating the top of the injection-session rankings.
+
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabular}{lrr}
+\hline
+\textbf{removed term} & \textbf{mean recovery} & \textbf{sum/sum} \\
+\hline
+\texttt{length}    & 0.817 & \textbf{0.718} \\
+\texttt{manualIde} & 0.911 & 0.822          \\
+\texttt{broken}    & 0.966 & 0.833          \\
+\texttt{lag}       & 0.880 & 0.842          \\
+\texttt{skipTests} & 0.903 & 0.899          \\
+\texttt{commitGap} & 0.956 & 0.943          \\
+\texttt{gain}      & 0.991 & \textbf{1.060} \\
+\hline
+\end{tabular}
+\caption{Per-term leave-one-out recovery on all $45$ injection sessions (six terms active, one removed). Removing \texttt{length} causes the largest sum/sum drop; removing \texttt{gain} inflates sum/sum above $1.000$ because the shared endpoint gain can push scores towards a clamp boundary and compress penalty-driven differences. Removing the lag term costs $0.158$ on sum/sum.}
+\label{tab:results-ablation-loo}
+\end{table}
+
+\paragraph{Cross-set rerun on the user-study sessions.}
+Table~\ref{tab:results-ablation-user-loo} repeats the leave-one-out test as a rank-stability comparison across the injection and user-study sessions. The $\tau$ values here are computed on the rankable subset of each set ($15$ injection sessions, $25$ user-study sessions) for the reasons stated in §\ref{sec:results-sensitivity}. On the user-study rankable subset, \texttt{length} is the clearest rank-carrier: removing it drops $\tau$ to $0.527$, the lowest value in the user-study column. \texttt{manualIde} and \texttt{broken} are the next most influential terms, while \texttt{skipTests}, \texttt{commitGap}, and \texttt{gain} sit in the middle of the range. The lag term has the smallest user-study impact ($\tau = 0.784$ on removal), suggesting that on these longer human traces it affects magnitude more than the ordering of divergence points. The injection-set $\tau$ values are lower across the board, which reflects the smaller rankable subset ($15$ sessions); the relative ordering still picks out \texttt{length} and \texttt{manualIde} as the strongest rank-carriers there too.
+
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabular}{lrr}
+\hline
+\textbf{removed term} & \textbf{injection $\tau$ ($n=15$)} & \textbf{user-study $\tau$ ($n=25$)} \\
+\hline
+\texttt{length}    & $0.500$ & $\mathbf{0.527}$ \\
+\texttt{manualIde} & $0.500$ & $0.588$ \\
+\texttt{broken}    & $0.192$ & $0.627$ \\
+\texttt{commitGap} & $0.374$ & $0.655$ \\
+\texttt{skipTests} & $0.444$ & $0.663$ \\
+\texttt{gain}      & $0.478$ & $0.683$ \\
+\texttt{lag}       & $0.409$ & $0.784$ \\
+\hline
+\end{tabular}
+\caption{Leave-one-out ranking stability on the injection and user-study rankable subsets, sorted by user-study impact. Removing \texttt{length} causes the largest user-study drop ($\tau = 0.527$). Removing the lag term has the smallest user-study effect ($\tau = 0.784$), confirming the per-knob disruption pattern in Table~\ref{tab:results-sensitivity-knobs} that the lag term affects user-study magnitude more than ordering.}
 \label{tab:results-ablation-user-loo}
 \end{table}
 
 \paragraph{Caveats.}
-Five key limits apply. The cleanliness sub-weights are not ablated in this sweep because they had almost no effect on top-$1$ stability under sensitivity (\S\ref{sec:results-sensitivity}); the seven ablated terms are exactly the process-side weights of \S\ref{sec:methodology-score}. Saturation has only a small effect on this experiment: the mean saturated-divergence-point count is $0.20$ to $0.29$ across variants, so saturation does not greatly reduce the signal. $\tau$-b is unstable on small divergence-point counts, and many sessions have one or two divergence points where $\tau$ is $1.0$; mean $\tau$ at low active-counts partly reflects this floor, not pure ranking quality. The \texttt{gain}-alone row in Table~\ref{tab:results-ablation-solo} ($\tau = 0.744$, sum/sum $0.000$) sits at the all-stripped baseline because the cleanliness delta is comparable across user and alt on most sessions; the regulariser role shown in the leave-one-out table explains the same effect from the other direction. Finally, the active-count $= 0$ floor lands cleanly at sum/sum $= 0.000$ because every process-side term including lag is zeroed at that point; mean $\tau = 0.744$ at that floor reflects the $\tau$-b ties on single-DP sessions rather than residual ranking signal from a held-out weight.
+Several limits are worth noting. The cleanliness sub-weights are not included in this ablation because the sensitivity sweep found that they had almost no effect on top-$1$ stability (\S\ref{sec:results-sensitivity}); the sweep is therefore limited to the seven process-side weights in \S\ref{sec:methodology-score}. Score clipping appears to have only a small effect here: the mean number of ceiling-hit divergence points stays between $0.20$ and $0.29$ across variants. The magnitude metrics in Tables \ref{tab:results-ablation-monotone}, \ref{tab:results-ablation-solo}, and \ref{tab:results-ablation-loo} use all $45$ injection sessions; the rank statistic in Table~\ref{tab:results-ablation-user-loo} uses the rankable subsets ($15$ injection, $25$ user-study), as defined in §\ref{sec:results-sensitivity}.
+
+The \texttt{gain}-alone row in Table~\ref{tab:results-ablation-solo} should also be read carefully. It sits at the all-stripped baseline (sum/sum $0.000$) because user and alternative trajectories end at the same terminal AST, so the endpoint cleanliness gain is the same and cancels out when no other process terms are active. In the leave-one-out table, \texttt{gain} matters only through its interaction with the $[0,100]$ score clamp.
 
 
 \subsection{Reordering as a window onto intermediate quality}
@@ -418,7 +422,7 @@ baseline      & P5 & $23$ & $17$ &  $9$ & $36$ & $11$ & $20$ &  $-3$ & $-0.6$ \\
 \textbf{baseline (mean)}      & ($n = 2$) & $\mathbf{22.5}$ & $\mathbf{17.0}$ & $\mathbf{8.5}$ & $\mathbf{29.0}$ & $\mathbf{11.5}$ & $\mathbf{17.5}$ & $\mathbf{-5.0}$ & $\mathbf{-1.0}$ \\
 \hline
 \end{tabular}
-\caption{Trajectory-final process score across the six-session arc for each participant under the cleanliness-gain-zeroed weighting ($W_g = 0$), grouped by arm. The production-weighted view is dominated by the cleanliness-gain term and is reported per-session in the reproducibility notebook. $\Delta$ is $S6 - S1$ and slope is $\Delta / 5$ in score units per session. The arm-mean rows aggregate across participants within the arm.}
+\caption{Trajectory-final process score across the six-session arc for each participant under the cleanliness-gain-zeroed weighting ($W_g = 0$), grouped by arm. The production-weighted view is dominated by the cleanliness-gain term and is reported per-session in the reproducibility notebook. $\Delta$ is $S6 - S1$ and slope is $\Delta / 5$ in score units per session. The arm means aggregate across participants within the arm.}
 \label{tab:results-userstudy-scores}
 \end{table}
 
@@ -429,7 +433,7 @@ Second, the within-arc shape carries the same task-difficulty signature in both 
 The playbook orders the six sessions in roughly increasing structural complexity (S1 renames through to S6 multi-step reshape). The with-feedback arm's improvement is therefore happening despite progressively harder tasks, not riding on easier ones - and the baseline arm's decline is happening over the same difficulty curve, which removes increasing difficulty as a confound for the arm-level direction. P3's lower slope ($+1.8$) is consistent with starting at a higher S1 ($39$) closer to ceiling than P1 or P2: P3 has less room to improve, not a different arc shape.
 
 \paragraph{With-feedback vs no-feedback baseline arm.}
-The arm-level comparison is the strongest causal-direction signal in the chapter, because arm assignment was randomised over a single participant pool and every other aspect of the protocol was held constant. The baseline arm rides the same task difficulty, the same codebase, the same playbook order, and the same plugin instrumentation as the with-feedback arm; the only manipulated variable between arms is whether the participant saw the dashboard between sessions. The arm-mean rows of Table~\ref{tab:results-userstudy-scores} report a $+21.0$ vs $-5.0$ gain-stripped $\Delta$ across the arc (a $26.0$-point gap, or $+4.2$ vs $-1.0$ per session), and the arm rows of Table~\ref{tab:results-userstudy-trajectory} report a $-10$ vs $+5$ divergence-point $\Delta$ across the arc (a $15$-DP gap). Both signals point the same direction.
+The arm-level comparison is the strongest causal-direction signal in the chapter, because arm assignment was randomised over a single participant pool and every other aspect of the protocol was held constant. The baseline arm rides the same task difficulty, the same codebase, the same playbook order, and the same plugin instrumentation as the with-feedback arm; the only manipulated variable between arms is whether the participant saw the dashboard between sessions. The arm means in Table~\ref{tab:results-userstudy-scores} report a $+21.0$ vs $-5.0$ gain-stripped $\Delta$ across the arc (a $26.0$-point gap, or $+4.2$ vs $-1.0$ per session), and the arm-level totals in Table~\ref{tab:results-userstudy-trajectory} report a $-10$ vs $+5$ divergence-point $\Delta$ across the arc (a $15$-DP gap). Both signals point the same direction.
 
 The gain-stripped subscore is largely insulated from how familiar the participant is with the codebase itself - the terms active under $W_g = 0$ are commit cadence, skipped tests, and manual-when-IDE rate, none of which depend on knowing the code better. What the design does not separate is the with-feedback participants intuiting what the dashboard rewards and adjusting behaviour to satisfy it (a score-gaming reading), or becoming more comfortable with the playbook idiom across the arc (a task-style-familiarity reading). The threats-to-validity chapter (\S\ref{sec:threats-per-experiment}) discusses both. The baseline arm rules out one strong alternative reading - that the with-feedback arc reflects the playbook getting easier as the participant moves through it - because the baseline participants worked the same playbook in the same order and trended downward across the arc rather than upward. The remaining limit is sample size. With $n = 3$ vs $n = 2$ the arm means are estimated from too few participants to support a hypothesis test, and per-participant variance is comparable to the between-arm difference, so the result is reported as a randomised but underpowered direction-of-effect claim: ``under random arm assignment, the with-feedback arm improved across the arc, the baseline arm did not, and the within-arm variance is smaller than the between-arm difference.'' No $p$-value or confidence interval is claimed.
 
@@ -473,7 +477,7 @@ Table~\ref{tab:results-userstudy-agent-trajectory} reports the gain-stripped tra
 \multicolumn{3}{l}{\textbf{baseline (mean, $n = 2$)}}      & $\mathbf{30.5}$ & $\mathbf{34.0}$ & $\mathbf{39.5}$ & $\mathbf{45.0}$ & $\mathbf{36.0}$ & $\mathbf{39.0}$ & $\mathbf{+8.5}$ & $\mathbf{3.5}$ \\
 \hline
 \end{tabular}
-\caption{Per-cell gain-stripped trajectory and total divergence-point count across the eight agent stacks. Cells 1--6 are with-feedback (named for the model $\times$ harness combination); cells 7 and 8 are no-feedback baselines, named with the \texttt{-baseline} suffix. The arm-mean rows aggregate across cells within the arm.}
+\caption{Per-cell gain-stripped trajectory and total divergence-point count across the eight agent stacks. Cells 1--6 are with-feedback (named for the model $\times$ harness combination); cells 7 and 8 are no-feedback baselines, named with the \texttt{-baseline} suffix. The arm means aggregate across cells within the arm.}
 \label{tab:results-userstudy-agent-trajectory}
 \end{table}
 

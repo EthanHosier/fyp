@@ -23,9 +23,7 @@ descriptive, with explicit limitations.
 
 Four things to take away.
 
-1. **§5.1 robustness is solid.** Top-1 ranking stability is ≥ 96.9 % on every set
-   under the single-knob sweep and ≥ 86.9 % under the harder multi-knob Monte
-   Carlo. The score formula is stable under the corpus we have.
+1. **§5.1 robustness is solid on the rankable subset.** Rank statistics now use the rankable subset of each session set (sessions with ≥ 2 detected divergence points; sessions with ≤ 1 DP are excluded because τ-b and top-1 are mechanically 1.0 on them). This leaves 15/45 injection, 25/30 user-study, 20/48 agent sessions in scope for rank. Top-1 stability on the user-study rankable subset is 96.5 % single-knob and 84.6 % multi-knob. Magnitude statistics in the ablation tables continue on the full 45 injection sessions.
 
 2. **`gain` is the most disruptive knob.** Under the 30-session user-study set,
    perturbing the cleanliness-gain weight `W_g` disrupts top-1 ranking on 8.9 % of
@@ -59,19 +57,18 @@ The rest of this document walks every table.
 
 ### Table 5.1 — Sensitivity headline (top-1 stability)
 
-| Set         | N sessions | sweep rows | τ = 1.0  | top-1 = 1 | τ < 0 | baseline saturation |
-|-------------|-----------:|-----------:|---------:|----------:|------:|--------------------:|
-| Injection   | 45         | 4 860      | 77.0 %   | 99.8 %    | 0.3 % | 10.6 %              |
-| User study  | 30         | 3 240      | 51.5 %   | 96.9 %    | 0.8 % | 6.4 %               |
-| Agent       | 48         | 5 184      | 88.5 %   | 98.5 %    | 1.2 % | 17.5 %              |
+| Set (rankable)     | N | sweep rows | τ = 1.0  | top-1 = 1 | τ < 0 | ceiling-hit rate |
+|--------------------|--:|-----------:|---------:|----------:|------:|-----------------:|
+| Injection (15)     | 15 | 1 755      | 30.7 %   | 99.0 %    | 1.3 % | 8.9 %            |
+| User study (25)    | 25 | 2 925      | 41.9 %   | 96.5 %    | 1.0 % | 6.4 %            |
+| Agent (20)         | 20 | 2 340      | 72.4 %   | 96.3 %    | 3.0 % | 21.6 %           |
 
-**Read.** Top-1 stability ≥ 96.9 % everywhere. Kendall-τ-perfect share is lower on
-the user-study set (51.5 %) than on the injection set (77.0 %) — user sessions
-produce harder rankings to preserve under arbitrary single-knob perturbation —
-but the top-of-ranking decision is preserved on nearly all sweeps. Baseline
-saturation (the fraction of divergence-point magnitudes that already touch the 0
-or 100 clip in the unperturbed ranking) is low enough that the τ statistic is
-not dominated by clipping artefacts.
+**Read.** Top-1 stability ≥ 96.3 % on every rankable subset. The τ = 1.0 share
+drops sharply versus the previously-reported corpus-wide figures because the
+rankable filter removes the mechanically-saturated ≤ 1-DP sessions; what remains
+is genuine perturbation response. User-study set carries the headline because
+it has the largest rankable subset (25 of 30) and the longest per-session
+rankings; injection (15) and agent (20) are smaller-N supporting evidence.
 
 ### Table 5.2 — Per-knob top-1 disruption (user-study set)
 
@@ -87,36 +84,37 @@ Disrupting a knob means top-1 ranking changed under that perturbation.
 | length     | 14              | 5.2 %        |
 | broken     | 12              | 4.4 %        |
 | coupling   | 2               | 0.7 %        |
+| lag        | 1               | 0.4 %        |
 | smells     | 1               | 0.4 %        |
 | cohesion   | 1               | 0.4 %        |
 | cognitive  | 0               | 0.0 %        |
 | duplication| 0               | 0.0 %        |
 | readability| 0               | 0.0 %        |
 
-**Read.** `gain` is the most leverage-y knob in the formula on this corpus. The
-six process-quality terms (gain, manualIde, skipTests, commitGap, length, broken)
-all show measurable disruption between 4.4 % and 8.9 %. The six cleanliness
-sub-terms (coupling, smells, cohesion, cognitive, duplication, readability)
-contribute almost nothing under independent single-knob perturbation, consistent
-with the §3.5 design that they enter the score only through the cleanliness
-scalar `C` and its in-arc gain.
+**Read.** `gain` is the most leverage-y knob in the formula on this corpus. Six
+of the seven process-quality terms (gain, manualIde, skipTests, commitGap,
+length, broken) show measurable disruption between 4.4 % and 8.9 %; `lag` is the
+outlier at just 0.4 %, consistent with the cross-set LOO finding that lag is a
+magnitude contributor more than a rank-shaper on the user-study set. The six
+cleanliness sub-terms contribute almost nothing under independent single-knob
+perturbation, consistent with the §3.5 design that they enter the score only
+through the cleanliness scalar `C` and its in-arc gain.
 
 ### Table 5.3 — Multi-knob Monte Carlo
 
 Every weight scaled by an independent log-normal `exp(σZ)`, σ = ln 2, 200 samples
 per fixture, fixed seed.
 
-| Set         | Samples | Mean τ | top-1 = 1 | top-3 = 1 | top-5 = 1 |
-|-------------|--------:|-------:|----------:|----------:|----------:|
-| Injection   |  9 000  | 0.805  | 99.1 %    | 77.8 %    | 77.8 %    |
-| User study  |  6 000  | 0.656  | 86.9 %    | 68.0 %    | 66.6 %    |
-| Agent       |  9 600  | 0.848  | 92.6 %    | 91.0 %    | 89.6 %    |
+| Set (rankable)     | Samples | Mean τ | top-1 = 1 | top-3 = 1 | top-5 = 1 |
+|--------------------|--------:|-------:|----------:|----------:|----------:|
+| Injection (15)     | 3 000   | 0.385  | 95.7 %    | 32.9 %    | 33.3 %    |
+| User study (25)    | 5 000   | 0.586  | 84.6 %    | 61.7 %    | 59.5 %    |
+| Agent (20)         | 4 000   | 0.645  | 82.5 %    | 78.3 %    | 75.0 %    |
 
-**Read.** The headline ≥ 80 % top-1 stability claim holds even under joint
-multi-knob perturbation. Mean τ on the user-study set is 0.656 — moderate
-absolute correlation, meaningfully lower than for injection or agent — which
-reflects that user sessions have richer divergence-point distributions where
-joint reweighting can bend the tail of the ranking without flipping the top.
+**Read.** The user-study top-1 stability holds at 84.6 % under joint multi-knob
+perturbation; mean τ is 0.586 — moderate absolute correlation. The injection
+top-3/top-5 drop sharply because injection rankings have at most 5 items, so a
+single tail flip propagates through top-3 and top-5 simultaneously.
 
 ### Tables 5.4 – 5.6 — Ablation (injection set)
 
@@ -425,8 +423,7 @@ A short punch-list for the Chapter 5 rewrite (the full structural plan is in
   populations (cross-set LOO τ 0.833 → 0.606). The ablation sweep now includes
   all seven process-side terms (lag added back), so the active-count table is
   0..7 and the all-stripped row is sum/sum 0.000.
-- **§5.1.3.** Report user-study mean τ 0.656 honestly; lead with the top-1 86.9 %
-  stability number.
+- **§5.1.3.** Report user-study mean τ 0.586 honestly on the rankable subset; lead with the top-1 84.6 % stability number.
 - **§5.2.** No changes.
 - **§5.3.1, §5.3.2.** Five-participant per-kind and trajectory tables.
 - **§5.3.3 (new).** With-feedback vs baseline comparison; honest n = 3 vs n = 2

@@ -168,7 +168,16 @@ fun rankingOf(report: AnalysisReport): List<Int> =
             compareByDescending<com.github.ethanhosier.analysis.pipeline.DivergencePoint> { it.magnitude }
                 .thenBy { it.stepIndex }
         )
-        .map { it.stepIndex }""")
+        .map { it.stepIndex }
+
+// Sessions whose ranking has at least two items, so τ-b and top-1 are not
+// mechanically 1.0. Uses raw divergencePoints.size — matching what the
+// dashboard shows and what rankingOf(report) ranks over.
+fun rankableSubset(corpus: Map<String, PhaseAResult>): Map<String, PhaseAResult> =
+    corpus.filter { (_, phaseA) ->
+        ReportAssembler.assemble(phaseA, ScoringConfig.PRODUCTION)
+            .divergencePoints.size >= 2
+    }""")
 
 # ---------------------------------------------------------------- §5.1.1 sensitivity
 
@@ -191,6 +200,7 @@ val KNOBS = listOf(
     Knob("manualIde", "process")   { c, f -> c.copy(process = c.process.copy(manualIde = c.process.manualIde * f)) },
     Knob("length", "process")      { c, f -> c.copy(process = c.process.copy(length = c.process.length * f)) },
     Knob("commitGap", "process")   { c, f -> c.copy(process = c.process.copy(commitGap = c.process.commitGap * f)) },
+    Knob("lag", "process")         { c, f -> c.copy(process = c.process.copy(lag = c.process.lag * f)) },
     Knob("cognitive", "cleanliness")   { c, f -> c.copy(cleanliness = c.cleanliness.copy(cognitive = c.cleanliness.cognitive * f)) },
     Knob("coupling", "cleanliness")    { c, f -> c.copy(cleanliness = c.cleanliness.copy(coupling = c.cleanliness.coupling * f)) },
     Knob("duplication", "cleanliness") { c, f -> c.copy(cleanliness = c.cleanliness.copy(duplication = c.cleanliness.duplication * f)) },
@@ -241,9 +251,9 @@ fun sensitivitySweep(name: String, corpus: Map<String, PhaseAResult>) =
         }
     }.toDataFrame()
 
-val sensInj    = sensitivitySweep("Injection (45)",  injection)
-val sensUser   = sensitivitySweep("User study (12)", userStudy)
-val sensAgent  = sensitivitySweep("Agent (6)",       agent)""")
+val sensInj    = sensitivitySweep("Injection (rankable, 15)",   rankableSubset(injection))
+val sensUser   = sensitivitySweep("User study (rankable, 25)",  rankableSubset(userStudy))
+val sensAgent  = sensitivitySweep("Agent (rankable, 20)",       rankableSubset(agent))""")
 
 md("Headline table — top-1 stability, τ = 1.0 share, and baseline saturation per session set (reproduces Table 5.1).")
 
@@ -310,6 +320,7 @@ fun perturbAll(rng: Random, sigma: Double): ScoringConfig {
             gain = p.process.gain * f(), broken = p.process.broken * f(),
             skipTests = p.process.skipTests * f(), manualIde = p.process.manualIde * f(),
             length = p.process.length * f(), commitGap = p.process.commitGap * f(),
+            lag = p.process.lag * f(),
         ),
         cleanliness = CleanlinessWeights(
             cognitive = p.cleanliness.cognitive * f(), coupling = p.cleanliness.coupling * f(),
@@ -338,9 +349,9 @@ fun mcSweep(name: String, corpus: Map<String, PhaseAResult>, samples: Int = 200,
         }
     }.toDataFrame()
 
-val mcInj   = mcSweep("Injection (45)",  injection)
-val mcUser  = mcSweep("User study (12)", userStudy)
-val mcAgent = mcSweep("Agent (6)",       agent)
+val mcInj   = mcSweep("Injection (rankable, 15)",   rankableSubset(injection))
+val mcUser  = mcSweep("User study (rankable, 25)",  rankableSubset(userStudy))
+val mcAgent = mcSweep("Agent (rankable, 20)",       rankableSubset(agent))
 
 val mcHeadline = listOf(mcInj, mcUser, mcAgent).map { df ->
     val n = df.rowsCount()
@@ -430,13 +441,17 @@ fun ablationSweep(name: String, corpus: Map<String, PhaseAResult>) =
     }.toDataFrame()
 
 val ablInj   = ablationSweep("Injection (45)",  injection)
-val ablUser  = ablationSweep("User study (12)", userStudy)
-val ablAgent = ablationSweep("Agent (6)",       agent)""")
+val ablUser  = ablationSweep("User study (30)", userStudy)
+val ablAgent = ablationSweep("Agent (48)",      agent)
+
+// Rankable-subset re-runs for the cross-set τ comparison in Table 5.7.
+// The magnitude-side tables 5.4/5.5/5.6 stay on the full corpus.
+val ablInjRankable  = ablationSweep("Injection (rankable, 15)",  rankableSubset(injection))
+val ablUserRankable = ablationSweep("User study (rankable, 25)", rankableSubset(userStudy))""")
 
 md("Monotone-by-active-count on the injection set (reproduces Table 5.4).")
 
 code(r"""ablInj.groupBy("active_count").aggregate {
-    mean { "tau"<Double>() } into "mean_tau"
     val sumPert = sum { "perturbed_mag"<Double>() }
     val sumBase = sum { "baseline_mag"<Double>() }
     (if (sumBase > 0.0) sumPert / sumBase else 0.0) into "sum_over_sum"
@@ -449,7 +464,6 @@ production ranking, mean per-fixture recovery, and sum-over-sum recovery.""")
 
 code(r"""fun soloRow(df: AnyFrame, term: String): Map<String, Any> {
     val rows = df.filter { "variant"<String>() == term }
-    val meanTau = rows["tau"].cast<Double>().mean()
     // mean per-fixture recovery: |perturbed_mag| / |baseline_mag|, averaged
     val perFixture = (0 until rows.rowsCount()).map { i ->
         val b = rows["baseline_mag"][i] as Double
@@ -462,7 +476,6 @@ code(r"""fun soloRow(df: AnyFrame, term: String): Map<String, Any> {
     val sumOverSum = if (sumBase > 0.0) sumPert / sumBase else 0.0
     return mapOf(
         "term" to term,
-        "mean τ" to "%.3f".format(meanTau),
         "mean recovery" to "%.3f".format(meanRec),
         "sum/sum" to "%.3f".format(sumOverSum),
     )
@@ -480,7 +493,6 @@ regulariser-against-penalties effect discussed in the chapter).""")
 code(r"""fun looRow(df: AnyFrame, removed: String): Map<String, Any> {
     val target = (allTerms - removed).toSortedSet()
     val rows = df.filter { "variant"<String>().split("+").toSortedSet() == target }
-    val meanTau = rows["tau"].cast<Double>().mean()
     val perFixture = (0 until rows.rowsCount()).map { i ->
         val b = rows["baseline_mag"][i] as Double
         val p = rows["perturbed_mag"][i] as Double
@@ -492,7 +504,6 @@ code(r"""fun looRow(df: AnyFrame, removed: String): Map<String, Any> {
     val sumOverSum = if (sumBase > 0.0) sumPert / sumBase else 0.0
     return mapOf(
         "removed term" to removed,
-        "mean τ" to "%.3f".format(meanTau),
         "mean recovery" to "%.3f".format(meanRec),
         "sum/sum" to "%.3f".format(sumOverSum),
     )
@@ -513,8 +524,8 @@ code(r"""fun looTau(df: AnyFrame, removed: String): Double {
 PROC_TERMS.sorted().map { removed ->
     mapOf(
         "removed" to removed,
-        "injection τ" to "%.3f".format(looTau(ablInj, removed)),
-        "user-study τ" to "%.3f".format(looTau(ablUser, removed)),
+        "injection τ (n=15)"   to "%.3f".format(looTau(ablInjRankable,  removed)),
+        "user-study τ (n=25)" to "%.3f".format(looTau(ablUserRankable, removed)),
     )
 }.toDataFrame()""")
 
@@ -1006,8 +1017,30 @@ fun emitDump(label: String, sessions: Map<String, PhaseAResult>) {
     println()
 }
 
+emitDump("INJECTION", injection)
 emitDump("USER-STUDY", userStudy)
-emitDump("AGENT", agent)""")
+emitDump("AGENT", agent)
+
+// Per-set DP-count histogram for the small-ranking-floor caveat.
+fun dpCounts(label: String, sessions: Map<String, PhaseAResult>) {
+    val counts = sessions.values.map { phaseA ->
+        ReportAssembler.assemble(phaseA, ScoringConfig.PRODUCTION)
+            .divergencePoints.count { it.magnitude > 0.0 }
+    }
+    val histo = counts.groupingBy { it }.eachCount().toSortedMap()
+    println("### $label DP-count histogram ###")
+    println("dp_count\tn_sessions")
+    for ((k, v) in histo) println("$k\t$v")
+    val total = counts.size
+    val le1 = counts.count { it <= 1 }
+    val ge2 = counts.count { it >= 2 }
+    println("total=$total, <=1 (no ranking)=$le1, >=2 (rankable)=$ge2 (${"%.1f".format(100.0 * ge2 / total)}%)")
+    println()
+}
+
+dpCounts("INJECTION", injection)
+dpCounts("USER-STUDY", userStudy)
+dpCounts("AGENT", agent)""")
 
 # ---------------------------------------------------------------- write
 

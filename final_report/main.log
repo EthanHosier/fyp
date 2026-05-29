@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.10.5)  29 MAY 2026 14:31
+This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.10.5)  29 MAY 2026 17:50
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1553,16 +1553,16 @@ Chapter 4.
 
 ]
 
-LaTeX Font Warning: Font shape `T1/cmr/m/scit' undefined
-(Font)              using `T1/cmr/m/scsl' instead on input line 66.
-
-
-LaTeX Font Warning: Font shape `T1/cmr/m/scit' undefined
-(Font)              using `T1/cmr/m/scsl' instead on input line 66.
-
-
-
 [38]
+
+LaTeX Font Warning: Font shape `T1/cmr/m/scit' undefined
+(Font)              using `T1/cmr/m/scsl' instead on input line 69.
+
+
+LaTeX Font Warning: Font shape `T1/cmr/m/scit' undefined
+(Font)              using `T1/cmr/m/scsl' instead on input line 69.
+
+
 
 [39]
 
@@ -1579,41 +1579,41 @@ LaTeX Font Warning: Font shape `T1/cmr/m/scit' undefined
 [45]
 
 LaTeX Font Warning: Font shape `T1/cmr/m/scit' undefined
-(Font)              using `T1/cmr/m/scsl' instead on input line 290.
+(Font)              using `T1/cmr/m/scsl' instead on input line 294.
 
 
 LaTeX Font Warning: Font shape `T1/cmr/m/scit' undefined
-(Font)              using `T1/cmr/m/scsl' instead on input line 290.
+(Font)              using `T1/cmr/m/scsl' instead on input line 294.
 
 
 LaTeX Font Warning: Font shape `T1/cmr/m/scit' undefined
-(Font)              using `T1/cmr/m/scsl' instead on input line 290.
+(Font)              using `T1/cmr/m/scsl' instead on input line 294.
 
 
 LaTeX Font Warning: Font shape `T1/cmr/m/scit' undefined
-(Font)              using `T1/cmr/m/scsl' instead on input line 290.
+(Font)              using `T1/cmr/m/scsl' instead on input line 294.
 
 
 LaTeX Font Warning: Font shape `T1/cmr/m/scit' undefined
-(Font)              using `T1/cmr/m/scsl' instead on input line 313.
+(Font)              using `T1/cmr/m/scsl' instead on input line 317.
 
 
 LaTeX Font Warning: Font shape `T1/cmr/m/scit' undefined
-(Font)              using `T1/cmr/m/scsl' instead on input line 313.
+(Font)              using `T1/cmr/m/scsl' instead on input line 317.
 
 
 
 [46]
 
 [47]
-Overfull \hbox (113.82326pt too wide) in paragraph at lines 346--364
+Overfull \hbox (113.82326pt too wide) in paragraph at lines 350--368
  [][] 
  []
 
 
 
 [48]
-Overfull \hbox (5.75224pt too wide) in paragraph at lines 371--372
+Overfull \hbox (5.75224pt too wide) in paragraph at lines 375--376
  []\T1/cmr/bx/n/10.95 Behavioural tra-jec-tory across the six-session arc.[] \T
 1/cmr/m/n/10.95 The tra-jec-tory ques-tion is whether
  []
@@ -1621,14 +1621,14 @@ Overfull \hbox (5.75224pt too wide) in paragraph at lines 371--372
 
 
 [49]
-Overfull \hbox (30.89247pt too wide) in paragraph at lines 407--421
+Overfull \hbox (30.89247pt too wide) in paragraph at lines 411--425
  [][] 
  []
 
 
 
 [50]
-Overfull \hbox (12.85373pt too wide) in paragraph at lines 432--433
+Overfull \hbox (12.85373pt too wide) in paragraph at lines 436--437
  []\T1/cmr/bx/n/10.95 With-feedback vs no-feedback base-line arm.[] \T1/cmr/m/n
 /10.95 The arm-level com-par-i-son is the strongest
  []
@@ -1636,7 +1636,7 @@ Overfull \hbox (12.85373pt too wide) in paragraph at lines 432--433
 
 
 [51]
-Overfull \hbox (31.46654pt too wide) in paragraph at lines 450--451
+Overfull \hbox (31.46654pt too wide) in paragraph at lines 454--455
 \T1/cmr/m/n/10.95 (\T1/cmtt/m/n/10.95 claude-4.7-opus-medium-claude-code-baseli
 ne \T1/cmr/m/n/10.95 and \T1/cmtt/m/n/10.95 gpt-5.5-medium-opencode-baseline\T1
 /cmr/m/n/10.95 ):
@@ -1645,12 +1645,12 @@ ne \T1/cmr/m/n/10.95 and \T1/cmtt/m/n/10.95 gpt-5.5-medium-opencode-baseline\T1
 
 
 [52]
-Overfull \hbox (119.29729pt too wide) in paragraph at lines 458--476
+Overfull \hbox (119.29729pt too wide) in paragraph at lines 462--480
  [][] 
  []
 
 
-Overfull \hbox (0.71313pt too wide) in paragraph at lines 488--489
+Overfull \hbox (0.71313pt too wide) in paragraph at lines 492--493
 \T1/cmr/m/n/10.95 traces at all (see Ÿ[][]4.3.2[][] be-low). What-ever between-
 session ad-just-ment a with-feedback
  []
@@ -1658,7 +1658,7 @@ session ad-just-ment a with-feedback
 
 
 [53]
-Overfull \hbox (104.85779pt too wide) in paragraph at lines 502--503
+Overfull \hbox (104.85779pt too wide) in paragraph at lines 506--507
 \T1/cmr/m/n/10.95 burst tracker de-bounces on \T1/cmtt/m/n/10.95 DEBOUNCE_MS = 
 2000L \T1/cmr/m/n/10.95 (2 s; see \T1/cmtt/m/n/10.95 tool/ide-plugin/.../EditBu
 rstTracker.kt\T1/cmr/m/n/10.95 ).
@@ -1668,22 +1668,22 @@ rstTracker.kt\T1/cmr/m/n/10.95 ).
 
 [54]
 LaTeX Font Info:    Font shape `T1/cmtt/bx/n' in size <10.95> not available
-(Font)              Font shape `T1/cmtt/m/n' tried instead on input line 513.
+(Font)              Font shape `T1/cmtt/m/n' tried instead on input line 517.
 
-Overfull \hbox (76.91235pt too wide) in paragraph at lines 517--518
+Overfull \hbox (76.91235pt too wide) in paragraph at lines 521--522
 \T1/cmr/m/n/10.95 agent's writ-ten re-sponse iden-ti-fied its own anti-pattern 
 by name: ``meth-ods like \T1/cmtt/m/n/10.95 chargeCash\T1/cmr/m/n/10.95 /\T1/cm
 tt/m/n/10.95 refundVoucher
  []
 
 
-Overfull \hbox (20.02634pt too wide) in paragraph at lines 517--518
+Overfull \hbox (20.02634pt too wide) in paragraph at lines 521--522
 \T1/cmr/m/n/10.95 are ar-guably triv-ial wrap-pers that didn't earn their keep,
 '' and ``could have made \T1/cmtt/m/n/10.95 formatAddress
  []
 
 
-Overfull \hbox (36.20172pt too wide) in paragraph at lines 517--518
+Overfull \hbox (36.20172pt too wide) in paragraph at lines 521--522
 \T1/cmr/m/n/10.95 and zero ad-vice items, S5 pro-duced two IDE-replay flags but
  no \T1/cmtt/m/n/10.95 REFACTORING_INTRODUCED_SMELLS\T1/cmr/m/n/10.95 ,
  []
@@ -1730,9 +1730,6 @@ Overfull \hbox (31.95566pt too wide) in paragraph at lines 49--50
 [61]
 
 [62]
-Underfull \vbox (badness 2426) has occurred while \output is active []
-
-
 
 [63]) (./conclusion/conclusion.tex
 
@@ -1813,13 +1810,13 @@ Package rerunfilecheck Info: File `main.out' has not changed.
 (rerunfilecheck)             Checksum: 7D47FE7BED4B7743B36CB6E8B983F1BA;17735.
  ) 
 Here is how much of TeX's memory you used:
- 27491 strings out of 473190
- 519290 string characters out of 5715800
- 922788 words of memory out of 5000000
+ 27490 strings out of 473190
+ 519278 string characters out of 5715800
+ 922281 words of memory out of 5000000
  49877 multiletter control sequences out of 15000+600000
  600304 words of font info for 114 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 103i,13n,106p,2141b,958s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 103i,13n,106p,2019b,958s stack positions out of 10000i,1000n,20000p,200000b,200000s
 </usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx10.pfb
 ></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb>
 </usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb><
@@ -1867,10 +1864,10 @@ local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sftt0800.pfb></usr/lo
 cal/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sftt1000.pfb></usr/loca
 l/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sftt1095.pfb></usr/local/
 texlive/2025/texmf-dist/fonts/type1/public/cm-super/sfxc0800.pfb>
-Output written on main.pdf (77 pages, 1538646 bytes).
+Output written on main.pdf (77 pages, 1540609 bytes).
 PDF statistics:
- 1732 PDF objects out of 2073 (max. 8388607)
- 1532 compressed objects within 16 object streams
- 351 named destinations out of 1000 (max. 500000)
+ 1744 PDF objects out of 2073 (max. 8388607)
+ 1544 compressed objects within 16 object streams
+ 350 named destinations out of 1000 (max. 500000)
  759 words of extra memory for PDF output out of 10000 (max. 10000000)
 
