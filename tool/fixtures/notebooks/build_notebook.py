@@ -215,16 +215,25 @@ val KNOBS = listOf(
 // have weight-invariant magnitudes (the clamp eats any perturbation),
 // so they inflate τ artificially when included; reported separately
 // to bound the clipping-as-confound concern in §5.1.
-fun saturatedDpCount(report: AnalysisReport): Int {
-    val userProc = report.checkpoints.associate { it.sha to it.derivedMetrics.process.total }
+// Count DPs whose magnitude is clamp-frozen across a (baseline, perturbed)
+// pair: user trajectory-final stays at the same clamp value AND the DP's
+// alt trajectory-final stays at the same clamp value. Both conditions
+// together force the magnitude J(alt_T) - J(user_T) to be identical in
+// baseline and perturbed scorings.
+fun clampFrozenDpCount(baseline: AnalysisReport, perturbed: AnalysisReport): Int {
+    val ub = baseline.checkpoints.lastOrNull()?.derivedMetrics?.process?.total
+    val up = perturbed.checkpoints.lastOrNull()?.derivedMetrics?.process?.total
+    if (ub == null || up == null) return 0
+    val userClampSame = ub == up && (ub == 0 || ub == 100)
+    if (!userClampSame) return 0
     var n = 0
-    for (dp in report.divergencePoints) {
-        val touches = dp.altTrajectoryIndexes.mapNotNull { report.alternativeTrajectories.getOrNull(it) }.any { alt ->
-            val a = alt.altCheckpoints.lastOrNull()?.derivedMetrics?.process?.total
-            val u = userProc[alt.userToSha]
-            (a != null && (a == 0 || a == 100)) || (u != null && (u == 0 || u == 100))
-        }
-        if (touches) n += 1
+    for (dp in baseline.divergencePoints) {
+        val altIdx = dp.altTrajectoryIndexes.firstOrNull() ?: continue
+        val ab = baseline.alternativeTrajectories.getOrNull(altIdx)?.altCheckpoints?.lastOrNull()?.derivedMetrics?.process?.total
+        val ap = perturbed.alternativeTrajectories.getOrNull(altIdx)?.altCheckpoints?.lastOrNull()?.derivedMetrics?.process?.total
+        if (ab == null || ap == null) continue
+        val altClampSame = ab == ap && (ab == 0 || ab == 100)
+        if (altClampSame) n++
     }
     return n
 }
@@ -233,7 +242,6 @@ fun sensitivitySweep(name: String, corpus: Map<String, PhaseAResult>) =
     corpus.flatMap { (fixture, phaseA) ->
         val baseline = ReportAssembler.assemble(phaseA, ScoringConfig.PRODUCTION)
         val baselineRanking = rankingOf(baseline)
-        val baselineSat = saturatedDpCount(baseline)
         KNOBS.flatMap { knob ->
             FACTORS.map { factor ->
                 val perturbed = ReportAssembler.assemble(phaseA, knob.perturb(ScoringConfig.PRODUCTION, factor))
@@ -245,7 +253,7 @@ fun sensitivitySweep(name: String, corpus: Map<String, PhaseAResult>) =
                     "top3" to topNHitRate(baselineRanking, pr, 3),
                     "top5" to topNHitRate(baselineRanking, pr, 5),
                     "baseline_size" to baselineRanking.size,
-                    "baseline_sat" to baselineSat,
+                    "clamp_frozen" to clampFrozenDpCount(baseline, perturbed),
                 )
             }
         }
@@ -255,20 +263,21 @@ val sensInj    = sensitivitySweep("Injection (rankable, 15)",   rankableSubset(i
 val sensUser   = sensitivitySweep("User study (rankable, 25)",  rankableSubset(userStudy))
 val sensAgent  = sensitivitySweep("Agent (rankable, 20)",       rankableSubset(agent))""")
 
-md("Headline table — top-1 stability, τ = 1.0 share, and baseline saturation per session set (reproduces Table 5.1).")
+md("Headline table — top-1 stability, τ = 1.0 share, and per-perturbation clamp-frozen DP rate per session set (reproduces Table 5.1). The clamp-frozen rate is the share of (DP × perturbation) cells where the DP's magnitude is locked by the score clamp: user trajectory-final and the DP's alt trajectory-final both sit at the same clamp value (0 or 100) in baseline and in perturbed.")
 
 code(r"""fun pct(p: Double) = "%.1f%%".format(p * 100)
 
 val sensHeadline = listOf(sensInj, sensUser, sensAgent).map { df ->
     val n = df.rowsCount()
-    val baselineDps = df["baseline_size"].cast<Int>().sum()
+    val totalDpCells = df["baseline_size"].cast<Int>().sum()
+    val clampFrozen = df["clamp_frozen"].cast<Int>().sum()
     mapOf(
         "session set" to (df["set"][0] as String),
         "rows" to n,
         "tau=1.0" to pct(df.filter { "tau"<Double>() == 1.0 }.rowsCount().toDouble() / n),
         "top-1=1" to pct(df.filter { "top1"<Double>() == 1.0 }.rowsCount().toDouble() / n),
         "tau<0"   to pct(df.filter { "tau"<Double>() < 0.0 }.rowsCount().toDouble() / n),
-        "baseline saturation" to pct(df["baseline_sat"].cast<Int>().sum().toDouble() / baselineDps.coerceAtLeast(1)),
+        "clamp-frozen" to pct(clampFrozen.toDouble() / totalDpCells.coerceAtLeast(1)),
     )
 }.toDataFrame()
 sensHeadline""")

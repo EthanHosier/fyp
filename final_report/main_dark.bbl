@@ -3,8 +3,7 @@
 \bibitem{opdyke1992refactoring}
 William~F. Opdyke.
 \newblock {\em Refactoring Object-Oriented Frameworks}.
-\newblock PhD thesis, University of Illinois at Urbana-Champaign,
-  Urbana-Champaign, IL, USA, 1992.
+\newblock PhD thesis, University of Illinois at Urbana-Champaign, Urbana-Champaign, IL, USA, 1992.
 
 \bibitem{fowler1999refactoring}
 Martin Fowler.
@@ -19,76 +18,57 @@ Martin Fowler.
 \bibitem{mens2004survey}
 Tom Mens and Tom Tourw{\'e}.
 \newblock A survey of software refactoring.
-\newblock {\em IEEE Transactions on Software Engineering}, 30(2):126--139,
-  2004.
+\newblock {\em IEEE Transactions on Software Engineering}, 30(2):126--139, 2004.
 
 \bibitem{murphyhill2009howrefactor}
 Emerson~R. Murphy-Hill, Chris Parnin, and Andrew~P. Black.
 \newblock How we refactor, and how we know it.
-\newblock In {\em Proceedings of the 31st International Conference on Software
-  Engineering (ICSE)}, pages 287--297, 2009.
+\newblock In {\em Proceedings of the 31st International Conference on Software Engineering (ICSE)}, pages 287--297, 2009.
 
 \bibitem{kim2011apilevel}
 Miryung Kim, Dongxiang Cai, and Sunghun Kim.
-\newblock An empirical investigation into the role of {API}-level refactorings
-  during software evolution.
-\newblock In {\em Proceedings of the 33rd International Conference on Software
-  Engineering (ICSE)}, pages 151--160, 2011.
+\newblock An empirical investigation into the role of {API}-level refactorings during software evolution.
+\newblock In {\em Proceedings of the 33rd International Conference on Software Engineering (ICSE)}, pages 151--160, 2011.
 
 \bibitem{alikhanifard2025rminer}
 Pouria Alikhanifard and Nikolaos Tsantalis.
-\newblock A novel refactoring and semantic aware abstract syntax tree
-  differencing tool and a benchmark for evaluating the accuracy of diff tools.
-\newblock {\em ACM Transactions on Software Engineering and Methodology},
-  34(2), 2025.
+\newblock A novel refactoring and semantic aware abstract syntax tree differencing tool and a benchmark for evaluating the accuracy of diff tools.
+\newblock {\em ACM Transactions on Software Engineering and Methodology}, 34(2), 2025.
 
 \bibitem{falleri2024gumtree}
 Jean-R{\'e}my Falleri and Matias Martinez.
 \newblock Fine-grained, accurate, and scalable source code differencing.
-\newblock In {\em Proceedings of the 46th IEEE/ACM International Conference on
-  Software Engineering (ICSE)}. ACM, 2024.
+\newblock In {\em Proceedings of the 46th IEEE/ACM International Conference on Software Engineering (ICSE)}. ACM, 2024.
 
 \bibitem{gautam2025refactorbench}
-Dhruv Gautam, Spandan Garg, Jinu Jang, Neel Sundaresan, and Roshanak
-  Zilouchian~Moghaddam.
-\newblock {RefactorBench}: Evaluating stateful reasoning in language agents
-  through code.
-\newblock In {\em Proceedings of the International Conference on Learning
-  Representations (ICLR)}, 2025.
+Dhruv Gautam, Spandan Garg, Jinu Jang, Neel Sundaresan, and Roshanak Zilouchian~Moghaddam.
+\newblock {RefactorBench}: Evaluating stateful reasoning in language agents through code.
+\newblock In {\em Proceedings of the International Conference on Learning Representations (ICLR)}, 2025.
 
 \bibitem{bouzenia2025trajectories}
 Islem Bouzenia and Michael Pradel.
-\newblock Understanding software engineering agents: A study of
-  thought-action-result trajectories.
-\newblock In {\em Proceedings of the 40th IEEE/ACM International Conference on
-  Automated Software Engineering (ASE)}, 2025.
+\newblock Understanding software engineering agents: A study of thought-action-result trajectories.
+\newblock In {\em Proceedings of the 40th IEEE/ACM International Conference on Automated Software Engineering (ASE)}, 2025.
 
 \bibitem{alomar2025slr}
 Sofia Martinez, Luo Xu, Mariam Elnaggar, and Eman~Abdullah AlOmar.
-\newblock Software refactoring research with large language models: A
-  systematic literature review.
+\newblock Software refactoring research with large language models: A systematic literature review.
 \newblock {\em Journal of Systems and Software}, 235:112762, 2025.
 
 \bibitem{raychev2013resynth}
 Veselin Raychev, Max Sch{\"a}fer, Manu Sridharan, and Martin Vechev.
 \newblock Refactoring with synthesis.
-\newblock In {\em Proceedings of the 2013 ACM International Conference on
-  Object Oriented Programming Systems Languages and Applications (OOPSLA)},
-  pages 339--354. ACM, 2013.
+\newblock In {\em Proceedings of the 2013 ACM International Conference on Object Oriented Programming Systems Languages and Applications (OOPSLA)}, pages 339--354. ACM, 2013.
 
 \bibitem{lin2016navigator}
 Yu~Lin, Xin Peng, Yumin Cai, Danny Dig, Diwen Zheng, and Wenyun Zhao.
-\newblock Interactive and guided architectural refactoring with search-based
-  recommendation.
-\newblock In {\em Proceedings of the 2016 24th ACM SIGSOFT International
-  Symposium on Foundations of Software Engineering (FSE)}, pages 535--546. ACM,
-  2016.
+\newblock Interactive and guided architectural refactoring with search-based recommendation.
+\newblock In {\em Proceedings of the 2016 24th ACM SIGSOFT International Symposium on Foundations of Software Engineering (FSE)}, pages 535--546. ACM, 2016.
 
 \bibitem{harman2007pareto}
 Mark Harman and Laurence Tratt.
 \newblock Pareto optimal search-based refactoring at the design level.
-\newblock In {\em Proceedings of the 9th Annual Conference on Genetic and
-  Evolutionary Computation (GECCO '07)}, pages 1106--1113. ACM, 2007.
+\newblock In {\em Proceedings of the 9th Annual Conference on Genetic and Evolutionary Computation (GECCO '07)}, pages 1106--1113. ACM, 2007.
 
 \bibitem{mohan2019manyobjective}
 M.~Mohan and Des Greer.
@@ -96,65 +76,49 @@ M.~Mohan and Des Greer.
 \newblock {\em Information and Software Technology}, 112:83--101, 2019.
 
 \bibitem{nikolaidis2024metricsbased}
-Nikolaos Nikolaidis, Nikolaos Mittas, Apostolos Ampatzoglou, Daniel Feitosa,
-  and Alexander Chatzigeorgiou.
-\newblock A metrics-based approach for selecting among various refactoring
-  candidates.
+Nikolaos Nikolaidis, Nikolaos Mittas, Apostolos Ampatzoglou, Daniel Feitosa, and Alexander Chatzigeorgiou.
+\newblock A metrics-based approach for selecting among various refactoring candidates.
 \newblock {\em Empirical Software Engineering}, 29(1), 2024.
 
 \bibitem{paixao2017balancing}
 Matheus Paix{\~a}o, Mark Harman, Yuanyuan Zhang, and Yijun Yu.
-\newblock An empirical study of cohesion and coupling: Balancing optimisation
-  and disruption.
-\newblock {\em IEEE Transactions on Evolutionary Computation}, 22(3):394--414,
-  2017.
+\newblock An empirical study of cohesion and coupling: Balancing optimisation and disruption.
+\newblock {\em IEEE Transactions on Evolutionary Computation}, 22(3):394--414, 2017.
 
 \bibitem{moha2010decor}
-Naouel Moha, Yann-Ga{\"e}l Gu{\'e}h{\'e}neuc, Laurence Duchien, and
-  Anne-Fran{\c{c}}oise Le~Meur.
-\newblock {DECOR}: A method for the specification and detection of code and
-  design smells.
+Naouel Moha, Yann-Ga{\"e}l Gu{\'e}h{\'e}neuc, Laurence Duchien, and Anne-Fran{\c{c}}oise Le~Meur.
+\newblock {DECOR}: A method for the specification and detection of code and design smells.
 \newblock {\em IEEE Transactions on Software Engineering}, 36(1):20--36, 2010.
 
 \bibitem{paiva2017evaluation}
 Thanis Paiva, Amanda Damasceno, Eduardo Figueiredo, and Cl{\'a}udio Sant'Anna.
 \newblock On the evaluation of code smells and detection tools.
-\newblock {\em Journal of Software Engineering Research and Development}, 5,
-  2017.
+\newblock {\em Journal of Software Engineering Research and Development}, 5, 2017.
 
 \bibitem{arcellifontana2016falsepositives}
-Francesca Arcelli~Fontana, Jens Dietrich, Bartosz Walter, Aiko Yamashita, and
-  Marco Zanoni.
-\newblock Antipattern and code smell false positives: Preliminary
-  conceptualization and classification.
-\newblock In {\em Proceedings of the 2016 IEEE 23rd International Conference on
-  Software Analysis, Evolution, and Reengineering (SANER)}, volume~1, pages
-  609--613. IEEE, 2016.
+Francesca Arcelli~Fontana, Jens Dietrich, Bartosz Walter, Aiko Yamashita, and Marco Zanoni.
+\newblock Antipattern and code smell false positives: Preliminary conceptualization and classification.
+\newblock In {\em Proceedings of the 2016 IEEE 23rd International Conference on Software Analysis, Evolution, and Reengineering (SANER)}, volume~1, pages 609--613. IEEE, 2016.
 
 \bibitem{scalabrino2018readability}
-Simone Scalabrino, Mario Linares-V{\'a}squez, Rocco Oliveto, and Denys
-  Poshyvanyk.
+Simone Scalabrino, Mario Linares-V{\'a}squez, Rocco Oliveto, and Denys Poshyvanyk.
 \newblock A comprehensive model for code readability.
 \newblock {\em Journal of Software: Evolution and Process}, 30(6):e1958, 2018.
 
 \bibitem{silva2017refdiff}
 Danilo Silva and Marco~Tulio Valente.
 \newblock Refdiff: Detecting refactorings in version histories.
-\newblock In {\em Proceedings of the International Conference on Mining
-  Software Repositories (MSR)}, pages 269--279. IEEE Press, 2017.
+\newblock In {\em Proceedings of the International Conference on Mining Software Repositories (MSR)}, pages 269--279. IEEE Press, 2017.
 
 \bibitem{cortellessa2023manyobjective}
 Vittorio Cortellessa, Daniele Di~Pompeo, Vincenzo Stoico, and Michele Tucci.
-\newblock Many-objective optimization of non-functional attributes based on
-  refactoring of software models.
+\newblock Many-objective optimization of non-functional attributes based on refactoring of software models.
 \newblock {\em Information and Software Technology}, 157:107159, 2023.
 
 \bibitem{pan2025swegym}
-Jiayi Pan, Xingyao Wang, Graham Neubig, Navdeep Jaitly, Heng Ji, Alane Suhr,
-  and Yizhe Zhang.
+Jiayi Pan, Xingyao Wang, Graham Neubig, Navdeep Jaitly, Heng Ji, Alane Suhr, and Yizhe Zhang.
 \newblock Training software engineering agents and verifiers with {SWE-Gym}.
-\newblock In {\em Proceedings of the International Conference on Machine
-  Learning (ICML)}, 2025.
+\newblock In {\em Proceedings of the International Conference on Machine Learning (ICML)}, 2025.
 
 \bibitem{eilertsen2024refactorings}
 Anna~Maria Eilertsen and Gail~C. Murphy.
@@ -163,64 +127,44 @@ Anna~Maria Eilertsen and Gail~C. Murphy.
 
 \bibitem{damevski2017usagesmells}
 Kostadin Damevski, David~C. Shepherd, Johannes Schneider, and Lori~L. Pollock.
-\newblock Mining sequences of developer interactions in visual studio for usage
-  smells.
-\newblock {\em IEEE Transactions on Software Engineering}, 43(4):359--371,
-  2017.
+\newblock Mining sequences of developer interactions in visual studio for usage smells.
+\newblock {\em IEEE Transactions on Software Engineering}, 43(4):359--371, 2017.
 
 \bibitem{poncin2011processmining}
 Wouter Poncin, Alexander Serebrenik, and Mark van~den Brand.
 \newblock Process mining software repositories.
-\newblock In {\em Proceedings of the 15th European Conference on Software
-  Maintenance and Reengineering (CSMR)}, pages 5--14. IEEE, 2011.
+\newblock In {\em Proceedings of the 15th European Conference on Software Maintenance and Reengineering (CSMR)}, pages 5--14. IEEE, 2011.
 
 \bibitem{basha2025codewatcher}
-Manaal Basha, Aim{\^e}e~M. Ribeiro, Jeena Javahar, Cleidson R.~B. de~Souza, and
-  Gema Rodr{\'i}guez-P{\'e}rez.
-\newblock {CodeWatcher}: {IDE} telemetry data extraction tool for understanding
-  coding interactions with {LLMs}.
-\newblock In {\em Proceedings of the 41st IEEE International Conference on
-  Software Maintenance and Evolution (ICSME), Tool Demonstration Track}, 2025.
+Manaal Basha, Aim{\^e}e~M. Ribeiro, Jeena Javahar, Cleidson R.~B. de~Souza, and Gema Rodr{\'i}guez-P{\'e}rez.
+\newblock {CodeWatcher}: {IDE} telemetry data extraction tool for understanding coding interactions with {LLMs}.
+\newblock In {\em Proceedings of the 41st IEEE International Conference on Software Maintenance and Evolution (ICSME), Tool Demonstration Track}, 2025.
 
 \bibitem{foutsekh2018interactiontraces}
-Aiko Yamashita, F{\'a}bio Petrillo, Foutse Khomh, and Yann-Ga{\"e}l
-  Gu{\'e}h{\'e}neuc.
-\newblock Developer interaction traces backed by ide screen recordings from
-  think-aloud sessions.
-\newblock In {\em Proceedings of the 15th International Conference on Mining
-  Software Repositories (MSR) (Data Showcase)}, pages 50--53, Gothenburg,
-  Sweden, 2018. ACM.
-\newblock Dataset paper providing IDE interaction traces with synchronized
-  screen recordings.
+Aiko Yamashita, F{\'a}bio Petrillo, Foutse Khomh, and Yann-Ga{\"e}l Gu{\'e}h{\'e}neuc.
+\newblock Developer interaction traces backed by ide screen recordings from think-aloud sessions.
+\newblock In {\em Proceedings of the 15th International Conference on Mining Software Repositories (MSR) (Data Showcase)}, pages 50--53, Gothenburg, Sweden, 2018. ACM.
+\newblock Dataset paper providing IDE interaction traces with synchronized screen recordings.
 
 \bibitem{cedrim2017refactoring}
-Diego Cedrim, Alessandro Garcia, Melina Mongiovi, Rohit Gheyi, Leonardo Sousa,
-  Rafael de~Mello, Baldoino Fonseca, M{\'a}rcio Ribeiro, and Antonio
-  Ch{\'a}vez.
-\newblock Understanding the impact of refactoring on smells: A longitudinal
-  study of 23 software projects.
-\newblock In {\em Proceedings of the 11th Joint Meeting on Foundations of
-  Software Engineering (ESEC/FSE)}, pages 465--475. ACM, 2017.
+Diego Cedrim, Alessandro Garcia, Melina Mongiovi, Rohit Gheyi, Leonardo Sousa, Rafael de~Mello, Baldoino Fonseca, M{\'a}rcio Ribeiro, and Antonio Ch{\'a}vez.
+\newblock Understanding the impact of refactoring on smells: A longitudinal study of 23 software projects.
+\newblock In {\em Proceedings of the 11th Joint Meeting on Foundations of Software Engineering (ESEC/FSE)}, pages 465--475. ACM, 2017.
 
 \bibitem{negara2013manualautomated}
 Stas Negara, Nicholas Chen, Mohsen Vakilian, Ralph~E. Johnson, and Danny Dig.
 \newblock A comparative study of manual and automated refactorings.
-\newblock In {\em Proceedings of the 27th European Conference on
-  Object-Oriented Programming (ECOOP)}, volume 7920 of {\em LNCS}, pages
-  552--576. Springer, 2013.
+\newblock In {\em Proceedings of the 27th European Conference on Object-Oriented Programming (ECOOP)}, volume 7920 of {\em LNCS}, pages 552--576. Springer, 2013.
 
 \bibitem{vakilian2012usedisuse}
-Mohsen Vakilian, Nicholas Chen, Stas Negara, Balaji~Ambresh Rajkumar, Brian~P.
-  Bailey, and Ralph~E. Johnson.
+Mohsen Vakilian, Nicholas Chen, Stas Negara, Balaji~Ambresh Rajkumar, Brian~P. Bailey, and Ralph~E. Johnson.
 \newblock Use, disuse, and misuse of automated refactorings.
-\newblock In {\em Proceedings of the 34th International Conference on Software
-  Engineering (ICSE)}, pages 233--243. IEEE, 2012.
+\newblock In {\em Proceedings of the 34th International Conference on Software Engineering (ICSE)}, pages 233--243. IEEE, 2012.
 
 \bibitem{cunningham1992wycash}
 Ward Cunningham.
 \newblock The {WyCash} portfolio management system.
-\newblock In {\em Addendum to the Proceedings on Object-Oriented Programming
-  Systems, Languages, and Applications (OOPSLA '92)}, pages 29--30. ACM, 1992.
+\newblock In {\em Addendum to the Proceedings on Object-Oriented Programming Systems, Languages, and Applications (OOPSLA '92)}, pages 29--30. ACM, 1992.
 
 \bibitem{kruchten2012technicaldebt}
 Philippe Kruchten, Robert~L. Nord, and Ipek Ozkaya.
@@ -230,27 +174,22 @@ Philippe Kruchten, Robert~L. Nord, and Ipek Ozkaya.
 \bibitem{taokim2015partitioning}
 Yida Tao and Sunghun Kim.
 \newblock Partitioning composite code changes to facilitate code review.
-\newblock In {\em Proceedings of the 12th IEEE/ACM Working Conference on Mining
-  Software Repositories (MSR)}, pages 180--190. IEEE, 2015.
+\newblock In {\em Proceedings of the 12th IEEE/ACM Working Conference on Mining Software Repositories (MSR)}, pages 180--190. IEEE, 2015.
 
 \bibitem{dibiase2019decomposition}
 Marco Di~Biase, Magiel Bruntink, Arie van Deursen, and Alberto Bacchelli.
-\newblock The effects of change decomposition on code review: A controlled
-  experiment.
+\newblock The effects of change decomposition on code review: A controlled experiment.
 \newblock {\em PeerJ Computer Science}, 5:e193, 2019.
 
 \bibitem{herzig2013tangled}
 Kim Herzig and Andreas Zeller.
 \newblock The impact of tangled code changes.
-\newblock In {\em Proceedings of the 10th Working Conference on Mining Software
-  Repositories (MSR)}, pages 121--130. IEEE, 2013.
+\newblock In {\em Proceedings of the 10th Working Conference on Mining Software Repositories (MSR)}, pages 121--130. IEEE, 2013.
 
 \bibitem{kudrjavets2022small}
 Gunnar Kudrjavets, Nachiappan Nagappan, and Ayushi Rastogi.
-\newblock Do small code changes merge faster? {A} multi-language empirical
-  investigation.
-\newblock In {\em Proceedings of the 19th International Conference on Mining
-  Software Repositories (MSR)}. IEEE, 2022.
+\newblock Do small code changes merge faster? {A} multi-language empirical investigation.
+\newblock In {\em Proceedings of the 19th International Conference on Mining Software Repositories (MSR)}. IEEE, 2022.
 
 \bibitem{campbell2018cognitive}
 G.~Ann Campbell.
@@ -259,56 +198,44 @@ G.~Ann Campbell.
 
 \bibitem{munozbaron2020cognitive}
 Marvin Mu{\~n}oz~Bar{\'o}n, Marvin Wyrich, and Stefan Wagner.
-\newblock An empirical validation of cognitive complexity as a measure of
-  source code understandability.
-\newblock In {\em Proceedings of the 14th ACM/IEEE International Symposium on
-  Empirical Software Engineering and Measurement (ESEM)}. ACM, 2020.
+\newblock An empirical validation of cognitive complexity as a measure of source code understandability.
+\newblock In {\em Proceedings of the 14th ACM/IEEE International Symposium on Empirical Software Engineering and Measurement (ESEM)}. ACM, 2020.
 \newblock Best Full Paper award.
 
 \bibitem{lavazza2023cognitive}
 Luigi Lavazza, Abdallah~Z. Abualkishik, Geng Liu, and Sandro Morasca.
-\newblock An empirical evaluation of the ``{Cognitive Complexity}'' measure as
-  a predictor of code understandability.
+\newblock An empirical evaluation of the ``{Cognitive Complexity}'' measure as a predictor of code understandability.
 \newblock {\em Journal of Systems and Software}, 197:111561, 2023.
 
 \bibitem{chidamberkemerer1994ckmetrics}
 Shyam~R. Chidamber and Chris~F. Kemerer.
 \newblock A metrics suite for object oriented design.
-\newblock {\em IEEE Transactions on Software Engineering}, 20(6):476--493,
-  1994.
+\newblock {\em IEEE Transactions on Software Engineering}, 20(6):476--493, 1994.
 
 \bibitem{heitlager2007sig}
 Ilja Heitlager, Tobias Kuipers, and Joost Visser.
 \newblock A practical model for measuring maintainability.
-\newblock In {\em Proceedings of the 6th International Conference on the
-  Quality of Information and Communications Technology (QUATIC)}, pages 30--39.
-  IEEE, 2007.
+\newblock In {\em Proceedings of the 6th International Conference on the Quality of Information and Communications Technology (QUATIC)}, pages 30--39. IEEE, 2007.
 
 \bibitem{buse2010readability}
 Raymond P.~L. Buse and Westley~R. Weimer.
 \newblock Learning a metric for code readability.
-\newblock {\em IEEE Transactions on Software Engineering}, 36(4):546--558,
-  2010.
+\newblock {\em IEEE Transactions on Software Engineering}, 36(4):546--558, 2010.
 
 \bibitem{marinescu2004}
 Radu Marinescu.
 \newblock Detection strategies: Metrics-based rules for detecting design flaws.
-\newblock In {\em Proceedings of the 20th IEEE International Conference on
-  Software Maintenance (ICSM)}, pages 350--359. IEEE, 2004.
+\newblock In {\em Proceedings of the 20th IEEE International Conference on Software Maintenance (ICSM)}, pages 350--359. IEEE, 2004.
 
 \bibitem{biemankang1995tcc}
 James~M. Bieman and Byung-Kyoo Kang.
 \newblock Cohesion and reuse in an object-oriented system.
-\newblock In {\em Proceedings of the 1995 Symposium on Software Reusability
-  (SSR'95)}, pages 259--262. ACM Press, 1995.
+\newblock In {\em Proceedings of the 1995 Symposium on Software Reusability (SSR'95)}, pages 259--262. ACM Press, 1995.
 \newblock Introduces Tight Class Cohesion (TCC) metric.
 
 \bibitem{wagner2015quamoco}
-Stefan Wagner, Andreas Goeb, Lars Heinemann, Michael Kl{\"a}s, Constanza
-  Lampasona, Klaus Lochmann, Alois Mayr, Reinhold Pl{\"o}sch, Andreas Seidl,
-  J{\"u}rgen Streit, and Adam Trendowicz.
-\newblock Operationalised product quality models and assessment: The {Quamoco}
-  approach.
+Stefan Wagner, Andreas Goeb, Lars Heinemann, Michael Kl{\"a}s, Constanza Lampasona, Klaus Lochmann, Alois Mayr, Reinhold Pl{\"o}sch, Andreas Seidl, J{\"u}rgen Streit, and Adam Trendowicz.
+\newblock Operationalised product quality models and assessment: The {Quamoco} approach.
 \newblock {\em Information and Software Technology}, 62:101--123, 2015.
 
 \bibitem{bansiya2002qmood}
@@ -339,21 +266,17 @@ Alan Agresti.
 
 \bibitem{saisana2005composite}
 Michaela Saisana, Andrea Saltelli, and Stefano Tarantola.
-\newblock Uncertainty and sensitivity analysis techniques as tools for the
-  quality assessment of composite indicators.
-\newblock {\em Journal of the Royal Statistical Society: Series A (Statistics
-  in Society)}, 168(2):307--323, 2005.
+\newblock Uncertainty and sensitivity analysis techniques as tools for the quality assessment of composite indicators.
+\newblock {\em Journal of the Royal Statistical Society: Series A (Statistics in Society)}, 168(2):307--323, 2005.
 
 \bibitem{lundberg2017shap}
 Scott~M. Lundberg and Su-In Lee.
 \newblock A unified approach to interpreting model predictions.
-\newblock In {\em Advances in Neural Information Processing Systems 30 (NeurIPS
-  2017)}, pages 4765--4774, 2017.
+\newblock In {\em Advances in Neural Information Processing Systems 30 (NeurIPS 2017)}, pages 4765--4774, 2017.
 
 \bibitem{strumbelj2014explaining}
 Erik {\v{S}}trumbelj and Igor Kononenko.
-\newblock Explaining prediction models and individual predictions with feature
-  contributions.
+\newblock Explaining prediction models and individual predictions with feature contributions.
 \newblock {\em Knowledge and Information Systems}, 41(3):647--665, 2014.
 
 \bibitem{cohen1960kappa}
@@ -373,32 +296,23 @@ Tom Mens, Gabriele Taentzer, and Olga Runge.
 
 \bibitem{liu2009smell}
 Hui Liu, Lu~Yang, Zhendong Niu, Zhiyi Ma, and Weizhong Shao.
-\newblock Facilitating software refactoring with appropriate resolution order
-  of bad smells.
-\newblock In {\em Proceedings of the 7th Joint Meeting of the European Software
-  Engineering Conference and the ACM SIGSOFT Symposium on the Foundations of
-  Software Engineering (ESEC/FSE)}, pages 265--268. ACM, 2009.
+\newblock Facilitating software refactoring with appropriate resolution order of bad smells.
+\newblock In {\em Proceedings of the 7th Joint Meeting of the European Software Engineering Conference and the ACM SIGSOFT Symposium on the Foundations of Software Engineering (ESEC/FSE)}, pages 265--268. ACM, 2009.
 
 \bibitem{khrishe2016empirical}
 Younes Khrishe and Mohammad Alshayeb.
-\newblock An empirical study on the effect of the order of applying software
-  refactoring.
-\newblock In {\em Proceedings of the 7th International Conference on Computer
-  Science and Information Technology (CSIT)}, pages 1--4, Amman, Jordan, 2016.
-  IEEE.
+\newblock An empirical study on the effect of the order of applying software refactoring.
+\newblock In {\em Proceedings of the 7th International Conference on Computer Science and Information Technology (CSIT)}, pages 1--4, Amman, Jordan, 2016. IEEE.
 
 \bibitem{wohlin2012experimentation}
-Claes Wohlin, Per Runeson, Martin H{\"o}st, Magnus~C. Ohlsson, Bj{\"o}rn
-  Regnell, and Anders Wessl{\'e}n.
+Claes Wohlin, Per Runeson, Martin H{\"o}st, Magnus~C. Ohlsson, Bj{\"o}rn Regnell, and Anders Wessl{\'e}n.
 \newblock {\em Experimentation in Software Engineering}.
 \newblock Springer, 2nd edition, 2012.
 
 \bibitem{imperial_research_ethics}
 {Imperial College London}.
 \newblock Research ethics.
-\newblock
-  \url{https://www.imperial.ac.uk/admin-services/early-career-researcher-institute/learning-and-development/policies-and-guidance/research-ethics/},
-  2026.
+\newblock \url{https://www.imperial.ac.uk/admin-services/early-career-researcher-institute/learning-and-development/policies-and-guidance/research-ethics/}, 2026.
 \newblock Accessed: 2026-05-28.
 
 \end{thebibliography}

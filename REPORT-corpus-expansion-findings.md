@@ -57,11 +57,11 @@ The rest of this document walks every table.
 
 ### Table 5.1 — Sensitivity headline (top-1 stability)
 
-| Set (rankable)     | N | sweep rows | τ = 1.0  | top-1 = 1 | τ < 0 | ceiling-hit rate |
-|--------------------|--:|-----------:|---------:|----------:|------:|-----------------:|
-| Injection (15)     | 15 | 1 755      | 30.7 %   | 99.0 %    | 1.3 % | 8.9 %            |
-| User study (25)    | 25 | 2 925      | 41.9 %   | 96.5 %    | 1.0 % | 6.4 %            |
-| Agent (20)         | 20 | 2 340      | 72.4 %   | 96.3 %    | 3.0 % | 21.6 %           |
+| Set (rankable)     | N | sweep rows | τ = 1.0  | top-1 = 1 | τ < 0 | clamp-frozen rate |
+|--------------------|--:|-----------:|---------:|----------:|------:|------------------:|
+| Injection (15)     | 15 | 1 755      | 30.7 %   | 99.0 %    | 1.3 % | 8.6 %             |
+| User study (25)    | 25 | 2 925      | 41.9 %   | 96.5 %    | 1.0 % | 1.8 %             |
+| Agent (20)         | 20 | 2 340      | 72.4 %   | 96.3 %    | 3.0 % | 20.8 %            |
 
 **Read.** Top-1 stability ≥ 96.3 % on every rankable subset. The τ = 1.0 share
 drops sharply versus the previously-reported corpus-wide figures because the
