@@ -1,0 +1,149 @@
+\babel@toc {english}{}\relax 
+\contentsline {chapter}{\numberline {1}Introduction}{4}{chapter.1}%
+\contentsline {section}{\numberline {1.1}Background}{4}{section.1.1}%
+\contentsline {section}{\numberline {1.2}Motivation}{4}{section.1.2}%
+\contentsline {section}{\numberline {1.3}Research Objectives}{5}{section.1.3}%
+\contentsline {section}{\numberline {1.4}Contributions}{6}{section.1.4}%
+\contentsline {section}{\numberline {1.5}Approach and Scope}{6}{section.1.5}%
+\contentsline {section}{\numberline {1.6}Thesis Roadmap}{7}{section.1.6}%
+\contentsline {chapter}{\numberline {2}Background}{8}{chapter.2}%
+\contentsline {section}{\numberline {2.1}Definitions and framing}{8}{section.2.1}%
+\contentsline {subsection}{\numberline {2.1.1}Refactoring as behaviour-preserving transformation}{8}{subsection.2.1.1}%
+\contentsline {subsection}{\numberline {2.1.2}Atomic refactorings, smells, and sequences}{8}{subsection.2.1.2}%
+\contentsline {subsection}{\numberline {2.1.3}Representing refactoring as states and actions}{9}{subsection.2.1.3}%
+\contentsline {section}{\numberline {2.2}Outcome-based refactoring evaluation}{9}{section.2.2}%
+\contentsline {subsection}{\numberline {2.2.1}Judging refactoring by the final state}{9}{subsection.2.2.1}%
+\contentsline {subsection}{\numberline {2.2.2}What endpoint evaluation captures-and what it misses}{9}{subsection.2.2.2}%
+\contentsline {section}{\numberline {2.3}Code smell detection and quality metrics}{10}{section.2.3}%
+\contentsline {subsection}{\numberline {2.3.1}Using code smells as design signals}{10}{subsection.2.3.1}%
+\contentsline {subsection}{\numberline {2.3.2}Structural and readability metrics}{10}{subsection.2.3.2}%
+\contentsline {subsection}{\numberline {2.3.3}What this means for the process-quality metric}{10}{subsection.2.3.3}%
+\contentsline {section}{\numberline {2.4}Refactoring detection and mining from code changes}{12}{section.2.4}%
+\contentsline {subsection}{\numberline {2.4.1}From diffs to refactoring actions}{12}{subsection.2.4.1}%
+\contentsline {subsection}{\numberline {2.4.2}What refactoring detectors miss}{12}{subsection.2.4.2}%
+\contentsline {paragraph}{Mixed and tangled changes.}{12}{section*.4}%
+\contentsline {paragraph}{Limited coverage and combined refactorings.}{12}{section*.5}%
+\contentsline {paragraph}{Behaviour preservation is not verified.}{12}{section*.6}%
+\contentsline {subsection}{\numberline {2.4.3}Tie-in to our work}{13}{subsection.2.4.3}%
+\contentsline {section}{\numberline {2.5}Refactoring recommendation and search/synthesis}{13}{section.2.5}%
+\contentsline {subsection}{\numberline {2.5.1}Recommendation and synthesis as a contrast}{13}{subsection.2.5.1}%
+\contentsline {subsection}{\numberline {2.5.2}Recent trajectory-formalism work in software engineering}{14}{subsection.2.5.2}%
+\contentsline {section}{\numberline {2.6}Process-aware work and IDE trace capture}{14}{section.2.6}%
+\contentsline {subsection}{\numberline {2.6.1}Logging developer interactions in IDEs}{14}{subsection.2.6.1}%
+\contentsline {subsection}{\numberline {2.6.2}Granularity, segmentation, and semantic interpretation}{15}{subsection.2.6.2}%
+\contentsline {section}{\numberline {2.7}Summary and positioning: toward process-quality evaluation}{15}{section.2.7}%
+\contentsline {chapter}{\numberline {3}Methodology}{17}{chapter.3}%
+\contentsline {section}{\numberline {3.1}Formal definitions and notation}{17}{section.3.1}%
+\contentsline {section}{\numberline {3.2}Computing the process score}{18}{section.3.2}%
+\contentsline {subsection}{\numberline {3.2.1}The process score}{18}{subsection.3.2.1}%
+\contentsline {subsection}{\numberline {3.2.2}Process-score weights}{19}{subsection.3.2.2}%
+\contentsline {paragraph}{$W_{\textsc {g}}$ (gain, 50).}{20}{section*.9}%
+\contentsline {paragraph}{$W_{\textsc {b}}$ (broken, 28).}{20}{section*.10}%
+\contentsline {paragraph}{$W_{\textsc {st}}$ (skip-tests, 14).}{20}{section*.11}%
+\contentsline {paragraph}{$W_{\textsc {mi}}$ (manual-when-IDE, 11).}{20}{section*.12}%
+\contentsline {paragraph}{$W_{\textsc {l}}$ (length, 11).}{20}{section*.13}%
+\contentsline {paragraph}{$W_{\textsc {lag}}$ (lag, 11).}{21}{section*.14}%
+\contentsline {paragraph}{$W_{\textsc {cg}}$ (commit-gap, 7).}{21}{section*.15}%
+\contentsline {subsection}{\numberline {3.2.3}The cleanliness sub-score}{21}{subsection.3.2.3}%
+\contentsline {paragraph}{Composition rule and sub-weights.}{22}{section*.17}%
+\contentsline {paragraph}{Caveats.}{22}{section*.18}%
+\contentsline {paragraph}{Coupling to the process score.}{23}{section*.19}%
+\contentsline {subsection}{\numberline {3.2.4}Event capture}{23}{subsection.3.2.4}%
+\contentsline {subsection}{\numberline {3.2.5}Shadow repo reconstruction and worktree pool}{23}{subsection.3.2.5}%
+\contentsline {subsection}{\numberline {3.2.6}Metrics calculation}{23}{subsection.3.2.6}%
+\contentsline {section}{\numberline {3.3}Divergence points}{24}{section.3.3}%
+\contentsline {subsection}{\numberline {3.3.1}Applying refactorings via Eclipse JDT}{25}{subsection.3.3.1}%
+\contentsline {paragraph}{Batch sessions.}{25}{section*.20}%
+\contentsline {paragraph}{Anchor resolution.}{25}{section*.21}%
+\contentsline {subsection}{\numberline {3.3.2}Ordering}{25}{subsection.3.3.2}%
+\contentsline {paragraph}{Window splitting on validator verdicts.}{26}{section*.22}%
+\contentsline {paragraph}{Dependency-DAG construction.}{26}{section*.23}%
+\contentsline {paragraph}{SSA versioning across renames.}{26}{section*.24}%
+\contentsline {paragraph}{Topological enumeration.}{26}{section*.25}%
+\contentsline {paragraph}{Depth-first search over a prefix trie.}{26}{section*.26}%
+\contentsline {paragraph}{Terminal AST-equivalence audit.}{26}{section*.27}%
+\contentsline {subsection}{\numberline {3.3.3}Manual-Refactor}{27}{subsection.3.3.3}%
+\contentsline {paragraph}{The wrap-and-patch layer.}{28}{section*.30}%
+\contentsline {subsection}{\numberline {3.3.4}Rework}{28}{subsection.3.3.4}%
+\contentsline {subsection}{\numberline {3.3.5}Hygiene}{29}{subsection.3.3.5}%
+\contentsline {subsection}{\numberline {3.3.6}Validator and behaviour preservation}{30}{subsection.3.3.6}%
+\contentsline {section}{\numberline {3.4}System architecture and pipeline phases}{30}{section.3.4}%
+\contentsline {subsection}{\numberline {3.4.1}Architecture at a glance}{30}{subsection.3.4.1}%
+\contentsline {subsection}{\numberline {3.4.2}Phase A / Phase B split}{31}{subsection.3.4.2}%
+\contentsline {paragraph}{Phase A.}{31}{section*.33}%
+\contentsline {paragraph}{Phase B.}{31}{section*.34}%
+\contentsline {section}{\numberline {3.5}Dashboard}{31}{section.3.5}%
+\contentsline {section}{\numberline {3.6}Score-formula evaluation design}{32}{section.3.6}%
+\contentsline {subsection}{\numberline {3.6.1}Sensitivity perturbations}{32}{subsection.3.6.1}%
+\contentsline {subsection}{\numberline {3.6.2}Ablation design}{33}{subsection.3.6.2}%
+\contentsline {section}{\numberline {3.7}Evaluation dataset and labelling protocol}{33}{section.3.7}%
+\contentsline {subsection}{\numberline {3.7.1}The 45-session injection set}{34}{subsection.3.7.1}%
+\contentsline {subsection}{\numberline {3.7.2}Two label streams}{34}{subsection.3.7.2}%
+\contentsline {subsection}{\numberline {3.7.3}Rater protocol}{34}{subsection.3.7.3}%
+\contentsline {subsection}{\numberline {3.7.4}Cohen's $\kappa $ computation}{34}{subsection.3.7.4}%
+\contentsline {subsection}{\numberline {3.7.5}Treatment of disagreements}{35}{subsection.3.7.5}%
+\contentsline {subsection}{\numberline {3.7.6}Divergence-detector evaluation protocol}{35}{subsection.3.7.6}%
+\contentsline {chapter}{\numberline {4}Experimentation and Evaluation}{36}{chapter.4}%
+\contentsline {section}{\numberline {4.1}Testing the score formula}{36}{section.4.1}%
+\contentsline {subsection}{\numberline {4.1.1}Sensitivity sweep}{36}{subsection.4.1.1}%
+\contentsline {paragraph}{Experiment setup.}{36}{section*.36}%
+\contentsline {paragraph}{Single-knob results.}{37}{section*.37}%
+\contentsline {paragraph}{Sources of ranking instability.}{37}{section*.39}%
+\contentsline {paragraph}{Multi-knob Monte Carlo.}{38}{section*.41}%
+\contentsline {paragraph}{Clamp-frozen rate and weight-invariance.}{38}{section*.43}%
+\contentsline {paragraph}{Caveats and scope.}{39}{section*.44}%
+\contentsline {subsection}{\numberline {4.1.2}Ablation sweep}{39}{subsection.4.1.2}%
+\contentsline {paragraph}{Monotone by active-term count.}{39}{section*.45}%
+\contentsline {paragraph}{Per-term single-knob recovery.}{39}{section*.47}%
+\contentsline {paragraph}{Per-term leave-one-out recovery.}{40}{section*.49}%
+\contentsline {paragraph}{Cross-set rerun on the user-study sessions.}{41}{section*.51}%
+\contentsline {paragraph}{Caveats.}{41}{section*.53}%
+\contentsline {section}{\numberline {4.2}Testing the divergence-point detector}{42}{section.4.2}%
+\contentsline {subsection}{\numberline {4.2.1}Inter-rater reliability}{42}{subsection.4.2.1}%
+\contentsline {subsection}{\numberline {4.2.2}Divergence experiment}{42}{subsection.4.2.2}%
+\contentsline {paragraph}{Precision and recall.}{42}{section*.55}%
+\contentsline {paragraph}{Detection quality.}{43}{section*.57}%
+\contentsline {paragraph}{Negative Ordering magnitudes.}{44}{section*.59}%
+\contentsline {paragraph}{Injection prominence.}{44}{section*.60}%
+\contentsline {paragraph}{Caveats.}{44}{section*.62}%
+\contentsline {subsection}{\numberline {4.2.3}Known limitation: ordering recall}{44}{subsection.4.2.3}%
+\contentsline {section}{\numberline {4.3}User and agent studies}{45}{section.4.3}%
+\contentsline {subsection}{\numberline {4.3.1}User study}{45}{subsection.4.3.1}%
+\contentsline {paragraph}{Descriptive findings on the participants' sessions.}{46}{section*.63}%
+\contentsline {paragraph}{Behavioural trajectory across the six-session arc.}{46}{section*.65}%
+\contentsline {paragraph}{Process scores under the production and gain-stripped weightings.}{47}{section*.67}%
+\contentsline {paragraph}{Feedback vs no-feedback group.}{49}{section*.69}%
+\contentsline {paragraph}{Per-step inspection as a usability win.}{49}{section*.70}%
+\contentsline {subsection}{\numberline {4.3.2}Agent extension experiment}{49}{subsection.4.3.2}%
+\contentsline {paragraph}{Framing.}{49}{section*.71}%
+\contentsline {paragraph}{Setup.}{50}{section*.72}%
+\contentsline {paragraph}{Agent-level results.}{50}{section*.73}%
+\contentsline {paragraph}{Feedback vs no-feedback group.}{51}{section*.75}%
+\contentsline {paragraph}{Cross-agent effects.}{51}{section*.76}%
+\contentsline {paragraph}{Limits of applying the detector to agents.}{51}{section*.77}%
+\contentsline {paragraph}{Agents articulate adjustments in writing, but the score does not reflect them.}{52}{section*.78}%
+\contentsline {section}{\numberline {4.4}Summary}{53}{section.4.4}%
+\contentsline {chapter}{\numberline {5}Discussion}{54}{chapter.5}%
+\contentsline {section}{\numberline {5.1}Summary of contributions}{54}{section.5.1}%
+\contentsline {section}{\numberline {5.2}Limitations}{54}{section.5.2}%
+\contentsline {subsection}{\numberline {5.2.1}Construct and weight calibration}{54}{subsection.5.2.1}%
+\contentsline {paragraph}{There is no external ground truth for ``refactoring quality''.}{54}{section*.79}%
+\contentsline {paragraph}{The weights are plausible, but not uniquely calibrated.}{55}{section*.80}%
+\contentsline {paragraph}{Agreement was checked on kinds, not ranking.}{55}{section*.81}%
+\contentsline {subsection}{\numberline {5.2.2}Study design and statistical power}{55}{subsection.5.2.2}%
+\contentsline {paragraph}{The user study is randomised, but too small for hypothesis testing.}{55}{section*.82}%
+\contentsline {paragraph}{The author is one of three raters.}{55}{section*.83}%
+\contentsline {subsection}{\numberline {5.2.3}Generalisation and implementation scope}{55}{subsection.5.2.3}%
+\contentsline {paragraph}{The injection sessions are controlled exercises.}{55}{section*.84}%
+\contentsline {paragraph}{\texttt {SuboptimalOrdering} is based on the playbook author's judgement.}{56}{section*.85}%
+\contentsline {paragraph}{The agent extension is a feasibility experiment, not an agent evaluation.}{56}{section*.86}%
+\contentsline {paragraph}{The reorder enumerator has a hard size budget.}{56}{section*.87}%
+\contentsline {section}{\numberline {5.3}Headline findings}{56}{section.5.3}%
+\contentsline {section}{\numberline {5.4}Future work}{57}{section.5.4}%
+\contentsline {section}{\numberline {5.5}Closing}{57}{section.5.5}%
+\contentsline {chapter}{\numberline {6}Declarations}{58}{chapter.6}%
+\contentsline {section}{\numberline {6.1}Use of Generative AI}{58}{section.6.1}%
+\contentsline {section}{\numberline {6.2}Ethical Considerations}{58}{section.6.2}%
+\contentsline {section}{\numberline {6.3}Sustainability}{59}{section.6.3}%
+\contentsline {section}{\numberline {6.4}Availability of Data and Materials}{59}{section.6.4}%
+\contentsline {chapter}{\numberline {A}Appendix}{60}{appendix.A}%

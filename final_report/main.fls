@@ -416,9 +416,6 @@ INPUT /usr/local/texlive/2025/texmf-dist/fonts/tfm/jknappen/ec/ecsc1000.tfm
 INPUT /usr/local/texlive/2025/texmf-dist/fonts/tfm/jknappen/ec/ecsc0700.tfm
 INPUT /usr/local/texlive/2025/texmf-dist/fonts/tfm/jknappen/ec/ecsc0500.tfm
 INPUT /usr/local/texlive/2025/texmf-dist/fonts/tfm/jknappen/ec/ecbi1000.tfm
-INPUT ./threats/threats.tex
-INPUT ./threats/threats.tex
-INPUT threats/threats.tex
 INPUT ./conclusion/conclusion.tex
 INPUT ./conclusion/conclusion.tex
 INPUT conclusion/conclusion.tex
