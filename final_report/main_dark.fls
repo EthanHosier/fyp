@@ -2,7 +2,7 @@ PWD /Users/ethanhosier/Desktop/random/fyp/final_report
 INPUT /usr/local/texlive/2025/texmf.cnf
 INPUT /usr/local/texlive/2025/texmf-dist/web2c/texmf.cnf
 INPUT /usr/local/texlive/2025/texmf-var/web2c/pdftex/pdflatex.fmt
-INPUT main_dark.tex
+INPUT /Users/ethanhosier/Desktop/random/fyp/final_report/main_dark.tex
 OUTPUT main_dark.log
 INPUT /usr/local/texlive/2025/texmf-dist/tex/latex/base/report.cls
 INPUT /usr/local/texlive/2025/texmf-dist/tex/latex/base/report.cls
