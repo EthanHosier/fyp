@@ -952,9 +952,14 @@ fun arcScoresBy(
     return out.toSortedMap()
 }
 
-// Re-derive a gain-stripped config in-memory so the notebook is self-contained.
+// Gain-stripped config: zero both the cleanliness-gain weight and the lag
+// weight. Both terms depend on the cleanliness scalar C, and the analysis
+// below is explicitly trying to isolate process discipline that does not
+// require knowing the codebase well enough to score on cleanliness. The
+// remaining process terms (broken, skipTests, manualIde, length-bonus,
+// commit-gap) are pure behaviour-rate signals that don't depend on C.
 val gainZero = ScoringConfig.PRODUCTION.copy(
-    process = ScoringConfig.PRODUCTION.process.copy(gain = 0.0),
+    process = ScoringConfig.PRODUCTION.process.copy(gain = 0.0, lag = 0.0),
 )
 
 fun scoreRows(
@@ -1035,7 +1040,7 @@ code(r"""brokenRows(brokenPctBy(agent, ::cellOf), { it }).toDataFrame()""")
 md("### Corpus-expansion findings dump\n\nAppended cell: emits per-session production J, gain-stripped J, and DP counts by kind for every user + agent session as plain TSV so downstream tools (e.g. the corpus-expansion comparison report) get the full corpus without dataframe-display truncation.")
 
 code(r"""val expansionGainZero = ScoringConfig.PRODUCTION.copy(
-    process = ScoringConfig.PRODUCTION.process.copy(gain = 0.0),
+    process = ScoringConfig.PRODUCTION.process.copy(gain = 0.0, lag = 0.0),
 )
 
 fun emitDump(label: String, sessions: Map<String, PhaseAResult>) {
