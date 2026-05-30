@@ -103,63 +103,63 @@
 \contentsline {subsection}{\numberline {4.2.2}Divergence experiment}{43}{subsection.4.2.2}%
 \contentsline {paragraph}{Precision and recall.}{43}{section*.55}%
 \contentsline {paragraph}{Detection quality.}{44}{section*.57}%
-\contentsline {paragraph}{Negative Ordering magnitudes.}{45}{section*.59}%
+\contentsline {paragraph}{Negative Ordering magnitudes.}{44}{section*.59}%
 \contentsline {paragraph}{Injection prominence.}{45}{section*.60}%
 \contentsline {paragraph}{Caveats.}{45}{section*.62}%
 \contentsline {subsection}{\numberline {4.2.3}Known limitation: ordering recall}{45}{subsection.4.2.3}%
 \contentsline {section}{\numberline {4.3}User and agent studies}{46}{section.4.3}%
 \contentsline {subsection}{\numberline {4.3.1}User study}{46}{subsection.4.3.1}%
-\contentsline {paragraph}{Descriptive findings on the participants' sessions.}{47}{section*.63}%
+\contentsline {paragraph}{Descriptive findings on the participants' sessions.}{46}{section*.63}%
 \contentsline {paragraph}{Behavioural trajectory across the six-session arc.}{47}{section*.65}%
 \contentsline {paragraph}{Process scores under the production and gain-stripped weightings.}{48}{section*.67}%
-\contentsline {paragraph}{Feedback vs no-feedback group.}{50}{section*.69}%
+\contentsline {paragraph}{Feedback vs no-feedback group.}{49}{section*.69}%
 \contentsline {paragraph}{Per-step inspection as a usability win.}{50}{section*.70}%
 \contentsline {subsection}{\numberline {4.3.2}Agent extension experiment}{50}{subsection.4.3.2}%
 \contentsline {paragraph}{Framing.}{50}{section*.71}%
-\contentsline {paragraph}{Setup.}{51}{section*.72}%
+\contentsline {paragraph}{Setup.}{50}{section*.72}%
 \contentsline {paragraph}{Agent-level results.}{51}{section*.73}%
-\contentsline {paragraph}{Feedback vs no-feedback group.}{52}{section*.75}%
+\contentsline {paragraph}{Feedback vs no-feedback group.}{51}{section*.75}%
 \contentsline {paragraph}{Cross-agent effects.}{52}{section*.76}%
 \contentsline {paragraph}{Limits of applying the detector to agents.}{52}{section*.77}%
-\contentsline {paragraph}{Agents articulate adjustments in writing, but the score does not reflect them.}{53}{section*.78}%
+\contentsline {paragraph}{Agents articulate adjustments in writing, but the score does not reflect them.}{52}{section*.78}%
 \contentsline {section}{\numberline {4.4}Summary}{53}{section.4.4}%
-\contentsline {chapter}{\numberline {5}Discussion}{55}{chapter.5}%
-\contentsline {section}{\numberline {5.1}Summary of contributions}{55}{section.5.1}%
-\contentsline {section}{\numberline {5.2}Limitations}{55}{section.5.2}%
-\contentsline {subsection}{\numberline {5.2.1}Construct and weight calibration}{55}{subsection.5.2.1}%
-\contentsline {paragraph}{There is no external ground truth for ``refactoring quality''.}{55}{section*.79}%
-\contentsline {paragraph}{The weights are plausible, but not uniquely calibrated.}{56}{section*.80}%
-\contentsline {paragraph}{Agreement was checked on kinds, not ranking.}{56}{section*.81}%
-\contentsline {subsection}{\numberline {5.2.2}Study design and statistical power}{56}{subsection.5.2.2}%
-\contentsline {paragraph}{The user study is randomised, but too small for hypothesis testing.}{56}{section*.82}%
-\contentsline {paragraph}{The author is one of three raters.}{56}{section*.83}%
-\contentsline {subsection}{\numberline {5.2.3}Generalisation and implementation scope}{56}{subsection.5.2.3}%
-\contentsline {paragraph}{The injection sessions are controlled exercises.}{56}{section*.84}%
-\contentsline {paragraph}{\texttt {SuboptimalOrdering} is based on the playbook author's judgement.}{57}{section*.85}%
-\contentsline {paragraph}{The agent extension is a feasibility experiment, not an agent evaluation.}{57}{section*.86}%
-\contentsline {paragraph}{The reorder enumerator has a hard size budget.}{57}{section*.87}%
-\contentsline {section}{\numberline {5.3}Headline findings}{57}{section.5.3}%
-\contentsline {section}{\numberline {5.4}Future work}{58}{section.5.4}%
-\contentsline {section}{\numberline {5.5}Closing}{58}{section.5.5}%
-\contentsline {chapter}{\numberline {6}Declarations}{59}{chapter.6}%
-\contentsline {section}{\numberline {6.1}Use of Generative AI}{59}{section.6.1}%
-\contentsline {section}{\numberline {6.2}Ethical Considerations}{60}{section.6.2}%
-\contentsline {section}{\numberline {6.3}Sustainability}{60}{section.6.3}%
-\contentsline {section}{\numberline {6.4}Availability of Data and Materials}{60}{section.6.4}%
-\contentsline {chapter}{\numberline {A}Appendix}{61}{appendix.A}%
-\contentsline {section}{\numberline {A.1}User-study interview notes}{61}{section.A.1}%
-\contentsline {subsection}{\numberline {A.1.1}Protocol}{61}{subsection.A.1.1}%
-\contentsline {subsection}{\numberline {A.1.2}Participant P1 (with-feedback group)}{61}{subsection.A.1.2}%
-\contentsline {paragraph}{Warm-up.}{61}{section*.88}%
-\contentsline {paragraph}{Theme 1: Match with own judgement.}{62}{section*.89}%
-\contentsline {paragraph}{Theme 2: Per-kind actionability.}{62}{section*.90}%
-\contentsline {paragraph}{Theme 3: Behavioural change across the six sessions.}{62}{section*.91}%
-\contentsline {paragraph}{Theme 4: Wrong, nit-picky, or annoying.}{62}{section*.92}%
-\contentsline {paragraph}{Theme 5: Open.}{62}{section*.93}%
-\contentsline {subsection}{\numberline {A.1.3}Participant P2 (with-feedback group)}{63}{subsection.A.1.3}%
-\contentsline {paragraph}{Warm-up.}{63}{section*.94}%
-\contentsline {paragraph}{Theme 1: Match with own judgement.}{63}{section*.95}%
-\contentsline {paragraph}{Theme 2: Per-kind actionability.}{63}{section*.96}%
-\contentsline {paragraph}{Theme 3: Behavioural change across the six sessions.}{63}{section*.97}%
-\contentsline {paragraph}{Theme 4: Wrong, nit-picky, or annoying.}{63}{section*.98}%
-\contentsline {paragraph}{Theme 5: Open.}{63}{section*.99}%
+\contentsline {chapter}{\numberline {5}Discussion}{54}{chapter.5}%
+\contentsline {section}{\numberline {5.1}Summary of contributions}{54}{section.5.1}%
+\contentsline {section}{\numberline {5.2}Limitations}{54}{section.5.2}%
+\contentsline {subsection}{\numberline {5.2.1}Construct and weight calibration}{54}{subsection.5.2.1}%
+\contentsline {paragraph}{There is no external ground truth for ``refactoring quality''.}{54}{section*.79}%
+\contentsline {paragraph}{The weights are plausible, but not uniquely calibrated.}{55}{section*.80}%
+\contentsline {paragraph}{Agreement was checked on kinds, not ranking.}{55}{section*.81}%
+\contentsline {subsection}{\numberline {5.2.2}Study design and statistical power}{55}{subsection.5.2.2}%
+\contentsline {paragraph}{The user study is randomised, but too small for hypothesis testing.}{55}{section*.82}%
+\contentsline {paragraph}{The author is one of three raters.}{55}{section*.83}%
+\contentsline {subsection}{\numberline {5.2.3}Generalisation and implementation scope}{55}{subsection.5.2.3}%
+\contentsline {paragraph}{The injection sessions are controlled exercises.}{55}{section*.84}%
+\contentsline {paragraph}{\texttt {SuboptimalOrdering} is based on the playbook author's judgement.}{56}{section*.85}%
+\contentsline {paragraph}{The agent extension is a feasibility experiment, not an agent evaluation.}{56}{section*.86}%
+\contentsline {paragraph}{The reorder enumerator has a hard size budget.}{56}{section*.87}%
+\contentsline {section}{\numberline {5.3}Headline findings}{56}{section.5.3}%
+\contentsline {section}{\numberline {5.4}Future work}{57}{section.5.4}%
+\contentsline {section}{\numberline {5.5}Closing}{57}{section.5.5}%
+\contentsline {chapter}{\numberline {6}Declarations}{58}{chapter.6}%
+\contentsline {section}{\numberline {6.1}Use of Generative AI}{58}{section.6.1}%
+\contentsline {section}{\numberline {6.2}Ethical Considerations}{59}{section.6.2}%
+\contentsline {section}{\numberline {6.3}Sustainability}{59}{section.6.3}%
+\contentsline {section}{\numberline {6.4}Availability of Data and Materials}{59}{section.6.4}%
+\contentsline {chapter}{\numberline {A}Appendix}{60}{appendix.A}%
+\contentsline {section}{\numberline {A.1}User-study interview notes}{60}{section.A.1}%
+\contentsline {subsection}{\numberline {A.1.1}Protocol}{60}{subsection.A.1.1}%
+\contentsline {subsection}{\numberline {A.1.2}Participant P1 (with-feedback group)}{60}{subsection.A.1.2}%
+\contentsline {paragraph}{Warm-up.}{60}{section*.88}%
+\contentsline {paragraph}{Theme 1: Match with own judgement.}{61}{section*.89}%
+\contentsline {paragraph}{Theme 2: Per-kind actionability.}{61}{section*.90}%
+\contentsline {paragraph}{Theme 3: Behavioural change across the six sessions.}{61}{section*.91}%
+\contentsline {paragraph}{Theme 4: Wrong, nit-picky, or annoying.}{61}{section*.92}%
+\contentsline {paragraph}{Theme 5: Open.}{61}{section*.93}%
+\contentsline {subsection}{\numberline {A.1.3}Participant P2 (with-feedback group)}{62}{subsection.A.1.3}%
+\contentsline {paragraph}{Warm-up.}{62}{section*.94}%
+\contentsline {paragraph}{Theme 1: Match with own judgement.}{62}{section*.95}%
+\contentsline {paragraph}{Theme 2: Per-kind actionability.}{62}{section*.96}%
+\contentsline {paragraph}{Theme 3: Behavioural change across the six sessions.}{62}{section*.97}%
+\contentsline {paragraph}{Theme 4: Wrong, nit-picky, or annoying.}{62}{section*.98}%
+\contentsline {paragraph}{Theme 5: Open.}{62}{section*.99}%
