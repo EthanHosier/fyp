@@ -4,18 +4,18 @@
 \section{Use of Generative AI}
 \label{sec:declarations-genai}
 
-I acknowledge the use of Claude Code (Anthropic, \url{https://claude.com/claude-code}) and the underlying Claude Opus / Sonnet models while implementing the tool described in this thesis. AI assistance was particularly useful for these development tasks, under my direct supervision:
+I acknowledge the use of Claude Code (Anthropic, \url{https://claude.com/claude-code}) and the underlying Claude Opus and Sonnet models while implementing the tool described in this thesis. AI assistance was particularly useful for the following development tasks, all under my direct supervision:
 
 \begin{itemize}
-  \item \emph{Repetitive adapter and wrapper code.} The analysis pipeline bridges IntelliJ's recorded refactoring events to Eclipse JDT's refactoring API. Many refactoring specs, such as \texttt{RenameMethod}, \texttt{RenameField}, \texttt{RenameClass}, \texttt{RenameLocalVariable}, \texttt{ExtractMethod}, \texttt{InlineMethod}, \texttt{ChangeMethodSignature}, and \texttt{ParameterizeVariable}, required similar wrappers with small differences in fields, preconditions, and follow-up validation. After writing the first versions and fixing the shared interface, validation logic, and AST-equivalence check, I used AI assistance to draft further wrappers following the same pattern.
-  \item \emph{Serialisation and test scaffolding.} AI assistance was used for Kotlin data classes for the analysis-report JSON schema and for fixture-builder code in the test suite.
+  \item \emph{Repetitive adapter and wrapper code.} The analysis pipeline bridges IntelliJ's recorded refactoring events to Eclipse JDT's refactoring API. Many refactoring specs, such as \texttt{RenameMethod}, \texttt{RenameField}, \texttt{RenameClass}, \texttt{RenameLocalVariable}, \texttt{ExtractMethod}, \texttt{InlineMethod}, \texttt{ChangeMethodSignature}, and \texttt{ParameterizeVariable}, required similar wrappers with small differences in fields, preconditions, and follow-up validation. After I wrote the first versions and fixed the shared interface, validation logic, and AST-equivalence check, I used AI assistance to draft further wrappers against the same pattern.
+  \item \emph{Serialisation and test scaffolding.} I used AI assistance for the Kotlin data classes behind the analysis-report JSON schema, and for fixture-builder code in the test suite.
   \item \emph{Understanding unfamiliar APIs.} I used AI to help explain parts of the IntelliJ Platform plugin SDK, the Eclipse Equinox bootstrap, and the JCEF dashboard environment, especially where the official documentation was limited.
-  \item \emph{Fixture and playbook ideas.} AI was used to help generate ideas for the Java fixtures and scripted playbooks used in the manual-injection, user-study, and agent-comparison sessions. These were purely test data. I edited the scenarios manually, and verified that they exercised the intended behaviours.
+  \item \emph{Fixture and playbook ideas.} I used AI to help brainstorm the Java fixtures and scripted playbooks for the manual-injection, user-study, and agent-comparison sessions. These were purely test data. I edited the scenarios by hand, and checked that they exercised the intended behaviours.
 \end{itemize}
 
-All AI-assisted code was reviewed manually. The analysis, refactoring, and dashboard modules are also covered by tests, which provide a separate check on the behaviour of the implementation.
+I reviewed all AI-assisted code manually. The analysis, refactoring, and dashboard modules are also covered by tests, which give a separate check on the behaviour of the implementation.
 
-For the report itself, the content, argument, and findings are my own. Claude (Anthropic, \url{https://claude.ai}) was used for proofreading, structural feedback on draft text, generating an initial outline for Chapter~\ref{ch:results} that I then revised and populated with my own analysis, and help with \LaTeX{} formatting for tables and figures. No AI-generated content has been presented as my own independent work.
+For the report itself, the content, argument, and findings are my own. I used Claude (Anthropic, \url{https://claude.ai}) for proofreading, for structural feedback on draft text, for an initial outline of Chapter~\ref{ch:results} that I then revised and populated with my own analysis, and for help with \LaTeX{} formatting of tables and figures. No AI-generated content has been presented as my own independent work.
 
 \section{Ethical Considerations}
 \label{sec:declarations-ethics}
@@ -27,7 +27,7 @@ The project fits Imperial's description of low-risk research, as it involved onl
 \section{Sustainability}
 \label{sec:declarations-sustainability}
 
-The project's compute footprint was kept small by the Phase A / Phase B pipeline split described in the methodology chapter. The expensive analysis work, including shadow-repository reconstruction, RefactoringMiner mining, and build/test execution at each checkpoint, is run once per recorded session and cached. Later scoring, sensitivity, ablation, and Monte Carlo experiments reuse this cached output and rerun only the cheaper scoring phase. This avoids repeating the full analysis for every weight configuration.
+The Phase A / Phase B pipeline split described in the methodology chapter keeps the project's compute footprint small. The expensive analysis work, including shadow-repository reconstruction, RefactoringMiner mining, and build/test execution at each checkpoint, is run once per recorded session and cached. Later scoring, sensitivity, ablation, and Monte Carlo experiments reuse this cached output and rerun only the cheaper scoring phase, so the full analysis is not repeated for every weight configuration.
 
 All experiments were run on a single local workstation. No GPU or cloud-compute resources were consumed.
 
