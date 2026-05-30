@@ -114,56 +114,56 @@
 \contentsline {paragraph}{Process scores under the production and gain-stripped weightings.}{48}{section*.67}%
 \contentsline {paragraph}{Feedback vs no-feedback group.}{50}{section*.69}%
 \contentsline {paragraph}{Per-step inspection as a usability win.}{50}{section*.70}%
-\contentsline {subsection}{\numberline {4.3.2}Agent extension experiment}{51}{subsection.4.3.2}%
-\contentsline {paragraph}{Framing.}{51}{section*.71}%
+\contentsline {subsection}{\numberline {4.3.2}Agent extension experiment}{50}{subsection.4.3.2}%
+\contentsline {paragraph}{Framing.}{50}{section*.71}%
 \contentsline {paragraph}{Setup.}{51}{section*.72}%
-\contentsline {paragraph}{Per-stack descriptive arc.}{51}{section*.73}%
+\contentsline {paragraph}{Agent-level results.}{51}{section*.73}%
 \contentsline {paragraph}{Feedback vs no-feedback group.}{52}{section*.75}%
-\contentsline {paragraph}{Cross-stack effects.}{52}{section*.76}%
-\contentsline {paragraph}{Detector-bias limitations on agent traces.}{53}{section*.77}%
-\contentsline {paragraph}{Feedback engagement varies by model family.}{53}{section*.78}%
-\contentsline {paragraph}{Qualitative threads from stack 1 (\texttt {claude-2-opus-4.7-claude-code}).}{54}{section*.79}%
-\contentsline {chapter}{\numberline {5}Threats to validity}{56}{chapter.5}%
-\contentsline {section}{\numberline {5.1}Construct validity}{56}{section.5.1}%
-\contentsline {paragraph}{There is no external ground truth for ``true refactoring quality''.}{56}{section*.80}%
-\contentsline {paragraph}{The score is not a maintainability index.}{56}{section*.81}%
-\contentsline {paragraph}{The four-kind taxonomy is a methodology choice, not a discovered structure.}{56}{section*.82}%
-\contentsline {paragraph}{\texttt {SuboptimalOrdering} is author-claimed, not measured.}{57}{section*.83}%
-\contentsline {paragraph}{The AST-equivalence audit uses an informal definition.}{57}{section*.84}%
-\contentsline {section}{\numberline {5.2}Internal validity}{57}{section.5.2}%
-\contentsline {paragraph}{The single-knob sensitivity sweep is combined with a multi-knob design rather than replaced.}{57}{section*.85}%
-\contentsline {paragraph}{Kind-presence agreement does not imply rank-order agreement.}{57}{section*.86}%
-\contentsline {paragraph}{Cleanliness sub-weights are uniform $1.0$ by Laplace's principle of insufficient reason.}{58}{section*.87}%
-\contentsline {paragraph}{The lag term couples the cleanliness sub-score to the process score.}{58}{section*.88}%
-\contentsline {paragraph}{Two batching primitives are heuristic and not sensitivity-tested.}{58}{section*.89}%
-\contentsline {paragraph}{The production weight vector is hand-picked within a literature-grounded ordering.}{58}{section*.90}%
-\contentsline {paragraph}{Which terms carry the ranking varies by session type.}{58}{section*.91}%
-\contentsline {paragraph}{The reorder dependency analysis is deliberately coarse, and anchors are content-addressed.}{59}{section*.92}%
-\contentsline {paragraph}{Cleanliness sub-signals are clamped to the user's range on alternative trajectories.}{59}{section*.93}%
-\contentsline {section}{\numberline {5.3}External validity}{59}{section.5.3}%
-\contentsline {paragraph}{The injection sessions are scoped exercises, not naturalistic sessions.}{59}{section*.94}%
-\contentsline {paragraph}{The user study has five participants split into a randomised three-vs-two arm.}{60}{section*.95}%
-\contentsline {paragraph}{The agent extension is a feasibility experiment, not an agent evaluation.}{60}{section*.96}%
-\contentsline {paragraph}{All sessions are single-author IntelliJ sessions on a Gradle Java project.}{60}{section*.97}%
-\contentsline {paragraph}{The detectors are designed for human edit patterns.}{60}{section*.98}%
-\contentsline {paragraph}{Refactoring kinds the synthesiser cannot handle are excluded by construction.}{61}{section*.99}%
-\contentsline {section}{\numberline {5.4}Statistical conclusion validity}{61}{section.5.4}%
-\contentsline {section}{\numberline {5.5}Per-experiment threats}{61}{section.5.5}%
-\contentsline {paragraph}{The kind classifier (\S \ref {sec:results-divergence}).}{61}{section*.100}%
-\contentsline {paragraph}{The user study (\S \ref {sec:results-userstudy}).}{61}{section*.101}%
-\contentsline {paragraph}{The agent extension (\S \ref {sec:results-userstudy-agent}).}{62}{section*.102}%
-\contentsline {paragraph}{The rater study (\S \ref {sec:results-kappa}).}{62}{section*.103}%
-\contentsline {section}{\numberline {5.6}Implementation threats}{62}{section.5.6}%
-\contentsline {section}{\numberline {5.7}Out of scope}{63}{section.5.7}%
-\contentsline {chapter}{\numberline {6}Discussion and Conclusions}{64}{chapter.6}%
-\contentsline {section}{\numberline {6.1}Summary of contributions}{64}{section.6.1}%
-\contentsline {section}{\numberline {6.2}Headline findings}{64}{section.6.2}%
-\contentsline {section}{\numberline {6.3}Discussion}{65}{section.6.3}%
-\contentsline {section}{\numberline {6.4}Future work}{66}{section.6.4}%
-\contentsline {section}{\numberline {6.5}Closing}{66}{section.6.5}%
-\contentsline {chapter}{\numberline {7}Declarations}{68}{chapter.7}%
-\contentsline {section}{\numberline {7.1}Use of Generative AI}{68}{section.7.1}%
-\contentsline {section}{\numberline {7.2}Ethical Considerations}{68}{section.7.2}%
-\contentsline {section}{\numberline {7.3}Sustainability}{69}{section.7.3}%
-\contentsline {section}{\numberline {7.4}Availability of Data and Materials}{69}{section.7.4}%
-\contentsline {chapter}{\numberline {A}Appendix}{70}{appendix.A}%
+\contentsline {paragraph}{Cross-agent effects.}{52}{section*.76}%
+\contentsline {paragraph}{Limits of applying the detector to agents.}{52}{section*.77}%
+\contentsline {paragraph}{Agents articulate adjustments in writing, but the score does not reflect them.}{53}{section*.78}%
+\contentsline {section}{\numberline {4.4}Summary}{54}{section.4.4}%
+\contentsline {chapter}{\numberline {5}Threats to validity}{55}{chapter.5}%
+\contentsline {section}{\numberline {5.1}Construct validity}{55}{section.5.1}%
+\contentsline {paragraph}{There is no external ground truth for ``true refactoring quality''.}{55}{section*.79}%
+\contentsline {paragraph}{The score is not a maintainability index.}{55}{section*.80}%
+\contentsline {paragraph}{The four-kind taxonomy is a methodology choice, not a discovered structure.}{55}{section*.81}%
+\contentsline {paragraph}{\texttt {SuboptimalOrdering} is author-claimed, not measured.}{56}{section*.82}%
+\contentsline {paragraph}{The AST-equivalence audit uses an informal definition.}{56}{section*.83}%
+\contentsline {section}{\numberline {5.2}Internal validity}{56}{section.5.2}%
+\contentsline {paragraph}{The single-knob sensitivity sweep is combined with a multi-knob design rather than replaced.}{56}{section*.84}%
+\contentsline {paragraph}{Kind-presence agreement does not imply rank-order agreement.}{56}{section*.85}%
+\contentsline {paragraph}{Cleanliness sub-weights are uniform $1.0$ by Laplace's principle of insufficient reason.}{57}{section*.86}%
+\contentsline {paragraph}{The lag term couples the cleanliness sub-score to the process score.}{57}{section*.87}%
+\contentsline {paragraph}{Two batching primitives are heuristic and not sensitivity-tested.}{57}{section*.88}%
+\contentsline {paragraph}{The production weight vector is hand-picked within a literature-grounded ordering.}{57}{section*.89}%
+\contentsline {paragraph}{Which terms carry the ranking varies by session type.}{57}{section*.90}%
+\contentsline {paragraph}{The reorder dependency analysis is deliberately coarse, and anchors are content-addressed.}{58}{section*.91}%
+\contentsline {paragraph}{Cleanliness sub-signals are clamped to the user's range on alternative trajectories.}{58}{section*.92}%
+\contentsline {section}{\numberline {5.3}External validity}{58}{section.5.3}%
+\contentsline {paragraph}{The injection sessions are scoped exercises, not naturalistic sessions.}{58}{section*.93}%
+\contentsline {paragraph}{The user study has five participants split into a randomised three-vs-two arm.}{59}{section*.94}%
+\contentsline {paragraph}{The agent extension is a feasibility experiment, not an agent evaluation.}{59}{section*.95}%
+\contentsline {paragraph}{All sessions are single-author IntelliJ sessions on a Gradle Java project.}{59}{section*.96}%
+\contentsline {paragraph}{The detectors are designed for human edit patterns.}{59}{section*.97}%
+\contentsline {paragraph}{Refactoring kinds the synthesiser cannot handle are excluded by construction.}{60}{section*.98}%
+\contentsline {section}{\numberline {5.4}Statistical conclusion validity}{60}{section.5.4}%
+\contentsline {section}{\numberline {5.5}Per-experiment threats}{60}{section.5.5}%
+\contentsline {paragraph}{The kind classifier (\S \ref {sec:results-divergence}).}{60}{section*.99}%
+\contentsline {paragraph}{The user study (\S \ref {sec:results-userstudy}).}{60}{section*.100}%
+\contentsline {paragraph}{The agent extension (\S \ref {sec:results-userstudy-agent}).}{61}{section*.101}%
+\contentsline {paragraph}{The rater study (\S \ref {sec:results-kappa}).}{61}{section*.102}%
+\contentsline {section}{\numberline {5.6}Implementation threats}{61}{section.5.6}%
+\contentsline {section}{\numberline {5.7}Out of scope}{62}{section.5.7}%
+\contentsline {chapter}{\numberline {6}Discussion and Conclusions}{63}{chapter.6}%
+\contentsline {section}{\numberline {6.1}Summary of contributions}{63}{section.6.1}%
+\contentsline {section}{\numberline {6.2}Headline findings}{63}{section.6.2}%
+\contentsline {section}{\numberline {6.3}Discussion}{64}{section.6.3}%
+\contentsline {section}{\numberline {6.4}Future work}{65}{section.6.4}%
+\contentsline {section}{\numberline {6.5}Closing}{65}{section.6.5}%
+\contentsline {chapter}{\numberline {7}Declarations}{67}{chapter.7}%
+\contentsline {section}{\numberline {7.1}Use of Generative AI}{67}{section.7.1}%
+\contentsline {section}{\numberline {7.2}Ethical Considerations}{67}{section.7.2}%
+\contentsline {section}{\numberline {7.3}Sustainability}{68}{section.7.3}%
+\contentsline {section}{\numberline {7.4}Availability of Data and Materials}{68}{section.7.4}%
+\contentsline {chapter}{\numberline {A}Appendix}{69}{appendix.A}%
