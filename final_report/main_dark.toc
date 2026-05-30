@@ -37,7 +37,7 @@
 \contentsline {section}{\numberline {3.2}Computing the process score}{19}{section.3.2}%
 \contentsline {subsection}{\numberline {3.2.1}The process score}{19}{subsection.3.2.1}%
 \contentsline {subsection}{\numberline {3.2.2}Process-score weights}{20}{subsection.3.2.2}%
-\contentsline {paragraph}{$W_{\textsc {g}}$ (gain, 50).}{21}{section*.9}%
+\contentsline {paragraph}{$W_{\textsc {g}}$ (gain, 50).}{20}{section*.9}%
 \contentsline {paragraph}{$W_{\textsc {b}}$ (broken, 28).}{21}{section*.10}%
 \contentsline {paragraph}{$W_{\textsc {st}}$ (skip-tests, 14).}{21}{section*.11}%
 \contentsline {paragraph}{$W_{\textsc {mi}}$ (manual-when-IDE, 11).}{21}{section*.12}%
@@ -45,9 +45,9 @@
 \contentsline {paragraph}{$W_{\textsc {lag}}$ (lag, 11).}{22}{section*.14}%
 \contentsline {paragraph}{$W_{\textsc {cg}}$ (commit-gap, 7).}{22}{section*.15}%
 \contentsline {subsection}{\numberline {3.2.3}The cleanliness sub-score}{22}{subsection.3.2.3}%
-\contentsline {paragraph}{Composition rule and sub-weights.}{23}{section*.17}%
+\contentsline {paragraph}{Composition rule and sub-weights.}{22}{section*.17}%
 \contentsline {paragraph}{Caveats.}{23}{section*.18}%
-\contentsline {paragraph}{Coupling to the process score.}{24}{section*.19}%
+\contentsline {paragraph}{Coupling to the process score.}{23}{section*.19}%
 \contentsline {subsection}{\numberline {3.2.4}Event capture}{24}{subsection.3.2.4}%
 \contentsline {subsection}{\numberline {3.2.5}Shadow repo reconstruction and worktree pool}{24}{subsection.3.2.5}%
 \contentsline {subsection}{\numberline {3.2.6}Metrics calculation}{24}{subsection.3.2.6}%
@@ -122,7 +122,7 @@
 \contentsline {paragraph}{Cross-agent effects.}{52}{section*.76}%
 \contentsline {paragraph}{Limits of applying the detector to agents.}{52}{section*.77}%
 \contentsline {paragraph}{Agents articulate adjustments in writing, but the score does not reflect them.}{53}{section*.78}%
-\contentsline {section}{\numberline {4.4}Summary}{54}{section.4.4}%
+\contentsline {section}{\numberline {4.4}Summary}{53}{section.4.4}%
 \contentsline {chapter}{\numberline {5}Discussion}{55}{chapter.5}%
 \contentsline {section}{\numberline {5.1}Summary of contributions}{55}{section.5.1}%
 \contentsline {section}{\numberline {5.2}Limitations}{55}{section.5.2}%
@@ -141,25 +141,25 @@
 \contentsline {section}{\numberline {5.3}Headline findings}{57}{section.5.3}%
 \contentsline {section}{\numberline {5.4}Future work}{58}{section.5.4}%
 \contentsline {section}{\numberline {5.5}Closing}{58}{section.5.5}%
-\contentsline {chapter}{\numberline {6}Declarations}{60}{chapter.6}%
-\contentsline {section}{\numberline {6.1}Use of Generative AI}{60}{section.6.1}%
-\contentsline {section}{\numberline {6.2}Ethical Considerations}{61}{section.6.2}%
-\contentsline {section}{\numberline {6.3}Sustainability}{61}{section.6.3}%
-\contentsline {section}{\numberline {6.4}Availability of Data and Materials}{61}{section.6.4}%
-\contentsline {chapter}{\numberline {A}Appendix}{62}{appendix.A}%
-\contentsline {section}{\numberline {A.1}User-study interview notes}{62}{section.A.1}%
-\contentsline {subsection}{\numberline {A.1.1}Protocol}{62}{subsection.A.1.1}%
-\contentsline {subsection}{\numberline {A.1.2}Participant P1 (with-feedback arm)}{62}{subsection.A.1.2}%
-\contentsline {paragraph}{Warm-up.}{62}{section*.88}%
-\contentsline {paragraph}{Theme 1 --- Match with own judgement.}{63}{section*.89}%
-\contentsline {paragraph}{Theme 2 --- Per-kind actionability.}{63}{section*.90}%
-\contentsline {paragraph}{Theme 3 --- Behavioural change across the six sessions.}{63}{section*.91}%
-\contentsline {paragraph}{Theme 4 --- Wrong, nit-picky, or annoying.}{63}{section*.92}%
-\contentsline {paragraph}{Theme 5 --- Open.}{63}{section*.93}%
-\contentsline {subsection}{\numberline {A.1.3}Participant P2 (with-feedback arm)}{64}{subsection.A.1.3}%
-\contentsline {paragraph}{Warm-up.}{64}{section*.94}%
-\contentsline {paragraph}{Theme 1 --- Match with own judgement.}{64}{section*.95}%
-\contentsline {paragraph}{Theme 2 --- Per-kind actionability.}{64}{section*.96}%
-\contentsline {paragraph}{Theme 3 --- Behavioural change across the six sessions.}{64}{section*.97}%
-\contentsline {paragraph}{Theme 4 --- Wrong, nit-picky, or annoying.}{64}{section*.98}%
-\contentsline {paragraph}{Theme 5 --- Open.}{64}{section*.99}%
+\contentsline {chapter}{\numberline {6}Declarations}{59}{chapter.6}%
+\contentsline {section}{\numberline {6.1}Use of Generative AI}{59}{section.6.1}%
+\contentsline {section}{\numberline {6.2}Ethical Considerations}{60}{section.6.2}%
+\contentsline {section}{\numberline {6.3}Sustainability}{60}{section.6.3}%
+\contentsline {section}{\numberline {6.4}Availability of Data and Materials}{60}{section.6.4}%
+\contentsline {chapter}{\numberline {A}Appendix}{61}{appendix.A}%
+\contentsline {section}{\numberline {A.1}User-study interview notes}{61}{section.A.1}%
+\contentsline {subsection}{\numberline {A.1.1}Protocol}{61}{subsection.A.1.1}%
+\contentsline {subsection}{\numberline {A.1.2}Participant P1 (with-feedback arm)}{61}{subsection.A.1.2}%
+\contentsline {paragraph}{Warm-up.}{61}{section*.88}%
+\contentsline {paragraph}{Theme 1 --- Match with own judgement.}{62}{section*.89}%
+\contentsline {paragraph}{Theme 2 --- Per-kind actionability.}{62}{section*.90}%
+\contentsline {paragraph}{Theme 3 --- Behavioural change across the six sessions.}{62}{section*.91}%
+\contentsline {paragraph}{Theme 4 --- Wrong, nit-picky, or annoying.}{62}{section*.92}%
+\contentsline {paragraph}{Theme 5 --- Open.}{62}{section*.93}%
+\contentsline {subsection}{\numberline {A.1.3}Participant P2 (with-feedback arm)}{63}{subsection.A.1.3}%
+\contentsline {paragraph}{Warm-up.}{63}{section*.94}%
+\contentsline {paragraph}{Theme 1 --- Match with own judgement.}{63}{section*.95}%
+\contentsline {paragraph}{Theme 2 --- Per-kind actionability.}{63}{section*.96}%
+\contentsline {paragraph}{Theme 3 --- Behavioural change across the six sessions.}{63}{section*.97}%
+\contentsline {paragraph}{Theme 4 --- Wrong, nit-picky, or annoying.}{63}{section*.98}%
+\contentsline {paragraph}{Theme 5 --- Open.}{63}{section*.99}%
