@@ -271,6 +271,7 @@ Ordering emits $24$ divergence points after considering $194$ valid permutations
 \begin{table}[htbp]
 \centering
 \small
+\resizebox{\textwidth}{!}{%
 \begin{tabular}{lrrrrrr}
 \hline
 \textbf{kind} & \textbf{DPs} & \textbf{beats user} & \textbf{ties user} & \textbf{loses to user} & \textbf{beats fraction} & \textbf{max magnitude} \\
@@ -280,7 +281,8 @@ Ordering emits $24$ divergence points after considering $194$ valid permutations
 \emph{Manual-Refactor} & 16 & 12 &  3 & 1 & \textbf{75.0\%} & 23 points \\
 \emph{Ordering}   & 24 & 10 & 12 & 2 & \textbf{41.7\%} &  9 points \\
 \hline
-\end{tabular}
+\end{tabular}%
+}
 \caption{Per-kind detection quality. ``DPs'' gives the number of emitted divergence points. The beats, ties, and loses columns group those points by the sign of $J(\text{alt}_T) - J(\text{user}_T)$ under the production formula. Hygiene improves on the user in every case; Ordering has many ties because several reordered alternatives reach the same final state with the same final score.}
 \label{tab:results-divergence-quality}
 \end{table}
@@ -342,6 +344,7 @@ The playbook gave each session a concrete refactoring task with the relevant fil
 \begin{table}[htbp]
 \centering
 \small
+\resizebox{\textwidth}{!}{%
 \begin{tabular}{llrrrrrr}
 \hline
 \textbf{group} & \textbf{participant} & \textbf{\emph{Manual-Refactor}} & \textbf{\emph{Rework}} & \textbf{\emph{Hygiene}} & \textbf{\emph{Ordering}} & \textbf{total} & \textbf{DP / session} \\
@@ -359,7 +362,8 @@ baseline      & P5 & $13$ & $0$ & $17$ & $2$ & $32$ & $5.3$ \\
 \hline
 \textbf{combined}            & \textbf{$n = 30$ sessions} & $\mathbf{60}$ & $\mathbf{5}$ & $\mathbf{51}$ & $\mathbf{5}$ & $\mathbf{121}$ & $\mathbf{4.0}$ \\
 \hline
-\end{tabular}
+\end{tabular}%
+}
 \caption{Per-participant divergence-point counts across the 30-session user study, grouped by feedback condition. The table reports aggregate per-kind totals; full per-session breakdowns are available in the reproducibility notebook (\texttt{tool/fixtures/notebooks/experiments.ipynb}).}
 \label{tab:results-userstudy-distribution}
 \end{table}
@@ -470,6 +474,7 @@ Table~\ref{tab:results-userstudy-agent-trajectory} reports the gain-stripped fin
 \begin{table}[htbp]
 \centering
 \small
+\resizebox{\textwidth}{!}{%
 \begin{tabular}{rllrrrrrrrr}
 \hline
 \textbf{\#} & \textbf{agent} & \textbf{group} & \textbf{S1} & \textbf{S2} & \textbf{S3} & \textbf{S4} & \textbf{S5} & \textbf{S6} & \textbf{$\Delta$J} & \textbf{$\sum$DP} \\
@@ -487,7 +492,8 @@ Table~\ref{tab:results-userstudy-agent-trajectory} reports the gain-stripped fin
 \multicolumn{3}{l}{\textbf{with-feedback (mean, $n = 6$)}} & $\mathbf{36.7}$ & $\mathbf{40.0}$ & $\mathbf{40.0}$ & $\mathbf{50.0}$ & $\mathbf{42.0}$ & $\mathbf{39.7}$ & $\mathbf{+3.0}$ & $\mathbf{6.0}$ \\
 \multicolumn{3}{l}{\textbf{baseline (mean, $n = 2$)}}      & $\mathbf{34.5}$ & $\mathbf{40.0}$ & $\mathbf{40.0}$ & $\mathbf{50.0}$ & $\mathbf{42.0}$ & $\mathbf{41.0}$ & $\mathbf{+6.5}$ & $\mathbf{3.5}$ \\
 \hline
-\end{tabular}
+\end{tabular}%
+}
 \caption{Per-agent gain-stripped trajectory and total divergence-point count across the eight agents. Agents 1--6 received feedback between sessions; agents 7 and 8 are no-feedback baselines. The group means aggregate across agents within each group.}
 \label{tab:results-userstudy-agent-trajectory}
 \end{table}

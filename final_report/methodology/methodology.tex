@@ -580,7 +580,11 @@ Each session follows a scripted playbook scenario designed to trigger one specif
 
 Each session has two kinds of label, because the evaluation asks two slightly different questions. The first label records the divergence kind that was deliberately injected into the session, i.e.\ the behaviour the playbook was designed to trigger. This feeds the \emph{injection prominence} analysis in \S\ref{sec:results-divergence}. The second label is a separate hand-written set of all divergence kinds that should be detected in the session. This label can contain more than one kind, since a session designed to trigger one issue may also legitimately contain another. The per-kind precision and recall results in \S\ref{sec:results-divergence} use this second label set, and its inter-rater agreement is reported in \S\ref{sec:results-kappa}.
 
-The multi-label schema uses the four divergence kinds $\mathcal{K} = \{\emph{Manual-Refactor}, \emph{Rework}, \emph{Hygiene}, \emph{Ordering}\}$ and each session is allowed to have more than one expected kind. A session may, for example, contain both an ordering divergence and a hygiene flag.
+The multi-label schema uses the four divergence kinds
+\[
+\mathcal{K} = \{\emph{Manual-Refactor},\ \emph{Rework},\ \emph{Hygiene},\ \emph{Ordering}\}
+\]
+and each session is allowed to have more than one expected kind. A session may, for example, contain both an ordering divergence and a hygiene flag.
 
 \subsection{Rater protocol}
 \label{sec:methodology-rater-protocol}
