@@ -27,9 +27,9 @@
 \citation{harman2007pareto}
 \citation{mohan2019manyobjective}
 \@writefile{toc}{\contentsline {section}{\numberline {1.3}Research Objectives}{6}{section.1.3}\protected@file@percent }
-\@writefile{lof}{\contentsline {figure}{\numberline {1.1}{\ignorespaces Illustration of two refactoring trajectories scored by the process-quality metric $J$. The solid line shows the developer's observed trajectory, while the dashed line shows a higher-scoring reference trajectory that diverges at an intermediate state. The gap $\Delta J$ is the estimated contribution of that divergence to the final score difference.}}{7}{figure.caption.2}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {1.1}{\ignorespaces Illustration of two refactoring trajectories scored by the process-quality metric $J$. The solid line shows the developer's observed trajectory, while the dashed line shows a higher-scoring reference trajectory that diverges at an intermediate state. The gap $\Delta J$ is the contribution of that divergence to the final score difference.}}{7}{figure.caption.2}\protected@file@percent }
 \providecommand*\caption@xref[2]{\@setref\relax\@undefined{#1}}
-\newlabel{fig:divergence}{{1.1}{7}{Illustration of two refactoring trajectories scored by the process-quality metric $J$. The solid line shows the developer's observed trajectory, while the dashed line shows a higher-scoring reference trajectory that diverges at an intermediate state. The gap $\Delta J$ is the estimated contribution of that divergence to the final score difference}{figure.caption.2}{}}
+\newlabel{fig:divergence}{{1.1}{7}{Illustration of two refactoring trajectories scored by the process-quality metric $J$. The solid line shows the developer's observed trajectory, while the dashed line shows a higher-scoring reference trajectory that diverges at an intermediate state. The gap $\Delta J$ is the contribution of that divergence to the final score difference}{figure.caption.2}{}}
 \@writefile{toc}{\contentsline {section}{\numberline {1.4}Contributions}{7}{section.1.4}\protected@file@percent }
 \@writefile{toc}{\contentsline {section}{\numberline {1.5}Approach and Scope}{7}{section.1.5}\protected@file@percent }
 \@writefile{toc}{\contentsline {section}{\numberline {1.6}Thesis Roadmap}{8}{section.1.6}\protected@file@percent }
@@ -61,7 +61,8 @@
 \@writefile{toc}{\contentsline {section}{\numberline {2.2}Outcome-based refactoring evaluation}{10}{section.2.2}\protected@file@percent }
 \newlabel{sec:outcome-eval}{{2.2}{10}{Outcome-based refactoring evaluation}{section.2.2}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {2.2.1}Judging refactoring by the final state}{10}{subsection.2.2.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.2.2}What endpoint evaluation captures-and what it misses}{10}{subsection.2.2.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.2.2}What endpoint evaluation captures, and what it misses}{10}{subsection.2.2.2}\protected@file@percent }
+\citation{industriallogic_critique}
 \citation{fowler1999refactoring}
 \citation{moha2010decor}
 \citation{paiva2017evaluation}
@@ -69,17 +70,17 @@
 \citation{scalabrino2018readability}
 \citation{paiva2017evaluation}
 \citation{arcellifontana2016falsepositives}
+\citation{paixao2017balancing}
 \@writefile{toc}{\contentsline {section}{\numberline {2.3}Code smell detection and quality metrics}{11}{section.2.3}\protected@file@percent }
 \newlabel{sec:smells-metrics}{{2.3}{11}{Code smell detection and quality metrics}{section.2.3}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {2.3.1}Using code smells as design signals}{11}{subsection.2.3.1}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {2.3.2}Structural and readability metrics}{11}{subsection.2.3.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.3.3}What this means for the process-quality metric}{11}{subsection.2.3.3}\protected@file@percent }
-\citation{paixao2017balancing}
 \citation{harman2007pareto}
 \citation{mohan2019manyobjective}
 \citation{moha2010decor}
 \citation{paiva2017evaluation}
 \citation{scalabrino2018readability}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.3.3}What this means for the process-quality metric}{12}{subsection.2.3.3}\protected@file@percent }
 \@writefile{lot}{\contentsline {table}{\numberline {2.1}{\ignorespaces Candidate signals for constructing a process-quality objective. We combine endpoint quality change with trajectory-oriented cost and stability terms, rather than relying on any single indicator.}}{12}{table.caption.3}\protected@file@percent }
 \newlabel{tab:metric-candidates}{{2.1}{12}{Candidate signals for constructing a process-quality objective. We combine endpoint quality change with trajectory-oriented cost and stability terms, rather than relying on any single indicator}{table.caption.3}{}}
 \citation{falleri2024gumtree}
@@ -141,6 +142,7 @@
 \citation{poncin2011processmining}
 \citation{damevski2017usagesmells}
 \citation{foutsekh2018interactiontraces}
+\citation{industriallogic_critique}
 \@writefile{toc}{\contentsline {subsection}{\numberline {2.6.2}Granularity, segmentation, and semantic interpretation}{16}{subsection.2.6.2}\protected@file@percent }
 \@writefile{toc}{\contentsline {section}{\numberline {2.7}Summary and positioning: toward process-quality evaluation}{16}{section.2.7}\protected@file@percent }
 \newlabel{sec:background-summary}{{2.7}{16}{Summary and positioning: toward process-quality evaluation}{section.2.7}{}}
@@ -178,11 +180,13 @@
 \citation{kudrjavets2022small}
 \citation{cedrim2017refactoring}
 \citation{paixao2017balancing}
+\citation{paixao2017balancing}
 \@writefile{toc}{\contentsline {subsection}{\numberline {3.2.2}Process-score weights}{20}{subsection.3.2.2}\protected@file@percent }
 \newlabel{sec:methodology-weights}{{3.2.2}{20}{Process-score weights}{subsection.3.2.2}{}}
 \@writefile{lot}{\contentsline {table}{\numberline {3.2}{\ignorespaces Weights used in Equation~\eqref  {eq:process-score} and the literature supporting each term. The empirical contribution of each term is examined in the ablation analysis of \S  \ref {sec:results-ablation}.}}{20}{table.caption.8}\protected@file@percent }
 \newlabel{tab:methodology-weights}{{3.2}{20}{Weights used in Equation~\eqref {eq:process-score} and the literature supporting each term. The empirical contribution of each term is examined in the ablation analysis of \S \ref {sec:results-ablation}}{table.caption.8}{}}
-\citation{paixao2017balancing}
+\@writefile{toc}{\contentsline {paragraph}{$W_{\textsc  {g}}$ (gain, 50).}{20}{section*.9}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{$W_{\textsc  {b}}$ (broken, 28).}{20}{section*.10}\protected@file@percent }
 \citation{gautam2025refactorbench}
 \citation{murphyhill2009howrefactor}
 \citation{mens2004survey}
@@ -191,14 +195,13 @@
 \citation{harman2007pareto}
 \citation{mohan2019manyobjective}
 \citation{cortellessa2023manyobjective}
-\@writefile{toc}{\contentsline {paragraph}{$W_{\textsc  {g}}$ (gain, 50).}{21}{section*.9}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{$W_{\textsc  {b}}$ (broken, 28).}{21}{section*.10}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{$W_{\textsc  {st}}$ (skip-tests, 14).}{21}{section*.11}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{$W_{\textsc  {mi}}$ (manual-when-IDE, 11).}{21}{section*.12}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{$W_{\textsc  {l}}$ (length, 11).}{21}{section*.13}\protected@file@percent }
 \citation{cunningham1992wycash}
 \citation{kruchten2012technicaldebt}
 \citation{cedrim2017refactoring}
+\@writefile{toc}{\contentsline {paragraph}{$W_{\textsc  {st}}$ (skip-tests, 14).}{21}{section*.11}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{$W_{\textsc  {mi}}$ (manual-when-IDE, 11).}{21}{section*.12}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{$W_{\textsc  {l}}$ (length, 11).}{21}{section*.13}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{$W_{\textsc  {lag}}$ (lag, 11).}{21}{section*.14}\protected@file@percent }
 \citation{taokim2015partitioning}
 \citation{dibiase2019decomposition}
 \citation{herzig2013tangled}
@@ -214,21 +217,20 @@
 \citation{arcellifontana2016falsepositives}
 \citation{moha2010decor}
 \citation{biemankang1995tcc}
-\@writefile{toc}{\contentsline {paragraph}{$W_{\textsc  {lag}}$ (lag, 11).}{22}{section*.14}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{$W_{\textsc  {cg}}$ (commit-gap, 7).}{22}{section*.15}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {3.2.3}The cleanliness sub-score}{22}{subsection.3.2.3}\protected@file@percent }
-\newlabel{sec:methodology-cleanliness}{{3.2.3}{22}{The cleanliness sub-score}{subsection.3.2.3}{}}
 \citation{wagner2015quamoco}
 \citation{bansiya2002qmood}
 \citation{coleman1994maintainability}
+\@writefile{toc}{\contentsline {paragraph}{$W_{\textsc  {cg}}$ (commit-gap, 7).}{22}{section*.15}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.2.3}The cleanliness sub-score}{22}{subsection.3.2.3}\protected@file@percent }
+\newlabel{sec:methodology-cleanliness}{{3.2.3}{22}{The cleanliness sub-score}{subsection.3.2.3}{}}
+\@writefile{toc}{\contentsline {paragraph}{Composition rule and sub-weights.}{22}{section*.17}\protected@file@percent }
 \citation{buse2010readability}
 \citation{munozbaron2020cognitive}
 \citation{lavazza2023cognitive}
 \@writefile{lot}{\contentsline {table}{\numberline {3.3}{\ignorespaces The six sub-signals used to compute the cleanliness sub-score $C(s)$. Each is given weight 1.0; the rationale for using equal weights is given in the composition rule below.}}{23}{table.caption.16}\protected@file@percent }
 \newlabel{tab:methodology-cleanliness}{{3.3}{23}{The six sub-signals used to compute the cleanliness sub-score $C(s)$. Each is given weight 1.0; the rationale for using equal weights is given in the composition rule below}{table.caption.16}{}}
-\@writefile{toc}{\contentsline {paragraph}{Composition rule and sub-weights.}{23}{section*.17}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{Caveats.}{23}{section*.18}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Coupling to the process score.}{24}{section*.19}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Coupling to the process score.}{23}{section*.19}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {3.2.4}Event capture}{24}{subsection.3.2.4}\protected@file@percent }
 \newlabel{sec:arch-events}{{3.2.4}{24}{Event capture}{subsection.3.2.4}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {3.2.5}Shadow repo reconstruction and worktree pool}{24}{subsection.3.2.5}\protected@file@percent }
@@ -239,15 +241,15 @@
 \@writefile{toc}{\contentsline {section}{\numberline {3.3}Divergence points}{25}{section.3.3}\protected@file@percent }
 \newlabel{sec:methodology-detector}{{3.3}{25}{Divergence points}{section.3.3}{}}
 \newlabel{sec:arch-synthesis}{{3.3}{25}{Divergence points}{section.3.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.3.1}Applying refactorings via Eclipse JDT}{25}{subsection.3.3.1}\protected@file@percent }
+\newlabel{sec:arch-jdt}{{3.3.1}{25}{Applying refactorings via Eclipse JDT}{subsection.3.3.1}{}}
 \citation{eclipse_jdt_faq}
-\@writefile{toc}{\contentsline {subsection}{\numberline {3.3.1}Applying refactorings via Eclipse JDT}{26}{subsection.3.3.1}\protected@file@percent }
-\newlabel{sec:arch-jdt}{{3.3.1}{26}{Applying refactorings via Eclipse JDT}{subsection.3.3.1}{}}
 \@writefile{toc}{\contentsline {paragraph}{Batch sessions.}{26}{section*.20}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{Anchor resolution.}{26}{section*.21}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {3.3.2}Ordering}{26}{subsection.3.3.2}\protected@file@percent }
 \newlabel{sec:methodology-detector-ordering}{{3.3.2}{26}{Ordering}{subsection.3.3.2}{}}
 \newlabel{sec:methodology-reorder}{{3.3.2}{26}{Ordering}{subsection.3.3.2}{}}
-\@writefile{toc}{\contentsline {paragraph}{Window splitting on validator verdicts.}{27}{section*.22}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Window splitting on validator verdicts.}{26}{section*.22}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{Dependency-DAG construction.}{27}{section*.23}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{SSA versioning across renames.}{27}{section*.24}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{Topological enumeration.}{27}{section*.25}\protected@file@percent }
@@ -325,183 +327,155 @@
 \newlabel{sec:results-metric}{{4.1}{37}{Testing the score formula}{section.4.1}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {4.1.1}Sensitivity sweep}{37}{subsection.4.1.1}\protected@file@percent }
 \newlabel{sec:results-sensitivity}{{4.1.1}{37}{Sensitivity sweep}{subsection.4.1.1}{}}
-\@writefile{toc}{\contentsline {paragraph}{Experiment setup.}{38}{section*.36}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Experiment setup.}{37}{section*.36}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{Single-knob results.}{38}{section*.37}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {4.1}{\ignorespaces Single-knob sensitivity across three session sets. The user-study sessions is the cleanest benchmark: longest per-fixture rankings, zero saturated baseline divergence points. Top-$3$ and top-$5$ stability on the user-study sessions are $93.0\%$ and $98.1\%$ respectively; top-$5$ on the other two session sets is trivially $100\%$ because no fixture there has more than $5$ divergence points.}}{38}{table.caption.38}\protected@file@percent }
-\newlabel{tab:results-sensitivity-headline}{{4.1}{38}{Single-knob sensitivity across three session sets. The user-study sessions is the cleanest benchmark: longest per-fixture rankings, zero saturated baseline divergence points. Top-$3$ and top-$5$ stability on the user-study sessions are $93.0\%$ and $98.1\%$ respectively; top-$5$ on the other two session sets is trivially $100\%$ because no fixture there has more than $5$ divergence points}{table.caption.38}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {4.1}{\ignorespaces Single-knob sensitivity across the rankable subsets of the three session types ($\geq 2$ detected divergence points per session). The clamp-frozen rate is the share of $(\text  {DP} \times \text  {perturbation})$ cases where the user trajectory-final and the DP's alt trajectory-final both sit at the same $[0, 100]$ clamp value in baseline and in perturbed; for those cases the magnitude $J(\text  {alt}_T) - J(\text  {user}_T)$ is identical by construction, contributing trivially to $\tau = 1$. Only $1.8\%$ of user-study cases are clamp-frozen, so the $96.5\%$ top-$1$ figure is overwhelmingly genuine perturbation response rather than clamp-driven invariance.}}{38}{table.caption.38}\protected@file@percent }
+\newlabel{tab:results-sensitivity-headline}{{4.1}{38}{Single-knob sensitivity across the rankable subsets of the three session types ($\geq 2$ detected divergence points per session). The clamp-frozen rate is the share of $(\text {DP} \times \text {perturbation})$ cases where the user trajectory-final and the DP's alt trajectory-final both sit at the same $[0, 100]$ clamp value in baseline and in perturbed; for those cases the magnitude $J(\text {alt}_T) - J(\text {user}_T)$ is identical by construction, contributing trivially to $\tau = 1$. Only $1.8\%$ of user-study cases are clamp-frozen, so the $96.5\%$ top-$1$ figure is overwhelmingly genuine perturbation response rather than clamp-driven invariance}{table.caption.38}{}}
 \@writefile{toc}{\contentsline {paragraph}{Sources of ranking instability.}{38}{section*.39}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {4.2}{\ignorespaces Per-knob top-$1$ disruption counts on the user-study sessions. The lag term and five of the six cleanliness sub-weights never reshuffle the highest-magnitude divergence point in the sweep; the single \texttt  {cohesion} entry reflects the lag-denominator coupling. Process-side weights account for almost every top-$1$ shift.}}{39}{table.caption.40}\protected@file@percent }
-\newlabel{tab:results-sensitivity-knobs}{{4.2}{39}{Per-knob top-$1$ disruption counts on the user-study sessions. The lag term and five of the six cleanliness sub-weights never reshuffle the highest-magnitude divergence point in the sweep; the single \texttt {cohesion} entry reflects the lag-denominator coupling. Process-side weights account for almost every top-$1$ shift}{table.caption.40}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {4.2}{\ignorespaces Per-knob top-$1$ disruption counts on the user-study rankable subset (25 sessions $\times $ 9 perturbation factors $=$ 225 cases per weight). Most top-$1$ shifts come from the process-side weights, especially $W_{\textsc  {g}}$; the lag weight changes the top-ranked item only once, and the cleanliness sub-weights have little effect.}}{39}{table.caption.40}\protected@file@percent }
+\newlabel{tab:results-sensitivity-knobs}{{4.2}{39}{Per-knob top-$1$ disruption counts on the user-study rankable subset (25 sessions $\times $ 9 perturbation factors $=$ 225 cases per weight). Most top-$1$ shifts come from the process-side weights, especially $W_{\textsc {g}}$; the lag weight changes the top-ranked item only once, and the cleanliness sub-weights have little effect}{table.caption.40}{}}
 \@writefile{toc}{\contentsline {paragraph}{Multi-knob Monte Carlo.}{39}{section*.41}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {4.3}{\ignorespaces Multi-knob Monte Carlo robustness across three session sets ($200$ samples per fixture, log-normal $\sigma = \ln 2$). The user-study sessions are the discriminating benchmark; the multi-knob top-$1$ stability is $\sim 14$ percentage points lower than the single-knob result on the same set.}}{39}{table.caption.42}\protected@file@percent }
-\newlabel{tab:results-sensitivity-mc}{{4.3}{39}{Multi-knob Monte Carlo robustness across three session sets ($200$ samples per fixture, log-normal $\sigma = \ln 2$). The user-study sessions are the discriminating benchmark; the multi-knob top-$1$ stability is $\sim 14$ percentage points lower than the single-knob result on the same set}{table.caption.42}{}}
-\@writefile{toc}{\contentsline {paragraph}{Saturation and score-clamp bias.}{39}{section*.43}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {4.3}{\ignorespaces Multi-knob Monte Carlo robustness across the rankable subsets ($200$ samples per session, log-normal $\sigma = \ln 2$). The user-study set carries the headline because it has the largest rankable subset and the longest per-session rankings. Multi-knob top-$1$ stability is $\sim 12$ percentage lower than the single-knob result on the same set. Top-$3$ and top-$5$ track top-$1$ on the agent set ($78.3\%$ and $75.0\%$) but drop on the user-study set ($61.7\%$ and $59.5\%$), where longer per-session rankings leave more lower-ranked divergence points available to reorder. The injection top-$3$/top-$5$ figures fall sharply because injection rankings have at most $5$ items, so one lower-ranked swap can affect both metrics at once.}}{39}{table.caption.42}\protected@file@percent }
+\newlabel{tab:results-sensitivity-mc}{{4.3}{39}{Multi-knob Monte Carlo robustness across the rankable subsets ($200$ samples per session, log-normal $\sigma = \ln 2$). The user-study set carries the headline because it has the largest rankable subset and the longest per-session rankings. Multi-knob top-$1$ stability is $\sim 12$ percentage lower than the single-knob result on the same set. Top-$3$ and top-$5$ track top-$1$ on the agent set ($78.3\%$ and $75.0\%$) but drop on the user-study set ($61.7\%$ and $59.5\%$), where longer per-session rankings leave more lower-ranked divergence points available to reorder. The injection top-$3$/top-$5$ figures fall sharply because injection rankings have at most $5$ items, so one lower-ranked swap can affect both metrics at once}{table.caption.42}{}}
+\@writefile{toc}{\contentsline {paragraph}{Clamp-frozen rate and weight-invariance.}{39}{section*.43}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{Caveats and scope.}{40}{section*.44}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {4.1.2}Ablation sweep}{40}{subsection.4.1.2}\protected@file@percent }
 \newlabel{sec:results-ablation}{{4.1.2}{40}{Ablation sweep}{subsection.4.1.2}{}}
-\@writefile{toc}{\contentsline {paragraph}{Sanity check.}{40}{section*.45}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Monotone by active-term count.}{40}{section*.46}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {4.4}{\ignorespaces Mean $\tau $ and magnitude recovery grouped by how many process-score terms are active. Both statistics increase with the number of active terms; sum/sum recovery reaches 0 when all terms are zeroed.}}{40}{table.caption.47}\protected@file@percent }
-\newlabel{tab:results-ablation-monotone}{{4.4}{40}{Mean $\tau $ and magnitude recovery grouped by how many process-score terms are active. Both statistics increase with the number of active terms; sum/sum recovery reaches 0 when all terms are zeroed}{table.caption.47}{}}
-\@writefile{toc}{\contentsline {paragraph}{Per-term single-knob recovery.}{40}{section*.48}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {4.5}{\ignorespaces Per-term single-knob recovery (each term active alone, others zeroed). The \texttt  {length} and \texttt  {broken} terms are the strongest contributors by both mean recovery and sum/sum; the new \texttt  {lag} term is fourth on both. \texttt  {gain} alone recovers $0.000$ because the cleanliness delta is near zero on most fixtures, so it has no effect when isolated.}}{41}{table.caption.49}\protected@file@percent }
-\newlabel{tab:results-ablation-solo}{{4.5}{41}{Per-term single-knob recovery (each term active alone, others zeroed). The \texttt {length} and \texttt {broken} terms are the strongest contributors by both mean recovery and sum/sum; the new \texttt {lag} term is fourth on both. \texttt {gain} alone recovers $0.000$ because the cleanliness delta is near zero on most fixtures, so it has no effect when isolated}{table.caption.49}{}}
-\@writefile{toc}{\contentsline {paragraph}{Per-term leave-one-out recovery.}{41}{section*.50}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Cross-set rerun on the user-study sessions.}{41}{section*.52}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {4.6}{\ignorespaces Per-term leave-one-out recovery (six terms active, one removed). Removing \texttt  {length} causes the largest sum/sum drop; removing \texttt  {gain} inflates sum/sum above $1.000$, indicating that \texttt  {gain} regularises against the penalty terms rather than acting as a positive contributor in isolation. Removing the new \texttt  {lag} term costs $0.158$ on sum/sum while leaving the ranking essentially intact ($\tau = 0.996$).}}{42}{table.caption.51}\protected@file@percent }
-\newlabel{tab:results-ablation-loo}{{4.6}{42}{Per-term leave-one-out recovery (six terms active, one removed). Removing \texttt {length} causes the largest sum/sum drop; removing \texttt {gain} inflates sum/sum above $1.000$, indicating that \texttt {gain} regularises against the penalty terms rather than acting as a positive contributor in isolation. Removing the new \texttt {lag} term costs $0.158$ on sum/sum while leaving the ranking essentially intact ($\tau = 0.996$)}{table.caption.51}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {4.7}{\ignorespaces Leave-one-out ranking stability against the injection sessions (Table~\ref {tab:results-ablation-loo}) and the user-study sessions. The term-importance ordering inverts between the two session sets: $W_{\textsc  {cg}}$ is the dominant rank-carrier on the user-study sessions, $W_{\textsc  {mi}}$ and $W_{\textsc  {l}}$ on the injection sessions. The lag term has near-zero ranking impact on the user-study set ($\tau = 0.992$) but contributes magnitude on the injection set.}}{42}{table.caption.53}\protected@file@percent }
-\newlabel{tab:results-ablation-user-loo}{{4.7}{42}{Leave-one-out ranking stability against the injection sessions (Table~\ref {tab:results-ablation-loo}) and the user-study sessions. The term-importance ordering inverts between the two session sets: $W_{\textsc {cg}}$ is the dominant rank-carrier on the user-study sessions, $W_{\textsc {mi}}$ and $W_{\textsc {l}}$ on the injection sessions. The lag term has near-zero ranking impact on the user-study set ($\tau = 0.992$) but contributes magnitude on the injection set}{table.caption.53}{}}
-\@writefile{toc}{\contentsline {paragraph}{Caveats.}{42}{section*.54}\protected@file@percent }
-\citation{mens2007graph}
-\citation{mens2007graph}
-\citation{liu2009smell}
-\citation{khrishe2016empirical}
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.1.3}Reordering as a window onto intermediate quality}{43}{subsection.4.1.3}\protected@file@percent }
-\newlabel{sec:results-headline}{{4.1.3}{43}{Reordering as a window onto intermediate quality}{subsection.4.1.3}{}}
+\@writefile{toc}{\contentsline {paragraph}{Monotone by active-term count.}{40}{section*.45}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Per-term single-knob recovery.}{40}{section*.47}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {4.4}{\ignorespaces Sum-over-sum magnitude recovery by number of active process-score terms, reported separately for the injection ($45$ sessions), user-study ($30$ sessions), and agent ($48$ sessions) sets. Recovery rises monotonically on all three sets, from exactly $0.000$ with every process term removed to $1.000$ under the full seven-term formula. The agent set recovers slightly faster at low active counts, consistent with the single-term pattern in Table~\ref {tab:results-ablation-solo}.}}{41}{table.caption.46}\protected@file@percent }
+\newlabel{tab:results-ablation-monotone}{{4.4}{41}{Sum-over-sum magnitude recovery by number of active process-score terms, reported separately for the injection ($45$ sessions), user-study ($30$ sessions), and agent ($48$ sessions) sets. Recovery rises monotonically on all three sets, from exactly $0.000$ with every process term removed to $1.000$ under the full seven-term formula. The agent set recovers slightly faster at low active counts, consistent with the single-term pattern in Table~\ref {tab:results-ablation-solo}}{table.caption.46}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {4.5}{\ignorespaces Per-term single-knob recovery by session set, with each term active alone and the other six zeroed. \texttt  {length} is the largest single-term contributor on both the injection and user-study sets, while \texttt  {skipTests} ranks above \texttt  {broken} only on user-study. The agent set is dominated by \texttt  {manualIde} ($1.000$ alone), consistent with $41$ of $42$ agent divergence points being \emph  {Manual-Refactor}. \texttt  {gain} is $0.000$ on every set because user and alternative trajectories share the same final AST.}}{41}{table.caption.48}\protected@file@percent }
+\newlabel{tab:results-ablation-solo}{{4.5}{41}{Per-term single-knob recovery by session set, with each term active alone and the other six zeroed. \texttt {length} is the largest single-term contributor on both the injection and user-study sets, while \texttt {skipTests} ranks above \texttt {broken} only on user-study. The agent set is dominated by \texttt {manualIde} ($1.000$ alone), consistent with $41$ of $42$ agent divergence points being \emph {Manual-Refactor}. \texttt {gain} is $0.000$ on every set because user and alternative trajectories share the same final AST}{table.caption.48}{}}
+\@writefile{toc}{\contentsline {paragraph}{Per-term leave-one-out recovery.}{41}{section*.49}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {4.6}{\ignorespaces Per-term leave-one-out recovery by session set. Each row keeps six terms active and removes one. \texttt  {length} has the largest effect on injection and user-study, while \texttt  {manualIde} is most important on agent. Removing \texttt  {gain} increases the recovered magnitude above $1.000$ because it removes part of the score-clamp compression described in the text.}}{42}{table.caption.50}\protected@file@percent }
+\newlabel{tab:results-ablation-loo}{{4.6}{42}{Per-term leave-one-out recovery by session set. Each row keeps six terms active and removes one. \texttt {length} has the largest effect on injection and user-study, while \texttt {manualIde} is most important on agent. Removing \texttt {gain} increases the recovered magnitude above $1.000$ because it removes part of the score-clamp compression described in the text}{table.caption.50}{}}
+\@writefile{toc}{\contentsline {paragraph}{Cross-set rerun on the user-study sessions.}{42}{section*.51}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {4.7}{\ignorespaces Leave-one-out ranking stability on the injection and user-study rankable subsets, sorted by user-study impact. Removing \texttt  {length} causes the largest user-study drop, while removing \texttt  {lag} has the smallest effect.}}{42}{table.caption.52}\protected@file@percent }
+\newlabel{tab:results-ablation-user-loo}{{4.7}{42}{Leave-one-out ranking stability on the injection and user-study rankable subsets, sorted by user-study impact. Removing \texttt {length} causes the largest user-study drop, while removing \texttt {lag} has the smallest effect}{table.caption.52}{}}
+\@writefile{toc}{\contentsline {paragraph}{Caveats.}{42}{section*.53}\protected@file@percent }
 \@writefile{toc}{\contentsline {section}{\numberline {4.2}Testing the divergence-point detector}{43}{section.4.2}\protected@file@percent }
 \newlabel{sec:results-detector}{{4.2}{43}{Testing the divergence-point detector}{section.4.2}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.2.1}Inter-rater reliability}{44}{subsection.4.2.1}\protected@file@percent }
-\newlabel{sec:results-kappa}{{4.2.1}{44}{Inter-rater reliability}{subsection.4.2.1}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {4.8}{\ignorespaces Per-kind Cohen's $\kappa $ on the 45-session set between us and the two independent raters and between the two independent raters. Ordering and IDE-replay are perfect on every pair; rework and hygiene reach substantial-to-almost-perfect agreement on every pair under Landis and Koch's interpretation thresholds.}}{44}{table.caption.55}\protected@file@percent }
-\newlabel{tab:results-userstudy-kappa}{{4.8}{44}{Per-kind Cohen's $\kappa $ on the 45-session set between us and the two independent raters and between the two independent raters. Ordering and IDE-replay are perfect on every pair; rework and hygiene reach substantial-to-almost-perfect agreement on every pair under Landis and Koch's interpretation thresholds}{table.caption.55}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.2.2}Divergence experiment}{44}{subsection.4.2.2}\protected@file@percent }
-\newlabel{sec:results-divergence}{{4.2.2}{44}{Divergence experiment}{subsection.4.2.2}{}}
-\@writefile{toc}{\contentsline {paragraph}{Precision and recall.}{44}{section*.56}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {4.9}{\ignorespaces Per-kind precision and recall on the 45-session set. The ``injection'' recall column counts only the kind the playbook explicitly injected; ``any expected'' counts any kind the session's \texttt  {expected\_kinds} label includes.}}{45}{table.caption.57}\protected@file@percent }
-\newlabel{tab:results-divergence-prec-recall}{{4.9}{45}{Per-kind precision and recall on the 45-session set. The ``injection'' recall column counts only the kind the playbook explicitly injected; ``any expected'' counts any kind the session's \texttt {expected\_kinds} label includes}{table.caption.57}{}}
-\@writefile{toc}{\contentsline {paragraph}{Detection quality.}{45}{section*.58}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {4.10}{\ignorespaces Per-kind detection quality. ``DPs'' is the number of divergence points the detector fires; ``alts enum.'' is the total number of alternative paths enumerated across those DPs (a single ordering DP enumerates up to $k!$ permutations of a $k$-step window); ``beats user'' is the number of DPs whose best alternative trajectory beats the user's trajectory. The \emph  {Ordering} beats count rises from $4$ to $10$ once the lag term $W_{\textsc  {lag}}$ is in the formula; without $W_{\textsc  {lag}}$ the count collapses to $4$.}}{46}{table.caption.59}\protected@file@percent }
-\newlabel{tab:results-divergence-quality}{{4.10}{46}{Per-kind detection quality. ``DPs'' is the number of divergence points the detector fires; ``alts enum.'' is the total number of alternative paths enumerated across those DPs (a single ordering DP enumerates up to $k!$ permutations of a $k$-step window); ``beats user'' is the number of DPs whose best alternative trajectory beats the user's trajectory. The \emph {Ordering} beats count rises from $4$ to $10$ once the lag term $W_{\textsc {lag}}$ is in the formula; without $W_{\textsc {lag}}$ the count collapses to $4$}{table.caption.59}{}}
-\@writefile{toc}{\contentsline {paragraph}{Two-way ordering discrimination.}{46}{section*.60}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Injection prominence.}{46}{section*.61}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Caveats.}{46}{section*.63}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {4.11}{\ignorespaces Injection prominence: when an injection's kind is caught, where does the corresponding divergence point sit in the session's per-magnitude ranking? Top-$1$ on every catch across all four kinds. The single ordering catch is session $022$, surfaced once $W_{\textsc  {lag}}$ entered the formula.}}{47}{table.caption.62}\protected@file@percent }
-\newlabel{tab:results-divergence-prominence}{{4.11}{47}{Injection prominence: when an injection's kind is caught, where does the corresponding divergence point sit in the session's per-magnitude ranking? Top-$1$ on every catch across all four kinds. The single ordering catch is session $022$, surfaced once $W_{\textsc {lag}}$ entered the formula}{table.caption.62}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.2.3}Scoped-out fix: ordering recall}{47}{subsection.4.2.3}\protected@file@percent }
-\newlabel{sec:results-scoped-out}{{4.2.3}{47}{Scoped-out fix: ordering recall}{subsection.4.2.3}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {4.3}User and agent studies}{47}{section.4.3}\protected@file@percent }
-\newlabel{sec:results-studies}{{4.3}{47}{User and agent studies}{section.4.3}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.3.1}User study}{47}{subsection.4.3.1}\protected@file@percent }
-\newlabel{sec:results-userstudy}{{4.3.1}{47}{User study}{subsection.4.3.1}{}}
-\@writefile{toc}{\contentsline {paragraph}{Descriptive findings on the participants' sessions.}{48}{section*.64}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {4.12}{\ignorespaces Per-session divergence-point counts across the 12-session participants' sessions. Both participants registered $0$ divergence points on session S04, a cross-class duplication consolidation task that both executed as straight manual edits; the remaining sessions exercise all four kinds in proportions broadly consistent with the 45-session set.}}{48}{table.caption.65}\protected@file@percent }
-\newlabel{tab:results-userstudy-distribution}{{4.12}{48}{Per-session divergence-point counts across the 12-session participants' sessions. Both participants registered $0$ divergence points on session S04, a cross-class duplication consolidation task that both executed as straight manual edits; the remaining sessions exercise all four kinds in proportions broadly consistent with the 45-session set}{table.caption.65}{}}
-\@writefile{toc}{\contentsline {paragraph}{Behavioural trajectory across the six-session arc.}{48}{section*.66}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {4.13}{\ignorespaces Per-kind divergence-point trajectory across the six-session arc, summed across both participants. IDE-replay and hygiene show a downward trajectory consistent with self-reported behavioural change; ordering and rework are episodic, firing on the sessions whose prompts inherently involve them.}}{49}{table.caption.67}\protected@file@percent }
-\newlabel{tab:results-userstudy-trajectory}{{4.13}{49}{Per-kind divergence-point trajectory across the six-session arc, summed across both participants. IDE-replay and hygiene show a downward trajectory consistent with self-reported behavioural change; ordering and rework are episodic, firing on the sessions whose prompts inherently involve them}{table.caption.67}{}}
-\@writefile{toc}{\contentsline {paragraph}{Process scores under the production and gain-stripped weightings.}{49}{section*.68}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {4.14}{\ignorespaces Trajectory-final process score across the six-session arc for each actor under the production weighting and under a copy of the weighting with the cleanliness-gain weight $W_g$ set to zero. The production view reads the actor's outcome and process together; the gain-stripped view reads the process alone.}}{50}{table.caption.69}\protected@file@percent }
-\newlabel{tab:results-userstudy-scores}{{4.14}{50}{Trajectory-final process score across the six-session arc for each actor under the production weighting and under a copy of the weighting with the cleanliness-gain weight $W_g$ set to zero. The production view reads the actor's outcome and process together; the gain-stripped view reads the process alone}{table.caption.69}{}}
-\newlabel{sec:results-userstudy-stepui}{{4.3.1}{51}{Per-step inspection as a usability win}{section*.70}{}}
-\@writefile{toc}{\contentsline {paragraph}{Per-step inspection as a usability win.}{51}{section*.70}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.3.2}Agent comparison}{51}{subsection.4.3.2}\protected@file@percent }
-\newlabel{sec:results-userstudy-agent}{{4.3.2}{51}{Agent comparison}{subsection.4.3.2}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {4.15}{\ignorespaces Per-kind divergence-point totals for the agent over six sessions on the user-study fixture, against each participant's six-session total separately so the comparison is run on the same session count for each row.}}{52}{table.caption.71}\protected@file@percent }
-\newlabel{tab:results-userstudy-agent-distribution}{{4.15}{52}{Per-kind divergence-point totals for the agent over six sessions on the user-study fixture, against each participant's six-session total separately so the comparison is run on the same session count for each row}{table.caption.71}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {4.16}{\ignorespaces Agent per-session divergence-point trajectory and final-checkpoint process scores, mirroring Table~\ref {tab:results-userstudy-trajectory} for the human cohort.}}{52}{table.caption.72}\protected@file@percent }
-\newlabel{tab:results-userstudy-agent-trajectory}{{4.16}{52}{Agent per-session divergence-point trajectory and final-checkpoint process scores, mirroring Table~\ref {tab:results-userstudy-trajectory} for the human cohort}{table.caption.72}{}}
-\@writefile{toc}{\contentsline {paragraph}{Behavioural threads from the agent's own reflections.}{52}{section*.73}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Thread 1: commit cadence, over-corrected and then resolved.}{52}{section*.74}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Thread 2: smell-introduction feedback produced a specific self-critique.}{53}{section*.75}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Thread 3: agent acknowledges the structural IDE-replay limitation.}{53}{section*.76}\protected@file@percent }
-\citation{wohlin2012experimentation}
-\citation{coleman1994maintainability}
-\@writefile{toc}{\contentsline {chapter}{\numberline {5}Threats to validity}{55}{chapter.5}\protected@file@percent }
-\@writefile{lof}{\addvspace {10\p@ }}
-\@writefile{lot}{\addvspace {10\p@ }}
-\newlabel{ch:threats}{{5}{55}{Threats to validity}{chapter.5}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {5.1}Construct validity}{55}{section.5.1}\protected@file@percent }
-\newlabel{sec:threats-construct}{{5.1}{55}{Construct validity}{section.5.1}{}}
-\@writefile{toc}{\contentsline {paragraph}{There is no external ground truth for ``true refactoring quality''.}{55}{section*.77}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{The score is not a maintainability index.}{55}{section*.78}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{The four-kind taxonomy is a methodology choice, not a discovered structure.}{55}{section*.79}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{\texttt  {SuboptimalOrdering} is author-claimed, not measured.}{56}{section*.80}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{The AST-equivalence audit uses an informal definition.}{56}{section*.81}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {5.2}Internal validity}{56}{section.5.2}\protected@file@percent }
-\newlabel{sec:threats-internal}{{5.2}{56}{Internal validity}{section.5.2}{}}
-\@writefile{toc}{\contentsline {paragraph}{The single-knob sensitivity sweep is combined with a multi-knob design rather than replaced.}{56}{section*.82}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Kind-presence agreement does not imply rank-order agreement.}{56}{section*.83}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Cleanliness sub-weights are uniform $1.0$ by Laplace's principle of insufficient reason.}{56}{section*.84}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.2.1}Inter-rater reliability}{43}{subsection.4.2.1}\protected@file@percent }
+\newlabel{sec:results-kappa}{{4.2.1}{43}{Inter-rater reliability}{subsection.4.2.1}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {4.8}{\ignorespaces Per-kind Cohen's $\kappa $ on the 45-session set for all three rater pairs. Ordering and Manual-Refactor are unanimous; rework and hygiene both reach at least substantial agreement.}}{43}{table.caption.54}\protected@file@percent }
+\newlabel{tab:results-userstudy-kappa}{{4.8}{43}{Per-kind Cohen's $\kappa $ on the 45-session set for all three rater pairs. Ordering and Manual-Refactor are unanimous; rework and hygiene both reach at least substantial agreement}{table.caption.54}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.2.2}Divergence experiment}{43}{subsection.4.2.2}\protected@file@percent }
+\newlabel{sec:results-divergence}{{4.2.2}{43}{Divergence experiment}{subsection.4.2.2}{}}
+\@writefile{toc}{\contentsline {paragraph}{Precision and recall.}{43}{section*.55}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {4.9}{\ignorespaces Per-kind precision and recall on the 45-session set. The ``injection'' recall column counts only the kind the playbook explicitly injected; ``any expected'' counts any kind the session's \texttt  {expected\_kinds} label includes.}}{44}{table.caption.56}\protected@file@percent }
+\newlabel{tab:results-divergence-prec-recall}{{4.9}{44}{Per-kind precision and recall on the 45-session set. The ``injection'' recall column counts only the kind the playbook explicitly injected; ``any expected'' counts any kind the session's \texttt {expected\_kinds} label includes}{table.caption.56}{}}
+\@writefile{toc}{\contentsline {paragraph}{Detection quality.}{44}{section*.57}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Negative Ordering magnitudes.}{44}{section*.59}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {4.10}{\ignorespaces Per-kind detection quality. ``DPs'' gives the number of emitted divergence points. The beats, ties, and loses columns group those points by the sign of $J(\text  {alt}_T) - J(\text  {user}_T)$ under the production formula. Hygiene improves on the user in every case; Ordering has many ties because several reordered alternatives reach the same final state with the same final score.}}{45}{table.caption.58}\protected@file@percent }
+\newlabel{tab:results-divergence-quality}{{4.10}{45}{Per-kind detection quality. ``DPs'' gives the number of emitted divergence points. The beats, ties, and loses columns group those points by the sign of $J(\text {alt}_T) - J(\text {user}_T)$ under the production formula. Hygiene improves on the user in every case; Ordering has many ties because several reordered alternatives reach the same final state with the same final score}{table.caption.58}{}}
+\@writefile{toc}{\contentsline {paragraph}{Injection prominence.}{45}{section*.60}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {4.11}{\ignorespaces Injection prominence: rank of the caught injection's divergence point within its session's magnitude ordering. Every positive-magnitude catch is ranked top-$1$ across all four kinds.}}{45}{table.caption.61}\protected@file@percent }
+\newlabel{tab:results-divergence-prominence}{{4.11}{45}{Injection prominence: rank of the caught injection's divergence point within its session's magnitude ordering. Every positive-magnitude catch is ranked top-$1$ across all four kinds}{table.caption.61}{}}
+\@writefile{toc}{\contentsline {paragraph}{Caveats.}{45}{section*.62}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.2.3}Known limitation: ordering recall}{45}{subsection.4.2.3}\protected@file@percent }
+\newlabel{sec:results-scoped-out}{{4.2.3}{45}{Known limitation: ordering recall}{subsection.4.2.3}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {4.3}User and agent studies}{46}{section.4.3}\protected@file@percent }
+\newlabel{sec:results-studies}{{4.3}{46}{User and agent studies}{section.4.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.3.1}User study}{46}{subsection.4.3.1}\protected@file@percent }
+\newlabel{sec:results-userstudy}{{4.3.1}{46}{User study}{subsection.4.3.1}{}}
+\@writefile{toc}{\contentsline {paragraph}{Descriptive findings on the participants' sessions.}{46}{section*.63}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {4.12}{\ignorespaces Per-participant divergence-point counts across the 30-session user study, grouped by feedback condition. The table reports aggregate per-kind totals; full per-session breakdowns are available in the reproducibility notebook (\texttt  {tool/fixtures/notebooks/experiments.ipynb}).}}{47}{table.caption.64}\protected@file@percent }
+\newlabel{tab:results-userstudy-distribution}{{4.12}{47}{Per-participant divergence-point counts across the 30-session user study, grouped by feedback condition. The table reports aggregate per-kind totals; full per-session breakdowns are available in the reproducibility notebook (\texttt {tool/fixtures/notebooks/experiments.ipynb})}{table.caption.64}{}}
+\@writefile{toc}{\contentsline {paragraph}{Behavioural trajectory across the six-session arc.}{47}{section*.65}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {4.13}{\ignorespaces Per-kind divergence-point trajectory across the six-session arc, summed within each group. The feedback aggregate trends downward after S2 and finishes at $2$ divergence points ($\Delta = -10$), while the no-feedback aggregate ends higher than it started ($\Delta = +5$). Both groups register $0$ divergence points on S04. Manual-Refactor and hygiene carry most of the group-level signal.}}{48}{table.caption.66}\protected@file@percent }
+\newlabel{tab:results-userstudy-trajectory}{{4.13}{48}{Per-kind divergence-point trajectory across the six-session arc, summed within each group. The feedback aggregate trends downward after S2 and finishes at $2$ divergence points ($\Delta = -10$), while the no-feedback aggregate ends higher than it started ($\Delta = +5$). Both groups register $0$ divergence points on S04. Manual-Refactor and hygiene carry most of the group-level signal}{table.caption.66}{}}
+\@writefile{toc}{\contentsline {paragraph}{Process scores under the production and gain-stripped weightings.}{48}{section*.67}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {4.14}{\ignorespaces Trajectory-final process score across the six-session arc for each participant under the gain-stripped weighting ($W_g = 0$, $W_{\textsc  {lag}} = 0$), grouped by whether participants saw feedback between sessions. The production-weighted view is dominated by the cleanliness-gain term and is reported per-session in the reproducibility notebook. $\Delta $ is $S6 - S1$ and slope is $\Delta / 5$ in score units per session. The group means aggregate across participants within each group.}}{49}{table.caption.68}\protected@file@percent }
+\newlabel{tab:results-userstudy-scores}{{4.14}{49}{Trajectory-final process score across the six-session arc for each participant under the gain-stripped weighting ($W_g = 0$, $W_{\textsc {lag}} = 0$), grouped by whether participants saw feedback between sessions. The production-weighted view is dominated by the cleanliness-gain term and is reported per-session in the reproducibility notebook. $\Delta $ is $S6 - S1$ and slope is $\Delta / 5$ in score units per session. The group means aggregate across participants within each group}{table.caption.68}{}}
+\@writefile{toc}{\contentsline {paragraph}{Feedback vs no-feedback group.}{49}{section*.69}\protected@file@percent }
 \citation{murphyhill2009howrefactor}
-\@writefile{toc}{\contentsline {paragraph}{The lag term couples the cleanliness sub-score to the process score.}{57}{section*.85}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Two batching primitives are heuristic and not sensitivity-tested.}{57}{section*.86}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{The production weight vector is hand-picked within a literature-grounded ordering.}{57}{section*.87}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Which terms carry the ranking varies by session type.}{57}{section*.88}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{The reorder dependency analysis is deliberately coarse, and anchors are content-addressed.}{58}{section*.89}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Cleanliness sub-signals are clamped to the user's range on alternative trajectories.}{58}{section*.90}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {5.3}External validity}{58}{section.5.3}\protected@file@percent }
-\newlabel{sec:threats-external}{{5.3}{58}{External validity}{section.5.3}{}}
-\@writefile{toc}{\contentsline {paragraph}{The injection sessions are scoped exercises, not naturalistic sessions.}{58}{section*.91}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{The user study has two participants and twelve sessions.}{58}{section*.92}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{The agent comparison is a single agent over six sessions.}{59}{section*.93}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{All sessions are single-author IntelliJ sessions on a Gradle Java project.}{59}{section*.94}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Refactoring kinds the synthesiser cannot handle are excluded by construction.}{59}{section*.95}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {5.4}Statistical conclusion validity}{59}{section.5.4}\protected@file@percent }
-\newlabel{sec:threats-statistical}{{5.4}{59}{Statistical conclusion validity}{section.5.4}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {5.5}Per-experiment threats}{60}{section.5.5}\protected@file@percent }
-\newlabel{sec:threats-per-experiment}{{5.5}{60}{Per-experiment threats}{section.5.5}{}}
-\@writefile{toc}{\contentsline {paragraph}{The kind classifier (\S  \ref {sec:results-divergence}).}{60}{section*.96}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{The user study (\S  \ref {sec:results-userstudy}).}{60}{section*.97}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{The agent comparison (\S  \ref {sec:results-userstudy-agent}).}{60}{section*.98}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{The rater study (\S  \ref {sec:results-kappa}).}{60}{section*.99}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {5.6}Implementation threats}{61}{section.5.6}\protected@file@percent }
-\newlabel{sec:threats-implementation}{{5.6}{61}{Implementation threats}{section.5.6}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {5.7}Out of scope}{61}{section.5.7}\protected@file@percent }
-\newlabel{sec:threats-out-of-scope}{{5.7}{61}{Out of scope}{section.5.7}{}}
-\@writefile{toc}{\contentsline {chapter}{\numberline {6}Discussion and Conclusions}{62}{chapter.6}\protected@file@percent }
+\newlabel{sec:results-userstudy-stepui}{{4.3.1}{50}{Per-step inspection as a usability win}{section*.70}{}}
+\@writefile{toc}{\contentsline {paragraph}{Per-step inspection as a usability win.}{50}{section*.70}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.3.2}Agent extension experiment}{50}{subsection.4.3.2}\protected@file@percent }
+\newlabel{sec:results-userstudy-agent}{{4.3.2}{50}{Agent extension experiment}{subsection.4.3.2}{}}
+\@writefile{toc}{\contentsline {paragraph}{Framing.}{50}{section*.71}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Setup.}{50}{section*.72}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Agent-level results.}{51}{section*.73}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {4.15}{\ignorespaces Per-agent gain-stripped trajectory and total divergence-point count across the eight agents. Agents 1--6 received feedback between sessions; agents 7 and 8 are no-feedback baselines. The group means aggregate across agents within each group.}}{51}{table.caption.74}\protected@file@percent }
+\newlabel{tab:results-userstudy-agent-trajectory}{{4.15}{51}{Per-agent gain-stripped trajectory and total divergence-point count across the eight agents. Agents 1--6 received feedback between sessions; agents 7 and 8 are no-feedback baselines. The group means aggregate across agents within each group}{table.caption.74}{}}
+\@writefile{toc}{\contentsline {paragraph}{Feedback vs no-feedback group.}{51}{section*.75}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Cross-agent effects.}{52}{section*.76}\protected@file@percent }
+\newlabel{sec:results-userstudy-agent-limits}{{4.3.2}{52}{Limits of applying the detector to agents}{section*.77}{}}
+\@writefile{toc}{\contentsline {paragraph}{Limits of applying the detector to agents.}{52}{section*.77}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Agents articulate adjustments in writing, but the score does not reflect them.}{52}{section*.78}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {4.4}Summary}{53}{section.4.4}\protected@file@percent }
+\newlabel{sec:results-summary}{{4.4}{53}{Summary}{section.4.4}{}}
+\@writefile{toc}{\contentsline {chapter}{\numberline {5}Discussion}{54}{chapter.5}\protected@file@percent }
 \@writefile{lof}{\addvspace {10\p@ }}
 \@writefile{lot}{\addvspace {10\p@ }}
-\newlabel{ch:conclusion}{{6}{62}{Discussion and Conclusions}{chapter.6}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {6.1}Summary of contributions}{62}{section.6.1}\protected@file@percent }
-\newlabel{sec:conclusion-contributions}{{6.1}{62}{Summary of contributions}{section.6.1}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {6.2}Headline findings}{62}{section.6.2}\protected@file@percent }
-\newlabel{sec:conclusion-findings}{{6.2}{62}{Headline findings}{section.6.2}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {6.3}Discussion}{63}{section.6.3}\protected@file@percent }
-\newlabel{sec:conclusion-scope}{{6.3}{63}{Discussion}{section.6.3}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {6.4}Future work}{63}{section.6.4}\protected@file@percent }
-\newlabel{sec:conclusion-future-work}{{6.4}{63}{Future work}{section.6.4}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {6.5}Closing}{64}{section.6.5}\protected@file@percent }
-\newlabel{sec:conclusion-closing}{{6.5}{64}{Closing}{section.6.5}{}}
+\newlabel{ch:conclusion}{{5}{54}{Discussion}{chapter.5}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {5.1}Summary of contributions}{54}{section.5.1}\protected@file@percent }
+\newlabel{sec:conclusion-contributions}{{5.1}{54}{Summary of contributions}{section.5.1}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {5.2}Limitations}{54}{section.5.2}\protected@file@percent }
+\newlabel{sec:conclusion-limitations}{{5.2}{54}{Limitations}{section.5.2}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.2.1}Construct and weight calibration}{54}{subsection.5.2.1}\protected@file@percent }
+\newlabel{sec:threats-construct}{{5.2.1}{54}{Construct and weight calibration}{subsection.5.2.1}{}}
+\@writefile{toc}{\contentsline {paragraph}{There is no external ground truth for ``refactoring quality''.}{54}{section*.79}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{The weights are plausible, but not uniquely calibrated.}{55}{section*.80}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Agreement was checked on kinds, not ranking.}{55}{section*.81}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.2.2}Study design and statistical power}{55}{subsection.5.2.2}\protected@file@percent }
+\newlabel{sec:threats-study-design}{{5.2.2}{55}{Study design and statistical power}{subsection.5.2.2}{}}
+\@writefile{toc}{\contentsline {paragraph}{The user study is randomised, but too small for hypothesis testing.}{55}{section*.82}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{The author is one of three raters.}{55}{section*.83}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.2.3}Generalisation and implementation scope}{55}{subsection.5.2.3}\protected@file@percent }
+\newlabel{sec:threats-external}{{5.2.3}{55}{Generalisation and implementation scope}{subsection.5.2.3}{}}
+\@writefile{toc}{\contentsline {paragraph}{The injection sessions are controlled exercises.}{55}{section*.84}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{\texttt  {SuboptimalOrdering} is based on the playbook author's judgement.}{56}{section*.85}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{The agent extension is a feasibility experiment, not an agent evaluation.}{56}{section*.86}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{The reorder enumerator has a hard size budget.}{56}{section*.87}\protected@file@percent }
+\newlabel{sec:threats-internal}{{5.2.3}{56}{The reorder enumerator has a hard size budget}{section*.87}{}}
+\newlabel{sec:threats-statistical}{{5.2.3}{56}{The reorder enumerator has a hard size budget}{section*.87}{}}
+\newlabel{sec:threats-per-experiment}{{5.2.3}{56}{The reorder enumerator has a hard size budget}{section*.87}{}}
+\newlabel{sec:threats-implementation}{{5.2.3}{56}{The reorder enumerator has a hard size budget}{section*.87}{}}
+\newlabel{sec:threats-out-of-scope}{{5.2.3}{56}{The reorder enumerator has a hard size budget}{section*.87}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {5.3}Headline findings}{56}{section.5.3}\protected@file@percent }
+\newlabel{sec:conclusion-findings}{{5.3}{56}{Headline findings}{section.5.3}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {5.4}Future work}{57}{section.5.4}\protected@file@percent }
+\newlabel{sec:conclusion-future-work}{{5.4}{57}{Future work}{section.5.4}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {5.5}Closing}{57}{section.5.5}\protected@file@percent }
+\newlabel{sec:conclusion-closing}{{5.5}{57}{Closing}{section.5.5}{}}
+\@writefile{toc}{\contentsline {chapter}{\numberline {6}Declarations}{58}{chapter.6}\protected@file@percent }
+\@writefile{lof}{\addvspace {10\p@ }}
+\@writefile{lot}{\addvspace {10\p@ }}
+\newlabel{ch:declarations}{{6}{58}{Declarations}{chapter.6}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {6.1}Use of Generative AI}{58}{section.6.1}\protected@file@percent }
+\newlabel{sec:declarations-genai}{{6.1}{58}{Use of Generative AI}{section.6.1}{}}
 \citation{imperial_research_ethics}
-\@writefile{toc}{\contentsline {chapter}{\numberline {7}Declarations}{65}{chapter.7}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {6.2}Ethical Considerations}{59}{section.6.2}\protected@file@percent }
+\newlabel{sec:declarations-ethics}{{6.2}{59}{Ethical Considerations}{section.6.2}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {6.3}Sustainability}{59}{section.6.3}\protected@file@percent }
+\newlabel{sec:declarations-sustainability}{{6.3}{59}{Sustainability}{section.6.3}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {6.4}Availability of Data and Materials}{59}{section.6.4}\protected@file@percent }
+\newlabel{sec:declarations-availability}{{6.4}{59}{Availability of Data and Materials}{section.6.4}{}}
+\@writefile{toc}{\contentsline {chapter}{\numberline {A}Appendix}{60}{appendix.A}\protected@file@percent }
 \@writefile{lof}{\addvspace {10\p@ }}
 \@writefile{lot}{\addvspace {10\p@ }}
-\newlabel{ch:declarations}{{7}{65}{Declarations}{chapter.7}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {7.1}Use of Generative AI}{65}{section.7.1}\protected@file@percent }
-\newlabel{sec:declarations-genai}{{7.1}{65}{Use of Generative AI}{section.7.1}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {7.2}Ethical Considerations}{65}{section.7.2}\protected@file@percent }
-\newlabel{sec:declarations-ethics}{{7.2}{65}{Ethical Considerations}{section.7.2}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {7.3}Sustainability}{66}{section.7.3}\protected@file@percent }
-\newlabel{sec:declarations-sustainability}{{7.3}{66}{Sustainability}{section.7.3}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {7.4}Availability of Data and Materials}{66}{section.7.4}\protected@file@percent }
-\newlabel{sec:declarations-availability}{{7.4}{66}{Availability of Data and Materials}{section.7.4}{}}
-\@writefile{toc}{\contentsline {chapter}{\numberline {A}Appendix}{67}{appendix.A}\protected@file@percent }
-\@writefile{lof}{\addvspace {10\p@ }}
-\@writefile{lot}{\addvspace {10\p@ }}
-\newlabel{ch:appendix}{{A}{67}{Appendix}{appendix.A}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {A.1}Agent session transcript}{67}{section.A.1}\protected@file@percent }
-\newlabel{app:agent-transcript}{{A.1}{67}{Agent session transcript}{section.A.1}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {A.1.1}Session 1 - Names}{67}{subsection.A.1.1}\protected@file@percent }
-\newlabel{app:agent-transcript:s1}{{A.1.1}{67}{Session 1 - Names}{subsection.A.1.1}{}}
-\@writefile{lol}{\contentsline {lstlisting}{appendix/transcripts/session\textendash 1.txt}{67}{lstlisting.A.-1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {A.1.2}Session 2 - Magic numbers}{71}{subsection.A.1.2}\protected@file@percent }
-\newlabel{app:agent-transcript:s2}{{A.1.2}{71}{Session 2 - Magic numbers}{subsection.A.1.2}{}}
-\@writefile{lol}{\contentsline {lstlisting}{appendix/transcripts/session\textendash 2.txt}{71}{lstlisting.A.-2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {A.1.3}Session 3 - Within-class duplication}{74}{subsection.A.1.3}\protected@file@percent }
-\newlabel{app:agent-transcript:s3}{{A.1.3}{74}{Session 3 - Within-class duplication}{subsection.A.1.3}{}}
-\@writefile{lol}{\contentsline {lstlisting}{appendix/transcripts/session\textendash 3.txt}{74}{lstlisting.A.-3}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {A.1.4}Session 4 - Cross-class duplication}{77}{subsection.A.1.4}\protected@file@percent }
-\newlabel{app:agent-transcript:s4}{{A.1.4}{77}{Session 4 - Cross-class duplication}{subsection.A.1.4}{}}
-\@writefile{lol}{\contentsline {lstlisting}{appendix/transcripts/session\textendash 4.txt}{77}{lstlisting.A.-4}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {A.1.5}Session 5 - Misplaced behaviour}{79}{subsection.A.1.5}\protected@file@percent }
-\newlabel{app:agent-transcript:s5}{{A.1.5}{79}{Session 5 - Misplaced behaviour}{subsection.A.1.5}{}}
-\@writefile{lol}{\contentsline {lstlisting}{appendix/transcripts/session\textendash 5.txt}{79}{lstlisting.A.-5}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {A.1.6}Session 6 - Reshape and cleanup}{81}{subsection.A.1.6}\protected@file@percent }
-\newlabel{app:agent-transcript:s6}{{A.1.6}{81}{Session 6 - Reshape and cleanup}{subsection.A.1.6}{}}
-\@writefile{lol}{\contentsline {lstlisting}{appendix/transcripts/session\textendash 6.txt}{81}{lstlisting.A.-6}\protected@file@percent }
+\newlabel{ch:appendix}{{A}{60}{Appendix}{appendix.A}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {A.1}User-study interview notes}{60}{section.A.1}\protected@file@percent }
+\newlabel{app:interviews}{{A.1}{60}{User-study interview notes}{section.A.1}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.1.1}Protocol}{60}{subsection.A.1.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.1.2}Participant P1 (with-feedback group)}{60}{subsection.A.1.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Warm-up.}{60}{section*.88}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Theme 1: Match with own judgement.}{61}{section*.89}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Theme 2: Per-kind actionability.}{61}{section*.90}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Theme 3: Behavioural change across the six sessions.}{61}{section*.91}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Theme 4: Wrong, nit-picky, or annoying.}{61}{section*.92}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Theme 5: Open.}{61}{section*.93}\protected@file@percent }
 \bibstyle{unsrt}
 \bibdata{bibs/sample}
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.1.3}Participant P2 (with-feedback group)}{62}{subsection.A.1.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Warm-up.}{62}{section*.94}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Theme 1: Match with own judgement.}{62}{section*.95}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Theme 2: Per-kind actionability.}{62}{section*.96}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Theme 3: Behavioural change across the six sessions.}{62}{section*.97}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Theme 4: Wrong, nit-picky, or annoying.}{62}{section*.98}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Theme 5: Open.}{62}{section*.99}\protected@file@percent }
 \bibcite{opdyke1992refactoring}{1}
 \bibcite{fowler1999refactoring}{2}
 \bibcite{fowler2018refactoring}{3}
@@ -519,49 +493,46 @@
 \bibcite{mohan2019manyobjective}{15}
 \bibcite{nikolaidis2024metricsbased}{16}
 \bibcite{paixao2017balancing}{17}
-\bibcite{moha2010decor}{18}
-\bibcite{paiva2017evaluation}{19}
-\bibcite{arcellifontana2016falsepositives}{20}
-\bibcite{scalabrino2018readability}{21}
-\bibcite{silva2017refdiff}{22}
-\bibcite{cortellessa2023manyobjective}{23}
-\bibcite{pan2025swegym}{24}
-\bibcite{eilertsen2024refactorings}{25}
-\bibcite{damevski2017usagesmells}{26}
-\bibcite{poncin2011processmining}{27}
-\bibcite{basha2025codewatcher}{28}
-\bibcite{foutsekh2018interactiontraces}{29}
-\bibcite{cedrim2017refactoring}{30}
-\bibcite{negara2013manualautomated}{31}
-\bibcite{vakilian2012usedisuse}{32}
-\bibcite{cunningham1992wycash}{33}
-\bibcite{kruchten2012technicaldebt}{34}
-\bibcite{taokim2015partitioning}{35}
-\bibcite{dibiase2019decomposition}{36}
-\bibcite{herzig2013tangled}{37}
-\bibcite{kudrjavets2022small}{38}
-\bibcite{campbell2018cognitive}{39}
-\bibcite{munozbaron2020cognitive}{40}
-\bibcite{lavazza2023cognitive}{41}
-\bibcite{chidamberkemerer1994ckmetrics}{42}
-\bibcite{heitlager2007sig}{43}
-\bibcite{buse2010readability}{44}
-\bibcite{marinescu2004}{45}
-\bibcite{biemankang1995tcc}{46}
-\bibcite{wagner2015quamoco}{47}
-\bibcite{bansiya2002qmood}{48}
-\bibcite{coleman1994maintainability}{49}
-\bibcite{eclipse_jdt_faq}{50}
-\bibcite{kendall1948rank}{51}
-\bibcite{agresti2010ordinal}{52}
-\bibcite{saisana2005composite}{53}
-\bibcite{lundberg2017shap}{54}
-\bibcite{strumbelj2014explaining}{55}
-\bibcite{cohen1960kappa}{56}
-\bibcite{landis1977kappa}{57}
-\bibcite{mens2007graph}{58}
-\bibcite{liu2009smell}{59}
-\bibcite{khrishe2016empirical}{60}
-\bibcite{wohlin2012experimentation}{61}
-\bibcite{imperial_research_ethics}{62}
-\gdef \@abspage@last{92}
+\bibcite{industriallogic_critique}{18}
+\bibcite{moha2010decor}{19}
+\bibcite{paiva2017evaluation}{20}
+\bibcite{arcellifontana2016falsepositives}{21}
+\bibcite{scalabrino2018readability}{22}
+\bibcite{silva2017refdiff}{23}
+\bibcite{cortellessa2023manyobjective}{24}
+\bibcite{pan2025swegym}{25}
+\bibcite{eilertsen2024refactorings}{26}
+\bibcite{damevski2017usagesmells}{27}
+\bibcite{poncin2011processmining}{28}
+\bibcite{basha2025codewatcher}{29}
+\bibcite{foutsekh2018interactiontraces}{30}
+\bibcite{cedrim2017refactoring}{31}
+\bibcite{negara2013manualautomated}{32}
+\bibcite{vakilian2012usedisuse}{33}
+\bibcite{cunningham1992wycash}{34}
+\bibcite{kruchten2012technicaldebt}{35}
+\bibcite{taokim2015partitioning}{36}
+\bibcite{dibiase2019decomposition}{37}
+\bibcite{herzig2013tangled}{38}
+\bibcite{kudrjavets2022small}{39}
+\bibcite{campbell2018cognitive}{40}
+\bibcite{munozbaron2020cognitive}{41}
+\bibcite{lavazza2023cognitive}{42}
+\bibcite{chidamberkemerer1994ckmetrics}{43}
+\bibcite{heitlager2007sig}{44}
+\bibcite{buse2010readability}{45}
+\bibcite{marinescu2004}{46}
+\bibcite{biemankang1995tcc}{47}
+\bibcite{wagner2015quamoco}{48}
+\bibcite{bansiya2002qmood}{49}
+\bibcite{coleman1994maintainability}{50}
+\bibcite{eclipse_jdt_faq}{51}
+\bibcite{kendall1948rank}{52}
+\bibcite{agresti2010ordinal}{53}
+\bibcite{saisana2005composite}{54}
+\bibcite{lundberg2017shap}{55}
+\bibcite{strumbelj2014explaining}{56}
+\bibcite{cohen1960kappa}{57}
+\bibcite{landis1977kappa}{58}
+\bibcite{imperial_research_ethics}{59}
+\gdef \@abspage@last{68}

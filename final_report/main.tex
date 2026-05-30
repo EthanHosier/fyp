@@ -38,7 +38,7 @@
 
 \newcolumntype{L}[1]{>{\RaggedRight\arraybackslash}p{#1}}
 
-\title{Beyond Before-and-After: Process-Quality Evaluation of Refactoring Sessions TODO: add stuff about the paid tool}
+\title{Beyond Before-and-After: Process-Quality Evaluation of Refactoring Sessions}
 \author{Ethan Hosier}
 % Update supervisor and other title stuff in title/title.tex
 
@@ -46,9 +46,9 @@
 \input{title/title.tex}
 
 \begin{abstract}
-This report presents a tool for evaluating refactoring as a process, not just as a change between two endpoints. It defines a process-quality score for refactoring trajectories and uses that score to find points where a developer's path diverges from a higher-scoring alternative. Each divergence is classified by kind, and the system builds a concrete counterfactual reference trajectory for comparison. Developer sessions are captured with an IntelliJ plugin, and the resulting scores and divergences are shown in a dashboard.
+This report presents a tool for evaluating refactoring as a process, rather than only as a change between two endpoints. It defines a process-quality score for refactoring trajectories and uses that score to find points where a developer's path diverges from a higher-scoring alternative. Each divergence is classified by kind, and the system builds a concrete counterfactual reference trajectory for comparison. Developer sessions are captured with an IntelliJ plugin, and the resulting scores and divergences are shown in a dashboard.
 
-The system is evaluated on 45 hand-recorded refactoring sessions on a Java codebase, a 12-session multi-participant user study on a separate codebase, and a 6-session comparison run by an automated coding agent. On the hand-recorded sessions, the tool achieves per-kind precision of 1.00 against inter-rater-agreed labels, with Cohen's $\kappa \geq 0.72$ across the three rater pairs for all four divergence kinds. The score formula's top-$1$ ranking remains stable under single-knob weight perturbations in $96.1\%$ of cases, and in $81.3\%$ of cases under simultaneous multi-knob Monte Carlo perturbation. Across the smaller studies, both human participants show near-monotonic improvement over their six sessions after seeing feedback from the tool, and the coding agent corrects some of its procedural behaviour between sessions.
+The evaluation uses three datasets: 45 hand-recorded refactoring sessions on a Java codebase, a 30-session randomised-group user study on a separate codebase, and an eight-agent, 48-session extension on the same fixture. The hand-recorded sessions test the detector against inter-rater-agreed labels; the user study compares a three-participant feedback group with a two-participant no-feedback baseline; and the agent extension is treated as a feasibility check for detectors built around human edit patterns. On the hand-recorded sessions, the tool reaches per-kind precision of 1.00, with Cohen's $\kappa \geq 0.72$ across the three rater pairs for all four divergence kinds. The top-$1$ ranking from the score formula stays stable under single-knob weight perturbations in $96.5\%$ of cases on the user-study rankable subset ($25$ of $30$ sessions), and in $84.6\%$ of cases under simultaneous multi-knob Monte Carlo perturbation. The user-study comparison points in a clear direction. Across the six sessions, the with-feedback group gains $+22.3$ on the gain-stripped process score (with both the cleanliness-gain and lag weights set to zero) and drops total divergence points from $12$ to $2$, while the no-feedback baseline loses $2.0$ and rises from $10$ to $15$. The agent extension does not show the same feedback effect, which suggests that detectors built around human edit patterns do not transfer cleanly to agent traces.
 \end{abstract}
 
 \tableofcontents
@@ -57,7 +57,6 @@ The system is evaluated on 45 hand-recorded refactoring sessions on a Java codeb
 \input{background/background.tex}
 \input{methodology/methodology.tex}
 \input{results/results.tex}
-\input{threats/threats.tex}
 \input{conclusion/conclusion.tex}
 \input{declarations/declarations.tex}
 \input{appendix/appendix.tex}

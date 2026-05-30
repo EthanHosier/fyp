@@ -3,33 +3,106 @@
 \chapter{Appendix}
 \label{ch:appendix}
 
-\section{Agent session transcript}
-\label{app:agent-transcript}
+\section{User-study interview notes}
+\label{app:interviews}
 
-The complete session-by-session transcript of the six-session agent run reported in \S\ref{sec:results-userstudy-agent} is reproduced here. Each session shows the agent's tool calls and intermediate output, the markdown feedback rendered by \texttt{FeedbackForAgent} at session end (pasted back into the conversation by the orchestrator), and the agent's reflective response before the next session began. The transcript is the source for every quoted passage in \S\ref{sec:results-userstudy-agent}.
+After the first two participants in the with-feedback group completed their sixth session, we ran a semi-structured interview about how they read the dashboard, which recommendations they found actionable, and what they would change. This appendix contains the protocol used and the lightly tidied facilitator notes for the two participants quoted in \S\ref{sec:results-userstudy}. The verbatim quotes used in the body of the chapter are drawn from these notes. Names are replaced with the same anonymised labels (P1, P2) used elsewhere.
 
-The transcript was captured from the live terminal session; box-drawing characters and other non-ASCII glyphs emitted by the Claude Code CLI have been transliterated to ASCII so that the output renders in this document. Apart from that transliteration the content is verbatim.
+\subsection{Protocol}
 
-\subsection{Session 1 - Names}
-\label{app:agent-transcript:s1}
-\lstinputlisting[style=transcript]{appendix/transcripts/session-1.txt}
+The interview ran for 20 to 30 minutes per participant, immediately after they had finished session S6 and looked at the final dashboard output. The participant spoke and we took written notes during the conversation; no audio recording was made. Five themes structured the conversation, each with one lead question and one or two optional follow-ups:
 
-\subsection{Session 2 - Magic numbers}
-\label{app:agent-transcript:s2}
-\lstinputlisting[style=transcript]{appendix/transcripts/session-2.txt}
+\begin{itemize}
+  \item \textbf{Warm-up.} Looking back over the six sessions, what stood out, what was hard, and what was satisfying?
+  \item \textbf{Theme 1: Match with own judgement.} How often did the tool's recommendations line up with what you would have flagged yourself?
+  \item \textbf{Theme 2: Per-kind actionability.} Of the four divergence kinds (\emph{Manual-Refactor}, \emph{Rework}, \emph{Hygiene}, \emph{Ordering}), which felt most actionable, and which felt least?
+  \item \textbf{Theme 3: Behavioural change.} Did anything the tool showed you change how you approached a later session?
+  \item \textbf{Theme 4: Wrong or annoying.} Was there a recommendation that felt outright wrong, or so minor it wasn't worth showing?
+  \item \textbf{Theme 5: Open.} Anything else about the tool, codebase, or session format we didn't ask about?
+\end{itemize}
 
-\subsection{Session 3 - Within-class duplication}
-\label{app:agent-transcript:s3}
-\lstinputlisting[style=transcript]{appendix/transcripts/session-3.txt}
+The full protocol, including the verbatim pre- and post-interview scripts and the facilitator checklist, is in \texttt{tool/fixtures/user-study-interviews/user-study-interview.md}.
 
-\subsection{Session 4 - Cross-class duplication}
-\label{app:agent-transcript:s4}
-\lstinputlisting[style=transcript]{appendix/transcripts/session-4.txt}
+\subsection{Participant P1 (with-feedback group)}
 
-\subsection{Session 5 - Misplaced behaviour}
-\label{app:agent-transcript:s5}
-\lstinputlisting[style=transcript]{appendix/transcripts/session-5.txt}
+\paragraph{Warm-up.}
+\begin{itemize}
+  \item Reminders that the IDE could perform several of the refactorings were useful. They had not realised what IntelliJ could do before the study and so were not using those actions.
+  \item Liked that the score weighted committing and testing roughly equally.
+  \item Found the trajectory graph showing the best reachable score from each checkpoint motivating, and described it as ``egging you on to be a better person''.
+  \item Found the per-checkpoint detail panel useful for seeing which specific action caused each issue.
+\end{itemize}
 
-\subsection{Session 6 - Reshape and cleanup}
-\label{app:agent-transcript:s6}
-\lstinputlisting[style=transcript]{appendix/transcripts/session-6.txt}
+\paragraph{Theme 1: Match with own judgement.}
+\begin{itemize}
+  \item Most of the flags made sense.
+  \item Felt the tool was strict, which they described as both good and bad.
+  \item Rework fired too often on short undo/redo sequences (``picked up on undos + redos a lot (in a bad way), over penalised''), particularly when these were caused by mistyped keys.
+\end{itemize}
+
+\paragraph{Theme 2: Per-kind actionability.}
+\begin{itemize}
+  \item \emph{Hygiene} (committing more frequently in particular) was the most actionable kind.
+  \item \emph{Manual-Refactor} was also actionable.
+  \item \emph{Ordering} was the least actionable.
+\end{itemize}
+
+\paragraph{Theme 3: Behavioural change across the six sessions.}
+\begin{itemize}
+  \item Saw the commit and test prompts repeatedly and committed and tested more often in later sessions.
+  \item Used the IDE refactoring actions more often. Described actively ``really digging through the IDE methods to do what u wanted to do''.
+\end{itemize}
+
+\paragraph{Theme 4: Wrong, nit-picky, or annoying.}
+\begin{itemize}
+  \item Rework flags caused by short contiguous undo/redo sequences (mistyped keys) felt over-penalising.
+\end{itemize}
+
+\paragraph{Theme 5: Open.}
+\begin{itemize}
+  \item Liked the UI overall.
+  \item Felt there was a lot of information on screen, which they described as both good and bad.
+  \item Would have liked live in-session reminders, e.g.\ ``commit here'' or ``run tests here'', surfaced as the session progressed.
+\end{itemize}
+
+\subsection{Participant P2 (with-feedback group)}
+
+\paragraph{Warm-up.}
+\begin{itemize}
+  \item Liked the UI, but would have preferred a smoother trajectory graph.
+  \item Saw a clear improvement across the six sessions and described the jump after the first session as substantial.
+  \item Liked that the dashboard let them ``see the specific point you went wrong'' in the trajectory.
+\end{itemize}
+
+\paragraph{Theme 1: Match with own judgement.}
+\begin{itemize}
+  \item Recommendations matched their own judgement overall.
+  \item The six-checkpoint commit-gap threshold felt arbitrary.
+  \item The skipped-tests flag sometimes fired when they were still thinking, not when they had moved on without testing.
+\end{itemize}
+
+\paragraph{Theme 2: Per-kind actionability.}
+\begin{itemize}
+  \item Manual edits versus IDE refactorings were very actionable. At the start of the study they did not know most of the IntelliJ actions well.
+  \item Prompts to commit and test more often were actionable.
+  \item \emph{Ordering} was not very actionable.
+\end{itemize}
+
+\paragraph{Theme 3: Behavioural change across the six sessions.}
+\begin{itemize}
+  \item Ran tests after every change in the later sessions.
+  \item Committed more often.
+  \item Used the IDE's automated refactorings more often.
+\end{itemize}
+
+\paragraph{Theme 4: Wrong, nit-picky, or annoying.}
+\begin{itemize}
+  \item Skipped-tests flag when they had paused to think but had not yet finished.
+  \item \emph{Ordering} flags felt impractical to act on going forward: ``how can u actually apply that in the future without knowing beforehand''.
+\end{itemize}
+
+\paragraph{Theme 5: Open.}
+\begin{itemize}
+  \item Liked the per-checkpoint cleanliness breakdowns.
+  \item Found the dashboard ``easy to track session at specific points + code smells''.
+\end{itemize}

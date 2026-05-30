@@ -76,7 +76,14 @@ code(r"""%use dataframe
 %use kandy""")
 
 code(r"""val readJson = Json {{ ignoreUnknownKeys = true; isLenient = true }}
-val repoRoot = File("..").canonicalFile
+// Walk up from cwd until we find a directory containing `fixtures/sessions`. This
+// makes the notebook robust to being launched either from `tool/` (the documented
+// setup) or from `tool/fixtures/notebooks/` (nbconvert's default cwd).
+val repoRoot: File = run {{
+    var d = File(".").canonicalFile
+    while (d != null && !File(d, "fixtures/sessions").isDirectory) d = d.parentFile
+    requireNotNull(d) {{ "could not find repo root (no ancestor contains fixtures/sessions)" }}
+}}
 
 // Phase-A dumps live per-session as `<root>/.../<session-dir>/phase-a.json`.
 // Walk the tree to find every dump and use the session dir's path relative to
@@ -161,7 +168,16 @@ fun rankingOf(report: AnalysisReport): List<Int> =
             compareByDescending<com.github.ethanhosier.analysis.pipeline.DivergencePoint> { it.magnitude }
                 .thenBy { it.stepIndex }
         )
-        .map { it.stepIndex }""")
+        .map { it.stepIndex }
+
+// Sessions whose ranking has at least two items, so τ-b and top-1 are not
+// mechanically 1.0. Uses raw divergencePoints.size — matching what the
+// dashboard shows and what rankingOf(report) ranks over.
+fun rankableSubset(corpus: Map<String, PhaseAResult>): Map<String, PhaseAResult> =
+    corpus.filter { (_, phaseA) ->
+        ReportAssembler.assemble(phaseA, ScoringConfig.PRODUCTION)
+            .divergencePoints.size >= 2
+    }""")
 
 # ---------------------------------------------------------------- §5.1.1 sensitivity
 
@@ -184,6 +200,7 @@ val KNOBS = listOf(
     Knob("manualIde", "process")   { c, f -> c.copy(process = c.process.copy(manualIde = c.process.manualIde * f)) },
     Knob("length", "process")      { c, f -> c.copy(process = c.process.copy(length = c.process.length * f)) },
     Knob("commitGap", "process")   { c, f -> c.copy(process = c.process.copy(commitGap = c.process.commitGap * f)) },
+    Knob("lag", "process")         { c, f -> c.copy(process = c.process.copy(lag = c.process.lag * f)) },
     Knob("cognitive", "cleanliness")   { c, f -> c.copy(cleanliness = c.cleanliness.copy(cognitive = c.cleanliness.cognitive * f)) },
     Knob("coupling", "cleanliness")    { c, f -> c.copy(cleanliness = c.cleanliness.copy(coupling = c.cleanliness.coupling * f)) },
     Knob("duplication", "cleanliness") { c, f -> c.copy(cleanliness = c.cleanliness.copy(duplication = c.cleanliness.duplication * f)) },
@@ -198,16 +215,25 @@ val KNOBS = listOf(
 // have weight-invariant magnitudes (the clamp eats any perturbation),
 // so they inflate τ artificially when included; reported separately
 // to bound the clipping-as-confound concern in §5.1.
-fun saturatedDpCount(report: AnalysisReport): Int {
-    val userProc = report.checkpoints.associate { it.sha to it.derivedMetrics.process.total }
+// Count DPs whose magnitude is clamp-frozen across a (baseline, perturbed)
+// pair: user trajectory-final stays at the same clamp value AND the DP's
+// alt trajectory-final stays at the same clamp value. Both conditions
+// together force the magnitude J(alt_T) - J(user_T) to be identical in
+// baseline and perturbed scorings.
+fun clampFrozenDpCount(baseline: AnalysisReport, perturbed: AnalysisReport): Int {
+    val ub = baseline.checkpoints.lastOrNull()?.derivedMetrics?.process?.total
+    val up = perturbed.checkpoints.lastOrNull()?.derivedMetrics?.process?.total
+    if (ub == null || up == null) return 0
+    val userClampSame = ub == up && (ub == 0 || ub == 100)
+    if (!userClampSame) return 0
     var n = 0
-    for (dp in report.divergencePoints) {
-        val touches = dp.altTrajectoryIndexes.mapNotNull { report.alternativeTrajectories.getOrNull(it) }.any { alt ->
-            val a = alt.altCheckpoints.lastOrNull()?.derivedMetrics?.process?.total
-            val u = userProc[alt.userToSha]
-            (a != null && (a == 0 || a == 100)) || (u != null && (u == 0 || u == 100))
-        }
-        if (touches) n += 1
+    for (dp in baseline.divergencePoints) {
+        val altIdx = dp.altTrajectoryIndexes.firstOrNull() ?: continue
+        val ab = baseline.alternativeTrajectories.getOrNull(altIdx)?.altCheckpoints?.lastOrNull()?.derivedMetrics?.process?.total
+        val ap = perturbed.alternativeTrajectories.getOrNull(altIdx)?.altCheckpoints?.lastOrNull()?.derivedMetrics?.process?.total
+        if (ab == null || ap == null) continue
+        val altClampSame = ab == ap && (ab == 0 || ab == 100)
+        if (altClampSame) n++
     }
     return n
 }
@@ -216,7 +242,6 @@ fun sensitivitySweep(name: String, corpus: Map<String, PhaseAResult>) =
     corpus.flatMap { (fixture, phaseA) ->
         val baseline = ReportAssembler.assemble(phaseA, ScoringConfig.PRODUCTION)
         val baselineRanking = rankingOf(baseline)
-        val baselineSat = saturatedDpCount(baseline)
         KNOBS.flatMap { knob ->
             FACTORS.map { factor ->
                 val perturbed = ReportAssembler.assemble(phaseA, knob.perturb(ScoringConfig.PRODUCTION, factor))
@@ -228,35 +253,36 @@ fun sensitivitySweep(name: String, corpus: Map<String, PhaseAResult>) =
                     "top3" to topNHitRate(baselineRanking, pr, 3),
                     "top5" to topNHitRate(baselineRanking, pr, 5),
                     "baseline_size" to baselineRanking.size,
-                    "baseline_sat" to baselineSat,
+                    "clamp_frozen" to clampFrozenDpCount(baseline, perturbed),
                 )
             }
         }
     }.toDataFrame()
 
-val sensInj    = sensitivitySweep("Injection (45)",  injection)
-val sensUser   = sensitivitySweep("User study (12)", userStudy)
-val sensAgent  = sensitivitySweep("Agent (6)",       agent)""")
+val sensInj    = sensitivitySweep("Injection (rankable, 15)",   rankableSubset(injection))
+val sensUser   = sensitivitySweep("User study (rankable, 25)",  rankableSubset(userStudy))
+val sensAgent  = sensitivitySweep("Agent (rankable, 20)",       rankableSubset(agent))""")
 
-md("Headline table — top-1 stability, τ = 1.0 share, and baseline saturation per session set (reproduces Table 5.1).")
+md("Headline table — top-1 stability, τ = 1.0 share, and per-perturbation clamp-frozen DP rate per session set (reproduces Table 5.1). The clamp-frozen rate is the share of (DP × perturbation) cells where the DP's magnitude is locked by the score clamp: user trajectory-final and the DP's alt trajectory-final both sit at the same clamp value (0 or 100) in baseline and in perturbed.")
 
 code(r"""fun pct(p: Double) = "%.1f%%".format(p * 100)
 
 val sensHeadline = listOf(sensInj, sensUser, sensAgent).map { df ->
     val n = df.rowsCount()
-    val baselineDps = df["baseline_size"].cast<Int>().sum()
+    val totalDpCells = df["baseline_size"].cast<Int>().sum()
+    val clampFrozen = df["clamp_frozen"].cast<Int>().sum()
     mapOf(
         "session set" to (df["set"][0] as String),
         "rows" to n,
         "tau=1.0" to pct(df.filter { "tau"<Double>() == 1.0 }.rowsCount().toDouble() / n),
         "top-1=1" to pct(df.filter { "top1"<Double>() == 1.0 }.rowsCount().toDouble() / n),
         "tau<0"   to pct(df.filter { "tau"<Double>() < 0.0 }.rowsCount().toDouble() / n),
-        "baseline saturation" to pct(df["baseline_sat"].cast<Int>().sum().toDouble() / baselineDps.coerceAtLeast(1)),
+        "clamp-frozen" to pct(clampFrozen.toDouble() / totalDpCells.coerceAtLeast(1)),
     )
 }.toDataFrame()
 sensHeadline""")
 
-md("Per-knob top-1 disruption counts on the user-study session set (reproduces Table 5.2).")
+md("Per-knob top-1 disruption counts on the user-study rankable subset (reproduces Table 5.2).")
 
 code(r"""val perKnob = sensUser
     .groupBy("weight")
@@ -303,6 +329,7 @@ fun perturbAll(rng: Random, sigma: Double): ScoringConfig {
             gain = p.process.gain * f(), broken = p.process.broken * f(),
             skipTests = p.process.skipTests * f(), manualIde = p.process.manualIde * f(),
             length = p.process.length * f(), commitGap = p.process.commitGap * f(),
+            lag = p.process.lag * f(),
         ),
         cleanliness = CleanlinessWeights(
             cognitive = p.cleanliness.cognitive * f(), coupling = p.cleanliness.coupling * f(),
@@ -331,9 +358,9 @@ fun mcSweep(name: String, corpus: Map<String, PhaseAResult>, samples: Int = 200,
         }
     }.toDataFrame()
 
-val mcInj   = mcSweep("Injection (45)",  injection)
-val mcUser  = mcSweep("User study (12)", userStudy)
-val mcAgent = mcSweep("Agent (6)",       agent)
+val mcInj   = mcSweep("Injection (rankable, 15)",   rankableSubset(injection))
+val mcUser  = mcSweep("User study (rankable, 25)",  rankableSubset(userStudy))
+val mcAgent = mcSweep("Agent (rankable, 20)",       rankableSubset(agent))
 
 val mcHeadline = listOf(mcInj, mcUser, mcAgent).map { df ->
     val n = df.rowsCount()
@@ -367,7 +394,8 @@ Power-set sweep over the six process-side weights ($2^6 = 64$ variants per fixtu
 Cleanliness weights stay at production across all variants because the sensitivity sweep
 already established they don't shift the ranking.""")
 
-code(r"""val PROC_TERMS = listOf("gain", "broken", "skipTests", "manualIde", "length", "commitGap")
+code(r"""val PROC_TERMS = listOf("gain", "broken", "skipTests", "manualIde", "length", "commitGap", "lag")
+val allTerms = PROC_TERMS.toSortedSet()
 
 // Ablation: build a ScoringConfig in which the named process-side
 // weights keep their production values and every weight outside the
@@ -385,6 +413,7 @@ fun ablate(active: Set<String>): ScoringConfig {
             manualIde = if ("manualIde" in active) p.manualIde else 0.0,
             length    = if ("length"    in active) p.length    else 0.0,
             commitGap = if ("commitGap" in active) p.commitGap else 0.0,
+            lag       = if ("lag"       in active) p.lag       else 0.0,
         )
     )
 }
@@ -421,82 +450,99 @@ fun ablationSweep(name: String, corpus: Map<String, PhaseAResult>) =
     }.toDataFrame()
 
 val ablInj   = ablationSweep("Injection (45)",  injection)
-val ablUser  = ablationSweep("User study (12)", userStudy)
-val ablAgent = ablationSweep("Agent (6)",       agent)""")
+val ablUser  = ablationSweep("User study (30)", userStudy)
+val ablAgent = ablationSweep("Agent (48)",      agent)
 
-md("Monotone-by-active-count on the injection set (reproduces Table 5.4).")
+// Rankable-subset re-runs for the cross-set τ comparison in Table 5.7.
+// The magnitude-side tables 5.4/5.5/5.6 stay on the full corpus.
+val ablInjRankable  = ablationSweep("Injection (rankable, 15)",  rankableSubset(injection))
+val ablUserRankable = ablationSweep("User study (rankable, 25)", rankableSubset(userStudy))""")
 
-code(r"""ablInj.groupBy("active_count").aggregate {
-    mean { "tau"<Double>() } into "mean_tau"
-    val sumPert = sum { "perturbed_mag"<Double>() }
-    val sumBase = sum { "baseline_mag"<Double>() }
-    (if (sumBase > 0.0) sumPert / sumBase else 0.0) into "sum_over_sum"
-    count() into "n"
-}.sortBy("active_count")""")
+md("Monotone-by-active-count across all three session sets (reproduces Table 5.4). Sum-over-sum recovery is computed per set: injection (45), user-study (30), agent (48).")
 
-md(r"""Per-term single-knob recovery on the injection set (reproduces Table 5.5): each
-process-side term active alone, the other five zeroed. Columns: mean $\tau$ against
-production ranking, mean per-fixture recovery, and sum-over-sum recovery.""")
-
-code(r"""fun soloRow(df: AnyFrame, term: String): Map<String, Any> {
-    val rows = df.filter { "variant"<String>() == term }
-    val meanTau = rows["tau"].cast<Double>().mean()
-    // mean per-fixture recovery: |perturbed_mag| / |baseline_mag|, averaged
-    val perFixture = (0 until rows.rowsCount()).map { i ->
-        val b = rows["baseline_mag"][i] as Double
-        val p = rows["perturbed_mag"][i] as Double
-        if (b > 0.0) p / b else 1.0
+code(r"""fun monotoneSumOverSum(df: AnyFrame): Map<Int, Double> {
+    val grouped = df.groupBy("active_count").aggregate {
+        val sumPert = sum { "perturbed_mag"<Double>() }
+        val sumBase = sum { "baseline_mag"<Double>() }
+        (if (sumBase > 0.0) sumPert / sumBase else 0.0) into "sum_over_sum"
+        count() into "n"
+    }.sortBy("active_count")
+    val out = mutableMapOf<Int, Double>()
+    for (i in 0 until grouped.rowsCount()) {
+        out[grouped["active_count"][i] as Int] = grouped["sum_over_sum"][i] as Double
     }
-    val meanRec = perFixture.average()
-    val sumPert = rows["perturbed_mag"].cast<Double>().sum()
-    val sumBase = rows["baseline_mag"].cast<Double>().sum()
-    val sumOverSum = if (sumBase > 0.0) sumPert / sumBase else 0.0
-    return mapOf(
-        "term" to term,
-        "mean τ" to "%.3f".format(meanTau),
-        "mean recovery" to "%.3f".format(meanRec),
-        "sum/sum" to "%.3f".format(sumOverSum),
-    )
+    return out
 }
 
-PROC_TERMS.map { soloRow(ablInj, it) }
-    .sortedByDescending { (it["sum/sum"] as String).toDouble() }
+val monoInj   = monotoneSumOverSum(ablInj)
+val monoUser  = monotoneSumOverSum(ablUser)
+val monoAgent = monotoneSumOverSum(ablAgent)
+
+(0..PROC_TERMS.size).map { k ->
+    val n = when (k) {
+        0, PROC_TERMS.size -> 45
+        else -> {
+            // n choose k = number of variants with k active terms; per fixture
+            // each variant contributes one row, so n = C(7,k) * 45.
+            var c = 1L
+            for (j in 0 until k) c = c * (PROC_TERMS.size - j) / (j + 1)
+            (c * 45).toInt()
+        }
+    }
+    mapOf(
+        "active_count"     to k,
+        "injection sum/sum"  to "%.3f".format(monoInj[k]   ?: 0.0),
+        "user-study sum/sum" to "%.3f".format(monoUser[k]  ?: 0.0),
+        "agent sum/sum"      to "%.3f".format(monoAgent[k] ?: 0.0),
+        "n (per set)"        to n,
+    )
+}.toDataFrame()""")
+
+md(r"""Per-term single-knob recovery across all three session sets (reproduces Table 5.5):
+each process-side term active alone, the other six zeroed. Sum-over-sum recovery is
+reported per set.""")
+
+code(r"""fun soloSumOverSum(df: AnyFrame, term: String): Double {
+    val rows = df.filter { "variant"<String>() == term }
+    val sumPert = rows["perturbed_mag"].cast<Double>().sum()
+    val sumBase = rows["baseline_mag"].cast<Double>().sum()
+    return if (sumBase > 0.0) sumPert / sumBase else 0.0
+}
+
+PROC_TERMS.map { term ->
+    mapOf(
+        "term"               to term,
+        "injection sum/sum"  to "%.3f".format(soloSumOverSum(ablInj,   term)),
+        "user-study sum/sum" to "%.3f".format(soloSumOverSum(ablUser,  term)),
+        "agent sum/sum"      to "%.3f".format(soloSumOverSum(ablAgent, term)),
+    )
+}.sortedByDescending { (it["injection sum/sum"] as String).toDouble() }
     .toDataFrame()""")
 
-md(r"""Per-term leave-one-out recovery on the injection set (reproduces Table 5.6): five
-process-side terms active, one removed. Removing $W_{\textsc{l}}$ should produce the
-largest sum/sum drop; removing $W_{\textsc{g}}$ should push sum/sum above 1.0 (the
-regulariser-against-penalties effect discussed in the chapter).""")
+md(r"""Per-term leave-one-out recovery across all three session sets (reproduces Table 5.6):
+six process-side terms active, one removed. Sum-over-sum recovery reported per set.""")
 
-code(r"""fun looRow(df: AnyFrame, removed: String): Map<String, Any> {
+code(r"""fun looSumOverSum(df: AnyFrame, removed: String): Double {
     val target = (allTerms - removed).toSortedSet()
     val rows = df.filter { "variant"<String>().split("+").toSortedSet() == target }
-    val meanTau = rows["tau"].cast<Double>().mean()
-    val perFixture = (0 until rows.rowsCount()).map { i ->
-        val b = rows["baseline_mag"][i] as Double
-        val p = rows["perturbed_mag"][i] as Double
-        if (b > 0.0) p / b else 1.0
-    }
-    val meanRec = perFixture.average()
     val sumPert = rows["perturbed_mag"].cast<Double>().sum()
     val sumBase = rows["baseline_mag"].cast<Double>().sum()
-    val sumOverSum = if (sumBase > 0.0) sumPert / sumBase else 0.0
-    return mapOf(
-        "removed term" to removed,
-        "mean τ" to "%.3f".format(meanTau),
-        "mean recovery" to "%.3f".format(meanRec),
-        "sum/sum" to "%.3f".format(sumOverSum),
-    )
+    return if (sumBase > 0.0) sumPert / sumBase else 0.0
 }
 
-PROC_TERMS.map { looRow(ablInj, it) }
-    .sortedBy { (it["sum/sum"] as String).toDouble() }
+PROC_TERMS.map { term ->
+    mapOf(
+        "removed term"       to term,
+        "injection sum/sum"  to "%.3f".format(looSumOverSum(ablInj,   term)),
+        "user-study sum/sum" to "%.3f".format(looSumOverSum(ablUser,  term)),
+        "agent sum/sum"      to "%.3f".format(looSumOverSum(ablAgent, term)),
+    )
+}.sortedBy { (it["injection sum/sum"] as String).toDouble() }
     .toDataFrame()""")
 
 md("Cross-set leave-one-out τ (reproduces Table 5.7).")
 
-code(r"""val allTerms = PROC_TERMS.toSortedSet()
-fun looTau(df: AnyFrame, removed: String): Double {
+code(r"""fun looTau(df: AnyFrame, removed: String): Double {
     val target = (allTerms - removed).toSortedSet()
     val rows = df.filter { "variant"<String>().split("+").toSortedSet() == target }
     return rows["tau"].cast<Double>().mean()
@@ -505,8 +551,8 @@ fun looTau(df: AnyFrame, removed: String): Double {
 PROC_TERMS.sorted().map { removed ->
     mapOf(
         "removed" to removed,
-        "injection τ" to "%.3f".format(looTau(ablInj, removed)),
-        "user-study τ" to "%.3f".format(looTau(ablUser, removed)),
+        "injection τ (n=15)"   to "%.3f".format(looTau(ablInjRankable,  removed)),
+        "user-study τ (n=25)" to "%.3f".format(looTau(ablUserRankable, removed)),
     )
 }.toDataFrame()""")
 
@@ -642,12 +688,18 @@ code(r"""kinds.map { kind ->
     val divKind = com.github.ethanhosier.analysis.pipeline.DivergenceKind.valueOf(kind)
     var fires = 0
     var beats = 0
+    var ties = 0
+    var loses = 0
     for ((_, phaseA) in injection) {
         val report = ReportAssembler.assemble(phaseA, ScoringConfig.PRODUCTION)
         for (dp in report.divergencePoints) {
             if (dp.kind == divKind) {
                 fires += 1
-                if (dp.magnitude > 0.0) beats += 1
+                when {
+                    dp.magnitude > 0.0 -> beats += 1
+                    dp.magnitude == 0.0 -> ties += 1
+                    else -> loses += 1
+                }
             }
         }
     }
@@ -656,6 +708,8 @@ code(r"""kinds.map { kind ->
         "kind" to kind,
         "DPs fired" to fires,
         "beats user" to beats,
+        "ties user" to ties,
+        "loses to user" to loses,
         "beats fraction" to "%.3f".format(frac),
     )
 }.toDataFrame()""")
@@ -762,7 +816,7 @@ val userRows  = userStudy.map { (k, v) -> perSessionRow(k, v) }.toDataFrame()
 val agentRows = agent.map { (k, v) -> perSessionRow(k, v) }.toDataFrame()
 userRows""")
 
-md("Per-kind trajectory across the six-session arc, summed across P1 + P2 (reproduces Table 5.13).")
+md("Per-kind trajectory across the six-session arc, reported per arm (with-feedback vs baseline) over all 5 participants (reproduces Table 5.13).")
 
 code(r"""val combinedTraj = (1..6).map { idx ->
     val matching = (0 until userRows.rowsCount())
@@ -785,153 +839,248 @@ trajLong.plot {
     layout { title = "Per-kind trajectory (P1 + P2 combined)" }
 }""")
 
-md("### §5.3.2 Agent comparison")
+md("### §5.3.2 Agent extension corpus (per-session DP counts)")
 
 code(r"""agentRows""")
 
-md(r"""Per-kind divergence-point totals comparing the agent against each participant
-separately (reproduces Table 5.15).""")
+md(r"""Arm-classification and per-participant/per-cell helpers used by the rest of this
+section. The `-baseline` suffix on the participant or stack stem marks the no-feedback
+arm; the trailing `-NN` of every session id is the in-arc session index 1..6.""")
 
-code(r"""// Per-participant aggregator for the user-study set.
-fun perPartSum(df: AnyFrame, indexOf: (String) -> Int?, kind: String): Int =
-    (0 until df.rowsCount())
-        .filter { indexOf(df["session"][it] as String) != null }
-        .sumOf { df[kind][it] as Int }
+code(r"""// `-baseline` suffix on the participant (user-sessions) or stack (agent-sessions)
+// stem marks the no-feedback control arm.
+fun isBaseline(sid: String): Boolean =
+    sid.substringBeforeLast('-').endsWith("-baseline")
 
-kinds.map { k ->
-    val agentTotal = (0 until agentRows.rowsCount()).sumOf { agentRows[k][it] as Int }
-    val p1Total = perPartSum(userRows, ::p1Idx, k)
-    val p2Total = perPartSum(userRows, ::p2Idx, k)
-    mapOf(
-        "kind" to k,
-        "Agent" to agentTotal,
-        "P1" to p1Total,
-        "P2" to p2Total,
-        "Agent / P1" to (if (p1Total > 0) "%.2f".format(agentTotal.toDouble() / p1Total) else "—"),
-        "Agent / P2" to (if (p2Total > 0) "%.2f".format(agentTotal.toDouble() / p2Total) else "—"),
-    )
-}.toDataFrame()""")
+// Strip the trailing -NN to get participant or cell name.
+fun participantOf(sid: String): String = sid.substringBeforeLast('-')
+fun cellOf(sid: String): String = sid.substringBeforeLast('-')
 
-md(r"""Agent per-session divergence-point trajectory plus final-checkpoint process
-scores (reproduces Table 5.16). One row per kind across S1..S6, with a $\Delta$ column
-for end-minus-start, then a final-score row aligned to the same six columns.""")
+// Extract the trailing 1..6 in-arc index.
+fun sessionIdx(sid: String): Int? =
+    sid.substringAfterLast('-').toIntOrNull()
 
-code(r"""// Agent per-session DP counts per kind, ordered S1..S6 by agIdx.
-fun agentTrajectoryByKind(): Map<String, IntArray> {
-    val out = kinds.associateWith { IntArray(6) }.toMutableMap()
-    for (i in 0 until agentRows.rowsCount()) {
-        val sid = agentRows["session"][i] as String
-        val idx = agIdx(sid) ?: continue
-        for (k in kinds) {
-            out[k]!![idx - 1] = agentRows[k][i] as Int
-        }
+// Pretty arm labels. P1..P5 anonymise the user-study participants; agent cells are
+// reported by their model x harness names.
+val userPretty = mapOf(
+    "will" to "P1", "yukie" to "P2", "bobby" to "P3",
+    "alex-baseline" to "P4", "vlad-baseline" to "P5",
+)
+// Accepts either a session id or a participant key (e.g. "will" or "will-01").
+fun prettyUser(s: String): String {
+    val key = if (sessionIdx(s) != null) participantOf(s) else s
+    return userPretty[key] ?: key
+}""")
+
+md(r"""Per-arm trajectory aggregator. Given a corpus (`userStudy` or `agent`) and a
+`group` function (e.g. `participantOf` for users, `cellOf` for agent stacks), produces a
+DataFrame of per-group DP counts at S1..S6 plus a total column. The arm-aware variant
+groups by arm (`with-feedback` / `baseline`) by summing across the groups that share an
+arm.""")
+
+code(r"""// Per-group arc of DP totals. df is `userRows` or `agentRows` (one row per session).
+fun arcByGroup(df: AnyFrame, group: (String) -> String): List<Map<String, Any>> {
+    val arcs = mutableMapOf<String, IntArray>()
+    for (i in 0 until df.rowsCount()) {
+        val sid = df["session"][i] as String
+        val idx = sessionIdx(sid) ?: continue
+        val g = group(sid)
+        val arr = arcs.getOrPut(g) { IntArray(6) }
+        arr[idx - 1] += df["total"][i] as Int
     }
-    return out
+    return arcs.toSortedMap().map { (g, arr) ->
+        mapOf<String, Any>("group" to g) +
+            (1..6).associate { "S$it" to arr[it - 1] } +
+            ("Δ" to (arr[5] - arr[0])) +
+            ("Σ" to arr.sum())
+    }
 }
 
-val agentTraj = agentTrajectoryByKind()
-val agentFinalScores = arcScores(agent, ::agIdx, ScoringConfig.PRODUCTION)
+val userArcByPpt  = arcByGroup(userRows,  ::participantOf).toDataFrame()
+val agentArcByCell = arcByGroup(agentRows, ::cellOf).toDataFrame()
+userArcByPpt""")
 
-(kinds.map { k ->
-    val arr = agentTraj[k]!!
-    mapOf<String, Any>("row" to k) +
-        (1..6).associate { "S$it" to arr[it - 1] } +
-        ("Δ" to (arr[5] - arr[0]))
-} + listOf(
-    mapOf<String, Any>("row" to "final score") +
-        (1..6).associate { "S$it" to agentFinalScores[it - 1] } +
-        ("Δ" to "—")
-)).toDataFrame()""")
+code(r"""agentArcByCell""")
 
-md(r"""### Process score trajectory: production weights and gain-stripped weights
+md(r"""Per-arm DP trajectory summed across all participants (user-study) or all cells
+(agent extension). Reproduces the arm rows of the chapter's trajectory tables.""")
 
-For each session, the trajectory-final process score is computed twice: once under
-`ScoringConfig.PRODUCTION` (the formula used everywhere else in this chapter) and once
-under a copy with the cleanliness-gain weight `W_g` set to zero. The gain-stripped view
-isolates the process-discipline terms (broken-time, skipped-tests, manual-when-IDE,
-length bonus, commit-gap) from the cleanliness-gain term, mirroring the §5.1.2 ablation
-finding that `W_g` acts as a regularizer on divergence-point ranking (reproduces Table 5.14).""")
+code(r"""fun armArc(df: AnyFrame): List<Map<String, Any>> {
+    val arcs = mapOf("with-feedback" to IntArray(6), "baseline" to IntArray(6))
+    for (i in 0 until df.rowsCount()) {
+        val sid = df["session"][i] as String
+        val idx = sessionIdx(sid) ?: continue
+        val arm = if (isBaseline(sid)) "baseline" else "with-feedback"
+        arcs[arm]!![idx - 1] += df["total"][i] as Int
+    }
+    return arcs.map { (arm, arr) ->
+        mapOf<String, Any>("arm" to arm) +
+            (1..6).associate { "S$it" to arr[it - 1] } +
+            ("Δ" to (arr[5] - arr[0])) +
+            ("Σ" to arr.sum())
+    }
+}
 
-code(r"""// Helper: take a session map and a (sessionId -> index) extractor, return six
-// final-checkpoint process scores in arc order (S1..S6) under the given config.
-fun arcScores(
+armArc(userRows).toDataFrame()""")
+
+code(r"""armArc(agentRows).toDataFrame()""")
+
+md(r"""### Process score trajectory: gain-stripped weights
+
+For each session, the trajectory-final process score is computed under a copy of the
+production weighting with both the cleanliness-gain weight `W_g` and the
+intermediate-cleanliness lag weight `W_lag` set to zero. Both terms depend on the
+cleanliness scalar C; zeroing both isolates the five process-discipline terms that
+do not depend on C (broken-time, skipped-tests, manual-when-IDE, length-bonus,
+commit-gap). Reproduces Table 5.14 (user-study) and Table 5.15 (agent extension).""")
+
+code(r"""// Per-group arc of trajectory-final process scores under the given config.
+fun arcScoresBy(
     sessions: Map<String, PhaseAResult>,
-    indexOf: (String) -> Int?,
+    group: (String) -> String,
     cfg: ScoringConfig,
-): List<Int> {
-    val byIdx = sessions.entries.mapNotNull { (sid, pa) ->
-        indexOf(sid)?.let { it to pa }
-    }.toMap()
-    return (1..6).map { i ->
-        byIdx[i]?.let { ReportAssembler.assemble(it, cfg).checkpoints.last()
-            .derivedMetrics?.process?.total } ?: -1
+): Map<String, IntArray> {
+    val out = mutableMapOf<String, IntArray>()
+    for ((sid, pa) in sessions) {
+        val idx = sessionIdx(sid) ?: continue
+        val g = group(sid)
+        val arr = out.getOrPut(g) { IntArray(6) { -1 } }
+        val score = ReportAssembler.assemble(pa, cfg).checkpoints.last()
+            .derivedMetrics?.process?.total ?: -1
+        arr[idx - 1] = score
     }
+    return out.toSortedMap()
 }
 
-// Re-derive a gain-stripped config in-memory so the notebook is self-contained.
+// Gain-stripped config: zero both the cleanliness-gain weight and the lag
+// weight. Both terms depend on the cleanliness scalar C, and the analysis
+// below is explicitly trying to isolate process discipline that does not
+// require knowing the codebase well enough to score on cleanliness. The
+// remaining process terms (broken, skipTests, manualIde, length-bonus,
+// commit-gap) are pure behaviour-rate signals that don't depend on C.
 val gainZero = ScoringConfig.PRODUCTION.copy(
-    process = ScoringConfig.PRODUCTION.process.copy(gain = 0.0),
+    process = ScoringConfig.PRODUCTION.process.copy(gain = 0.0, lag = 0.0),
 )
 
-// P1 = will-NN, P2 = yukie-NN, agent = NN-agent.
-fun p1Idx(sid: String) = Regex("^will-(\\d+)$").find(sid)?.groupValues?.get(1)?.toIntOrNull()
-fun p2Idx(sid: String) = Regex("^yukie-(\\d+)$").find(sid)?.groupValues?.get(1)?.toIntOrNull()
-fun agIdx(sid: String) = Regex("^(\\d+)-agent$").find(sid)?.groupValues?.get(1)?.toIntOrNull()
-
-val rows = listOf(
-    Triple("P1 (production)", userStudy, ::p1Idx) to ScoringConfig.PRODUCTION,
-    Triple("P1 (gain=0)",     userStudy, ::p1Idx) to gainZero,
-    Triple("P2 (production)", userStudy, ::p2Idx) to ScoringConfig.PRODUCTION,
-    Triple("P2 (gain=0)",     userStudy, ::p2Idx) to gainZero,
-    Triple("Agent (production)", agent,  ::agIdx) to ScoringConfig.PRODUCTION,
-    Triple("Agent (gain=0)",     agent,  ::agIdx) to gainZero,
-).map { (label, cfg) ->
-    val scores = arcScores(label.second, label.third, cfg)
-    val mean = scores.filter { it >= 0 }.average()
-    mapOf("actor" to label.first) +
-        (1..6).associate { "S$it" to scores[it - 1] } +
-        ("mean" to "%.1f".format(mean))
+fun scoreRows(
+    scores: Map<String, IntArray>,
+    armOf: (String) -> String,
+    pretty: (String) -> String,
+): List<Map<String, Any>> = scores.toSortedMap().map { (g, arr) ->
+    val s1 = arr[0]; val s6 = arr[5]
+    mapOf<String, Any>("arm" to armOf(g), "group" to pretty(g)) +
+        (1..6).associate { "S$it" to arr[it - 1] } +
+        ("ΔJ" to (s6 - s1)) +
+        ("slope" to "%.2f".format((s6 - s1) / 5.0))
 }
-rows.toDataFrame()""")
 
-md(r"""### Per-session broken-build percentage by actor
+val userScores  = arcScoresBy(userStudy, ::participantOf, gainZero)
+val agentScores = arcScoresBy(agent,     ::cellOf,        gainZero)
+
+scoreRows(
+    userScores,
+    armOf = { if (it.endsWith("-baseline")) "baseline" else "with-feedback" },
+    pretty = ::prettyUser,
+).toDataFrame()""")
+
+code(r"""scoreRows(
+    agentScores,
+    armOf = { if (it.endsWith("-baseline")) "baseline" else "with-feedback" },
+    pretty = { it },
+).toDataFrame()""")
+
+md(r"""### Per-session broken-build percentage by participant
 
 Broken wall-clock time divided by total session wall-clock time, parsed from the
 final checkpoint's `process.contributions[broken].detail` string. These percentages
 surface on the dashboard as the `BUILD_OFTEN_BROKEN` advice item when they cross the
 $15\%$ warning threshold or the $30\%$ critical threshold. Reproduces the per-session
-broken-build numbers cited in §5.4.2 Thread 1.""")
+broken-build numbers cited in the §5.4 cell-1 Thread 1.""")
 
 code(r"""// Parse details like "1m04s of 4m44s broken (23%) - 4 of 10 checkpoint".
 val brokenPctRe = Regex("\\((\\d+)%\\)")
 
-fun brokenPct(sessions: Map<String, PhaseAResult>, indexOf: (String) -> Int?): List<Int> {
-    val byIdx = sessions.entries.mapNotNull { (sid, pa) -> indexOf(sid)?.let { it to pa } }.toMap()
-    return (1..6).map { i ->
-        val pa = byIdx[i] ?: return@map -1
+fun brokenPctBy(
+    sessions: Map<String, PhaseAResult>,
+    group: (String) -> String,
+): Map<String, IntArray> {
+    val out = mutableMapOf<String, IntArray>()
+    for ((sid, pa) in sessions) {
+        val idx = sessionIdx(sid) ?: continue
+        val g = group(sid)
+        val arr = out.getOrPut(g) { IntArray(6) { -1 } }
         val report = ReportAssembler.assemble(pa, ScoringConfig.PRODUCTION)
-        val last = report.checkpoints.lastOrNull() ?: return@map -1
+        val last = report.checkpoints.lastOrNull() ?: continue
         val contrib = last.derivedMetrics?.process?.contributions?.firstOrNull { it.id == "broken" }
-        val detail = contrib?.detail ?: return@map 0
-        brokenPctRe.find(detail)?.groupValues?.get(1)?.toIntOrNull() ?: 0
+        val detail = contrib?.detail ?: ""
+        arr[idx - 1] = brokenPctRe.find(detail)?.groupValues?.get(1)?.toIntOrNull() ?: 0
     }
+    return out.toSortedMap()
 }
 
-val brokenRows = listOf(
-    "P1"    to ::p1Idx,
-    "P2"    to ::p2Idx,
-    "Agent" to ::agIdx,
-).map { (label, idx) ->
-    val pcts = brokenPct(if (label == "Agent") agent else userStudy, idx)
-    val nonMissing = pcts.filter { it >= 0 }
-    val mean = if (nonMissing.isNotEmpty()) nonMissing.average() else 0.0
-    val peak = nonMissing.maxOrNull() ?: 0
-    mapOf("actor" to label) +
-        (1..6).associate { "S$it" to "${pcts[it - 1]}%" } +
+fun brokenRows(
+    pcts: Map<String, IntArray>,
+    pretty: (String) -> String,
+): List<Map<String, Any>> = pcts.map { (g, arr) ->
+    val present = arr.filter { it >= 0 }
+    val mean = if (present.isNotEmpty()) present.average() else 0.0
+    val peak = present.maxOrNull() ?: 0
+    mapOf<String, Any>("actor" to pretty(g)) +
+        (1..6).associate { "S$it" to "${arr[it - 1]}%" } +
         ("mean" to "%.1f%%".format(mean)) +
         ("peak" to "$peak%")
 }
-brokenRows.toDataFrame()""")
+
+brokenRows(brokenPctBy(userStudy, ::participantOf), ::prettyUser).toDataFrame()""")
+
+code(r"""brokenRows(brokenPctBy(agent, ::cellOf), { it }).toDataFrame()""")
+
+# ---------------------------------------------------------------- corpus expansion dump
+
+md("### Corpus-expansion findings dump\n\nAppended cell: emits per-session production J, gain-stripped J, and DP counts by kind for every user + agent session as plain TSV so downstream tools (e.g. the corpus-expansion comparison report) get the full corpus without dataframe-display truncation.")
+
+code(r"""val expansionGainZero = ScoringConfig.PRODUCTION.copy(
+    process = ScoringConfig.PRODUCTION.process.copy(gain = 0.0, lag = 0.0),
+)
+
+fun emitDump(label: String, sessions: Map<String, PhaseAResult>) {
+    println("### $label ###")
+    println("session\tORDERING\tIDE_REPLAY\tREWORK\tHYGIENE\ttotal\tJ_prod\tJ_gain0")
+    for ((sid, phaseA) in sessions.toSortedMap()) {
+        val prod = ReportAssembler.assemble(phaseA, ScoringConfig.PRODUCTION)
+        val g0   = ReportAssembler.assemble(phaseA, expansionGainZero)
+        val counts = kinds.associateWith { k -> prod.divergencePoints.count { it.kind.name == k && it.magnitude > 0.0 } }
+        val jProd = prod.checkpoints.lastOrNull()?.derivedMetrics?.process?.total ?: -1
+        val jG0   = g0  .checkpoints.lastOrNull()?.derivedMetrics?.process?.total ?: -1
+        println("$sid\t${counts["ORDERING"]}\t${counts["IDE_REPLAY"]}\t${counts["REWORK"]}\t${counts["HYGIENE"]}\t${counts.values.sum()}\t$jProd\t$jG0")
+    }
+    println()
+}
+
+emitDump("INJECTION", injection)
+emitDump("USER-STUDY", userStudy)
+emitDump("AGENT", agent)
+
+// Per-set DP-count histogram for the small-ranking-floor caveat.
+fun dpCounts(label: String, sessions: Map<String, PhaseAResult>) {
+    val counts = sessions.values.map { phaseA ->
+        ReportAssembler.assemble(phaseA, ScoringConfig.PRODUCTION)
+            .divergencePoints.count { it.magnitude > 0.0 }
+    }
+    val histo = counts.groupingBy { it }.eachCount().toSortedMap()
+    println("### $label DP-count histogram ###")
+    println("dp_count\tn_sessions")
+    for ((k, v) in histo) println("$k\t$v")
+    val total = counts.size
+    val le1 = counts.count { it <= 1 }
+    val ge2 = counts.count { it >= 2 }
+    println("total=$total, <=1 (no ranking)=$le1, >=2 (rankable)=$ge2 (${"%.1f".format(100.0 * ge2 / total)}%)")
+    println()
+}
+
+dpCounts("INJECTION", injection)
+dpCounts("USER-STUDY", userStudy)
+dpCounts("AGENT", agent)""")
 
 # ---------------------------------------------------------------- write
 
