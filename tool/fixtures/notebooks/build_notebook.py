@@ -282,7 +282,7 @@ val sensHeadline = listOf(sensInj, sensUser, sensAgent).map { df ->
 }.toDataFrame()
 sensHeadline""")
 
-md("Per-knob top-1 disruption counts on the user-study session set (reproduces Table 5.2).")
+md("Per-knob top-1 disruption counts on the user-study rankable subset (reproduces Table 5.2).")
 
 code(r"""val perKnob = sensUser
     .groupBy("weight")
@@ -816,7 +816,7 @@ val userRows  = userStudy.map { (k, v) -> perSessionRow(k, v) }.toDataFrame()
 val agentRows = agent.map { (k, v) -> perSessionRow(k, v) }.toDataFrame()
 userRows""")
 
-md("Per-kind trajectory across the six-session arc, summed across P1 + P2 (reproduces Table 5.13).")
+md("Per-kind trajectory across the six-session arc, reported per arm (with-feedback vs baseline) over all 5 participants (reproduces Table 5.13).")
 
 code(r"""val combinedTraj = (1..6).map { idx ->
     val matching = (0 until userRows.rowsCount())
@@ -928,11 +928,11 @@ code(r"""armArc(agentRows).toDataFrame()""")
 md(r"""### Process score trajectory: gain-stripped weights
 
 For each session, the trajectory-final process score is computed under a copy of the
-production weighting with the cleanliness-gain weight `W_g` set to zero. The
-gain-stripped view isolates the process-discipline terms (broken-time, skipped-tests,
-manual-when-IDE, length bonus, commit-gap) from the cleanliness-gain term, mirroring
-the §5.1.2 ablation finding that `W_g` acts as a regulariser on divergence-point
-ranking. Reproduces Table 5.14 (user-study) and Table 5.16 (agent extension).""")
+production weighting with both the cleanliness-gain weight `W_g` and the
+intermediate-cleanliness lag weight `W_lag` set to zero. Both terms depend on the
+cleanliness scalar C; zeroing both isolates the five process-discipline terms that
+do not depend on C (broken-time, skipped-tests, manual-when-IDE, length-bonus,
+commit-gap). Reproduces Table 5.14 (user-study) and Table 5.15 (agent extension).""")
 
 code(r"""// Per-group arc of trajectory-final process scores under the given config.
 fun arcScoresBy(
