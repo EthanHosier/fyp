@@ -141,9 +141,9 @@
 \contentsline {section}{\numberline {5.3}Headline findings}{56}{section.5.3}%
 \contentsline {section}{\numberline {5.4}Future work}{57}{section.5.4}%
 \contentsline {section}{\numberline {5.5}Closing}{57}{section.5.5}%
-\contentsline {chapter}{\numberline {6}Declarations}{59}{chapter.6}%
-\contentsline {section}{\numberline {6.1}Use of Generative AI}{59}{section.6.1}%
+\contentsline {chapter}{\numberline {6}Declarations}{58}{chapter.6}%
+\contentsline {section}{\numberline {6.1}Use of Generative AI}{58}{section.6.1}%
 \contentsline {section}{\numberline {6.2}Ethical Considerations}{59}{section.6.2}%
-\contentsline {section}{\numberline {6.3}Sustainability}{60}{section.6.3}%
-\contentsline {section}{\numberline {6.4}Availability of Data and Materials}{60}{section.6.4}%
-\contentsline {chapter}{\numberline {A}Appendix}{61}{appendix.A}%
+\contentsline {section}{\numberline {6.3}Sustainability}{59}{section.6.3}%
+\contentsline {section}{\numberline {6.4}Availability of Data and Materials}{59}{section.6.4}%
+\contentsline {chapter}{\numberline {A}Appendix}{60}{appendix.A}%

@@ -15,7 +15,7 @@ I acknowledge the use of Claude Code (Anthropic, \url{https://claude.com/claude-
 
 All AI-assisted code was reviewed manually. The analysis, refactoring, and dashboard modules are also covered by tests, which provide a separate check on the behaviour of the implementation.
 
-For the report itself, the content, argument, and findings are my own. Claude (\url{https://claude.ai}) was used for proofreading, structural feedback on draft text, and help with \LaTeX{} formatting for tables and figures. No AI-generated content has been presented as my own independent work.
+For the report itself, the content, argument, and findings are my own. Claude (Anthropic, \url{https://claude.ai}) was used for proofreading, structural feedback on draft text, generating an initial outline for Chapter~\ref{ch:results} that I then revised and populated with my own analysis, and help with \LaTeX{} formatting for tables and figures. No AI-generated content has been presented as my own independent work.
 
 \section{Ethical Considerations}
 \label{sec:declarations-ethics}
@@ -27,12 +27,7 @@ The project fits Imperial's description of low-risk research, as it involved onl
 \section{Sustainability}
 \label{sec:declarations-sustainability}
 
-The project's compute footprint was kept small by two design choices described in the methodology chapter:
-
-\begin{enumerate}
-  \item \emph{Phase A / Phase B pipeline split.} The expensive analysis work, including shadow-repository reconstruction, RefactoringMiner mining, and build/test execution at each checkpoint, is run once per recorded session and cached. Later scoring, sensitivity, ablation, and Monte Carlo experiments reuse this cached output and rerun only the cheaper scoring phase. This avoids repeating the full analysis for every weight configuration.
-  \item \emph{Deterministic ranking and reuse across runs.} The experiment drivers use fixed random seeds and deterministic tie-breaking in the divergence-point ranking. As a result, rerunning an experiment for a sanity check costs no more than the original run and produces the same CSVs when the inputs have not changed.
-\end{enumerate}
+The project's compute footprint was kept small by the Phase A / Phase B pipeline split described in the methodology chapter. The expensive analysis work, including shadow-repository reconstruction, RefactoringMiner mining, and build/test execution at each checkpoint, is run once per recorded session and cached. Later scoring, sensitivity, ablation, and Monte Carlo experiments reuse this cached output and rerun only the cheaper scoring phase. This avoids repeating the full analysis for every weight configuration.
 
 All experiments were run on a single local workstation. No GPU or cloud-compute resources were consumed.
 
