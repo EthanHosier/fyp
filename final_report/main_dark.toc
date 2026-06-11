@@ -32,7 +32,7 @@
 \contentsline {subsection}{\numberline {2.6.2}Granularity, segmentation, and semantic interpretation}{15}{subsection.2.6.2}%
 \contentsline {section}{\numberline {2.7}Summary and positioning: toward process-quality evaluation}{15}{section.2.7}%
 \contentsline {chapter}{\numberline {3}Methodology}{17}{chapter.3}%
-\contentsline {section}{\numberline {3.1}Formal definitions and notation}{17}{section.3.1}%
+\contentsline {section}{\numberline {3.1}State, actions, and traces}{17}{section.3.1}%
 \contentsline {section}{\numberline {3.2}Computing the process score}{18}{section.3.2}%
 \contentsline {subsection}{\numberline {3.2.1}The process score}{18}{subsection.3.2.1}%
 \contentsline {subsection}{\numberline {3.2.2}Process-score weights}{19}{subsection.3.2.2}%
@@ -45,41 +45,41 @@
 \contentsline {paragraph}{$W_{\textsc {cg}}$ (commit-gap, 7).}{21}{section*.15}%
 \contentsline {subsection}{\numberline {3.2.3}The cleanliness sub-score}{22}{subsection.3.2.3}%
 \contentsline {paragraph}{Composition rule and sub-weights.}{22}{section*.17}%
-\contentsline {paragraph}{Caveats.}{22}{section*.18}%
+\contentsline {paragraph}{Caveats.}{23}{section*.18}%
 \contentsline {paragraph}{Coupling to the process score.}{23}{section*.19}%
 \contentsline {subsection}{\numberline {3.2.4}Event capture}{23}{subsection.3.2.4}%
-\contentsline {subsection}{\numberline {3.2.5}Shadow repo reconstruction and worktree pool}{23}{subsection.3.2.5}%
+\contentsline {subsection}{\numberline {3.2.5}Shadow repo reconstruction and worktree pool}{24}{subsection.3.2.5}%
 \contentsline {subsection}{\numberline {3.2.6}Metrics calculation}{24}{subsection.3.2.6}%
 \contentsline {section}{\numberline {3.3}Divergence points}{24}{section.3.3}%
 \contentsline {subsection}{\numberline {3.3.1}Applying refactorings via Eclipse JDT}{25}{subsection.3.3.1}%
 \contentsline {paragraph}{Batch sessions.}{25}{section*.20}%
 \contentsline {paragraph}{Anchor resolution.}{25}{section*.21}%
-\contentsline {subsection}{\numberline {3.3.2}Ordering}{25}{subsection.3.3.2}%
+\contentsline {subsection}{\numberline {3.3.2}Ordering}{26}{subsection.3.3.2}%
 \contentsline {paragraph}{Window splitting on validator verdicts.}{26}{section*.22}%
 \contentsline {paragraph}{Dependency-DAG construction.}{26}{section*.23}%
 \contentsline {paragraph}{SSA versioning across renames.}{26}{section*.24}%
 \contentsline {paragraph}{Topological enumeration.}{26}{section*.25}%
-\contentsline {paragraph}{Depth-first search over a prefix trie.}{26}{section*.26}%
+\contentsline {paragraph}{Depth-first search over a prefix trie.}{27}{section*.26}%
 \contentsline {paragraph}{Terminal AST-equivalence audit.}{27}{section*.27}%
-\contentsline {subsection}{\numberline {3.3.3}Manual-Refactor}{27}{subsection.3.3.3}%
+\contentsline {subsection}{\numberline {3.3.3}Manual-Refactor}{28}{subsection.3.3.3}%
 \contentsline {paragraph}{The wrap-and-patch layer.}{28}{section*.30}%
-\contentsline {subsection}{\numberline {3.3.4}Rework}{28}{subsection.3.3.4}%
-\contentsline {subsection}{\numberline {3.3.5}Hygiene}{29}{subsection.3.3.5}%
+\contentsline {subsection}{\numberline {3.3.4}Rework}{29}{subsection.3.3.4}%
+\contentsline {subsection}{\numberline {3.3.5}Hygiene}{30}{subsection.3.3.5}%
 \contentsline {subsection}{\numberline {3.3.6}Validator and behaviour preservation}{30}{subsection.3.3.6}%
 \contentsline {section}{\numberline {3.4}System architecture and pipeline phases}{30}{section.3.4}%
 \contentsline {subsection}{\numberline {3.4.1}Architecture at a glance}{30}{subsection.3.4.1}%
 \contentsline {subsection}{\numberline {3.4.2}Phase A / Phase B split}{31}{subsection.3.4.2}%
 \contentsline {paragraph}{Phase A.}{31}{section*.33}%
 \contentsline {paragraph}{Phase B.}{31}{section*.34}%
-\contentsline {section}{\numberline {3.5}Dashboard}{31}{section.3.5}%
+\contentsline {section}{\numberline {3.5}Dashboard}{32}{section.3.5}%
 \contentsline {section}{\numberline {3.6}Score-formula evaluation design}{32}{section.3.6}%
-\contentsline {subsection}{\numberline {3.6.1}Sensitivity perturbations}{32}{subsection.3.6.1}%
+\contentsline {subsection}{\numberline {3.6.1}Sensitivity perturbations}{33}{subsection.3.6.1}%
 \contentsline {subsection}{\numberline {3.6.2}Ablation design}{33}{subsection.3.6.2}%
 \contentsline {section}{\numberline {3.7}Evaluation dataset and labelling protocol}{33}{section.3.7}%
 \contentsline {subsection}{\numberline {3.7.1}The 45-session injection set}{34}{subsection.3.7.1}%
 \contentsline {subsection}{\numberline {3.7.2}Two label streams}{34}{subsection.3.7.2}%
 \contentsline {subsection}{\numberline {3.7.3}Rater protocol}{34}{subsection.3.7.3}%
-\contentsline {subsection}{\numberline {3.7.4}Cohen's $\kappa $ computation}{34}{subsection.3.7.4}%
+\contentsline {subsection}{\numberline {3.7.4}Cohen's $\kappa $ computation}{35}{subsection.3.7.4}%
 \contentsline {subsection}{\numberline {3.7.5}Treatment of disagreements}{35}{subsection.3.7.5}%
 \contentsline {subsection}{\numberline {3.7.6}Divergence-detector evaluation protocol}{35}{subsection.3.7.6}%
 \contentsline {chapter}{\numberline {4}Experimentation and Evaluation}{36}{chapter.4}%
