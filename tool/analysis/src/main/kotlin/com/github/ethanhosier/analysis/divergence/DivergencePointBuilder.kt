@@ -5,39 +5,10 @@ import com.github.ethanhosier.analysis.pipeline.CheckpointReport
 import com.github.ethanhosier.analysis.pipeline.DivergenceKind
 import com.github.ethanhosier.analysis.pipeline.DivergencePoint
 
-/**
- * Builds the per-step [DivergencePoint] list from already-tagged
- * alternative trajectories. Pure function — no I/O, no shadow-repo
- * access. The pipeline calls this after `baseAlternatives` has been
- * finalised so [AlternativeTrajectory] list indexes are stable.
- *
- * Grouping rules per [DivergenceKind]:
- *  - **IDE_REPLAY**: one DP per alt. `altTrajectoryIndexes=[i]`.
- *  - **ORDERING**: collapse all alts sharing `(fromSha, userToSha)` into
- *    one DP. `altTrajectoryIndexes=[i, j, …]` (sorted). Magnitude /
- *    `altWins`-style headline pulled from the best permutation.
- *  - **REWORK**: one DP per alt. Per-alt context (file, scope, line
- *    count, originating step) is passed in via [reworkInfoByAltIndex] —
- *    these don't live on the alt itself.
- *
- * Process-score-based filters were intentionally removed: every
- * synthesised alt of an IDE_REPLAY / ORDERING / HYGIENE kind now
- * produces a DP regardless of magnitude. Downstream consumers
- * (dashboard, experiment drivers) apply their own threshold post-hoc
- * if they want noise suppression — the builder reports the raw
- * magnitude so the choice of threshold is auditable rather than
- * baked into the tool.
- *
- * REWORK keeps its domain floor: a chunk of `< MIN_REWORK_LINES`
- * normalised lines is line-noise by definition and isn't worth a
- * divergence point regardless of score.
- */
 object DivergencePointBuilder {
 
     const val MIN_REWORK_LINES: Int = 2
 
-    /** Per-alt metadata for a REWORK divergence — fields the alt itself
-     *  doesn't carry, threaded in from the synthesiser's record. */
     data class ReworkInfo(
         val originatingStepIndex: Int,
         val terminalStepIndex: Int,
@@ -49,13 +20,9 @@ object DivergencePointBuilder {
         val direction: String,
     )
 
-    /** Per-alt metadata for a HYGIENE divergence — threaded in from
-     *  [com.github.ethanhosier.analysis.divergence.HygieneDetector]. */
     data class HygieneInfo(
         val anchorIndex: Int,
-        /** Matches `HygieneDetector.SubKind.name`. */
         val subKind: String,
-        /** COMMIT_GAP only: checkpoints since the previous commit. */
         val gapLength: Int? = null,
     )
 
@@ -69,12 +36,6 @@ object DivergencePointBuilder {
             .associate { it.sha to it.derivedMetrics.process.total }
         val userStepIndexBySha: Map<String, Int> = userCheckpoints
             .withIndex().associate { (i, cp) -> cp.sha to i }
-        // Trajectory-final magnitude semantic, unified across all four kinds.
-        // Magnitude = J(alt rolled forward through the user's post-convergence
-        // activity) − J(user trajectory-final). For REWORK specifically the
-        // alt has fewer steps than the user (the round-trip work is elided),
-        // so the W_L step-savings bonus contributes positively to the alt's
-        // score automatically.
         val userFinalProcess: Int = userCheckpoints.lastOrNull()
             ?.derivedMetrics?.process?.total
             ?: return emptyList()
@@ -87,16 +48,6 @@ object DivergencePointBuilder {
         return out
     }
 
-    /** Trajectory-final process score for an alt: the last entry of
-     *  the alt's [AlternativeTrajectory.altCheckpoints] +
-     *  [AlternativeTrajectory.continuationCheckpoints] sequence. The
-     *  continuation walks the user's post-convergence checkpoints with
-     *  the alt's locked-in cumulative state, so the last entry is the
-     *  alt's process score for the full hybrid trajectory (user prefix
-     *  to divergence, then alt's path to convergence, then user's
-     *  post-convergence activity). Falls back to alt-checkpoints-last
-     *  when no continuation exists (e.g. alt's convergence IS the
-     *  user's last checkpoint). */
     private fun altFinalProcess(alt: AlternativeTrajectory): Int? =
         (alt.altCheckpoints + alt.continuationCheckpoints).lastOrNull()
             ?.derivedMetrics?.process?.total
@@ -190,10 +141,6 @@ object DivergencePointBuilder {
             val info = reworkInfoByAltIndex[i] ?: continue
             if (info.lineCount < MIN_REWORK_LINES) continue
 
-            // REWORK magnitude is the trajectory-final process-score delta,
-            // same as the other three kinds. The reverted-line count remains
-            // surfaced on the DP via [reworkLineCount] for dashboard /
-            // explanation use, but is no longer the ranking magnitude.
             val altFinal = altFinalProcess(alt) ?: continue
             val delta = (altFinal - userFinalProcess).toDouble()
 
@@ -218,15 +165,6 @@ object DivergencePointBuilder {
         return out
     }
 
-    /**
-     * Emit a HYGIENE DP per hygiene alt. Magnitude is `altProcess -
-     * userProcess` measured at the alt's terminal (= the user's anchor
-     * checkpoint after the flip is applied). No magnitude filter is
-     * applied — both TESTS_SKIPPED and COMMIT_GAP emit unconditionally
-     * (COMMIT_GAP magnitudes are structurally 0 today since cadence
-     * isn't in the score formula yet; downstream consumers apply their
-     * own threshold).
-     */
     private fun buildHygiene(
         alts: List<AlternativeTrajectory>,
         userCheckpoints: List<CheckpointReport>,
@@ -277,18 +215,9 @@ object DivergencePointBuilder {
             else -> simpleName.replace(Regex("([a-z])([A-Z])"), "$1 $2")
         }
 
-    /** Signed delta with one decimal: `+3.5`, `0.0`, `-1.2`. */
     private fun formatDelta(d: Double): String =
         if (d >= 0) String.format("+%.1f", d) else String.format("%.1f", d)
 
-    /**
-     * Trim a fully-qualified scope id like
-     * `org.example.OrderPricingServiceSuper#doSomeMath(double)` down to
-     * the member portion (`doSomeMath(double)`) — the FQN prefix
-     * overflows the rework-DP card in the sidebar and the file name is
-     * already shown alongside. Falls back to the original label when
-     * there's no `#` separator (e.g. file-level scope sentinels).
-     */
     private fun shortScopeLabel(scopeLabel: String): String {
         val hashIdx = scopeLabel.indexOf('#')
         return if (hashIdx >= 0) scopeLabel.substring(hashIdx + 1) else scopeLabel

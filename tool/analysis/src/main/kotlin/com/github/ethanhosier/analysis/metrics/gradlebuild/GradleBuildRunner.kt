@@ -7,36 +7,12 @@ import java.nio.file.Path
 import java.time.Duration
 import java.util.concurrent.TimeUnit
 
-/**
- * Runs `./gradlew build -x test` on a checkpoint's worktree and reports the
- * outcome.
- *
- * ### Isolation caveat
- *
- * This is *process-level* isolation, not a security sandbox. The subprocess
- * runs with our user's permissions and can read/write the filesystem, open
- * network connections, etc. We rely on:
- *
- * - worktree-per-checkpoint → fresh source tree, no shared `build/` dir
- * - `--no-daemon` → fresh JVM per invocation, no daemon memory carryover
- * - a timeout → bounded wallclock even if the build hangs
- * - an optional session-shared `gradle-user-home` → dep cache reuse without
- *   per-run re-downloads
- *
- * That's sufficient for self-authored sessions (the typical case here) because
- * the threat model is cross-checkpoint pollution, not malicious code. If a
- * session ever contains third-party code we haven't vetted, swap this runner
- * for a container-based one (docker with `--network=none` + CPU/mem caps).
- */
 class GradleBuildRunner(
     private val timeout: Duration = Duration.ofMinutes(5),
     private val gradleUserHome: Path? = null,
     private val stderrTailBytes: Int = 8 * 1024,
 ) {
 
-    /**
-     * @param projectDir root of the Gradle project (must contain `gradlew`)
-     */
     fun run(projectDir: Path): BuildResult {
         require(Files.isDirectory(projectDir)) { "not a directory: $projectDir" }
         val gradlew = projectDir.resolve("gradlew")
@@ -46,10 +22,6 @@ class GradleBuildRunner(
             add(gradlew.toAbsolutePath().toString())
             add("--console=plain")
             add("--build-cache")
-            // Deliberately no --stacktrace: it dumps ~40KB of Gradle internals
-            // after the actionable "What went wrong" block, which then gets
-            // kept by our tail buffer instead of the diagnostic. The "What
-            // went wrong" section alone is enough for compile/test failures.
             gradleUserHome?.let { add("--gradle-user-home=${it.toAbsolutePath()}") }
             add("build")
             add("-x")
@@ -102,11 +74,6 @@ class GradleBuildRunner(
     }
 }
 
-/**
- * Bounded tail buffer: append lines freely; `snapshot()` returns at most the
- * last [limitBytes] of text. Trimming is cheap because we only compact when
- * the buffer would otherwise balloon.
- */
 private class RingTail(private val limitBytes: Int) {
     private val buf = StringBuilder()
 

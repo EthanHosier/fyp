@@ -1,21 +1,4 @@
-/**
- * Adapter: `AnalysisReport` → `DashboardViewModel`. The chart + rail
- * consume a single number per (checkpoint, metric); the backend computes
- * those numbers (and the cleanliness composite + process score) inside
- * `DerivedMetricsRunner` and ships them on each `CheckpointReport.
- * derivedMetrics`. This adapter just shapes them into VM types and
- * exposes the headline scores via `c.values` so the chart's regular
- * metric plumbing can render them.
- *
- * Sub-metric semantics live alongside the runner; see
- * `analysis/src/main/kotlin/com/github/ethanhosier/analysis/metrics/derived/
- * DerivedMetricsRunner.kt` for formula rationale (literature weights for
- * cleanliness, process-score design decisions, etc.).
- *
- * Churn is intentionally not a chartable metric — "fewer lines" isn't a
- * goal, it's only meaningful relative to an alternative path. We still
- * expose `CheckpointVM.churn` / `IntervalVM.churn` for that comparison.
- */
+/** Adapter: `AnalysisReport` → `DashboardViewModel`. */
 import type {
   AlternativeTrajectory,
   AnalysisReport,

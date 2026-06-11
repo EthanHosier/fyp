@@ -9,21 +9,6 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 
-/**
- * Host-side facade for JDT-backed refactorings. Each refactoring is
- * implemented as a per-op file in this package (e.g. [ExtractMethod],
- * [RenameMethod]) that hangs an extension function off this class and
- * calls [invokeOnBundle].
- *
- * Thread-safety: a coarse [ReentrantLock] serialises every call.
- * Eclipse's workspace has its own locks, but the bundle's project
- * registry mutates shared state and the simplest correct default is to
- * serialise outright — revisit if a profiler says otherwise.
- *
- * Lifecycle: instances are produced by [RefactoringClientFactory] and
- * are expected to live for the duration of the server process. [close]
- * stops the embedded Equinox framework.
- */
 class RefactoringClient internal constructor(
     private val framework: Framework,
     private val refactorer: Any,
@@ -33,15 +18,6 @@ class RefactoringClient internal constructor(
     private val lock = ReentrantLock()
     private val methodCache = ConcurrentHashMap<String, Method>()
 
-    /**
-     * Resolve and cache the `@JvmStatic` method named [name] on the
-     * bundle's `JdtRefactorer`, then invoke it under the client's
-     * lock and parse the JSON outcome. Per-op files call this.
-     *
-     * [paramTypes] must match the bundle-side signature exactly
-     * (primitives / String / Array<String>). Using the cache key alone
-     * would be ambiguous for overloads, so we recompute only on miss.
-     */
     internal fun invokeOnBundle(
         name: String,
         paramTypes: Array<Class<*>>,
@@ -53,30 +29,6 @@ class RefactoringClient internal constructor(
         parse(handle.invoke(refactorer, *args) as String)
     }
 
-    /**
-     * Run [block] inside a "batch session" — the bundle keeps the
-     * indexed Eclipse project alive across consecutive
-     * [invokeOnBundle] calls on the same `projectRoot`, so a sequence
-     * of refactorings pays only one full init+index for the whole
-     * batch instead of one per call.
-     *
-     * Lifecycle, in order, on every call:
-     * 1. Acquire [lock] (the same lock [invokeOnBundle] uses; it's
-     *    reentrant so nested per-op calls inside [block] don't
-     *    deadlock).
-     * 2. Tell the bundle to keep the project after each call.
-     * 3. Run [block]. Per-op calls inside it transparently benefit
-     *    from the cache.
-     * 4. In a `finally`: tear down whatever's cached, reset the
-     *    keep-flag to off. No state survives past this method.
-     *
-     * Holding the lock for the whole batch serialises out any
-     * concurrent caller (`apply`, another `applyAll`, etc.) — without
-     * that, a different worktree's `apply()` could race the keep-flag
-     * and reuse a project rooted elsewhere. The JDT lock at the
-     * bundle layer makes parallel bundle calls impossible regardless,
-     * so this isn't a throughput regression.
-     */
     fun <T> withBatchSession(block: () -> T): T = lock.withLock {
         setKeepProject(true)
         try {
@@ -89,12 +41,6 @@ class RefactoringClient internal constructor(
         }
     }
 
-    /**
-     * Force the bundle's cached Eclipse project to re-stat every
-     * file. Use after rewriting working-tree files behind Eclipse's
-     * back — typically after a `git checkout` between sibling
-     * subtrees in a DFS walk.
-     */
     fun refreshProject(): RefactoringOutcome = invokeOnBundle(
         "refreshProject",
         emptyArray(),
@@ -113,10 +59,6 @@ class RefactoringClient internal constructor(
         invokeOnBundle("clearProjectCache", emptyArray(), emptyArray())
     }
 
-    /**
-     * Test-only: read the bundle's project-init counter. Smoke tests
-     * use this to assert that an N-step batch indexed only once.
-     */
     internal fun initCount(): Int = lock.withLock {
         val handle = methodCache.getOrPut("initCount") {
             refactorerClass.getMethod("initCount")

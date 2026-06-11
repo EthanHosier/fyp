@@ -12,78 +12,14 @@ import kotlinx.serialization.Serializable
 import java.nio.file.Files
 import java.nio.file.Path
 
-/**
- * For every detected refactoring the user performed manually across more
- * than one checkpoint, synthesises the IDE-driven equivalent: borrows a
- * worktree at `fromSha`, runs the matching [RefactoringClient] op, and
- * commits the resulting tree as a new SHA on a synthetic `alt/group-N`
- * branch in the shadow repo.
- *
- * Refactorings sharing the same `(fromSha, toSha)` window — e.g. an
- * Extract Method plus a Move detected in the same edit burst — are
- * grouped into one synthesis job: each spec is applied in miner emission
- * order on the same worktree inside a single
- * [RefactoringClient.withBatchSession], then squashed into one alt-SHA.
- * This amortises Eclipse's project init+index cost and avoids the noise
- * mode where N independent alt branches each apply only one of N
- * detected refactorings.
- *
- * After the refactoring(s) land, a residual 3-way merge layers the
- * user's leftover edits on top: `diff(refactoring-only, userToSha)` →
- * `git apply --3way`. Clean apply ⇒ the alt-SHA carries both the IDE
- * refactoring and the user's unrelated edits, so any remaining
- * `alt → userToSha` divergence is the IDE-vs-manual delta itself.
- * Conflicted apply ⇒ alt-SHA stays at refactoring-only and the report
- * surfaces which files were dropped via [ResidualSummary].
- *
- * Trigger conditions for a candidate [RefactoringStep] (all required):
- *  - [RefactoringStep.wasPerformedByIde] is `false`.
- *  - [RefactoringStep.spec] is non-null and not [RefactoringSpec.Other].
- *
- * Steps that fail to synthesise (dispatch arm missing, [RefactoringClient]
- * returns Failed, or the op produced no textual change) are recorded
- * under [Summary.skipped] with a short reason. When a group has some
- * succeeding and some failing steps, the succeeding ones land on the
- * alt-SHA and the failing ones still appear in [Summary.skipped].
- *
- * Concurrency: single-threaded. `RefactoringClient.invokeOnBundle`
- * already serialises every JDT call under a coarse `ReentrantLock`, so
- * parallel synthesis was bottlenecked on the bundle lock regardless.
- * Sequential + `withBatchSession` is strictly faster for multi-spec
- * groups (one index init per group instead of one per spec) and
- * identical for single-spec groups.
- */
 class IdeRefactoringsRunner(
     private val refactoringClient: RefactoringClient,
-    // Sensible Maven/Gradle defaults; override if a project lays out
-    // its sources elsewhere. Classpath-extraction-from-Gradle is a
-    // separate workstream — empty list here covers JRE-only fixtures
-    // and is a reasonable degraded mode for real projects (refactorings
-    // that need third-party types fail with a typed JDT error message
-    // instead of a misleading-looking success).
     private val sourceFolders: List<String> = listOf("src/main/java"),
     private val classpathJars: List<Path> = emptyList(),
 ) {
 
     private val dispatcher = SpecDispatcher(refactoringClient, sourceFolders, classpathJars)
 
-    /**
-     * One synthesised alt produced by grouping every [RefactoringStep]
-     * that shares a `(fromSha, toSha)` window. [stepIndexes] is in the
-     * order the specs were applied (miner emission order). [altShas] is
-     * a chain of commits — one per applied refactoring, plus an
-     * optional trailing residual SHA when the residual 3-way merge
-     * landed cleanly with non-zero churn. Each SHA is parented on the
-     * previous SHA in the chain (or on [fromSha] for the first), and
-     * has a matching entry in [branchRefs].
-     *
-     * Length invariant:
-     *  - `altShas.size == stepIndexes.size` when residual was empty
-     *    or conflicted (no residual step).
-     *  - `altShas.size == stepIndexes.size + 1` when residual landed
-     *    cleanly — the trailing SHA carries the user's leftover edits
-     *    layered on top of the last refactoring SHA.
-     */
     @Serializable
     data class SynthesisedGroup(
         val stepIndexes: List<Int>,
@@ -100,10 +36,6 @@ class IdeRefactoringsRunner(
         val candidates: Int,
         // Successful groups, sorted by min stepIndex per group.
         val synthesised: List<SynthesisedGroup>,
-        // Keyed by [RefactoringStep.stepIndex]; reason is human-readable
-        // (e.g. "dispatch arm not implemented for RenameMethod",
-        // "RefactoringClient: <reason>", "refactoring produced no textual change",
-        // "failed inside group at <fromSha> after step N").
         val skipped: Map<Int, String>,
     )
 
@@ -116,10 +48,6 @@ class IdeRefactoringsRunner(
             .toCollection(LinkedHashSet()).toList()
         val shaIndex = orderedShas.withIndex().associate { (i, sha) -> sha to i }
 
-        // Per-step trigger logging. Each step gets one line so it's easy
-        // to see at a glance why every candidate was kept or rejected —
-        // the rejection reasons are otherwise invisible in the JSON
-        // report.
         val candidateSteps = mutableListOf<RefactoringStep>()
         for (s in steps) {
             val rejectReason = rejectReason(s, shaIndex)
@@ -133,12 +61,6 @@ class IdeRefactoringsRunner(
             return Summary(candidates = 0, synthesised = emptyList(), skipped = emptyMap())
         }
 
-        // Group co-located refactorings. Miner emission order is
-        // preserved within each group by sorting on stepIndex — RM
-        // assigns stepIndex monotonically in detection order. The
-        // group's `settledSha` is the max across member steps — for
-        // co-located refactorings the latest settle point dominates
-        // (they all share the same window).
         val groups = candidateSteps
             .groupBy { it.fromSha to it.toSha }
             .map { (key, members) ->
@@ -154,9 +76,6 @@ class IdeRefactoringsRunner(
 
         val worktreeBase = sessionFolder.resolve("alternative-worktrees")
         val shadowGit = GitRunner(reconstruction.repoDir)
-        // Pool size 1: synthesis is sequential, so we only ever need
-        // one worktree at a time. Keeping the pool keeps the borrow/
-        // release lifecycle consistent with other synthesisers.
         val pool = WorktreePool(reconstruction.repoDir, worktreeBase, size = 1)
 
         val synthesised = mutableListOf<SynthesisedGroup>()
@@ -193,8 +112,6 @@ class IdeRefactoringsRunner(
         )
     }
 
-    /** Null when the step is a candidate; otherwise a human-readable
-     *  reason it didn't qualify. */
     private fun rejectReason(s: RefactoringStep, shaIndex: Map<String, Int>): String? {
         if (s.wasPerformedByIde) return "performed by IDE (already an automated refactoring)"
         val spec = s.spec ?: return "no typed RefactoringSpec produced by the miner"
@@ -212,16 +129,8 @@ class IdeRefactoringsRunner(
         val worktree = pool.borrow(group.fromSha)
         try {
             val worktreeGit = GitRunner(worktree)
-            // Without a local identity, `git commit` falls back to the
-            // host's global config or fails outright; pin both so the
-            // commit author is deterministic.
             worktreeGit.setLocalIdentity("alt@analysis.local", "Alternative Trajectory")
 
-            // Apply + commit per step so each refactoring renders as its
-            // own node on the chart. Eclipse's project init is held open
-            // across the loop by `withBatchSession`; the per-step git
-            // operations run after each apply (outside any JDT call), so
-            // there's no contention with the bundle's cached project.
             val appliedSteps = mutableListOf<RefactoringStep>()
             val stepShas = mutableListOf<String>()
             val stepBranchRefs = mutableListOf<String>()
@@ -239,9 +148,6 @@ class IdeRefactoringsRunner(
                     }
                     worktreeGit.addAllExcept(".project", ".classpath", ".settings")
                     if (!worktreeGit.hasStagedChanges()) {
-                        // Spec accepted by JDT but the worktree is
-                        // byte-identical — count as a failure for this
-                        // step so the report makes it visible.
                         failed[step.stepIndex] = "refactoring produced no textual change"
                         continue
                     }
@@ -262,19 +168,6 @@ class IdeRefactoringsRunner(
                 )
             }
 
-            // Residual 3-way merge layered on top of the last
-            // refactoring SHA. Targets the *settled* user SHA, not the
-            // RM detection's toSha: when the user takes several edit
-            // bursts to land a refactoring (e.g. inline call sites one
-            // at a time), RM detects the refactoring at the first
-            // checkpoint where the signature is clear, but the user's
-            // refactoring isn't complete there — comparing to that
-            // mid-progression SHA would force the residual to revert
-            // the alt's complete IDE refactoring back to the half-done
-            // intermediate. Comparing to `settledSha` (the latest
-            // checkpoint where the same logical refactoring still
-            // applies) means residual = "what the user did that wasn't
-            // part of this refactoring," which is its intended role.
             val lastRefactoringSha = stepShas.last()
             val residualOutcome = applyResidual(
                 worktreeGit = worktreeGit,
@@ -306,13 +199,6 @@ class IdeRefactoringsRunner(
             val synth = SynthesisedGroup(
                 stepIndexes = appliedSteps.map { it.stepIndex },
                 fromSha = group.fromSha,
-                // The alt's terminal state (lastRefactoringSha + optional
-                // residual layer) lands at the same checkpoint state as
-                // `settledSha`. Pin userToSha to settledSha so downstream
-                // comparisons (e.g. DivergencePointBuilder's
-                // `altProcess - userProcess`) line up against the user's
-                // post-refactoring state rather than a mid-progression
-                // intermediate.
                 userToSha = group.settledSha,
                 altShas = stepShas.toList(),
                 branchRefs = stepBranchRefs.toList(),
@@ -359,26 +245,16 @@ class IdeRefactoringsRunner(
     private data class Group(
         val fromSha: String,
         val toSha: String,
-        /** Target of the residual 3-way merge — see [RefactoringStep.settledSha].
-         *  Defaults to [toSha] for groups whose steps don't carry a settled
-         *  point (e.g. legacy reports or hand-built test fixtures). */
         val settledSha: String,
         val steps: List<RefactoringStep>,
     )
 
     private sealed interface GroupResult {
         data class Ok(val synth: SynthesisedGroup) : GroupResult
-        /** Some steps in the group failed but at least one applied,
-         *  so the alt-SHA still exists. Per-step failures are surfaced
-         *  to the caller via [failedStepReasons] keyed by stepIndex. */
         data class PartialOk(
             val synth: SynthesisedGroup,
             val failedStepReasons: Map<Int, String>,
         ) : GroupResult
-        /** Nothing in the group landed — either every spec failed,
-         *  no textual change resulted, or applies threw a wholesale
-         *  error. Every step in the group is added to [Summary.skipped]
-         *  with this reason. */
         data class Skipped(val reason: String) : GroupResult
     }
 

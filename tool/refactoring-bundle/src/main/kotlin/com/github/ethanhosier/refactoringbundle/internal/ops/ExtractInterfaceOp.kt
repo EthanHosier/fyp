@@ -8,12 +8,6 @@ import org.eclipse.jdt.internal.corext.refactoring.structure.ExtractInterfacePro
 import org.eclipse.jdt.internal.ui.preferences.JavaPreferencesSettings
 import org.eclipse.ltk.core.refactoring.participants.ProcessorBasedRefactoring
 
-/**
- * Extract an interface named [newInterfaceName] from [sourceTypeFqn]
- * containing the listed public methods. The source type is made to
- * implement the new interface. Method names must be unambiguous on
- * [sourceTypeFqn]; the interface is created in the same package.
- */
 internal object ExtractInterfaceOp {
 
     fun run(

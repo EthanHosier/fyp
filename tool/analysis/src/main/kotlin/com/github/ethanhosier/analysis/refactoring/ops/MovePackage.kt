@@ -4,16 +4,6 @@ import com.github.ethanhosier.analysis.refactoring.RefactoringClient
 import com.github.ethanhosier.analysis.refactoring.RefactoringOutcome
 import java.nio.file.Path
 
-/**
- * Move a package to be a child of [newParentPackage], keeping its
- * last name segment. Differs from [renamePackage] in intent only —
- * Rename Package changes the last segment, Move Package changes the
- * prefix and keeps the last segment. JDT uses the same descriptor for
- * both; we compose on top of [renamePackage] to preserve that.
- *
- * Example: moving `com.example.old` under `com.foo` yields
- * `com.foo.old`.
- */
 data class MovePackageRequest(
     val projectRoot: Path,
     val sourceFolders: List<String>,

@@ -4,24 +4,11 @@ import com.github.ethanhosier.analysis.metrics.model.CheckpointMetrics
 import com.github.ethanhosier.analysis.pipeline.CpdTracking
 import kotlinx.serialization.Serializable
 
-/**
- * Sequential post-processing pass that computes [CpdTracking] for every
- * checkpoint by walking the trajectory in order and feeding consecutive
- * `(prev, curr)` pairs to [CpdDuplicationTracker].
- *
- * Cheaper than the PMD equivalent — no git diffs, no path translation,
- * no line mapping. Identity is body-hash, computed once at runner time.
- *
- * Alternative trajectories track independently against their `fromSha`
- * snapshot, mirroring [com.github.ethanhosier.analysis.metrics.pmd.PmdTrackingRunner].
- */
 class CpdTrackingRunner {
 
     @Serializable
     data class Summary(
-        /** Keyed by user-trajectory SHA, in trajectory order. */
         val trackingBySha: Map<String, CpdTracking>,
-        /** Keyed by alternative SHA. */
         val alternativeTrackingBySha: Map<String, CpdTracking>,
     )
 
@@ -47,9 +34,6 @@ class CpdTrackingRunner {
 
         val altMetricsBySha = alternativeCheckpoints.associateBy { it.sha }
         val userMetricsBySha = orderedUserCheckpoints.associateBy { it.sha }
-        // Multi-step alts chain: pair k+1's `fromSha` is pair k's
-        // `altSha`. Look `from` up in both buckets and inherit the
-        // running tracking from whichever side it lives on.
         val combinedMetricsBySha = userMetricsBySha + altMetricsBySha
         val combinedTrackingBySha = LinkedHashMap<String, CpdTracking>().apply {
             putAll(userTracking)

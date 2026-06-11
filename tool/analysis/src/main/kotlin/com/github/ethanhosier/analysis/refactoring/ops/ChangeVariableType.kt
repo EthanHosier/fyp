@@ -4,13 +4,6 @@ import com.github.ethanhosier.analysis.refactoring.RefactoringClient
 import com.github.ethanhosier.analysis.refactoring.RefactoringOutcome
 import java.nio.file.Path
 
-/**
- * Change the declared type of a local variable / parameter / field
- * to [newTypeFqn]. JDT validates that all usages stay well-typed.
- *
- * Same underlying JDT refactoring serves "Change Variable Type" and
- * "Change Attribute Type" — callers pick the selection point.
- */
 data class ChangeVariableTypeRequest(
     val projectRoot: Path,
     val sourceFolders: List<String>,

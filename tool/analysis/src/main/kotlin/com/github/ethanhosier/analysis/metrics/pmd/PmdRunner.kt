@@ -8,30 +8,12 @@ import net.sourceforge.pmd.lang.rule.RuleSet
 import java.nio.file.Files
 import java.nio.file.Path
 
-/**
- * Runs PMD across a project root and returns a typed [PmdResult].
- *
- * Uses the PMD 7.x programmatic API: build a [PMDConfiguration], hand it to
- * [PmdAnalysis.create], and collect the [net.sourceforge.pmd.reporting.Report]
- * from `performAnalysisAndCollectReport()`.
- */
 class PmdRunner(
     private val ruleSets: List<String> = DEFAULT_RULESETS,
     private val javaVersion: String = "21",
-    /**
-     * If non-null, PMD persists per-file analysis state here and reuses
-     * results for files whose content + ruleset hash hasn't changed. The
-     * file is read on construction and rewritten on close. Caller owns
-     * the lifecycle: pass a path scoped to the unit of work that should
-     * share the cache (e.g. one path per analysis session). Null disables
-     * caching — appropriate for one-shot runs and unit tests.
-     */
     private val cacheFile: Path? = null,
 ) {
 
-    /**
-     * @param projectDir root directory to scan recursively for `.java` files
-     */
     fun run(projectDir: Path): PmdResult {
         require(Files.isDirectory(projectDir)) { "not a directory: $projectDir" }
         val root = projectDir.toAbsolutePath().normalize()
@@ -123,18 +105,9 @@ class PmdRunner(
     }
 
     companion object {
-        /**
-         * Decent signal-to-noise default: real correctness + design issues,
-         * no stylistic/documentation nits. Override via constructor if a
-         * downstream consumer wants a different scope.
-         */
         val DEFAULT_RULESETS: List<String> = listOf(
             "category/java/bestpractices.xml",
             "category/java/errorprone.xml",
-            // Custom variant of category/java/design.xml that drops
-            // LoosePackageCoupling — that rule needs per-project
-            // packages/classes properties we don't supply, so otherwise
-            // PMD logs a misconfigured-rule warning every analysis.
             "pmd-rulesets/design-no-loose-coupling.xml",
         )
     }

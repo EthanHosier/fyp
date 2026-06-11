@@ -9,11 +9,6 @@ import org.eclipse.jdt.core.refactoring.descriptors.RenameJavaElementDescriptor
 import org.eclipse.ltk.core.refactoring.RefactoringCore
 import org.eclipse.ltk.core.refactoring.RefactoringStatus
 
-/**
- * Rename a method declared on [declaringTypeFqn] from [oldName] to
- * [newName] across the entire project. Optional [paramTypeSignatures]
- * disambiguates overloads (JDT-encoded: `Ljava/lang/String;`, `I`, `V`).
- */
 internal object RenameMethodOp {
 
     fun run(
@@ -51,9 +46,6 @@ internal object RenameMethodOp {
         if (paramTypeSignatures != null) {
             return type.getMethod(name, paramTypeSignatures).takeIf { it.exists() }
         }
-        // Unambiguous by name? Return it. Otherwise refuse so the
-        // caller disambiguates explicitly rather than us picking a
-        // surprising overload for them.
         val candidates = type.methods.filter { it.elementName == name }
         return candidates.singleOrNull()
     }

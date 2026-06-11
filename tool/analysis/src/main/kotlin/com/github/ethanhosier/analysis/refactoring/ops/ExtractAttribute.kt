@@ -4,11 +4,6 @@ import com.github.ethanhosier.analysis.refactoring.RefactoringClient
 import com.github.ethanhosier.analysis.refactoring.RefactoringOutcome
 import java.nio.file.Path
 
-/**
- * Promote an expression to a `static final` field. [visibility] is
- * one of `"public"`, `"protected"`, `"private"`, or `""` for
- * package-private.
- */
 data class ExtractAttributeRequest(
     val projectRoot: Path,
     val sourceFolders: List<String>,

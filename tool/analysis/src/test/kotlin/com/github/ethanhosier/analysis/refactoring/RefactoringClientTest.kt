@@ -79,16 +79,6 @@ import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
-/**
- * End-to-end coverage for [RefactoringClient]: one real Equinox
- * framework is booted in [BeforeAll], reused across every test, and
- * torn down in [AfterAll]. Each test uses its own [TempDir]-rooted
- * fake worktree.
- *
- * Assertions compare full file contents against expected strings so the
- * tests are scannable — each input block and expected output block
- * lives right next to the other.
- */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Tag("slow")
 class RefactoringClientTest {
@@ -175,11 +165,6 @@ class RefactoringClientTest {
         val src = worktree.resolve("src").also(Path::createDirectories)
         val file = src.resolve("org/example/Demo.java")
         file.parent.createDirectories()
-        // The extracted body uses only the parameters — JDT's own
-        // `forceStatic()` would NOT trigger here (host method is
-        // non-static, so a non-static extracted method is a valid
-        // choice). The post-process should still add `static`
-        // because the spec says so.
         file.writeText(
             """
             package org.example;
@@ -268,13 +253,6 @@ class RefactoringClientTest {
 
     @Test
     fun `extract method promotes void to return when outer-scoped var is mutated then read after`(@TempDir worktree: Path) {
-        // Replicates the user-IDE scenario JDT's ExtractMethodAnalyzer
-        // fumbles: selection sits inside a conditional branch, mutates an
-        // outer-scoped local (`t`) as its last statement, and that local is
-        // read after the enclosing if-else. JDT alone produces
-        // `void handleGold(double t)` + `handleGold(t);`; IntelliJ
-        // (and our post-extract rewrite) yields a returning method with
-        // an assignment at the call site.
         val src = worktree.resolve("src").also(Path::createDirectories)
         val file = src.resolve("org/example/OrderPricingService.java")
         file.parent.createDirectories()
@@ -338,13 +316,6 @@ class RefactoringClientTest {
 
     @Test
     fun `extract method splits inlined-return call site when selection ended with return localVar`(@TempDir worktree: Path) {
-        // Companion to the void→return promotion: when the original
-        // selection ended with `return <localVar>;` and <localVar> was
-        // mutated earlier in the selection, JDT extracts a returning
-        // method (good) but inlines the call into `return f(args);`,
-        // discarding the caller's variable. IntelliJ keeps
-        // `<localVar> = f(args); return <localVar>;`. We split the
-        // ReturnStatement back into the assignment + return pair.
         val src = worktree.resolve("src").also(Path::createDirectories)
         val file = src.resolve("org/example/Clamp.java")
         file.parent.createDirectories()
@@ -400,10 +371,6 @@ class RefactoringClientTest {
 
     @Test
     fun `extract method leaves void method alone when no outer-scoped var is mutated`(@TempDir worktree: Path) {
-        // Negative case: the promotion should NOT fire when the last
-        // statement isn't an assignment to a parameter of the new method.
-        // Here the selection prints and computes a local — no outer var
-        // flows out, so JDT correctly picks void and we should leave it.
         val src = worktree.resolve("src").also(Path::createDirectories)
         val file = src.resolve("org/example/Demo.java")
         file.parent.createDirectories()
@@ -938,17 +905,6 @@ class RefactoringClientTest {
 
     @Test
     fun `extract variable on a bare parameter reference then inline the host method`(@TempDir worktree: Path) {
-        // Mirrors the user's real fixture: handleSilver's pre-state body
-        // begins `double t3 = t;` and RM detects an Extract Variable on
-        // the bare `t` (a single SimpleName) — fragment1 = the `t` on
-        // the RHS. This pins:
-        //  - JDT's Extract Local Variable can extract a bare parameter
-        //    reference (single SimpleName, not a compound expression).
-        //  - The column range matches a real expression node; an
-        //    off-by-one would land on `t;` and JDT would reject
-        //    "An expression must be selected".
-        //  - The downstream Inline Method then pulls the now-extracted
-        //    body into the caller, producing the user's actual end-state.
         val src = worktree.resolve("src").also(Path::createDirectories)
         val file = src.resolve("p/A.java")
         file.parent.createDirectories()
@@ -970,12 +926,6 @@ class RefactoringClientTest {
             """.trimIndent(),
         )
 
-        // Extract the bare `t` on the RHS of `double t3 = t;` (line 9).
-        // After the package + class header + blank + method + opening
-        // brace, that's: 1 package, 2 blank, 3 class, 4 method, 5 return,
-        // 6 close, 7 blank, 8 method, 9 "double t3 = t;".
-        // Indent 8 → cols 1-8, `double` 9-14, ` ` 15, `t3` 16-17, ` ` 18,
-        // `=` 19, ` ` 20, `t` 21, `;` 22.
         val extract = client.extractVariable(
             extractVariableRequestAt(
                 projectRoot = worktree,
@@ -1000,11 +950,6 @@ class RefactoringClientTest {
         )
         assertIs<RefactoringOutcome.Success>(inline, "inline=$inline")
 
-        // JDT's Extract Local Variable is configured with
-        // `replaceAllOccurrences=true`, so every bare `t` in handleSilver
-        // becomes `t4`. The subsequent Inline Method substitutes the
-        // remaining parameter `t` with the call site's argument `x`,
-        // leaving the rewritten body inlined into priceOrder.
         assertEquals(
             """
             package p;
@@ -1024,13 +969,6 @@ class RefactoringClientTest {
 
     @Test
     fun `extract variable inside method then inline that method matches expected end-state`(@TempDir worktree: Path) {
-        // Locks in the desired post-apply file content for the
-        // BracketSpecReorderer scenario: RM reports
-        // [InlineMethod handle, ExtractVariable host=handle] in some
-        // order; the miner reorders so Extract Variable applies first
-        // (against handle, while it still exists), then Inline Method
-        // pulls the now-extracted body into the caller. This test
-        // exercises the reordered sequence end-to-end via the client.
         val src = worktree.resolve("src").also(Path::createDirectories)
         val file = src.resolve("p/A.java")
         file.parent.createDirectories()
@@ -1561,11 +1499,6 @@ class RefactoringClientTest {
 
         val newSuper = src.resolve("com/example/Person.java")
         assertTrue(Files.exists(newSuper), "Person.java should have been created")
-        // Note: ExtractSupertypeProcessor copies methods up but leaves
-        // the subclass implementation as an override — see comment in
-        // ExtractSuperclassOp. Callers wanting a clean "move up" should
-        // chain a Pull Up against the newly-created parent. Fields ARE
-        // moved fully (field deletion goes through a different path).
         assertEquals(
             """
             package com.example;
@@ -2193,10 +2126,6 @@ class RefactoringClientTest {
         )
 
         assertIs<RefactoringOutcome.Success>(outcome, "outcome=$outcome")
-        // JDT's Extract Constant rewrites the selected occurrence; the
-        // other `0.2` isn't matched as a duplicate because a bare
-        // literal-inside-expression doesn't satisfy JDT's structural
-        // match heuristic (the containing `total * 0.2` would).
         assertEquals(
             """
             package com.example;
@@ -2578,26 +2507,6 @@ class RefactoringClientTest {
         assertIs<RefactoringOutcome.Failed>(after, "second call after failure still works")
     }
 
-    /**
-     * Verifies the AST-subtree-hash anchor on
-     * [com.github.ethanhosier.analysis.miner.model.RefactoringSpec.ExtractMethod]
-     * survives drift in the surrounding code as long as the selection's
-     * own subtree is unchanged. Each test:
-     *  1. writes an "anchor source" — the file as it looked when the
-     *     spec was mined, used to compute the hash anchor;
-     *  2. overwrites the same file with a "drifted source" — same
-     *     to-be-extracted code, edits elsewhere (lines shifted,
-     *     unrelated statements changed, formatting adjusted);
-     *  3. runs `client.extractMethod` with the *original* anchor and
-     *     asserts the refactoring still locates and extracts the
-     *     intended window.
-     *
-     * Together these exercise the resilience that motivates the
-     * AST-anchor scheme: an alt-trajectory replays a refactoring after
-     * a prior op rewrote part of the file, and the anchor needs to
-     * re-find its target without relying on stale (line, col)
-     * addressing.
-     */
     @Nested
     inner class `extract method anchor drift` {
 
@@ -2622,9 +2531,6 @@ class RefactoringClientTest {
                 startLine = 6, endLine = 9, newMethodName = "handleGold",
             )
 
-            // Drift: prepend a brand-new method above `priceFor`. Every
-            // line of the host shifts down. The selection's AST is
-            // byte-identical to the anchor source.
             file.writeText(
                 """
                 package org.example;
@@ -2697,9 +2603,6 @@ class RefactoringClientTest {
                 startLine = 7, endLine = 10, newMethodName = "handleGold",
             )
 
-            // Drift: change the unrelated `tax = total * 0.1` to
-            // `total * 0.15`. The if-body — the selection — is
-            // untouched, so its hash still matches.
             file.writeText(
                 """
                 package org.example;
@@ -2765,9 +2668,6 @@ class RefactoringClientTest {
                 startLine = 6, endLine = 9, newMethodName = "handleGold",
             )
 
-            // Drift: add javadoc on the host, a line comment inside
-            // the if-block above the selection, and a block comment
-            // after. Comments are skipped by the AST hasher.
             file.writeText(
                 """
                 package org.example;
@@ -2825,9 +2725,6 @@ class RefactoringClientTest {
                 startLine = 6, endLine = 9, newMethodName = "handleGold",
             )
 
-            // Drift: change indentation throughout the host body. JDT's
-            // structural property descriptors don't carry whitespace,
-            // so the selection's hash is invariant to formatting.
             file.writeText(
                 """
                 package org.example;
@@ -2875,9 +2772,6 @@ class RefactoringClientTest {
                 startLine = 6, endLine = 9, newMethodName = "handleGold",
             )
 
-            // Drift: insert new statements both *before* the if-block
-            // and *after* it. The selection (the if-then-block's three
-            // statements) is byte-identical, so the hash still matches.
             file.writeText(
                 """
                 package org.example;
@@ -2950,11 +2844,6 @@ class RefactoringClientTest {
                 startLine = 9, endLine = 12, newMethodName = "handleGold",
             )
 
-            // Drift: delete the unrelated `tax` and `surcharge` setup
-            // statements *and* simplify the trailing return. The
-            // selection (if-then-block's three statements) is
-            // unchanged so the hash still matches; the apply path
-            // re-finds the window at its new (shifted-up) position.
             file.writeText(
                 """
                 package org.example;
@@ -3047,13 +2936,6 @@ class RefactoringClientTest {
             )
         }
 
-        /**
-         * Write [source] to a Java file under [worktree] and build the
-         * extract-method request against that snapshot. Returns the
-         * file (so callers can overwrite it with drifted source) and
-         * the request (which carries the AST-subtree-hash anchor that
-         * survives subsequent edits).
-         */
         private fun anchorSource(
             worktree: Path,
             source: String,

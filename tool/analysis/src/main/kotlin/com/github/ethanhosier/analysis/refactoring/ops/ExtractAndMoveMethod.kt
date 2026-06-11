@@ -5,17 +5,6 @@ import com.github.ethanhosier.analysis.refactoring.RefactoringOutcome
 import com.github.ethanhosier.analysis.refactoring.anchor.SpecAnchorBuilder
 import java.nio.file.Path
 
-/**
- * Extract a selection into a new method on the enclosing class, then
- * move that method onto the instance named [moveTargetName] (a
- * parameter or field in the extracted method's signature).
- *
- * JDT has no single processor for this — it's a composition of
- * Extract Method + Move Instance Method that IntelliJ surfaces as one
- * action. We chain the two ops; the second call reads on-disk state
- * rewritten by the first, so the declaring type must be passed so we
- * know where to look for the freshly-extracted method.
- */
 data class ExtractAndMoveMethodRequest(
     val projectRoot: Path,
     val sourceFolders: List<String>,
@@ -33,9 +22,6 @@ data class ExtractAndMoveMethodRequest(
 )
 
 fun RefactoringClient.extractAndMoveMethod(req: ExtractAndMoveMethodRequest): RefactoringOutcome {
-    // Resolve the AST-subtree anchor for the extracted range from the
-    // current on-disk source. The bundle uses the hash to re-find the
-    // window even if prior ops shifted line numbers in this file.
     val anchor = SpecAnchorBuilder(req.projectRoot).rangeAnchor(
         req.relativeFilePath, req.startLine, req.startColumn, req.endLine, req.endColumn,
     ) ?: return RefactoringOutcome.Failed(

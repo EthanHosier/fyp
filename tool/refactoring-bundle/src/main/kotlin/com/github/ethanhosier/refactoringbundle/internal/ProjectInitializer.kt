@@ -11,12 +11,6 @@ import org.eclipse.jdt.core.JavaCore
 import org.eclipse.jdt.launching.JavaRuntime
 import java.nio.file.Path
 
-/**
- * Turns a plain filesystem directory (typically a git worktree) into an
- * Eclipse `IJavaProject` the refactoring engine can operate on. The
- * project's physical `location` is the worktree itself — no copying —
- * so refactorings land on the caller's files directly.
- */
 internal object ProjectInitializer {
 
     fun initProject(
@@ -31,9 +25,6 @@ internal object ProjectInitializer {
         if (!project.exists()) {
             val desc: IProjectDescription = workspace.newProjectDescription(name)
             desc.natureIds = arrayOf(JavaCore.NATURE_ID)
-            // Physical project location = the worktree. Edits made via
-            // JDT land on disk at `root/…`, which is exactly what the
-            // caller wants.
             desc.setLocation(EclipsePath(root.toAbsolutePath().toString()))
             project.create(desc, NullProgressMonitor())
         }
@@ -49,9 +40,6 @@ internal object ProjectInitializer {
                 entries += JavaCore.newSourceEntry(srcResource.fullPath)
             }
         }
-        // JRE container — without this the type bindings for `String`,
-        // `Object`, etc. are unresolved, and several refactorings bail
-        // during `checkFinalConditions` on "unknown type" errors.
         entries += JavaRuntime.getDefaultJREContainerEntry()
         for (jar in classpathJars) {
             entries += JavaCore.newLibraryEntry(

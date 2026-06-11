@@ -160,11 +160,6 @@ class ReworkDriftTrackerTest {
 
     @Test
     fun `translateInsertionPoint inside zone interior also scans forward`() {
-        // Zone 3..8. Insertion "after user line 5" — line 5 is mid-zone.
-        // Scan forward: line 6, 7, 8 all interior. Line 9 → synth 3. minus 1 → 2.
-        // (This is a degenerate input the renumber layer would normally
-        // reject as a hunk targeting the zone interior; the tracker
-        // is conservative — caller decides whether to use it.)
         val t = ReworkDriftTracker()
         t.registerAddedZone("Foo.java", userStartLine = 3, length = 6)
 
