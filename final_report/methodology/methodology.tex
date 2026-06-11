@@ -2,12 +2,14 @@
 \label{ch:methodology}
 \label{ch:architecture}
 
-This chapter explains how the proposed process-evaluation approach is defined, implemented, and evaluated. \S\ref{sec:methodology-notation} sets out the state/action/trace notation used throughout the chapter. \S\ref{sec:methodology-score}--\S\ref{sec:methodology-cleanliness} define the process-quality score, and \S\ref{sec:arch-events}--\S\ref{sec:arch-metrics} describe the event-capture, shadow-repository, and metrics infrastructure that supplies the data for that score. \S\ref{sec:methodology-detector} introduces the divergence-point detector. \S\ref{sec:arch-jdt} covers the Eclipse JDT layer used to construct alternatives, \S\ref{sec:methodology-reorder}--\S\ref{sec:methodology-hygiene} describe the per-kind alternative trajectory synthesisers, and \S\ref{sec:methodology-validator} the validator used to check that each alternative still reaches the same end state. \S\ref{sec:arch-overview}--\S\ref{sec:methodology-phases-split} describe the overall system architecture and offline/replay pipeline, and \S\ref{sec:arch-dashboard} the participant dashboard. \S\ref{sec:methodology-score-eval}--\S\ref{sec:methodology-detector-eval} then define the evaluation methodology used in Chapter~\ref{ch:results}: the score-formula sensitivity and ablation design, the 45-session dataset and labelling protocol, and the divergence-detector evaluation protocol.
+This chapter explains how the proposed process-evaluation approach is defined, implemented, and evaluated. From here on we refer to the implementation as \emph{the tool}. It is made up of an IntelliJ plugin that records developer sessions, an analysis pipeline that scores and analyses each trace, an embedded Eclipse JDT bundle that applies counterfactual refactorings, and a dashboard that shows the results to the developer. \S\ref{sec:arch-overview} gives the full module breakdown. \S\ref{sec:methodology-notation} sets out the state/action/trace notation used throughout the chapter. \S\ref{sec:methodology-score}--\S\ref{sec:methodology-cleanliness} define the process-quality score, and \S\ref{sec:arch-events}--\S\ref{sec:arch-metrics} describe the event-capture, shadow-repository, and metrics infrastructure that supplies the data for that score. \S\ref{sec:methodology-detector} introduces the divergence-point detector. \S\ref{sec:arch-jdt} covers the Eclipse JDT layer used to construct alternatives, \S\ref{sec:methodology-reorder}--\S\ref{sec:methodology-hygiene} describe the per-kind alternative trajectory synthesisers, and \S\ref{sec:methodology-validator} the validator used to check that each alternative still reaches the same end state. \S\ref{sec:arch-overview}--\S\ref{sec:methodology-phases-split} describe the overall system architecture and offline/replay pipeline, and \S\ref{sec:arch-dashboard} the participant dashboard. \S\ref{sec:methodology-score-eval}--\S\ref{sec:methodology-detector-eval} then define the evaluation methodology used in Chapter~\ref{ch:results}: the score-formula sensitivity and ablation design, the 45-session dataset and labelling protocol, and the divergence-detector evaluation protocol.
 
-\section{Formal definitions and notation}
+\section{State, actions, and traces}
 \label{sec:methodology-notation}
 
-The formal definitions in this section build on the state/action/trace framing from \S\ref{sec:def-framing}. A refactoring trajectory is a sequence
+We wanted a way to capture what the developer actually did during a refactoring session and then analyse it rigorously, rather than only inspecting the start and end snapshots. The simplest framing that lets us do both is a state/action/trace model: each code snapshot during the session is a \emph{state}, each developer edit is an \emph{action}, and the session as a whole is a trace through those states. This is what makes per-step analysis possible. We can score each intermediate state, tie a change in code quality to the action that caused it, and point to the exact step at which the developer's path moved away from a higher-scoring alternative.
+
+A refactoring trajectory is then a sequence
 \[
 \tau = (s_0, a_0, s_1, a_1, \ldots, a_{T-1}, s_T),
 \]
@@ -20,9 +22,16 @@ The tool evaluates a trajectory by producing an \emph{analysis report}. For a tr
   \item $\mathcal{A}$ is the set of alternative reference trajectories synthesised at those divergence points (\S\ref{sec:methodology-reorder} onwards). Each $\tau^\ast \in \mathcal{A}$ is represented in the same way as the observed trajectory, which allows both trajectories to be scored using the same process-quality score.
 \end{itemize}
 
-The process-quality score $J(\tau)$ is computed over the full trajectory using $\mathcal{M}$, and is the focus of \S\ref{sec:methodology-score}--\S\ref{sec:methodology-weights}. Table~\ref{tab:methodology-notation} summarises the notation used throughout the chapter.
+The process-quality score $J(\tau)$ is computed over the full trajectory using $\mathcal{M}$, and is the focus of \S\ref{sec:methodology-score}--\S\ref{sec:methodology-weights}.
 
-\begin{table}[htbp]
+\section{Computing the process score}
+\label{sec:methodology-process-score-section}
+
+Before defining the formula, it is worth saying what we wanted the score to actually measure. \S\ref{sec:smells-metrics} already laid out the kinds of signal that prior work uses to judge code changes, with Table~\ref{tab:metric-candidates} as the summary, and the process score $J(\tau)$ combines several of them.
+
+There are two kinds of things we want the score to capture. On the positive side, there is what a refactoring session is supposed to produce: cleaner code at the end, and where one is available, a shorter route to that same end state. On the negative side, there is a small set of process patterns we have reason to discourage along the way: leaving the build or tests broken, skipping tests, hand-editing code that the IDE could have refactored, leaving long uncommitted stretches, and lingering in degraded intermediate states. \S\ref{sec:methodology-weights} explains each of these in turn and gives the literature behind its weight value. Table~\ref{tab:methodology-notation} collects the notation used throughout.
+
+\begin{table}[H]
 \centering
 \small
 \begin{tabular}{ll}
@@ -48,11 +57,6 @@ $\mathcal{K}$ & Divergence-kind set $= \{\emph{Ordering}, \emph{Manual-Refactor}
 \caption{Notation used throughout the methodology chapter.}
 \label{tab:methodology-notation}
 \end{table}
-
-\section{Computing the process score}
-\label{sec:methodology-process-score-section}
-
-This section defines the process score $J(\tau)$ and the cleanliness sub-score used inside it (\S\ref{sec:methodology-score}--\S\ref{sec:methodology-cleanliness}), then describes how the tool captures events, reconstructs shadow repositories, and calculates the per-checkpoint metrics needed to compute the score (\S\ref{sec:arch-events}--\S\ref{sec:arch-metrics}).
 
 \subsection{The process score}
 \label{sec:methodology-score}
@@ -108,20 +112,20 @@ The rest of this section explains each weight in turn. For two terms, $W_{\texts
 This is the main positive term in the score: each unit of cleanliness gain at the end of the trajectory adds 50 to $J(\tau)$. Cedrim et al.~\cite{cedrim2017refactoring} found that refactoring often leaves structural metrics unchanged or slightly worse, so improvement should be rewarded explicitly rather than assumed. Paix{\~a}o et al.~\cite{paixao2017balancing} model the balance between disruption and improvement as something developers actively manage, which motivates treating cleanliness gain and process penalties as competing parts of the same score.
 
 \paragraph{$W_{\textsc{b}}$ (broken, 28).}
-This is the largest single penalty term. Paix{\~a}o et al.~\cite{paixao2017balancing} show that developers place substantial value on avoiding disruptive intermediate states, even when doing so means giving up roughly a quarter of the available metric improvement. The penalty is time-weighted rather than binary: $r_b(\tau) = b_{\mathrm{ms}} / e_{\mathrm{ms}}$, so a brief broken state is penalised less than a long one. The numerator $b_{\mathrm{ms}}$ counts only wall-clock time during which the build or tests are failing, rather than total refactoring time.
+A broken build or failing test means behaviour preservation, the point of refactoring, has been temporarily abandoned. This is the largest single penalty term. Paix{\~a}o et al.~\cite{paixao2017balancing} show that developers place substantial value on avoiding disruptive intermediate states, even when doing so means giving up roughly a quarter of the available metric improvement. The penalty is time-weighted rather than binary: $r_b(\tau) = b_{\mathrm{ms}} / e_{\mathrm{ms}}$, so a brief broken state is penalised less than a long one. The numerator $b_{\mathrm{ms}}$ counts only wall-clock time during which the build or tests are failing, rather than total refactoring time.
 
 Time-weighting also makes the term less sensitive to how finely the trajectory is sampled. The state/action/trace framing in \S\ref{sec:methodology-notation} allows a state to be a commit, an IDE event, or a developer-defined checkpoint. A binary count of broken states would vary substantially across those choices, whereas wall-clock time spent broken is independent of the sampling rate. This choice is also consistent with Gautam et al.'s RefactorBench analysis~\cite{gautam2025refactorbench}: their failure-mode~\#2 shows that rejecting every intermediate broken state can hurt LM-agent performance, because some broken intermediates are necessary during multi-file edits. The weight is therefore set high enough that a plausible single-step cleanliness gain, $W_{\textsc{g}}\,\Delta C$, cannot outweigh leaving the build or tests broken.
 
 \paragraph{$W_{\textsc{st}}$ (skip-tests, 14).}
-This term penalises 60-second refactoring windows that finish without a test run. The window size follows Murphy-Hill et al.~\cite{murphyhill2009howrefactor}, whose study of real refactoring practice shows that developers tend to run tests after batches of changes rather than after every individual edit. The weight is set to half of $W_{\textsc{b}}$: skipping tests is weaker evidence of process damage than an observed broken state, but it still indicates reduced feedback during the refactoring process.
+Skipping tests during a refactoring removes the developer's main feedback signal that behaviour really has been preserved. This term penalises 60-second refactoring windows that finish without a test run. The window size follows Murphy-Hill et al.~\cite{murphyhill2009howrefactor}, whose study of real refactoring practice shows that developers tend to run tests after batches of changes rather than after every individual edit. The weight is set to half of $W_{\textsc{b}}$: skipping tests is weaker evidence of process damage than an observed broken state, but it still indicates reduced feedback during the refactoring process.
 
 \paragraph{$W_{\textsc{mi}}$ (manual-when-IDE, 11).}
-This term penalises steps where the developer performs a refactoring manually even though the IDE could have applied the same transformation automatically. Mens \& Tourw{\'e}~\cite{mens2004survey} note that IDE refactoring tools apply static precondition checks that manual edits may bypass, making the automated route safer in many cases. At the same time, manual refactoring is common: Negara et al.~\cite{negara2013manualautomated} found that, across 23 developers and 5,371 refactorings, developers often performed refactorings by hand even when an automated equivalent was available. Vakilian et al.~\cite{vakilian2012usedisuse} also show that automated refactorings can be misused, so the term is treated as a graded penalty rather than a hard rule.
+Hand-editing code that the IDE could have refactored bypasses the precondition checks the IDE runs for you, which makes a subtle behavioural slip easier to introduce by accident. Mens \& Tourw{\'e}~\cite{mens2004survey} make this point directly: IDE refactoring tools apply static precondition checks that manual edits skip, so the automated route is safer in many cases. At the same time, manual refactoring is common: Negara et al.~\cite{negara2013manualautomated} found that, across 23 developers and 5,371 refactorings, developers often performed refactorings by hand even when an automated equivalent was available. Vakilian et al.~\cite{vakilian2012usedisuse} also show that automated refactorings can be misused, so the term is treated as a graded penalty rather than a hard rule.
 
 No published study we know of directly measures the fault-rate gap between manual and IDE refactoring, so this weight is not fitted to such data. It instead follows the severity ordering set out above. The ablation analysis in \S\ref{sec:results-ablation} shows that \texttt{manualIde} is one of the three largest single-term contributors by sum-over-sum recovery to session-wide divergence-point magnitude, alongside \texttt{length} and \texttt{broken} (Table~\ref{tab:results-ablation-solo}), and the sensitivity sweep in \S\ref{sec:results-sensitivity} indicates that the ranking is robust to perturbations of this weight.
 
 \paragraph{$W_{\textsc{l}}$ (length, 11).}
-This is a positive term rather than a penalty. It increases $J(\tau)$ only for alternative trajectories that reach the same end state as the observed user trajectory in fewer steps. Search-based refactoring work treats the number of refactoring operations as an optimisation objective alongside quality \cite{harman2007pareto,mohan2019manyobjective}, and later many-objective work continues this by trading effort against code-quality objectives \cite{cortellessa2023manyobjective}. The observed user trajectory is not penalised for length, since a longer path may reflect a larger or more complex task rather than a worse process. The term therefore rewards shorter valid alternatives without treating every long trajectory as poor.
+If two paths arrive at the same end state, the shorter one deserves credit for the saved work. This is a positive term rather than a penalty. It increases $J(\tau)$ only for alternative trajectories that reach the same end state as the observed user trajectory in fewer steps. Search-based refactoring work treats the number of refactoring operations as an optimisation objective alongside quality \cite{harman2007pareto,mohan2019manyobjective}, and later many-objective work continues this by trading effort against code-quality objectives \cite{cortellessa2023manyobjective}. The observed user trajectory is not penalised for length, since a longer path may reflect a larger or more complex task rather than a worse process. The term therefore rewards shorter valid alternatives without treating every long trajectory as poor.
 
 \paragraph{$W_{\textsc{lag}}$ (lag, 11).}
 This term penalises trajectories that spend time in a worse cleanliness state before reaching their final value. The gain term $W_{\textsc{g}}\,\Delta C$ only compares the start and end states, so two trajectories receive the same gain score if they finish with the same cleanliness improvement, even if one cleans up early and the other leaves the code degraded until the end. The lag term adds a cost for this delay.
@@ -140,7 +144,7 @@ This is deliberately a narrow claim. Kudrjavets et al.~\cite{kudrjavets2022small
 \subsection{The cleanliness sub-score}
 \label{sec:methodology-cleanliness}
 
-The cleanliness sub-score $C(s)$ in Equation~\eqref{eq:process-score} gives each codebase state a normalised quality value in $[0, 100]$. It is built from six signals rather than one, following the argument in \S\ref{sec:smells-metrics} that individual quality measures are noisy and context-dependent. Combining several signals makes the score less dependent on any single metric. Table~\ref{tab:methodology-cleanliness} lists the six sub-signals, the source used to justify each one, and how each value is computed.
+So far $C(s)$ has appeared in the process score as a single number per state. This section unpacks where that number comes from. The cleanliness sub-score $C(s)$ in Equation~\eqref{eq:process-score} gives each codebase state a normalised quality value in $[0, 100]$. It is built from six signals rather than one, following the argument in \S\ref{sec:smells-metrics} that individual quality measures are noisy and context-dependent. Combining several signals makes the score less dependent on any single metric. Table~\ref{tab:methodology-cleanliness} lists the six sub-signals, the source used to justify each one, and how each value is computed.
 
 \begin{table}[htbp]
 \centering
@@ -181,7 +185,7 @@ The process score and cleanliness sub-score are computed from the state of the c
 \subsection{Event capture}
 \label{sec:arch-events}
 
-The IntelliJ plugin records the events emitted during a user's refactoring session. These include editor events (files opened, closed, saved, modified, renamed, and moved), refactoring events (refactoring start and finish), build events, test-run events with pass/fail counts, git events for newly observed commits, and session start/end events.
+Computing the score above depends on having a faithful per-step record of what the developer did during the session. The IntelliJ plugin records the events emitted during a user's refactoring session. These include editor events (files opened, closed, saved, modified, renamed, and moved), refactoring events (refactoring start and finish), build events, test-run events with pass/fail counts, git events for newly observed commits, and session start/end events.
 
 File modification activity is the noisiest source. IntelliJ emits an event for every keystroke, so we debounce these events before storing them. The debouncing layer groups keystrokes into an \emph{edit burst} across all files: once there has been no further typing for two seconds, it emits a single burst event containing the file's post-edit contents and the structured set of program elements touched.
 
@@ -209,7 +213,9 @@ The static-analysis signals are tracked across checkpoints rather than only comp
 \label{sec:methodology-detector}
 \label{sec:arch-synthesis}
 
-A \emph{divergence point} is a step where the user's trajectory can be compared with an alternative path that scores strictly higher under the process score. The detector reports four kinds of divergence:
+A process score on its own tells the developer how a session went overall, but not where it went wrong or what they could have done instead. The tool therefore emits \emph{divergence points}, each one flagging a specific step where a better path was available. Four kinds of divergence point are reported, each catching a different way a session can fall short of a higher-scoring path: \emph{Ordering} (the same refactorings applied in a worse order than they could have been), \emph{Manual-Refactor} (the developer did by hand what the IDE could have done), \emph{Rework} (work that was added and later undone), and \emph{Hygiene} (missing safety checkpoints such as tests or commits).
+
+More formally, a \emph{divergence point} is a step where the user's trajectory can be compared with an alternative path that scores strictly higher under the process score. The four kinds above form the set
 \[
 \mathcal{K} = \{\emph{Ordering},\ \emph{Manual-Refactor},\ \emph{Rework},\ \emph{Hygiene}\}.
 \]
@@ -242,7 +248,7 @@ Refactorings need to identify the code element they should act on, but raw line 
 \label{sec:methodology-detector-ordering}
 \label{sec:methodology-reorder}
 
-\emph{Ordering} detection is applied to bracket-validated windows of consecutive refactoring steps (\S\ref{sec:methodology-validator}). For each window, the reorder synthesiser computes the valid permutations of those steps and measures how each ordering changes the process score relative to the developer's original order. The system emits at most one divergence point for the window, placed at its final step. Its magnitude is the best score improvement found among the admitted permutations, and the admitted permutations are attached as alternatives.
+Even when two paths apply the same set of refactorings, the order in which they apply them can leave the trajectory passing through intermediate states of very different quality. \emph{Ordering} detection is applied to bracket-validated windows of consecutive refactoring steps (\S\ref{sec:methodology-validator}). For each window, the reorder synthesiser computes the valid permutations of those steps and measures how each ordering changes the process score relative to the developer's original order. The system emits at most one divergence point for the window, placed at its final step. Its magnitude is the best score improvement found among the admitted permutations, and the admitted permutations are attached as alternatives.
 
 The reorder synthesiser produces these alternatives by reshuffling the user's refactoring steps while still requiring the final code state to match the user's. The following paragraphs describe how candidate reorderings are generated, filtered, and checked before they are scored.
 
@@ -316,7 +322,7 @@ The search keeps one borrowed worktree for the whole window. Forward steps, back
 \label{sec:methodology-manualrefactor}
 \label{sec:arch-wrap-patch}
 
-A \emph{Manual-Refactor} divergence point is emitted at any user step where (i) the action was performed by hand, and (ii) the resulting diff matches the structural pattern of an IDE-supported refactoring. IDE-driven refactorings arrive pre-tagged in the captured event stream, but a manual refactoring is just a series of edit bursts whose net effect happens to constitute a structured refactoring. The pipeline recovers them by running RefactoringMiner~\cite{alikhanifard2025rminer}, a standard tool that detects refactorings between two code states by AST-level structural matching, over a sliding window of commit pairs in the shadow repo. The window matters because a manual refactoring may unfold across several intermediate edit bursts, each of which on its own looks like an unrelated change; only by widening the window to cover the full span does the refactoring become visible to the miner. Each detected refactoring is then cross-checked against the captured event stream: a detection whose window contains a matching IDE-emitted refactoring event is recorded as IDE-driven, and one whose window contains no such event is flagged as manual. Adjacent candidate steps that share the same \texttt{(fromSha, toSha)} bracket are grouped into a single composite that the synthesiser treats as one refactoring.
+This is the detector behind the manual-when-IDE weight in \S\ref{sec:methodology-weights}, and the work it has to do is to recover the structural shape of an edit that was not tagged as a refactoring at recording time. A \emph{Manual-Refactor} divergence point is emitted at any user step where (i) the action was performed by hand, and (ii) the resulting diff matches the structural pattern of an IDE-supported refactoring. IDE-driven refactorings arrive pre-tagged in the captured event stream, but a manual refactoring is just a series of edit bursts whose net effect happens to constitute a structured refactoring. The pipeline recovers them by running RefactoringMiner~\cite{alikhanifard2025rminer}, a standard tool that detects refactorings between two code states by AST-level structural matching, over a sliding window of commit pairs in the shadow repo. The window matters because a manual refactoring may unfold across several intermediate edit bursts, each of which on its own looks like an unrelated change; only by widening the window to cover the full span does the refactoring become visible to the miner. Each detected refactoring is then cross-checked against the captured event stream: a detection whose window contains a matching IDE-emitted refactoring event is recorded as IDE-driven, and one whose window contains no such event is flagged as manual. Adjacent candidate steps that share the same \texttt{(fromSha, toSha)} bracket are grouped into a single composite that the synthesiser treats as one refactoring.
 
 \begin{figure}[H]
 \centering
@@ -460,7 +466,7 @@ The number of brackets that pass validation is limited by differences between JD
 \section{System architecture and pipeline phases}
 \label{sec:arch-phases}
 
-This section describes the four JVM modules that make up the tool and explains how they fit into the analysis pipeline. \S\ref{sec:arch-overview} gives the module-level overview and dataflow, and \S\ref{sec:methodology-phases-split} covers the Phase A / Phase B split used by the implementation.
+We have now described what the tool computes: the process score, the cleanliness sub-score, the divergence-point detector, and the alternative-trajectory synthesisers. This section zooms out and describes how those pieces are wired together as a system the developer interacts with. It covers the four JVM modules that make up the tool and explains how they fit into the analysis pipeline. \S\ref{sec:arch-overview} gives the module-level overview and dataflow, and \S\ref{sec:methodology-phases-split} covers the Phase A / Phase B split used by the implementation.
 
 \subsection{Architecture at a glance}
 \label{sec:arch-overview}
@@ -541,7 +547,7 @@ The main view is a trajectory chart showing the user's process score over time, 
 \section{Score-formula evaluation design}
 \label{sec:methodology-score-eval}
 
-The results chapter evaluates the score formula in two ways. The first asks whether the ranking of divergence points is stable when the weights are perturbed. The second asks whether the individual terms in the formula actually contribute to the magnitudes the detector reports. This section defines the shared experimental procedure; Chapter~\ref{ch:results} reports the observed numbers.
+With the tool now defined, the remaining sections of this chapter set up how each component is tested in Chapter~\ref{ch:results}. The results chapter evaluates the score formula in two ways. The first asks whether the ranking of divergence points is stable when the weights are perturbed. The second asks whether the individual terms in the formula actually contribute to the magnitudes the detector reports. This section defines the shared experimental procedure; Chapter~\ref{ch:results} reports the observed numbers.
 
 \subsection{Sensitivity perturbations}
 \label{sec:methodology-sensitivity-design}
@@ -564,7 +570,7 @@ Two recovery measures describe how much divergence-point magnitude remains under
 \section{Evaluation dataset and labelling protocol}
 \label{sec:methodology-rater}
 
-The experiments in Chapter~\ref{ch:results} use a set of $45$ refactoring sessions that we recorded by hand on a Java library-style fixture in IntelliJ. This section explains how the sessions were assembled, how they were labelled, and how the labels were checked by raters.
+The detector experiments need a different kind of input than the score-formula sweeps above: actual sessions with externally agreed labels for what the detector should find. The experiments in Chapter~\ref{ch:results} therefore use a set of $45$ refactoring sessions that we recorded by hand on a Java library-style fixture in IntelliJ. This section explains how the sessions were assembled, how they were labelled, and how the labels were checked by raters.
 
 The IDE-event capture literature explored in \S\ref{sec:process-aware-logging} shows that detailed development traces can be collected, but we did not find an existing dataset that combines per-event code content with IDE-side refactoring events for Java sessions recorded in IntelliJ. This matters for the IDE-versus-manual signal. RefactoringMiner can recover a structural refactoring from a pair of code states, but cannot tell whether the developer used the IDE refactoring command or typed the change by hand. Since that distinction is part of the manual-when-IDE penalty in \S\ref{sec:methodology-score}, it has to be captured at recording time.
 

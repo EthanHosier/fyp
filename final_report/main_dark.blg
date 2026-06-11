@@ -1,46 +1,65 @@
 This is BibTeX, Version 0.99d (TeX Live 2025)
 Capacity: max_strings=200000, hash_size=200000, hash_prime=170003
 The top-level auxiliary file: main_dark.aux
-The style file: unsrt.bst
+The style file: vancouver.bst
+Reallocated glb_str_ptr (elt_size=4) to 20 items from 10.
+Reallocated global_strs (elt_size=200001) to 20 items from 10.
+Reallocated glb_str_end (elt_size=4) to 20 items from 10.
+Reallocated wiz_functions (elt_size=4) to 6000 items from 3000.
 Database file #1: bibs/sample.bib
+Warning--empty pages in falleri2024gumtree
+Warning--empty pages in gautam2025refactorbench
+Warning--empty pages in bouzenia2025trajectories
+Warning--empty author and editor in industriallogic_critique
+Warning--missing publisher in industriallogic_critique
+Warning--empty pages in pan2025swegym
+Warning--empty pages in basha2025codewatcher
+Warning--empty pages in kudrjavets2022small
+Warning--empty author and editor in campbell2018cognitive
+Warning--empty pages in munozbaron2020cognitive
+Warning--empty author and editor in eclipse_jdt_faq
+Warning--missing publisher in eclipse_jdt_faq
+Warning--empty author and editor in imperial_research_ethics
+Warning--missing publisher in imperial_research_ethics
 You've used 59 entries,
-            1791 wiz_defined-function locations,
-            778 strings with 15903 characters,
-and the built_in function-call counts, 15637 in all, are:
-= -- 1462
-> -- 652
-< -- 21
-+ -- 241
-- -- 182
-* -- 961
-:= -- 2327
-add.period$ -- 202
+            3507 wiz_defined-function locations,
+            1072 strings with 18264 characters,
+and the built_in function-call counts, 103631 in all, are:
+= -- 11596
+> -- 984
+< -- 657
++ -- 439
+- -- 207
+* -- 7679
+:= -- 11196
+add.period$ -- 224
 call.type$ -- 59
-change.case$ -- 56
-chr.to.int$ -- 0
-cite$ -- 59
-duplicate$ -- 757
-empty$ -- 1560
-format.name$ -- 182
-if$ -- 3647
+change.case$ -- 63
+chr.to.int$ -- 1422
+cite$ -- 73
+duplicate$ -- 9169
+empty$ -- 10005
+format.name$ -- 223
+if$ -- 24506
 int.to.chr$ -- 0
 int.to.str$ -- 59
-missing$ -- 58
-newline$ -- 304
+missing$ -- 578
+newline$ -- 300
 num.names$ -- 59
-pop$ -- 215
+pop$ -- 1819
 preamble$ -- 1
 purify$ -- 0
 quote$ -- 0
-skip$ -- 407
+skip$ -- 1415
 stack$ -- 0
-substring$ -- 1007
-swap$ -- 252
-text.length$ -- 21
+substring$ -- 17638
+swap$ -- 1700
+text.length$ -- 253
 text.prefix$ -- 0
 top$ -- 0
 type$ -- 0
-warning$ -- 0
-while$ -- 151
+warning$ -- 14
+while$ -- 565
 width$ -- 61
-write$ -- 674
+write$ -- 667
+(There were 14 warnings)

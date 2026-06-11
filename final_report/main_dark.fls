@@ -1,4 +1,4 @@
-PWD /Users/ethanhosier/Desktop/random/fyp/final_report
+PWD /Users/ethanhosier/Desktop/random/fyp/.claude/worktrees/report-rc-comments/final_report
 INPUT /usr/local/texlive/2025/texmf.cnf
 INPUT /usr/local/texlive/2025/texmf-dist/web2c/texmf.cnf
 INPUT /usr/local/texlive/2025/texmf-var/web2c/pdftex/pdflatex.fmt
@@ -269,6 +269,8 @@ INPUT /usr/local/texlive/2025/texmf-dist/tex/latex/rerunfilecheck/rerunfilecheck
 INPUT /usr/local/texlive/2025/texmf-dist/tex/latex/rerunfilecheck/rerunfilecheck.sty
 INPUT /usr/local/texlive/2025/texmf-dist/tex/generic/uniquecounter/uniquecounter.sty
 INPUT /usr/local/texlive/2025/texmf-dist/tex/generic/uniquecounter/uniquecounter.sty
+INPUT /usr/local/texlive/2025/texmf-dist/tex/latex/natbib/natbib.sty
+INPUT /usr/local/texlive/2025/texmf-dist/tex/latex/natbib/natbib.sty
 INPUT /usr/local/texlive/2025/texmf-dist/tex/latex/listings/listings.sty
 INPUT /usr/local/texlive/2025/texmf-dist/tex/latex/listings/listings.sty
 INPUT /usr/local/texlive/2025/texmf-dist/tex/latex/listings/lstpatch.sty

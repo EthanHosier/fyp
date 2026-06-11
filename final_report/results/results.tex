@@ -212,7 +212,7 @@ This section evaluates the divergence-point detector against external ground tru
 
 \subsection{Inter-rater reliability}
 \label{sec:results-kappa}
-Table~\ref{tab:results-userstudy-kappa} reports per-kind Cohen's $\kappa$ for the three rater pairs on the 45-session set, using the labelling protocol and interpretation thresholds from \S\ref{sec:methodology-rater}. All four divergence kinds reach at least substantial agreement. Ordering and Manual-Refactor are unanimous across all three labellers ($\kappa = 1.00$ for every pair). Rework is also high, with $\kappa = 0.86$ between the author and each independent rater, and $\kappa = 1.00$ between P1 and P2. Hygiene is the lowest but still substantial, ranging from $\kappa = 0.72$ to $\kappa = 0.86$.
+Before any precision or recall figure can mean anything, the per-kind labels themselves need to be consistent across independent labellers. Table~\ref{tab:results-userstudy-kappa} reports per-kind Cohen's $\kappa$ for the three rater pairs on the 45-session set, using the labelling protocol and interpretation thresholds from \S\ref{sec:methodology-rater}. All four divergence kinds reach at least substantial agreement. Ordering and Manual-Refactor are unanimous across all three labellers ($\kappa = 1.00$ for every pair). Rework is also high, with $\kappa = 0.86$ between the author and each independent rater, and $\kappa = 1.00$ between P1 and P2. Hygiene is the lowest but still substantial, ranging from $\kappa = 0.72$ to $\kappa = 0.86$.
 
 \begin{table}[htbp]
 \centering
@@ -370,7 +370,7 @@ baseline      & P5 & $13$ & $0$ & $17$ & $2$ & $32$ & $5.3$ \\
 
 Across the $121$ divergence points, Manual-Refactor accounts for $49.6\%$ and hygiene for $42.1\%$, while rework and ordering each account for $4.1\%$. This roughly matches the 45-session injection set in \S\ref{sec:results-divergence}, where Manual-Refactor and hygiene also dominate. Both study groups exercise all four kinds, but rework and ordering appear only occasionally.
 
-The clearest comparison in the table is the per-session divergence-point rate: $2.7$ DPs per session in the feedback group, compared with $6.0$ in the no-feedback group, a $2.2\times$ difference. The gap is not just a constant offset between groups: as the trajectory table below shows, both groups start with similar totals at S1 and then separate across the remaining 5 sessions.
+The clearest comparison in the table is the per-session divergence-point rate: $2.7$ DPs per session in the feedback group, compared with $6.0$ in the no-feedback group, a $2.2\times$ difference. The gap is not just a constant offset between groups: as Table~\ref{tab:results-userstudy-trajectory} shows, both groups start with similar totals at S1 and then separate across the remaining 5 sessions.
 
 All five participants registered $0$ divergence points on S04, where the task was to remove duplicated validation logic by keeping a single shared version of the checks. All five completed it through direct manual edits. The detector found nothing to report: no rework, no skipped-test pattern, no manual edit an IDE refactoring could have replaced, no reorder window. The detector was not simply producing findings on every session; for this fairly clean manual task, it produced none.
 
@@ -498,7 +498,7 @@ Table~\ref{tab:results-userstudy-agent-trajectory} reports the gain-stripped fin
 \label{tab:results-userstudy-agent-trajectory}
 \end{table}
 
-The table shows the same easy-session pattern seen in the human study: every agent scores $J = 50$ at S4 and $J = 42$ at S5. Six of the eight agents finish above where they started; Gemini with OpenCode finishes at $-2$ and GPT-5.5 with OpenCode at $-1$. The largest improvement is $+10$ for agent 5.
+Table~\ref{tab:results-userstudy-agent-trajectory} shows the same easy-session pattern seen in the human study: every agent scores $J = 50$ at S4 and $J = 42$ at S5. Six of the eight agents finish above where they started; Gemini with OpenCode finishes at $-2$ and GPT-5.5 with OpenCode at $-1$. The largest improvement is $+10$ for agent 5.
 
 Divergence-point counts are also small. Across all $48$ agent sessions there are $42$ divergence points: $41$ Manual-Refactor, $1$ ordering, $0$ rework, $0$ hygiene. The rate is much lower than in the human study: $0.7$--$1.5$ per session for the feedback agents and $0.5$--$0.7$ for the no-feedback agents, against $2.7$--$6.0$ per session for the human participants. The agents start from a much higher procedural-discipline baseline.
 

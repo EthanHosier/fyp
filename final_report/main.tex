@@ -19,6 +19,7 @@
 \usepackage{tikz}
 \usetikzlibrary{arrows.meta, positioning, shapes.geometric, decorations.pathreplacing, calc}
 \usepackage[colorlinks=true, allcolors=blue]{hyperref}
+\usepackage[numbers,sort&compress]{natbib}
 \usepackage{listings}
 \lstdefinestyle{transcript}{
   basicstyle=\ttfamily\scriptsize,
@@ -48,7 +49,7 @@
 \begin{abstract}
 This report presents a tool for evaluating refactoring as a process, rather than only as a change between two endpoints. It defines a process-quality score for refactoring trajectories and uses that score to find points where a developer's path diverges from a higher-scoring alternative. Each divergence is classified by kind, and the system builds a concrete counterfactual reference trajectory for comparison. Developer sessions are captured with an IntelliJ plugin, and the resulting scores and divergences are shown in a dashboard.
 
-The evaluation uses three datasets: 45 hand-recorded refactoring sessions on a Java codebase, a 30-session randomised-group user study on a separate codebase, and an eight-agent, 48-session extension on the same fixture. The hand-recorded sessions test the detector against inter-rater-agreed labels; the user study compares a three-participant feedback group with a two-participant no-feedback baseline; and the agent extension is treated as a feasibility check for detectors built around human edit patterns. On the hand-recorded sessions, the tool reaches per-kind precision of 1.00, with Cohen's $\kappa \geq 0.72$ across the three rater pairs for all four divergence kinds. The top-$1$ ranking from the score formula stays stable under single-knob weight perturbations in $96.5\%$ of cases on the user-study rankable subset ($25$ of $30$ sessions), and in $84.6\%$ of cases under simultaneous multi-knob Monte Carlo perturbation. The user-study comparison points in a clear direction. Across the six sessions, the with-feedback group gains $+22.3$ on the gain-stripped process score (with both the cleanliness-gain and lag weights set to zero) and drops total divergence points from $12$ to $2$, while the no-feedback baseline loses $2.0$ and rises from $10$ to $15$. The agent extension does not show the same feedback effect, which suggests that detectors built around human edit patterns do not transfer cleanly to agent traces.
+The evaluation uses three datasets: 45 hand-recorded refactoring sessions on a Java codebase, a 30-session randomised-group user study on a separate codebase, and an eight-agent, 48-session extension on the same fixture. The hand-recorded sessions test the detector against inter-rater-agreed labels; the user study compares a three-participant feedback group with a two-participant no-feedback baseline; and the agent extension is treated as a feasibility check for detectors built around human edit patterns. On the hand-recorded sessions, the tool reaches per-kind precision of 1.00, with Cohen's $\kappa \geq 0.72$ across the three rater pairs for all four divergence kinds. The top-$1$ ranking from the score formula stays stable under single-knob weight perturbations in $96.5\%$ of cases on the user-study rankable subset ($25$ of $30$ sessions), and in $84.6\%$ of cases under simultaneous multi-knob Monte Carlo perturbation. The user-study comparison points in a clear direction. Fitting a line through the per-participant gain-stripped process scores (with the cleanliness-gain and lag weights set to zero) gives a $+4.47$ per-session slope for the with-feedback group, against $-0.40$ for the no-feedback group; across all $30$ sessions, the with-feedback group also produces divergence points at $2.7$ per session, against $6.0$ per session for the no-feedback group, a $2.2\times$ difference. The agent extension does not show the same feedback effect, which suggests that detectors built around human edit patterns do not transfer cleanly to agent traces.
 \end{abstract}
 
 \tableofcontents
@@ -61,7 +62,7 @@ The evaluation uses three datasets: 45 hand-recorded refactoring sessions on a J
 \input{declarations/declarations.tex}
 \input{appendix/appendix.tex}
 
-\bibliographystyle{unsrt}
+\bibliographystyle{vancouver}
 \bibliography{bibs/sample}
 
 \end{document}

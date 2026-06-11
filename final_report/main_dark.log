@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.10.5)  30 MAY 2026 13:55
+This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.10.5)  11 JUN 2026 20:18
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1180,18 +1180,25 @@ Package uniquecounter Info: New unique counter `rerunfilecheck' on input line 2
 85.
 )
 \Hy@SectionHShift=\skip73
-) (/usr/local/texlive/2025/texmf-dist/tex/latex/listings/listings.sty
-\lst@mode=\count330
+) (/usr/local/texlive/2025/texmf-dist/tex/latex/natbib/natbib.sty
+Package: natbib 2010/09/13 8.31b (PWD, AO)
+\bibhang=\skip74
+\bibsep=\skip75
+LaTeX Info: Redefining \cite on input line 694.
+\c@NAT@ctr=\count330
+)
+(/usr/local/texlive/2025/texmf-dist/tex/latex/listings/listings.sty
+\lst@mode=\count331
 \lst@gtempboxa=\box70
 \lst@token=\toks43
-\lst@length=\count331
+\lst@length=\count332
 \lst@currlwidth=\dimen295
-\lst@column=\count332
-\lst@pos=\count333
+\lst@column=\count333
+\lst@pos=\count334
 \lst@lostspace=\dimen296
 \lst@width=\dimen297
-\lst@newlines=\count334
-\lst@lineno=\count335
+\lst@newlines=\count335
+\lst@lineno=\count336
 \lst@maxwidth=\dimen298
 
 (/usr/local/texlive/2025/texmf-dist/tex/latex/listings/lstpatch.sty
@@ -1199,8 +1206,8 @@ File: lstpatch.sty 2024/09/23 1.10c (Carsten Heinz)
 )
 (/usr/local/texlive/2025/texmf-dist/tex/latex/listings/lstmisc.sty
 File: lstmisc.sty 2024/09/23 1.10c (Carsten Heinz)
-\c@lstnumber=\count336
-\lst@skipnumbers=\count337
+\c@lstnumber=\count337
+\lst@skipnumbers=\count338
 \lst@framebox=\box71
 )
 (/usr/local/texlive/2025/texmf-dist/tex/latex/listings/listings.cfg
@@ -1210,30 +1217,30 @@ Package: listings 2024/09/23 1.10c (Carsten Heinz)
 
 (/usr/local/texlive/2025/texmf-dist/tex/latex/l3backend/l3backend-pdftex.def
 File: l3backend-pdftex.def 2024-05-08 L3 backend support: PDF output (pdfTeX)
-\l__color_backend_stack_int=\count338
+\l__color_backend_stack_int=\count339
 \l__pdf_internal_box=\box72
 )
 (./main_dark.aux)
 \openout1 = `main_dark.aux'.
 
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 65.
-LaTeX Font Info:    ... okay on input line 65.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 65.
-LaTeX Font Info:    ... okay on input line 65.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 65.
-LaTeX Font Info:    ... okay on input line 65.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 65.
-LaTeX Font Info:    ... okay on input line 65.
-LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 65.
-LaTeX Font Info:    ... okay on input line 65.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 65.
-LaTeX Font Info:    ... okay on input line 65.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 65.
-LaTeX Font Info:    ... okay on input line 65.
-LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 65.
-LaTeX Font Info:    ... okay on input line 65.
-LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 65.
-LaTeX Font Info:    ... okay on input line 65.
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 66.
+LaTeX Font Info:    ... okay on input line 66.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 66.
+LaTeX Font Info:    ... okay on input line 66.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 66.
+LaTeX Font Info:    ... okay on input line 66.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 66.
+LaTeX Font Info:    ... okay on input line 66.
+LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 66.
+LaTeX Font Info:    ... okay on input line 66.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 66.
+LaTeX Font Info:    ... okay on input line 66.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 66.
+LaTeX Font Info:    ... okay on input line 66.
+LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 66.
+LaTeX Font Info:    ... okay on input line 66.
+LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 66.
+LaTeX Font Info:    ... okay on input line 66.
 
 *geometry* driver: auto-detecting
 *geometry* detected driver: pdftex
@@ -1271,16 +1278,16 @@ LaTeX Font Info:    ... okay on input line 65.
 
 (/usr/local/texlive/2025/texmf-dist/tex/context/base/mkii/supp-pdf.mkii
 [Loading MPS to PDF converter (version 2006.09.02).]
-\scratchcounter=\count339
+\scratchcounter=\count340
 \scratchdimen=\dimen299
 \scratchbox=\box73
-\nofMPsegments=\count340
-\nofMParguments=\count341
+\nofMPsegments=\count341
+\nofMParguments=\count342
 \everyMPshowfont=\toks44
-\MPscratchCnt=\count342
+\MPscratchCnt=\count343
 \MPscratchDim=\dimen300
-\MPnumerator=\count343
-\makeMPintoPDFobject=\count344
+\MPnumerator=\count344
+\makeMPintoPDFobject=\count345
 \everyMPtoPDFconversion=\toks45
 ) (/usr/local/texlive/2025/texmf-dist/tex/latex/epstopdf-pkg/epstopdf-base.sty
 Package: epstopdf-base 2020-01-24 v2.11 Base part for package epstopdf
@@ -1300,20 +1307,20 @@ Package caption Info: End \AtBeginDocument code.
 Package todonotes Warning: The length marginparwidth is less than 2cm and will 
 most likely cause issues with the appearance of inserted todonotes. The issue c
 an be solved by adding a line like \setlength {\marginparwidth }{2cm} prior to 
-loading the todonotes package. on input line 65.
+loading the todonotes package. on input line 66.
 
-Package hyperref Info: Link coloring ON on input line 65.
+Package hyperref Info: Link coloring ON on input line 66.
 (./main_dark.out) (./main_dark.out)
 \@outlinefile=\write4
 \openout4 = `main_dark.out'.
 
-\c@lstlisting=\count345
+\c@lstlisting=\count346
  (./title/title.tex
 Package epstopdf Info: Source file: <title/imperial-logo.eps>
-(epstopdf)                    date: 2026-05-24 01:16:24
+(epstopdf)                    date: 2026-06-11 16:11:12
 (epstopdf)                    size: 1521406 bytes
 (epstopdf)             Output file: <title/imperial-logo-eps-converted-to.pdf>
-(epstopdf)                    date: 2026-05-24 01:17:36
+(epstopdf)                    date: 2026-06-11 16:11:12
 (epstopdf)                    size: 10186 bytes
 (epstopdf)             Command: <repstopdf --outfile=title/imperial-logo-eps-co
 nverted-to.pdf title/imperial-logo.eps>
@@ -1343,7 +1350,7 @@ pdfTeX warning (ext4): destination with the same identifier (name{page.1}) has
 been already used, duplicate ignored
 <to be read again> 
                    \relax 
-l.70 \end{abstract}
+l.71 \end{abstract}
                     [1] (./main_dark.toc
 
 [2
@@ -1381,21 +1388,24 @@ Chapter 2.
 ]
 
 [10]
-
-[11]
-Overfull \hbox (13.85587pt too wide) in paragraph at lines 68--103
+Overfull \hbox (13.85587pt too wide) in paragraph at lines 57--92
  [][] 
  []
 
 
-Underfull \vbox (badness 6204) has occurred while \output is active []
+Underfull \vbox (badness 1281) has occurred while \output is active []
+
+
+
+[11]
+Underfull \vbox (badness 1789) has occurred while \output is active []
 
 
 
 [12]
 
 [13]
-Underfull \vbox (badness 3364) has occurred while \output is active []
+Underfull \vbox (badness 1348) has occurred while \output is active []
 
 
 
@@ -1404,20 +1414,18 @@ Underfull \vbox (badness 3364) has occurred while \output is active []
 [15]) (./methodology/methodology.tex
 
 [16]
-
-[17]
 Chapter 3.
 
-Overfull \hbox (21.68533pt too wide) in paragraph at lines 28--48
+
+[17
+
+]
+Overfull \hbox (21.68533pt too wide) in paragraph at lines 37--57
  [][] 
  []
 
 
-
-[18
-
-]
-Overfull \hbox (60.67473pt too wide) detected at line 64
+Overfull \hbox (60.67473pt too wide) detected at line 68
 [][][]\OML/cmm/m/it/10.95 J\OT1/cmr/m/n/10.95 (\OML/cmm/m/it/10.95 ^^\\OT1/cmr/
 m/n/10.95 ) = [][][]\OML/cmm/m/it/10.95 ^^L \OT1/cmr/m/n/10.95 + \OML/cmm/m/it/
 10.95 W[] \OT1/cmr/m/n/10.95 ^^A\OML/cmm/m/it/10.95 C\OT1/cmr/m/n/10.95 (\OML/c
@@ -1434,52 +1442,54 @@ mr/m/n/10.95 (\OML/cmm/m/it/10.95 ^^\\OT1/cmr/m/n/10.95 ) + \OML/cmm/m/it/10.95
 
 
 
-[19]
-Underfull \hbox (badness 1603) in paragraph at lines 96--97
+[18]
+Underfull \hbox (badness 1603) in paragraph at lines 100--101
 []|\T1/cmr/m/n/10 Harman & Tratt 2007 [[]]; Mo-han & Greer
  []
 
 
-Underfull \hbox (badness 1874) in paragraph at lines 98--99
+Underfull \hbox (badness 1874) in paragraph at lines 102--103
 \T1/cmr/m/n/10 Herzig & Zeller 2013 [[]]; Ku-dr-javets et al.
  []
 
 
 
+[19]
+
 [20]
 
 [21]
-Underfull \hbox (badness 3260) in paragraph at lines 153--154
+Underfull \hbox (badness 3260) in paragraph at lines 157--158
 []|\T1/cmr/m/n/10 CK li-brary, per-class
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 154--155
+Underfull \hbox (badness 10000) in paragraph at lines 158--159
 []|\T1/cmr/m/n/10 CPD-detected cloned
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 155--156
+Underfull \hbox (badness 10000) in paragraph at lines 159--160
 []|\T1/cmr/m/n/10 Five-feature blend,
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 156--156
+Underfull \hbox (badness 10000) in paragraph at lines 160--160
 []|\T1/cmr/m/n/10 Marinescu 2004 [[]]; Ar-celli
  []
 
 
-Underfull \hbox (badness 2662) in paragraph at lines 156--157
+Underfull \hbox (badness 2662) in paragraph at lines 160--161
 []|\T1/cmr/m/n/10 PMD vi-o-la-tion count
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 157--158
+Underfull \hbox (badness 10000) in paragraph at lines 161--162
 []|\T1/cmr/m/n/10 Per-class mean,
  []
 
 
-Overfull \hbox (5.44229pt too wide) in paragraph at lines 148--160
+Overfull \hbox (5.44229pt too wide) in paragraph at lines 152--164
  [][] 
  []
 
@@ -1494,52 +1504,52 @@ Overfull \hbox (5.44229pt too wide) in paragraph at lines 148--160
 [25]
 
 [26]
+Underfull \vbox (badness 3803) has occurred while \output is active []
+
+
 
 [27]
-Underfull \vbox (badness 10000) has occurred while \output is active []
-
-
 
 [28]
 LaTeX Font Info:    Font shape `T1/cmtt/bx/n' in size <8> not available
-(Font)              Font shape `T1/cmtt/m/n' tried instead on input line 405.
+(Font)              Font shape `T1/cmtt/m/n' tried instead on input line 411.
 
-
-[29]
-Overfull \hbox (12.82945pt too wide) in paragraph at lines 437--438
+Overfull \hbox (12.82945pt too wide) in paragraph at lines 443--444
 []\T1/cmr/m/n/10.95 The re-work syn-the-siser builds an al-ter-na-tive tra-jec-
 tory that skips the matched originating--
  []
 
 
 
+[29]
+
 [30]
 
 [31]
-
-[32]
-<architecture/dashboard_image.png, id=992, 1641.13126pt x 908.39375pt>
+<architecture/dashboard_image.png, id=978, 1641.13126pt x 908.39375pt>
 File: architecture/dashboard_image.png Graphic file (type png)
 <use architecture/dashboard_image.png>
 Package pdftex.def Info: architecture/dashboard_image.png  used on input line 5
-36.
+42.
 (pdftex.def)             Requested size: 426.79135pt x 236.23225pt.
 
+
+[32]
 
 [33 <./architecture/dashboard_image.png>]
 
 [34]
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `math shift' on input line 596.
+(hyperref)                removing `math shift' on input line 602.
 
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `\kappa' on input line 596.
+(hyperref)                removing `\kappa' on input line 602.
 
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `math shift' on input line 596.
+(hyperref)                removing `math shift' on input line 602.
 
 
 
@@ -1592,6 +1602,8 @@ Overfull \hbox (9.39014pt too wide) in paragraph at lines 337--338
 [46]
 
 [47]
+
+[48]
 Overfull \hbox (33.24446pt too wide) in paragraph at lines 422--436
  [][] 
  []
@@ -1605,8 +1617,6 @@ LaTeX Font Warning: Font shape `T1/cmr/m/scit' undefined
 (Font)              using `T1/cmr/m/scsl' instead on input line 436.
 
 
-
-[48]
 
 [49]
 
@@ -1629,25 +1639,27 @@ Chapter 5.
 [54
 
 ]
-LaTeX Font Info:    Font shape `T1/cmtt/bx/n' in size <10.95> not available
-(Font)              Font shape `T1/cmtt/m/n' tried instead on input line 46.
 
-Overfull \hbox (13.00859pt too wide) in paragraph at lines 46--47
+[55]
+LaTeX Font Info:    Font shape `T1/cmtt/bx/n' in size <10.95> not available
+(Font)              Font shape `T1/cmtt/m/n' tried instead on input line 53.
+
+Overfull \hbox (13.00859pt too wide) in paragraph at lines 53--54
  []\T1/cmtt/m/n/10.95 SuboptimalOrdering \T1/cmr/bx/n/10.95 is based on the pla
 y-book au-thor's judge-ment.[] \T1/cmr/m/n/10.95 The five ordering-
  []
 
 
 
-[55]
+[56]
 
-[56]) (./declarations/declarations.tex
+[57]) (./declarations/declarations.tex
 
-[57]
+[58]
 Chapter 6.
 
 
-[58
+[59
 
 ]
 Overfull \hbox (6.00452pt too wide) in paragraph at lines 30--31
@@ -1663,7 +1675,7 @@ l are stored un-der \T1/cmtt/m/n/10.95 tool/fixtures/\T1/cmr/m/n/10.95 .
 
 ) (./appendix/appendix.tex
 
-[59]
+[60]
 Appendix A.
 
 Overfull \hbox (3.31305pt too wide) in paragraph at lines 24--25
@@ -1673,70 +1685,46 @@ r-study-interviews/user-study-interview.md\T1/cmr/m/n/10.95 .
 
 
 
-[60
+[61
 
 ]
 
-[61]) (./main_dark.bbl
+[62]) (./main_dark.bbl
 
-[62]
+[63]
 
-[63
+[64
 
 ]
-Underfull \hbox (badness 1540) in paragraph at lines 113--117
-[]\T1/cmr/m/n/10.95 Industrial Logic.  Refac-tor-ing ex-er-cises with au-to-mat
-ed cri-tique.  [][]$\T1/cmtt/m/n/10.95 https : / /
- []
-
-
-Underfull \hbox (badness 1546) in paragraph at lines 119--124
-[]\T1/cmr/m/n/10.95 Naouel Moha, Yann-Gaël Guéhéneuc, Lau-rence Duchien, and An
-ne-Françoise
- []
-
-
-
-[64]
 
 [65]
 
 [66]
-Underfull \hbox (badness 10000) in paragraph at lines 376--382
-[]\T1/cmr/m/n/10.95 Imperial Col-lege Lon-don.  Re-search ethics.  [][]$\T1/cmt
-t/m/n/10.95 https : / / www .
+Underfull \hbox (badness 10000) in paragraph at lines 352--356
+\T1/cmtt/m/n/10.95 / / www . imperial . ac . uk / admin-[]services / early-[]ca
+reer-[]researcher-[]institute /
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 376--382
-\T1/cmtt/m/n/10.95 imperial . ac . uk / admin-[]services / early-[]career-[]res
-earcher-[]institute /
- []
 
+[67])
 
-Underfull \hbox (badness 10000) in paragraph at lines 376--382
-\T1/cmtt/m/n/10.95 learning-[]and-[]development / policies-[]and-[]guidance / r
-esearch-[]ethics/$[][]\T1/cmr/m/n/10.95 , 2026.
- []
-
-)
-
-[67] (./main_dark.aux)
+[68] (./main_dark.aux)
  ***********
 LaTeX2e <2024-11-01> patch level 2
 L3 programming layer <2025-01-18>
  ***********
 Package rerunfilecheck Info: File `main_dark.out' has not changed.
-(rerunfilecheck)             Checksum: 32CCFB9672C30AB21A04AB1261BDB926;17739.
+(rerunfilecheck)             Checksum: 326053E8B7832E7884CCD697DCF22C13;17511.
  ) 
 Here is how much of TeX's memory you used:
- 27460 strings out of 473190
- 519143 string characters out of 5715800
- 925116 words of memory out of 5000000
- 49876 multiletter control sequences out of 15000+600000
+ 27909 strings out of 473190
+ 526942 string characters out of 5715800
+ 930594 words of memory out of 5000000
+ 50320 multiletter control sequences out of 15000+600000
  599996 words of font info for 113 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 103i,13n,106p,1602b,958s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 103i,13n,106p,1830b,958s stack positions out of 10000i,1000n,20000p,200000b,200000s
 </usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx10.pfb
 ></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb>
 </usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb><
@@ -1783,10 +1771,10 @@ r/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sftt0800.pfb></usr/
 local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sftt1000.pfb></usr/lo
 cal/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sftt1095.pfb></usr/loca
 l/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sfxc0800.pfb>
-Output written on main_dark.pdf (68 pages, 1484339 bytes).
+Output written on main_dark.pdf (69 pages, 1480418 bytes).
 PDF statistics:
- 1640 PDF objects out of 1728 (max. 8388607)
- 1452 compressed objects within 15 object streams
- 326 named destinations out of 1000 (max. 500000)
+ 1646 PDF objects out of 1728 (max. 8388607)
+ 1457 compressed objects within 15 object streams
+ 327 named destinations out of 1000 (max. 500000)
  751 words of extra memory for PDF output out of 10000 (max. 10000000)
 
