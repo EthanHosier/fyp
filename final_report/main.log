@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.10.5)  11 JUN 2026 17:10
+This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.10.5)  11 JUN 2026 17:46
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1319,7 +1319,7 @@ Package epstopdf Info: Source file: <title/imperial-logo.eps>
 nverted-to.pdf title/imperial-logo.eps>
 (epstopdf)             \includegraphics on input line 9.
 Package epstopdf Info: Output file is already uptodate.
-<title/imperial-logo-eps-converted-to.pdf, id=372, 1553.805pt x 171.64125pt>
+<title/imperial-logo-eps-converted-to.pdf, id=368, 1553.805pt x 171.64125pt>
 File: title/imperial-logo-eps-converted-to.pdf Graphic file (type pdf)
 <use title/imperial-logo-eps-converted-to.pdf>
 Package pdftex.def Info: title/imperial-logo-eps-converted-to.pdf  used on inpu
@@ -1381,21 +1381,24 @@ Chapter 2.
 ]
 
 [10]
-
-[11]
-Overfull \hbox (13.85587pt too wide) in paragraph at lines 68--103
+Overfull \hbox (13.85587pt too wide) in paragraph at lines 57--92
  [][] 
  []
 
 
-Underfull \vbox (badness 6204) has occurred while \output is active []
+Underfull \vbox (badness 1281) has occurred while \output is active []
+
+
+
+[11]
+Underfull \vbox (badness 1789) has occurred while \output is active []
 
 
 
 [12]
 
 [13]
-Underfull \vbox (badness 3364) has occurred while \output is active []
+Underfull \vbox (badness 1348) has occurred while \output is active []
 
 
 
@@ -1404,8 +1407,6 @@ Underfull \vbox (badness 3364) has occurred while \output is active []
 [15]) (./methodology/methodology.tex
 
 [16]
-
-[17]
 Chapter 3.
 
 Overfull \hbox (21.68533pt too wide) in paragraph at lines 28--48
@@ -1414,7 +1415,7 @@ Overfull \hbox (21.68533pt too wide) in paragraph at lines 28--48
 
 
 
-[18
+[17
 
 ]
 Overfull \hbox (60.67473pt too wide) detected at line 64
@@ -1434,7 +1435,7 @@ mr/m/n/10.95 (\OML/cmm/m/it/10.95 ^^\\OT1/cmr/m/n/10.95 ) + \OML/cmm/m/it/10.95
 
 
 
-[19]
+[18]
 Underfull \hbox (badness 1603) in paragraph at lines 96--97
 []|\T1/cmr/m/n/10 Harman & Tratt 2007 [[]]; Mo-han & Greer
  []
@@ -1446,9 +1447,9 @@ Underfull \hbox (badness 1874) in paragraph at lines 98--99
 
 
 
-[20]
+[19]
 
-[21]
+[20]
 Underfull \hbox (badness 3260) in paragraph at lines 153--154
 []|\T1/cmr/m/n/10 CK li-brary, per-class
  []
@@ -1485,6 +1486,8 @@ Overfull \hbox (5.44229pt too wide) in paragraph at lines 148--160
 
 
 
+[21]
+
 [22]
 
 [23]
@@ -1494,18 +1497,16 @@ Overfull \hbox (5.44229pt too wide) in paragraph at lines 148--160
 [25]
 
 [26]
-
-[27]
 Underfull \vbox (badness 10000) has occurred while \output is active []
 
 
 
-[28]
+[27]
 LaTeX Font Info:    Font shape `T1/cmtt/bx/n' in size <8> not available
 (Font)              Font shape `T1/cmtt/m/n' tried instead on input line 405.
 
 
-[29]
+[28]
 Overfull \hbox (12.82945pt too wide) in paragraph at lines 437--438
 []\T1/cmr/m/n/10.95 The re-work syn-the-siser builds an al-ter-na-tive tra-jec-
 tory that skips the matched originating--
@@ -1513,12 +1514,12 @@ tory that skips the matched originating--
 
 
 
+[29]
+
 [30]
 
 [31]
-
-[32]
-<architecture/dashboard_image.png, id=992, 1641.13126pt x 908.39375pt>
+<architecture/dashboard_image.png, id=981, 1641.13126pt x 908.39375pt>
 File: architecture/dashboard_image.png Graphic file (type png)
 <use architecture/dashboard_image.png>
 Package pdftex.def Info: architecture/dashboard_image.png  used on input line 5
@@ -1526,9 +1527,9 @@ Package pdftex.def Info: architecture/dashboard_image.png  used on input line 5
 (pdftex.def)             Requested size: 426.79135pt x 236.23225pt.
 
 
-[33 <./architecture/dashboard_image.png>]
+[32 <./architecture/dashboard_image.png>]
 
-[34]
+[33]
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
 (hyperref)                removing `math shift' on input line 596.
@@ -1543,13 +1544,13 @@ Package hyperref Warning: Token not allowed in a PDF string (Unicode):
 
 
 
-[35]) (./results/results.tex
+[34]) (./results/results.tex
 
-[36]
+[35]
 Chapter 4.
 
 
-[37
+[36
 
 ]
 
@@ -1562,14 +1563,16 @@ LaTeX Font Warning: Font shape `T1/cmr/m/scit' undefined
 
 
 
-[38]
+[37]
 
-[39]
+[38]
 Overfull \hbox (27.88179pt too wide) in paragraph at lines 113--127
  [][] 
  []
 
 
+
+[39]
 
 [40]
 
@@ -1580,8 +1583,6 @@ Overfull \hbox (27.88179pt too wide) in paragraph at lines 113--127
 [43]
 
 [44]
-
-[45]
 Overfull \hbox (9.39014pt too wide) in paragraph at lines 337--338
 \T1/cmr/m/n/10.95 recorded refac-tor-ing ses-sions on the same order-processing
  code-base (\T1/cmtt/m/n/10.95 user-study-fixture/\T1/cmr/m/n/10.95 ),
@@ -1589,9 +1590,9 @@ Overfull \hbox (9.39014pt too wide) in paragraph at lines 337--338
 
 
 
-[46]
+[45]
 
-[47]
+[46]
 Overfull \hbox (33.24446pt too wide) in paragraph at lines 422--436
  [][] 
  []
@@ -1606,13 +1607,13 @@ LaTeX Font Warning: Font shape `T1/cmr/m/scit' undefined
 
 
 
+[47]
+
 [48]
 
 [49]
 
 [50]
-
-[51]
 Overfull \hbox (43.47473pt too wide) in paragraph at lines 529--530
 []\T1/cmr/m/n/10.95 Gemini 3.5 Flash with Open-Code, af-ter S03, re-sponded to 
 a \T1/cmtt/m/n/10.95 REFACTORING_INTRODUCED_SMELLS
@@ -1620,13 +1621,13 @@ a \T1/cmtt/m/n/10.95 REFACTORING_INTRODUCED_SMELLS
 
 
 
-[52]) (./conclusion/conclusion.tex
+[51]) (./conclusion/conclusion.tex
 
-[53]
+[52]
 Chapter 5.
 
 
-[54
+[53
 
 ]
 LaTeX Font Info:    Font shape `T1/cmtt/bx/n' in size <10.95> not available
@@ -1639,15 +1640,15 @@ y-book au-thor's judge-ment.[] \T1/cmr/m/n/10.95 The five ordering-
 
 
 
-[55]
+[54]
 
-[56]) (./declarations/declarations.tex
+[55]) (./declarations/declarations.tex
 
-[57]
+[56]
 Chapter 6.
 
 
-[58
+[57
 
 ]
 Overfull \hbox (6.00452pt too wide) in paragraph at lines 30--31
@@ -1663,7 +1664,7 @@ l are stored un-der \T1/cmtt/m/n/10.95 tool/fixtures/\T1/cmr/m/n/10.95 .
 
 ) (./appendix/appendix.tex
 
-[59]
+[58]
 Appendix A.
 
 Overfull \hbox (3.31305pt too wide) in paragraph at lines 24--25
@@ -1673,15 +1674,15 @@ r-study-interviews/user-study-interview.md\T1/cmr/m/n/10.95 .
 
 
 
-[60
+[59
 
 ]
 
-[61]) (./main.bbl
+[60]) (./main.bbl
 
-[62]
+[61]
 
-[63
+[62
 
 ]
 Underfull \hbox (badness 1540) in paragraph at lines 113--117
@@ -1697,11 +1698,11 @@ ne-Françoise
 
 
 
+[63]
+
 [64]
 
 [65]
-
-[66]
 Underfull \hbox (badness 10000) in paragraph at lines 376--382
 []\T1/cmr/m/n/10.95 Imperial Col-lege Lon-don.  Re-search ethics.  [][]$\T1/cmt
 t/m/n/10.95 https : / / www .
@@ -1721,18 +1722,18 @@ esearch-[]ethics/$[][]\T1/cmr/m/n/10.95 , 2026.
 
 )
 
-[67] (./main.aux)
+[66] (./main.aux)
  ***********
 LaTeX2e <2024-11-01> patch level 2
 L3 programming layer <2025-01-18>
  ***********
 Package rerunfilecheck Info: File `main.out' has not changed.
-(rerunfilecheck)             Checksum: 32CCFB9672C30AB21A04AB1261BDB926;17739.
+(rerunfilecheck)             Checksum: B72D527991FECB0AFBC56B352501FD97;17369.
  ) 
 Here is how much of TeX's memory you used:
- 27455 strings out of 473190
- 518927 string characters out of 5715800
- 924395 words of memory out of 5000000
+ 27453 strings out of 473190
+ 518895 string characters out of 5715800
+ 923395 words of memory out of 5000000
  49871 multiletter control sequences out of 15000+600000
  599996 words of font info for 113 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
@@ -1783,10 +1784,10 @@ r/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sftt0800.pfb></usr/
 local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sftt1000.pfb></usr/lo
 cal/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sftt1095.pfb></usr/loca
 l/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sfxc0800.pfb>
-Output written on main.pdf (68 pages, 1480685 bytes).
+Output written on main.pdf (67 pages, 1477651 bytes).
 PDF statistics:
- 1640 PDF objects out of 1728 (max. 8388607)
- 1452 compressed objects within 15 object streams
- 326 named destinations out of 1000 (max. 500000)
- 751 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 1628 PDF objects out of 1728 (max. 8388607)
+ 1441 compressed objects within 15 object streams
+ 324 named destinations out of 1000 (max. 500000)
+ 743 words of extra memory for PDF output out of 10000 (max. 10000000)
 

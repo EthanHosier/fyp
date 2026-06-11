@@ -14,16 +14,7 @@ In practice this clean definition is harder to apply. Developers often refactor 
 \subsection{Atomic refactorings, smells, and sequences}
 Research on refactoring typically describes refactorings as a set of \emph{operators}, or atomic refactorings, such as \textsc{Extract Method}, \textsc{Move Method}, and \textsc{Rename} \cite{fowler1999refactoring,mens2004survey}. Larger changes can then be understood as sequences of these smaller operations. Code smells are closely related: they are heuristic indicators of possible design problems, and therefore of possible refactoring opportunities \cite{fowler1999refactoring,fowler2018refactoring}. Although smells are not formal correctness criteria, they connect developer judgement to measurable signals, which \S\ref{sec:smells-metrics} discusses further.
 
-This thesis distinguishes between judging only the start and end states of a refactoring and judging the path taken between them. Two developers may reach the same final code, but one path may involve more temporary degradation or churn than the other. These differences can matter for productivity and risk, even when the endpoint looks the same.
-
-\subsection{Representing refactoring as states and actions}
-To represent this refactoring path explicitly, we use a state/action/trace model. A codebase snapshot is treated as a \emph{state} $s \in \mathcal{S}$, such as the repository at a particular point in time. An \emph{action} $a \in \mathcal{A}$ is a developer edit step, which may be an IDE-supported refactoring, a manual change, or a mixture of both. A refactoring process is then a \emph{trace}
-\[
-\tau = (s_0, a_0, s_1, a_1, \dots, a_{T-1}, s_T),
-\]
-where each action $a_t$ transforms state $s_t$ into $s_{t+1}$. This makes it possible to talk about ``process quality'' as a property of the whole trace $\tau$, rather than only as a comparison between the first and final states $(s_0, s_T)$.
-
-This framing is close to recent software-engineering work that models agent and developer behaviour as a partially-observable Markov decision process, where a trajectory is a sequence of action and observation pairs \cite{gautam2025refactorbench}. We keep the explicit state notation because this thesis scores the intermediate code states themselves, not only the actions or observations produced along the way.
+A distinction can be drawn between judging only the start and end states of a refactoring and judging the path taken between them: two developers may reach the same final code, but one path may involve more temporary degradation or churn than the other. These differences can matter for productivity and risk, even when the endpoint looks the same.
 
 \section{Outcome-based refactoring evaluation}
 \label{sec:outcome-eval}
@@ -42,7 +33,7 @@ The weakness of this approach is that it says little about the refactoring proce
 
 Final-code metrics still matter, but they do not show what happened on the way there. A process-level view can also account for temporary degradation, rework, and build/test instability.
 
-The closest tool here is Industrial Logic's automated refactoring critique, which scores trainees on a fixed set of prepared exercises. It reports outcomes such as ``Extract Method grow()'', ``Inline of Temporary Variable in add(\dots)'', and ``Sufficient Test Runs'' as pass/fail checkmarks against an expected refactoring script \cite{industriallogic_critique}. This works in a training setting, where the exercise has a known solution, but it also limits the kind of feedback the tool can provide. The critique is tied to pre-authored exercises, reports mainly at the session level, and checks conformance to an expected path rather than comparing an arbitrary observed trajectory with alternative paths. The approach in this thesis, by contrast, is intended for recorded refactoring sessions without a pre-written solution script. It scores the observed trace, identifies step-level divergence points, and attaches a concrete reference trajectory to each one.
+The closest tool here is Industrial Logic's automated refactoring critique, which scores trainees on a fixed set of prepared exercises. It reports outcomes such as ``Extract Method grow()'', ``Inline of Temporary Variable in add(\dots)'', and ``Sufficient Test Runs'' as pass/fail checkmarks against an expected refactoring script \cite{industriallogic_critique}. This works in a training setting, where the exercise has a known solution, but it also limits the kind of feedback the tool can provide. The critique is tied to pre-authored exercises, reports mainly at the session level, and checks conformance to an expected path rather than comparing an arbitrary observed trajectory with alternative paths. The approach in this thesis, by contrast, is intended for recorded refactoring sessions without a pre-written solution script.
 
 \section{Code smell detection and quality metrics}
 \label{sec:smells-metrics}
@@ -55,14 +46,12 @@ Smell detectors should not be treated as ground truth. Comparative studies show 
 \subsection{Structural and readability metrics}
 Static metrics provide another way to measure code quality at the level of classes, methods, and packages. Common metric families cover coupling, cohesion, complexity, and size, and are typically used as indicators of maintainability. These structural measures do not capture everything developers care about when refactoring. Take readability: models that combine structural features (such as line structure) with textual features (such as identifier patterns) align better with human judgements of readability than structural-only models \cite{scalabrino2018readability}. Readability and understandability are common motivations for refactoring, and they can change noticeably in intermediate states even when the final code improves.
 
-\subsection{What this means for the process-quality metric}
-The process-quality metric $J(\tau)$ uses these signals, but it also has to account for their limitations. Three design choices follow from the literature. First, the metric should combine multiple signals, since no single metric or smell detector gives reliable ground truth across all contexts \cite{paiva2017evaluation,arcellifontana2016falsepositives}, and combining signals reduces dependence on the quirks of one tool. Second, it should separate endpoint improvement from process cost, since disruption and temporary degradation can still matter when the endpoint improves \cite{paixao2017balancing}. Third, the components should remain interpretable so the critique can point to a specific issue (a readability dip, a churn spike, a smell increase) rather than report a single opaque score.
+\subsection{Signal families used in prior work}
+Several kinds of signal have been used to judge code change, and the literature offers a fairly clear picture of what each one is good for. Smell counts and structural metrics are widely used, but comparative studies show that no single tool gives a reliable answer across all contexts \cite{paiva2017evaluation,arcellifontana2016falsepositives}, so later work often combines several. Endpoint-only signals also leave out process cost: Paix{\~a}o et al.\ show that intermediate states can be substantially disrupted even when the final code improves \cite{paixao2017balancing}. Effort signals, such as the number of refactoring operations or the size of the edit, appear in search-based refactoring \cite{harman2007pareto,mohan2019manyobjective} as a way to keep unnecessary change down.
 
-The metric should also include some notion of developer \textbf{effort}, such as the number of steps in the trajectory or the size of the edits between successive states. Fewer steps are not always better, since small steps can reduce risk, but step count and edit size help identify unnecessary detours and rework. Similar cost terms appear alongside structural quality goals in search-based refactoring and recommendation work, where the aim is to improve quality while minimising change \cite{harman2007pareto,mohan2019manyobjective}.
+Table~\ref{tab:metric-candidates} summarises these signals, their main benefits and limitations, and examples of Java tooling. The process-quality score in Chapter~\ref{ch:methodology} uses several of them.
 
-Table~\ref{tab:metric-candidates} summarises the candidate signals, their main benefits and limitations, and examples of Java tooling. The table does not define the final formula for $J(\tau)$, including weights or normalisation; its purpose is to motivate the signals used later. The precise definition of $J(\tau)$ is given in the methodology chapter and used consistently throughout the evaluation.
-
-\begin{table}[htbp]
+\begin{table}[H]
 \centering
 \small
 \begin{tabular}{L{0.19\textwidth} L{0.26\textwidth} L{0.28\textwidth} L{0.19\textwidth}}
@@ -138,7 +127,7 @@ Refactoring mining is core infrastructure for building traces and describing act
 \section{Refactoring recommendation and search/synthesis}
 \label{sec:recommendation-synthesis}
 
-These systems generate paths; we evaluate observed ones. The literature on refactoring recommendation, sequence synthesis, and goal-directed navigation is therefore mainly relevant as a contrast. It establishes that refactoring can be treated as a structured sequence under explicit objectives, but the generated sequence is the object of interest, not a developer's actual trace. The contrast is set out in one subsection below. The more recent trajectory-formalism work that does engage with observed traces, which is closer to our framing, gets its own subsection.
+These systems generate paths; we evaluate observed ones. The literature on refactoring recommendation, sequence synthesis, and goal-directed navigation is therefore mainly relevant as a contrast. It establishes that refactoring can be treated as a structured sequence under explicit objectives, but the generated sequence is the object of interest, not a developer's actual trace.
 
 \subsection{Recommendation and synthesis as a contrast}
 \label{sec:recommendation-contrast}
@@ -164,7 +153,7 @@ Poncin et al.\ take a broader repository-level view, combining version-control, 
 
 More recent logging infrastructure has typically focused on developer--LLM interaction rather than refactoring-specific traces. \emph{CodeWatcher} is a lightweight VS Code extension that records fine-grained IDE events such as LLM-tool insertions, deletions, copy-paste actions, and focus changes, with timestamps that support later reconstruction of a coding session \cite{basha2025codewatcher}. The same style of event capture would carry over to refactoring, but the setting does not map directly onto this thesis: the work is centred on VS Code and LLM-assisted coding, whereas this project studies Java refactoring sessions in IntelliJ. Recent trace-capture work is therefore relevant in principle, but not directly reusable for the setting studied here.
 
-Existing datasets do not provide the trace needed for this thesis. Some capture rich IDE events, but for a different activity; others capture refactoring-related activity, but only at repository granularity; others do not retain enough code content to replay the trajectory. The dataset used here therefore has to be built for the task rather than reused from prior work. Chapter~\ref{ch:methodology} returns to this in \S\ref{sec:methodology-rater}.
+Existing datasets do not provide the combination of IDE events and per-event code content needed here, so the evaluation builds its own dataset (\S\ref{sec:methodology-rater}).
 
 \subsection{Granularity, segmentation, and semantic interpretation}
 IDE logging also raises a modelling question: what counts as one ``step'' in a refactoring process? Commits are typically too coarse, since they often mix refactoring with feature work, fixes, or cleanup. Raw IDE events are too fine-grained: navigation, edits, refactoring-tool calls, and test runs appear as separate events even when they belong to one conceptual change. The process-mining and interaction-analysis literature shows that grouping this kind of activity into meaningful tasks or episodes is difficult \cite{poncin2011processmining,damevski2017usagesmells}. For refactoring, this matters because one refactoring may involve many small interactions, while a short burst of editing may contain several distinct actions.
