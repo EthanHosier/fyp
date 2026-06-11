@@ -9,76 +9,15 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.util.concurrent.ConcurrentHashMap
 
-/**
- * Bracket-level ground-truth check.
- *
- * RM may surface several detected refactorings under the **same**
- * `(fromSha, toSha)` pair — i.e. the user did multiple ops in one
- * commit-bracket. The validator groups all such steps and applies
- * them **together** (in stepIndex order) on a single fromSha
- * worktree before comparing the result to the user's `toSha`. Every
- * step in the bracket inherits the bracket-level verdict; this is
- * the right semantic for the reorder enumerator (a step is safe to
- * include in a window iff its bracket replays cleanly).
- *
- * ## Single worktree, single batch session
- *
- * The whole [validate] call holds **one** worktree borrowed from
- * [pool] and runs **one** [runInSession] block spanning every
- * bracket. Between brackets the worktree is moved to the next
- * bracket's `fromSha` via `git reset --hard` + [refreshProject];
- * the bundle's cached `IJavaProject` (`projectRoot` keyed) stays
- * alive across all brackets because the worktree path doesn't
- * change. Net: one full project init + N cheap incremental
- * indexes, instead of N full inits.
- *
- * Per-bracket flow:
- *
- *  1. Any spec in the bracket is `null` or [RefactoringSpec.Other]
- *     → entire bracket emits [Status.UNTYPED]. We can't model the
- *     unknown op.
- *  2. Compute the user-changed `.java` set
- *     (`git diff --name-status -M fromSha toSha -- '*.java'`).
- *  3. Hash the user's `toSha` ASTs for those paths via
- *     [JavaFileAstHasher.hashFileAtSha] (cached) — no second
- *     worktree borrow.
- *  4. Apply every spec in stepIndex order on the loaned worktree.
- *     First failure short-circuits the whole bracket to
- *     [Status.REFACTOR_FAILED].
- *  5. Compute our-changed `.java` set from the dirty worktree.
- *     Empty → [Status.REFACTOR_FAILED]; differs from user-set →
- *     [Status.AST_DIVERGED] (file-set mismatch).
- *  6. Hash post-apply ASTs and compare per file. All match → all
- *     steps emit [Status.VALID]; else all emit [Status.AST_DIVERGED]
- *     (file-content mismatch + the divergent paths).
- *
- * Single-step brackets are the N=1 specialisation of the above.
- */
 class RefactoringStepValidator(
     private val applySpec: (RefactoringSpec, Path) -> SpecDispatcher.Result,
     private val pool: WorktreePool,
     private val shadowGit: GitRunner,
-    /** When non-null, divergent brackets write their post-apply
-     *  files (`.ours`) and the user's `toSha` files (`.user`) under
-     *  this directory. Singleton brackets dump under
-     *  `step-<stepIndex>/`; multi-step brackets dump under
-     *  `bracket-<minStepIndex>/`. */
     private val debugDumpDir: Path? = null,
-    /** Run [body] inside a bundle batch-session so consecutive
-     *  [applySpec] calls share one project init+index. Default:
-     *  identity (no batching) — fine for tests that fake out
-     *  [applySpec] and don't need a real session. */
     private val runInSession: (() -> Unit) -> Unit = { it() },
-    /** Force the bundle's cached project to re-stat on-disk files.
-     *  Called between brackets after `git reset --hard` so Eclipse's
-     *  resource model picks up the new state. Default: no-op for
-     *  tests with no real bundle behind them. */
     private val refreshProject: () -> Unit = { /* no-op */ },
 ) {
 
-    /** Wires the production seams: real [SpecDispatcher] + the
-     *  bundle's `withBatchSession` and `refreshProject`. Tests use
-     *  the primary constructor with a fake [applySpec] lambda. */
     constructor(
         client: RefactoringClient,
         pool: WorktreePool,
@@ -94,7 +33,6 @@ class RefactoringStepValidator(
         refreshProject = { client.refreshProject() },
     )
 
-    /** Bounded `(toSha, relativePath) -> astHash` cache. */
     private val toShaHashCache = ConcurrentHashMap<Pair<String, String>, String?>()
     private val changedFilesCache = ConcurrentHashMap<Pair<String, String>, Set<String>>()
     private val cacheCap = 1024
@@ -102,17 +40,11 @@ class RefactoringStepValidator(
     fun validate(steps: List<RefactoringStep>): List<StepValidation> {
         if (steps.isEmpty()) return emptyList()
 
-        // Group by (fromSha, toSha). Within each group, sort by
-        // stepIndex so apply order is deterministic and matches the
-        // user's natural performance order.
         val brackets: List<List<RefactoringStep>> = steps
             .groupBy { it.fromSha to it.toSha }
             .values
             .map { group -> group.sortedBy { it.stepIndex } }
 
-        // Preflight: classify untyped / empty-diff brackets without
-        // touching the bundle or borrowing a worktree. Only brackets
-        // that need a real apply make it into [toReplay].
         val results = mutableListOf<StepValidation>()
         data class ReplayJob(val group: List<RefactoringStep>, val userChanged: Set<String>)
         val toReplay = mutableListOf<ReplayJob>()
@@ -128,20 +60,9 @@ class RefactoringStepValidator(
         val worktree = pool.borrow(firstFromSha)
         val worktreeGit = GitRunner(worktree)
         try {
-            // One session covers every replay-needing bracket so the
-            // bundle keeps its cached IJavaProject alive across the
-            // whole call. Between brackets we git-reset to the next
-            // fromSha and refreshProject so Eclipse re-stats disk;
-            // bundle's projectRoot is unchanged and the cache
-            // survives.
             runInSession {
                 for ((idx, job) in toReplay.withIndex()) {
                     if (idx > 0) {
-                        // Clobber the previous bracket's dirty state
-                        // (a successful apply leaves user-changes on
-                        // disk) and move HEAD to this bracket's
-                        // fromSha. resetHard works whether the prev
-                        // bracket succeeded or failed.
                         worktreeGit.resetHard(job.group.first().fromSha)
                         runCatching { refreshProject() }
                     }
@@ -200,11 +121,6 @@ class RefactoringStepValidator(
 
         val dumpDirName = if (group.size == 1) "step-${first.stepIndex}" else "bracket-${first.stepIndex}"
 
-        // Apply every spec in stepIndex order. First failure
-        // short-circuits the whole bracket. The miner is responsible
-        // for ordering steps within a bracket so host-method
-        // dependencies (e.g. ExtractVariable inside a method that a
-        // sibling InlineMethod will delete) are already respected.
         for (s in group) {
             val outcome = applySpec(s.spec!!, worktree)
             if (outcome is SpecDispatcher.Result.Failed) {
@@ -274,9 +190,6 @@ class RefactoringStepValidator(
         return computed
     }
 
-    /** Hashes [paths] at [sha] via `git show`, reusing cached
-     *  entries. No worktree borrow — works while the validator
-     *  holds its single long-lived worktree. */
     private fun hashesAtSha(sha: String, paths: Set<String>): Map<String, String?> {
         val out = HashMap<String, String?>(paths.size)
         for (p in paths) {

@@ -7,13 +7,6 @@ private const val DUPLICATION_SPIKE_THRESHOLD = 20
 private const val DUPLICATION_DROP_THRESHOLD = 20
 private const val DUPLICATION_FOLLOWUP_WINDOW = 5
 
-/**
- * Reduce a chronological list of [CheckpointReport]s to trajectory-level
- * aggregates. checkpoints[0] is the seed-equivalent starting state (its
- * tree matches the seed — SESSION_STARTED et al don't mutate files), so
- * real transitions are [0]→[1], [1]→[2], ... and `numSteps` is
- * `checkpoints.size - 1`.
- */
 internal fun computeTrajectory(checkpoints: List<CheckpointReport>): TrajectoryStats {
     if (checkpoints.isEmpty()) return TrajectoryStats.ZERO
 
@@ -66,11 +59,6 @@ internal fun computeTrajectory(checkpoints: List<CheckpointReport>): TrajectoryS
     )
 }
 
-/**
- * Surface each checkpoint's [ReadabilitySummary] as a series so a reader can
- * see readability drifting across a trajectory, plus net change from
- * baseline. No composite score — follow-up PR when a validated model lands.
- */
 private fun computeReadability(checkpoints: List<CheckpointReport>): ReadabilityTrajectoryStats {
     if (checkpoints.isEmpty()) return ReadabilityTrajectoryStats.ZERO
     val summaries = checkpoints.map { it.metrics.readability.summary }
@@ -98,17 +86,6 @@ private fun computeReadability(checkpoints: List<CheckpointReport>): Readability
     )
 }
 
-/**
- * Aggregate per-checkpoint CPD output into trajectory-level duplication
- * stats. `perStep` lists are aligned with [checkpoints] (include the seed
- * baseline); deltas and totals cover transitions only.
- *
- * Spike-then-drop: single forward pass. On a positive line-delta >=
- * [DUPLICATION_SPIKE_THRESHOLD], look forward up to [DUPLICATION_FOLLOWUP_WINDOW]
- * transitions; if cumulative drop since the spike is >= [DUPLICATION_DROP_THRESHOLD]
- * and duplication is back at or below the pre-spike level, count once and
- * skip past the matched drop so overlapping spikes don't double-count.
- */
 private fun computeDuplication(checkpoints: List<CheckpointReport>): DuplicationTrajectoryStats {
     if (checkpoints.isEmpty()) return DuplicationTrajectoryStats.ZERO
 
@@ -173,12 +150,6 @@ private fun computeDuplication(checkpoints: List<CheckpointReport>): Duplication
     )
 }
 
-/**
- * Reduce a list of step-indexed [CheckpointReport]s to per-member touch
- * concentration stats. [keyFor] projects each [TouchedMember] to its
- * identifying key (or null to skip). Callers pass the list *after*
- * dropping the seed-equivalent first checkpoint.
- */
 private fun computeMemberTouchStats(
     transitions: List<CheckpointReport>,
     keyFor: (TouchedMember) -> String?,
@@ -225,12 +196,6 @@ private fun computeMemberTouchStats(
     )
 }
 
-/**
- * Walk checkpoints in order. A checkpoint is healthy iff build + tests both
- * pass. When we enter a failing run, remember its first event timestamp;
- * when we hit a healthy checkpoint, add the elapsed ms to the broken total.
- * If the trajectory ends failing, charge the interval up to its last event.
- */
 private fun computeBrokenTime(checkpoints: List<CheckpointReport>): Long {
     fun healthy(c: CheckpointReport) = c.metrics.build.success && c.metrics.tests.success
     fun firstTs(c: CheckpointReport) = c.events.minOfOrNull { it.timestamp }

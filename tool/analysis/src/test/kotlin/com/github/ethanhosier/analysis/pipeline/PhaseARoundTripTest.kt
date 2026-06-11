@@ -29,15 +29,6 @@ import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
-/**
- * Phase 1.3 round-trip guarantee: encoding a [PhaseAResult] to JSON and
- * decoding it back must produce an [AnalysisReport] (via
- * [ReportAssembler.assemble]) that equals the in-process report.
- *
- * The fixture is built directly from the same in-memory helpers
- * `AnalysisPipelineTest` uses — full end-to-end fixture sessions live in
- * `:analysis:run` smoke runs, not in unit tests.
- */
 class PhaseARoundTripTest {
 
     private val json = Json { ignoreUnknownKeys = true; prettyPrint = false }
@@ -52,11 +43,6 @@ class PhaseARoundTripTest {
         val inProcessReport = ReportAssembler.assemble(phaseA, ScoringConfig.PRODUCTION)
         val roundTrippedReport = ReportAssembler.assemble(decoded, ScoringConfig.PRODUCTION)
 
-        // `RunInfo.generatedAt` is `System.currentTimeMillis()` at assemble
-        // time — intrinsically lossy across two separate assembly calls.
-        // Everything else (scored metrics, divergence points, checkpoint
-        // shapes) is deterministic from Phase A + config, so we normalise
-        // that one field before structural comparison.
         assertEquals(normalised(inProcessReport), normalised(roundTrippedReport))
     }
 
@@ -81,9 +67,6 @@ class PhaseARoundTripTest {
         val inProcessReport = ReportAssembler.assemble(phaseA, ScoringConfig.PRODUCTION)
         val roundTrippedReport = ReportAssembler.assemble(decoded, ScoringConfig.PRODUCTION)
 
-        // Compare via JSON encoding so the assertion diff is searchable
-        // (data-class equality on this graph produces a multi-megabyte
-        // toString that is impractical to debug from.)
         val inProcessJson = json.encodeToString(
             AnalysisReport.serializer(),
             normalised(inProcessReport),

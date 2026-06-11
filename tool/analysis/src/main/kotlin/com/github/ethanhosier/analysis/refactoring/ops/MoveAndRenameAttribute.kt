@@ -4,14 +4,6 @@ import com.github.ethanhosier.analysis.refactoring.RefactoringClient
 import com.github.ethanhosier.analysis.refactoring.RefactoringOutcome
 import java.nio.file.Path
 
-/**
- * Move an instance field to another class and rename it in a single
- * operation. Host-side composition of [moveInstanceField] +
- * [renameField]. The field keeps its original name during the move,
- * then is renamed on the destination — that order avoids the usual
- * "rename before move" trap where the pre-move rename touches call
- * sites that are about to be rewritten anyway.
- */
 data class MoveAndRenameAttributeRequest(
     val projectRoot: Path,
     val sourceFolders: List<String>,

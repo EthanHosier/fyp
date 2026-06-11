@@ -616,8 +616,8 @@ fun cohenKappa(yy: Int, yn: Int, ny: Int, nn: Int): Double {
 
 val raters = mapOf(
     "Author" to loadManifest("fixtures/sessions/manifest-v2.csv"),
-    "P1"     to loadManifest("fixtures/sessions/manifest-v2-will.csv"),
-    "P2"     to loadManifest("fixtures/sessions/manifest-v2-yukie.csv"),
+    "P1"     to loadManifest("fixtures/sessions/manifest-v2-p1.csv"),
+    "P2"     to loadManifest("fixtures/sessions/manifest-v2-p2.csv"),
 )
 val pairs = listOf("Author" to "P1", "Author" to "P2", "P1" to "P2")
 val kinds = listOf("ORDERING", "IDE_REPLAY", "REWORK", "HYGIENE")
@@ -863,10 +863,10 @@ fun sessionIdx(sid: String): Int? =
 // Pretty arm labels. P1..P5 anonymise the user-study participants; agent cells are
 // reported by their model x harness names.
 val userPretty = mapOf(
-    "will" to "P1", "yukie" to "P2", "bobby" to "P3",
-    "alex-baseline" to "P4", "vlad-baseline" to "P5",
+    "p1" to "P1", "p2" to "P2", "p3" to "P3",
+    "p4-baseline" to "P4", "p5-baseline" to "P5",
 )
-// Accepts either a session id or a participant key (e.g. "will" or "will-01").
+// Accepts either a session id or a participant key (e.g. "p1" or "p1-01").
 fun prettyUser(s: String): String {
     val key = if (sessionIdx(s) != null) participantOf(s) else s
     return userPretty[key] ?: key

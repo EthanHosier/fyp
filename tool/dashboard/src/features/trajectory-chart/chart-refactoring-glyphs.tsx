@@ -2,23 +2,7 @@ import { ToneChip } from "@/components/tone-chip"
 import type { CheckpointVM, DashboardViewModel, MetricVM, RefactoringStepVM } from "@/data/types"
 import type { ChartScales } from "@/features/trajectory-chart/use-chart-scales"
 
-/**
- * Non-interactive overlay — one severity glyph per checkpoint that has a
- * process-signal pitfall. Sits above the dot (connected by a faint tick)
- * so the user can scan the trajectory for problem points without opening
- * the detail panel for each step.
- *
- * Tone is the worst signal that fires on the checkpoint. Mirrors what the
- * detail panel's "Process Signals" section surfaces:
- *  - `bad` (red X-in-circle): a refactoring landing here wasn't followed
- *    by a test run.
- *  - `warn` (amber rounded triangle with `!`): a refactoring here had an
- *    IDE-equivalent action but was done by hand, OR new code smells were
- *    introduced at this checkpoint.
- *
- * Multiple signals on the same checkpoint collapse to a single glyph at
- * the worst tone; the panel still lists each one individually.
- */
+/** Non-interactive overlay: one severity glyph per checkpoint that has a process-signal pitfall. */
 export function ChartRefactoringGlyphs({
   vm,
   primary,

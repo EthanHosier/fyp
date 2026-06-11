@@ -45,36 +45,6 @@ import org.refactoringminer.rm1.GitHistoryRefactoringMinerImpl
 import kotlinx.serialization.Serializable
 import java.nio.file.Path
 
-/**
- * Runs RefactoringMiner on pairs of shadow-repo commits to detect
- * refactorings across the whole session — one end-to-end sliding window
- * over every consecutive checkpoint, regardless of whether a checkpoint
- * came from an edit burst or an automated IDE refactoring.
- *
- * Earlier iterations anchored at `SESSION_STARTED` / `REFACTORING_FINISHED`
- * events and treated IDE refactorings as a separate source. That produced
- * two parallel streams and split co-located manual + automated work. A
- * single unified pass gives one list of refactoring steps, which is what
- * the dashboard renders as primary chart points.
- *
- * Algorithm (sliding window — both sides):
- *  - Grow `R` forward from `L = checkpoint 0` until `RM(L, R)` is non-empty.
- *  - **Extend `R`** forward while the canonical-keyed detection set stays
- *    equal — pushes the window's right edge to the latest checkpoint that
- *    still carries the same refactoring. Without this, partial-refactoring
- *    workflows like "delete method first, then inline call sites" lock
- *    the window at the first checkpoint where RM sees the inline, leaving
- *    later in-progress checkpoints out and forcing the synth's residual
- *    3-way merge to revert the IDE-applied refactoring back to the user's
- *    intermediate broken state.
- *  - **Shrink `L`** forward while the same set holds — locks onto the
- *    latest L that still represents the pre-refactoring state. Cheaper
- *    synth (smaller chunk to apply) and tighter residual.
- *  - Emit one [RefactoringStep] per detection, then restart with `L = R`.
- *
- * RM is invoked via [GitHistoryRefactoringMinerImpl.detectAtDirectories]
- * against two worktrees borrowed from [WorktreePool] at the two SHAs.
- */
 class RefactoringMinerRunner(
     private val parallelism: Int = defaultParallelism(),
 ) {
@@ -96,17 +66,8 @@ class RefactoringMinerRunner(
         val shaToTimestamp = firstTimestampPerSha(trace, reconstruction)
         val idePerformedShas = shasWithIdeRefactoring(trace, reconstruction)
         val userCommitShas = shasWithUserCommit(trace, reconstruction)
-        // SHAs that are intentional landing points — never extend the
-        // detection window across them. IDE-performed checkpoints carry
-        // a wasPerformedByIde attribution that extending past would
-        // silently re-attribute to manual editing; user commits are the
-        // user's "I'm done with this chunk" markers and the next stretch
-        // of work is logically a separate refactoring.
         val windowBoundaries: Set<String> = idePerformedShas + userCommitShas
 
-        // Pool size = 2 per concurrent RM call; the sliding window is
-        // sequential here (probe walks dominate), so parallelism × 2
-        // covers the single-call worst case without oversubscription.
         val poolSize = (parallelism * 2).coerceAtLeast(2)
         val worktreeBase = sessionFolder.resolve("refactoring-miner-worktrees")
         val pool = WorktreePool(reconstruction.repoDir, worktreeBase, poolSize)
@@ -126,21 +87,9 @@ class RefactoringMinerRunner(
 
                 val targetKeys = detections.map(::canonicalKey).toSet()
 
-                // Extend R forward while the same detection set holds.
-                // Catches workflows where the user lands the visible
-                // signal of the refactoring early (e.g. deletes the
-                // inlined method before finishing call-site bodies)
-                // and then takes several more checkpoints to settle
-                // — without this, the window locks at the first
-                // checkpoint where RM sees the refactoring and the
-                // synth's residual has to revert the alt back to a
-                // half-done intermediate.
                 var rExtIdx = rIdx
                 var latestDetections = detections
                 while (rExtIdx + 1 < checkpoints.size) {
-                    // Stop at intentional landing points — never absorb
-                    // an IDE-performed checkpoint or a user commit into
-                    // a window whose initial R didn't include it.
                     if (checkpoints[rExtIdx] in windowBoundaries) break
                     val nextSha = checkpoints[rExtIdx + 1]
                     val nextDetections = runRM(pool, lSha, nextSha)
@@ -162,14 +111,6 @@ class RefactoringMinerRunner(
                     } else break
                 }
 
-                // Settle the refactoring forward: walk past the
-                // canonical-key window using a coarser key (type +
-                // declaration anchor) to find the latest checkpoint
-                // where this is still the same logical operation. RM
-                // detection stays anchored at (tightestLSha, tightestRSha)
-                // — `settledSha` is a separate concept for the synth's
-                // residual target. Stops at the same window boundaries
-                // (IDE-performed / commit checkpoints).
                 val coarseTargetKeys = latestDetections.map(::coarseKey).toSet()
                 var settledIdx = rExtIdx
                 while (settledIdx + 1 < checkpoints.size) {
@@ -183,28 +124,11 @@ class RefactoringMinerRunner(
                 }
                 val settledSha = checkpoints[settledIdx]
 
-                // From here on, use the extended-R detections so the
-                // emitted step is keyed off the *final* refactored
-                // state (positions, signatures, anchors) rather than
-                // the first-detected one. Important for spec
-                // resolution: refactoring locations report ranges in
-                // the to-side; using the latest R gives the alt-synth
-                // accurate target ranges to replay.
                 val toCheckpointIndex = rExtIdx
                 val timestamp = shaToTimestamp[tightestRSha] ?: 0L
-                // Borrow the pre-refactoring worktree once for the whole
-                // detection batch so position-anchored specs can resolve
-                // their AST-subtree hashes from the source at fromSha.
                 val anchorWorktree = pool.borrow(tightestLSha)
                 try {
                     val anchors = SpecAnchorBuilder(anchorWorktree)
-                    // Resolve specs first, then reorder by host-method
-                    // dependencies — if any spec's host method is the
-                    // target of an InlineMethod in the same bracket, it
-                    // must apply before that inline. RM's enumeration
-                    // order is not applyable in general; the reorderer
-                    // converts it into a sequence the validator + reorder
-                    // synth + alt-traj runner can replay sequentially.
                     val resolvedSpecs = latestDetections.map { toSpec(it, anchors) }
                     val permutation = BracketSpecReorderer.reorder(resolvedSpecs)
                     for (idx in permutation) {
@@ -236,10 +160,6 @@ class RefactoringMinerRunner(
     }
 
     private fun runRM(pool: WorktreePool, fromSha: String, toSha: String): List<Refactoring> {
-        // Borrows are nested so if the second borrow throws, the first one
-        // is still released. A flat try { borrow; borrow } finally { release;
-        // release } leaks the first slot on a failed second borrow, and the
-        // pool eventually blocks forever.
         val prev = pool.borrow(fromSha)
         return try {
             val next = pool.borrow(toSha)
@@ -281,26 +201,11 @@ class RefactoringMinerRunner(
         )
     }
 
-    /**
-     * Maps an RM detection to a typed [RefactoringSpec] suitable for
-     * driving `RefactoringClient`. Each IDE-relevant RM type gets its
-     * own arm; everything else falls through to [RefactoringSpec.Other],
-     * which `AlternativeTrajectoryRunner` skips with a clear reason.
-     *
-     * Typed arms are added incrementally — each commit covers one
-     * refactoring kind (RM subclass → spec field extraction). Until
-     * a kind has its arm, manual detections of that kind don't
-     * synthesise an alternative.
-     */
     private fun toSpec(r: Refactoring, anchors: SpecAnchorBuilder): RefactoringSpec = when (r) {
         is RenameOperationRefactoring -> RefactoringSpec.RenameMethod(
             declaringTypeFqn = r.originalOperation.className,
             oldName = r.originalOperation.name,
             newName = r.renamedOperation.name,
-            // JDT can auto-disambiguate when the name is unique on the
-            // declaring type. RM doesn't surface the JDT-encoded
-            // signature; the rename op falls back to the unique-name
-            // path, which covers the common case.
             paramTypeSignatures = null,
         )
 
@@ -316,17 +221,10 @@ class RefactoringMinerRunner(
         )
 
         is RenamePackageRefactoring -> RefactoringSpec.RenamePackage(
-            // RM's RenamePattern strings are the matched prefix of the
-            // package path with a trailing dot (e.g. `com.foo.`); strip
-            // it so the JDT op gets a clean package FQN.
             oldPackage = r.pattern.before.trimEnd('.'),
             newPackage = r.pattern.after.trimEnd('.'),
         )
 
-        // Pull Up / Push Down extend MoveOperation/MoveAttribute, so
-        // they MUST be matched before their parents — otherwise a
-        // pull-up gets routed through the move-op arm and synthesised
-        // with the wrong JDT op.
         is PullUpOperationRefactoring -> RefactoringSpec.PullUp(
             // JDT's PullUp takes the *source* (subclass) FQN; methods
             // listed are pulled up to its supertype.
@@ -377,14 +275,6 @@ class RefactoringMinerRunner(
             destinationTypeFqn = r.targetClassName,
         )
 
-        // Move Method — JDT's MoveInstanceMethod refactoring rewires the
-        // method into the type of one of its parameters (or instance
-        // fields). RM detects the move structurally; we recover the
-        // target-parameter name by matching parameter types against the
-        // moved operation's new className (FQN or simple). If no
-        // parameter's type matches (e.g. a static-shaped move via a
-        // wholly new field), fall through to Other so the synth skips
-        // rather than guesses.
         is MoveOperationRefactoring -> {
             val sourceFqn = r.originalOperation.className
             val destFqn = r.movedOperation.className
@@ -404,19 +294,9 @@ class RefactoringMinerRunner(
         }
 
         is ExtractOperationRefactoring -> {
-            // RM's leftSide() returns BOTH the extracted code-fragments
-            // AND the containing METHOD_DECLARATION. The latter is
-            // context, not a selection — including its line range here
-            // would balloon the bounding box to the whole source method
-            // and JDT would reject the selection. Filter it out and
-            // keep only the actual extracted fragments.
             val fragments = r.leftSide().filter { it.codeElementType.toString() != "METHOD_DECLARATION" }
             if (fragments.isEmpty()) RefactoringSpec.Other
             else {
-                // Earliest start, latest end — JDT then needs every
-                // statement strictly inside that range to be extractable
-                // together (which is exactly what RM has already
-                // verified by detecting the refactoring at all).
                 val sorted = fragments.sortedWith(compareBy({ it.startLine }, { it.startColumn }))
                 val first = sorted.first()
                 val last = sorted.maxByOrNull { it.endLine * 10_000 + it.endColumn }!!
@@ -445,18 +325,6 @@ class RefactoringMinerRunner(
         )
 
         is ExtractVariableRefactoring -> {
-            // `leftSide()` aggregates the whole containing method, every
-            // post-extract reference statement, and every block on the
-            // way — not the expression we need to feed to JDT's Extract
-            // Local Variable. The actual original sub-expression lives
-            // in `subExpressionMappings`: each LeafMapping is
-            // `original-expression → new-variable-initialiser`, so
-            // fragment1's codeRange is the pre-state expression range.
-            //
-            // CodeRange-from-fragment uses 1-based **exclusive** endColumn
-            // (the column one past the last char of the expression),
-            // unlike RM's `leftSide()` CodeRanges which are inclusive.
-            // `rangeAnchor` expects 1-based inclusive, so we subtract 1.
             val expr = r.subExpressionMappings.firstOrNull()?.fragment1?.codeRange()
             if (expr == null) RefactoringSpec.Other
             else {
@@ -480,9 +348,6 @@ class RefactoringMinerRunner(
         }
 
         is InlineVariableRefactoring -> {
-            // The variable's declaration location is what JDT's Inline
-            // Variable needs to find the symbol — leftSide first entry
-            // covers the declaration site for inline detections.
             val loc = r.variableDeclaration.locationInfo
             val anchor = anchors.pointAnchor(loc.filePath, loc.startLine, loc.startColumn)
             if (anchor == null) RefactoringSpec.Other
@@ -542,9 +407,6 @@ class RefactoringMinerRunner(
         )
 
         is RenameVariableRefactoring -> {
-            // RM bundles several IDE-relevant kinds into a single class;
-            // the discriminator is its dynamically-computed
-            // refactoringType. Each branch builds the matching spec.
             val loc = r.originalVariable.locationInfo
             val newName = r.renamedVariable.variableName
             when (r.refactoringType) {
@@ -633,19 +495,6 @@ class RefactoringMinerRunner(
             }
         }
 
-        // ── Change-signature family ─────────────────────────────────
-        // RM emits one event per delta (one parameter added, one type
-        // changed, …) but JDT's Change Method Signature op takes the
-        // FULL desired parameter list — so we always rebuild it from
-        // operationAfter. Existing-vs-Added is decided by name presence
-        // in operationBefore.
-        //
-        // newReturnType uses JDT's "" sentinel = "leave unchanged" for
-        // every refactoring that doesn't touch the return type;
-        // ChangeReturnType passes the new type explicitly. Doing it
-        // this way avoids needing to read the current return type
-        // (VariableDeclarationContainer doesn't expose it directly —
-        // only the UMLOperation subtype does).
         is AddParameterRefactoring -> changeMethodSignatureSpec(
             r.operationBefore, r.operationAfter, newReturnType = "",
         )
@@ -662,13 +511,6 @@ class RefactoringMinerRunner(
             r.operationBefore, r.operationAfter, newReturnType = r.changedType.toString(),
         )
 
-        // ── Extract Class ───────────────────────────────────────────
-        // The "delegate field" is the new field on the original class
-        // whose type is the extracted class — RM exposes it via
-        // getAttributeOfExtractedClassTypeInOriginalClass(). When that
-        // returns null (e.g. the extracted class is referenced only via
-        // getters), JDT can't drive an extract-class without it, so we
-        // fall through to Other.
         is ExtractClassRefactoring -> r.attributeOfExtractedClassTypeInOriginalClass?.let { delegate ->
             RefactoringSpec.ExtractClass(
                 sourceTypeFqn = r.originalClass.name,
@@ -678,9 +520,6 @@ class RefactoringMinerRunner(
             )
         } ?: RefactoringSpec.Other
 
-        // ── Extract Superclass / Extract Interface ──────────────────
-        // RM uses one class for both, discriminated by the extracted
-        // class's `isInterface` flag.
         is ExtractSuperclassRefactoring -> r.subclassSetBefore.firstOrNull()?.let { sourceFqn ->
             val extracted = r.extractedClass
             val newSimpleName = extracted.name.substringAfterLast('.')
@@ -747,30 +586,12 @@ class RefactoringMinerRunner(
         codeElement = c.codeElement,
     )
 
-    // Canonical key: type + sorted left location keys + sorted right location keys.
-    // Same string form as RefactoringLocation.key so the "same refactoring"
-    // relation used by the sliding window matches what a reader sees in the
-    // serialized output.
     private fun canonicalKey(r: Refactoring): String {
         val left = r.leftSide().map(::codeRangeKey).sorted()
         val right = r.rightSide().map(::codeRangeKey).sorted()
         return "${r.refactoringType.displayName}|L=$left|R=$right"
     }
 
-    /**
-     * Coarse-grained identity for use in [run]'s extend-R / shrink-L
-     * window probes. Strips per-call-site CodeRanges and keys only on
-     * the refactoring's type + the first left-side CodeRange — which
-     * is the *declaration* of the affected element (the inlined
-     * method, the renamed attribute, etc.) and so stays stable as the
-     * refactoring's consequential edits accumulate across multiple
-     * checkpoints. With [canonicalKey] alone, a user manually inlining
-     * call sites one EDIT_BURST at a time produces a sequence of
-     * detections whose right-side ranges grow as more sites land,
-     * which makes the window-extension predicate ("are the keys
-     * equal?") spuriously false at every checkpoint and locks the
-     * window at the first detection.
-     */
     private fun coarseKey(r: Refactoring): String {
         val firstLeft = r.leftSide().firstOrNull()?.let(::codeRangeKey) ?: ""
         return "${r.refactoringType.displayName}|L0=$firstLeft"
@@ -796,14 +617,6 @@ class RefactoringMinerRunner(
         return out
     }
 
-    /**
-     * SHAs whose events include a `GIT_COMMIT` — i.e. checkpoints the
-     * user intentionally landed as a commit (not just an EDIT_BURST
-     * checkpoint). Treated as window-extension boundaries: the
-     * detection window should not cross a deliberate commit, since
-     * commits are the user's semantic "I'm done with this" markers
-     * and the next stretch of work is its own logical refactoring.
-     */
     private fun shasWithUserCommit(
         trace: Trace,
         reconstruction: ReconstructionResult,

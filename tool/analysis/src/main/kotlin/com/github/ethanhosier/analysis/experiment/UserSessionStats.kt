@@ -10,16 +10,6 @@ import kotlin.io.path.isDirectory
 import kotlin.io.path.isRegularFile
 import kotlin.io.path.name
 
-/**
- * Per-session divergence-point counts by kind for a corpus of recorded
- * sessions (defaults to `fixtures/user-sessions`). Emits the same three
- * sections as the legacy Python `scripts/user-session-stats.py`:
- * per-session table, per-participant trajectory, per-kind aggregate.
- *
- * Counts are restricted to `report.divergencePoints[]` (not
- * `alternativeTrajectories[]`) with a strict `magnitude > 0` filter, to
- * match the downstream consumer at `DivergenceExperiment.kt:273`.
- */
 object UserSessionStats {
 
     private val KINDS = listOf(
@@ -107,9 +97,9 @@ object UserSessionStats {
         }
     }
 
-    // Accepts `<participant>-<NN>` (user-sessions, e.g. `will-01`) and
+    // Accepts `<participant>-<NN>` (user-sessions, e.g. `p1-01`, `p4-baseline-01`) and
     // `<NN>-<participant>` (agent-sessions, e.g. `01-agent`).
-    private val NAME_RE_USER = Regex("^([a-z]+)-(\\d+)$")
+    private val NAME_RE_USER = Regex("^([a-z][a-z0-9-]*?)-(\\d+)$")
     private val NAME_RE_AGENT = Regex("^(\\d+)-([a-z]+)$")
 
     private fun parseSessionName(name: String): Pair<String, Int>? {

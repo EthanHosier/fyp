@@ -1,41 +1,22 @@
 package com.github.ethanhosier.analysis.diffs
 
-/**
- * Parses a unified-diff patch string into a structured form. Pure text
- * in → structured records out; no git, no filesystem.
- *
- * Consumed by [PatchFilter] (forthcoming refactor), `PatchLineSurgery`,
- * and `PatchLineRenumber`. Round-tripping a parsed patch back to text
- * (header + body line-by-line) reproduces the input byte-for-byte for
- * well-formed patches.
- */
 object UnifiedDiffParser {
 
     data class ParsedPatch(val files: List<FileEntry>)
 
     data class FileEntry(
-        /** Everything from `diff --git` up to (but not including) the first
-         *  `@@` hunk header — i.e. `index`, `---`, `+++`, mode lines, etc. */
         val headerLines: List<String>,
-        /** Pre-image path with the `a/` prefix stripped. `null` for files
-         *  whose `---` line is `/dev/null` (created files). */
         val oldPath: String?,
-        /** Post-image path with the `b/` prefix stripped. `null` for files
-         *  whose `+++` line is `/dev/null` (deleted files). */
         val newPath: String?,
         val hunks: List<Hunk>,
     )
 
     data class Hunk(
-        /** Verbatim header line, e.g. `@@ -10,3 +10,5 @@ section heading`. */
         val header: String,
         val oldStart: Int,
-        /** Number of pre-image lines covered. Defaults to 1 when the
-         *  header omits the count (`@@ -10 +10,5 @@`). */
         val oldLen: Int,
         val newStart: Int,
         val newLen: Int,
-        /** Body lines, each still prefixed with ` `, `+`, `-`, or `\`. */
         val body: List<String>,
     )
 

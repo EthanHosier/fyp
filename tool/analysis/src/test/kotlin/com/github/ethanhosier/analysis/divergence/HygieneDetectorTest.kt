@@ -27,9 +27,6 @@ class HygieneDetectorTest {
         testTs: Long? = null,
     ): CheckpointReport = CheckpointReport(
         sha = sha,
-        // Default the test event's timestamp to the cp's index-derived
-        // slot so it lands inside the matching step's composite window
-        // (steps are spaced 120 s apart by default in `step(...)`).
         events = if (ranTests) listOf(
             EventSummary(
                 id = "$sha-test",
@@ -61,10 +58,6 @@ class HygieneDetectorTest {
         fromSha = "u${toIdx - 1}",
         toSha = "u$toIdx",
         toCheckpointIndex = toIdx,
-        // Default spacing of 2 min so each step is its own composite —
-        // tests written before the COMPOSITE_GAP_MS rule existed assume
-        // per-step semantics. Tests that want a single composite pass
-        // a closer timestamp explicitly.
         timestamp = timestamp,
         refactoring = DetectedRefactoring(
             type = "Extract Method",
@@ -105,9 +98,6 @@ class HygieneDetectorTest {
 
     @Test
     fun `COMMIT_GAP fires every MIN_COMMIT_GAP green refactor checkpoints`() {
-        // 14 checkpoints, every one a green refactor landing, zero
-        // commits. Fires at i=5 (6th green refactor), counter resets,
-        // fires again at i=11.
         val checkpoints = (0 until 14).map { cp("u$it") }
         val refactors = (0 until 14).map { step(it) }
         val findings = HygieneDetector()
@@ -120,10 +110,6 @@ class HygieneDetectorTest {
 
     @Test
     fun `COMMIT_GAP ignores non-refactor and non-green checkpoints`() {
-        // 14 checkpoints, all but i=2 (no refactor lands here) and i=5
-        // (build broken) are green refactor landings. Green refactors
-        // run 0,1,3,4,6,7,8,9,10,11,12,13 → the 6th lands at i=7 (fire,
-        // reset), the next 6 land 8..13 → second fire at i=13.
         val checkpoints = (0 until 14).map { idx ->
             cp("u$idx", buildOk = idx != 5)
         }
@@ -147,9 +133,6 @@ class HygieneDetectorTest {
 
     @Test
     fun `COMMIT_GAP clock resets at a real user commit`() {
-        // 12 green refactor checkpoints, real commit at i=4. Greens
-        // before commit: 4 (< 6). After commit (i=5..11): 7 greens →
-        // fires at the 6th post-commit green = i=10.
         val checkpoints = (0 until 12).map { idx -> cp("u$idx", isCommit = idx == 4) }
         val refactors = (0 until 12).map { step(it) }
         val findings = HygieneDetector()

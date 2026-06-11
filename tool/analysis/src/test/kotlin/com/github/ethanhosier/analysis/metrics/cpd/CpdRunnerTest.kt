@@ -35,9 +35,6 @@ class CpdRunnerTest {
                     snippet,
                     "expected snippet for occurrence ${occ.file}:${occ.beginLine}-${occ.endLine}",
                 )
-                // Mini unified-diff shape: file header, hunk header, every
-                // body line a context line. Mirrors the assertions in
-                // PmdRunnerTest so both snippet sources stay aligned.
                 assertTrue(
                     snippet.patch.startsWith("diff --git a/${occ.file} b/${occ.file}\n"),
                     "snippet should open with a `diff --git` header for the occurrence's file; got:\n${snippet.patch}",

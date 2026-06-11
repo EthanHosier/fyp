@@ -10,20 +10,6 @@ import org.eclipse.jdt.core.dom.SingleVariableDeclaration
 import org.eclipse.jdt.core.dom.StructuralPropertyDescriptor
 import java.security.MessageDigest
 
-/**
- * Content-addressable hash of a JDT AST subtree.
- *
- * **Must stay byte-identical** to the bundle-side copy at
- * `refactoring-bundle/.../internal/anchor/AstSubtreeHasher.kt`. The
- * bundle is OSGi-isolated and reached via reflection over primitive-only
- * signatures, so the source can't be shared directly. A pinned test
- * fixture (Java snippet + expected SHA) is asserted on both sides; any
- * drift between the two copies fails CI.
- *
- * See the bundle-side file for canonicalisation rationale, including
- * the type-body method-list canonicalisation in
- * [canonicallyOrderBodyDecls].
- */
 object AstSubtreeHasher {
 
     fun hashNode(node: ASTNode): String = sha256Hex(canonical(node))
@@ -73,36 +59,6 @@ object AstSubtreeHasher {
         }
     }
 
-    /**
-     * Canonicalise a `bodyDeclarations` list (on any
-     * [org.eclipse.jdt.core.dom.AbstractTypeDeclaration] or
-     * [org.eclipse.jdt.core.dom.AnonymousClassDeclaration]) by
-     * sorting [MethodDeclaration] entries by `name(paramTypes)` while
-     * keeping every non-method entry in source order.
-     *
-     * **Why methods get sorted.** Two Extract Method refactorings
-     * applied in opposite orders produce the same set of methods in
-     * different declaration positions. Java doesn't observe method
-     * declaration order, so the validator (and any hash-keyed cache)
-     * shouldn't either — otherwise commuting alt orderings get
-     * spuriously classified `AST_DIVERGED`. See the bundle-side file
-     * header for the full rationale.
-     *
-     * **Why nothing else gets sorted.** Most other "sibling lists"
-     * in Java are order-sensitive in ways that *would* be observable
-     * if collapsed:
-     *   - Field declarations: initializers can read earlier fields.
-     *   - `static {}` initializers: run in source order.
-     *   - Inner type declarations: rare to refactor; left positional
-     *     to be safe.
-     *   - Statements inside a method `Block`: sequential by definition.
-     *   - Switch cases: fall-through depends on case order.
-     *   - Enum constants: ordinal value is the declaration index.
-     * Sorting any of these would let two structurally different
-     * programs hash equal. We instead allowlist the single case
-     * (methods) that we know is safe AND that we know comes up in
-     * practice from the refactorings we replay.
-     */
     private fun canonicallyOrderBodyDecls(list: List<*>): List<*> {
         val methods = ArrayList<MethodDeclaration>()
         val rest = ArrayList<Any?>(list.size)

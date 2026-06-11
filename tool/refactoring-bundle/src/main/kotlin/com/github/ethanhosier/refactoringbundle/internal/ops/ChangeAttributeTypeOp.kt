@@ -6,14 +6,6 @@ import org.eclipse.jdt.core.IJavaProject
 import org.eclipse.jdt.core.IType
 import org.eclipse.jdt.internal.corext.refactoring.structure.ChangeTypeRefactoring
 
-/**
- * Change the declared type of the field [fieldName] on
- * [declaringTypeFqn] to [newTypeFqn]. Uses the same JDT refactoring
- * as [ChangeVariableTypeOp] — we locate the field declaration's
- * source range from the JavaModel rather than taking a (line, column)
- * from the caller, so the caller doesn't need to know about file
- * offsets.
- */
 internal object ChangeAttributeTypeOp {
 
     fun run(

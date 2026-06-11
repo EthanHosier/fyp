@@ -11,10 +11,6 @@ enum class FileChangeType {
     DELETED,
 }
 
-/**
- * A snapshot of a single file attached inline to a file-changing event.
- * The analysis stage reconstructs project state by replaying these in event order.
- */
 @Serializable
 data class FileSnapshot(
     val path: String,
@@ -28,12 +24,6 @@ data class FileSnapshot(
     val touchedMembers: List<TouchedMember> = emptyList(),
 )
 
-/**
- * A class (and optionally a method within it) that an event edited. `className`
- * is the fully-qualified name when resolvable, falling back to the simple name.
- * `methodSignature` is `name(paramType1, paramType2, ...)` or null when the
- * edit is at class level (e.g. a field declaration, extracted superclass).
- */
 @Serializable
 data class TouchedMember(
     val className: String?,

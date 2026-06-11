@@ -1,25 +1,5 @@
 package com.github.ethanhosier.analysis.diffs
 
-/**
- * Surgical removal of `+`-runs and `-`-runs from a unified-diff patch.
- *
- * Identifies runs by their *starting line number on the relevant side*:
- *  - `+`-runs by their startLine in the new-tree (post-state).
- *  - `-`-runs by their startLine in the old-tree (pre-state).
- *
- * For each matched run, every body line of the run is dropped from the
- * containing hunk and the hunk header's `-oldStart,oldLen +newStart,newLen`
- * counts are recomputed. If a hunk's body collapses to context-only,
- * the hunk is elided; if a file loses all of its hunks, its entry is
- * dropped from the output.
- *
- * Runs that do not exist in the patch are silently skipped (the caller
- * may legitimately reference runs that an earlier surgery already
- * removed).
- *
- * Pure text in → text out; round-trips a patch with empty surgery
- * specs byte-for-byte modulo the trailing newline.
- */
 object PatchLineSurgery {
 
     private val headerPrefixRegex = Regex("""^@@ -\d+(?:,\d+)? \+\d+(?:,\d+)? @@""")
@@ -79,15 +59,6 @@ object PatchLineSurgery {
                 '\\' -> { /* ignored */ }
             }
         }
-        // When a modification (oldLen>0, newLen>0) collapses to a pure
-        // insertion (oldLen=0) or pure deletion (newLen=0), the unified-
-        // diff convention shifts the relevant start by -1: pure-insertion
-        // headers reference "the line BEFORE which to insert", and pure-
-        // deletion headers reference "the line in the new tree BEFORE
-        // which the deletion happens". Without this shift `git apply`
-        // rejects the patch with "patch failed: <path>:<line>" because
-        // it tries to land the insertion between the wrong adjacent
-        // lines.
         val newOldStart = when {
             newOldLen == 0 && hunk.oldLen > 0 -> hunk.oldStart - 1
             else -> hunk.oldStart
@@ -112,11 +83,6 @@ object PatchLineSurgery {
         )
     }
 
-    /**
-     * Walk the hunk body, identify each contiguous `+`-run / `-`-run with
-     * its starting line on the relevant side, and return the set of body
-     * indices that belong to runs whose start lines match the targets.
-     */
     private fun findRunBodyIndices(
         hunk: UnifiedDiffParser.Hunk,
         addedTargets: Set<Int>,

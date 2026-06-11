@@ -47,7 +47,6 @@ class GradleBuildRunnerTest {
         assertTrue(result.exitCode != 0, "exit code should be non-zero, was ${result.exitCode}")
     }
 
-    /** Copies the fixture into a temp dir so we can mutate it without polluting the checked-in source. */
     private fun copyFixture(src: Path): Path {
         val dest = Files.createTempDirectory("gradle-fixture-")
         Files.walk(src).use { stream ->

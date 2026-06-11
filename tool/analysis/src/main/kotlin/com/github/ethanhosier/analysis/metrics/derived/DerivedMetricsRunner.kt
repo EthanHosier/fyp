@@ -16,109 +16,6 @@ import kotlin.math.min
 import kotlin.math.roundToInt
 import kotlin.math.roundToLong
 
-/**
- * Computes the dashboard's derived metrics — per-checkpoint aggregators,
- * cleanliness composite, prefix-cumulative process score — server-side so
- * the report ships them ready to render.
- *
- * Three internal stages:
- *  1. **Aggregators** — pure per-checkpoint reductions over the raw CK /
- *     PMD / CPD / readability blocks.
- *  2. **Cleanliness composite** — min-max normalised across the main
- *     trajectory's range (alts use main's range and clamp to keep main
- *     scores stable when alt extremes appear).
- *  3. **Process score** — prefix-cumulative walk of the main checkpoints
- *     using running counters; alts read the snapshot at their `fromSha`
- *     and advance one synthetic step.
- *
- * No I/O, no parallelism. Output keyed by SHA so [buildAnalysisReport]
- * can splice it onto the matching [CheckpointReport].
- *
- * --- Cleanliness composite design (stage 2) ---
- *
- * Surfaced two ways:
- *   - As its own dashboard metric, with a hover-card breakdown showing
- *     each sub-metric's weight, normalised value, and points contributed.
- *   - As an input to the process score's "cleanliness gain" term.
- *
- *  1. Six literature-backed sub-signals aggregated over a fixed
- *     **trajectory-touched file set** (the union of every file changed
- *     across the user's main-trajectory checkpoints). The cleanliness
- *     composite measures the developer's working footprint, not the
- *     codebase at large. Per-sub-signal aggregation:
- *       - Cohesion: mean TCC (Bieman & Kang 1995) over touched classes.
- *       - Coupling: mean CBO (Chidamber & Kemerer 1994) over touched classes.
- *       - Smells: count of PMD violations in touched files.
- *       - Duplication: touched-file rate
- *           = duplicated_lines_in_touched / total_lines_in_touched.
- *       - Readability: line-count-weighted mean of five Buse & Weimer
- *           2010 features over touched files, uniform 0.20 blend.
- *       - Cognitive complexity: mean Campbell 2018 score over touched
- *           methods.
- *     See `RESEARCH-cleanliness-metrics.md` for the per-signal
- *     methodology and citations.
- *
- *  2. Uniform 1/6 weighting across the six sub-signals (Laplace's
- *     principle of insufficient reason — no in-domain calibration
- *     corpus to derive non-uniform weights from). Sensitivity analysis
- *     (`PLAN-experiment.md` Experiment 1) tests the robustness of the
- *     uniform choice.
- *
- *  3. Min-max normalisation across the main trajectory's observed range.
- *     Self-tunes per project / session (a 5-WMC bump on a 0..50 range
- *     is significant; on 0..200 it isn't).
- *
- *  4. Re-base when sub-metrics are missing. If a metric is absent at a
- *     checkpoint (or has degenerate range across the trajectory) its
- *     weight is redistributed proportionally over the remaining ones,
- *     so the composite stays on [0, 1]. The `rebased` flag lets the UI
- *     mark scores that aren't a full six-axis sweep.
- *
- *  5. Alts use main's range and clamp normalised values to [0, 1] so an
- *     extreme alt can't shift main's normalisation, while alt scores
- *     still read on the same scale.
- *
- * --- Process score design (stage 3) ---
- *
- * Answers, at each checkpoint t: "is this refactoring trajectory
- * producing cleaner code safely and efficiently, up to here?". Distinct
- * from the six code-quality metrics, which describe state at t; this
- * describes the *process* taken to get there. Decomposable so the detail
- * panel can show which terms moved the score.
- *
- *  1. Prefix-cumulative, not point-in-time. Score(t) judges c0..c_t as a
- *     trajectory, not c_t in isolation. That's what makes it a process
- *     score rather than a quality score.
- *
- *  2. Anchor at 50, not 100. A trajectory that doesn't improve and doesn't
- *     damage anything sits mid-range; pure gain and pure damage are both
- *     visible.
- *
- *  3. Frame as process quality, not absolute code quality. Meaningful
- *     between checkpoints / sessions / user-vs-IDE alts — not as an
- *     absolute "73/100".
- *
- *  4. Bounded (rate-based) penalties with asymmetric Laplace smoothing.
- *     All penalties are fractions in [0, 1] so weights map directly to
- *     point costs ("worst-case manual-IDE costs 11 points"). The
- *     "don't penalise thinking" rule means long thoughtful sessions
- *     shouldn't accumulate penalties just for being long; rates decouple
- *     penalty magnitude from session length. Laplace `(bad+1)/(total+2)`
- *     on the refactoring-step rates avoids the cliff where 1/1 pins to
- *     100%, but is *only* applied when at least one bad step has
- *     occurred — a perfect record (0 bad of N) returns a 0 penalty so
- *     doing the right thing every time isn't punished.
- *
- *  5. No time term. The "stayed broken" intuition is captured by the
- *     count of broken checkpoints, not their duration.
- *
- *  6. Net smells, no separate carry penalty. A `carried` smell is already
- *     on the cumulative ledger from when it was `added`; adding a carry
- *     drag would double-count.
- *
- *  7. No churn term. Bigger refactorings shouldn't be inherently worse
- *     than smaller ones.
- */
 class DerivedMetricsRunner(
     val config: ScoringConfig = ScoringConfig.PRODUCTION,
 ) {
@@ -129,72 +26,27 @@ class DerivedMetricsRunner(
     data class Result(
         val main: Map<String, DerivedMetrics>,
         val alt: Map<String, DerivedMetrics>,
-        /** Process-score continuations past each alt's merge point,
-         *  parallel to the `alternatives` argument passed to [run].
-         *  Each entry is the recomputed score chain over the user's
-         *  remaining checkpoints, anchored at the alt's terminal
-         *  cumulative state. Empty list when the alt merges at the
-         *  trace end or its anchor snapshot was missing. */
         val continuations: List<AltProcessContinuation> = emptyList(),
-        /** Per main-checkpoint trust info, keyed by sha. `Trustworthy`
-         *  iff `build.success && tests.success` at that checkpoint
-         *  (i.e. the static aggregates came from this checkpoint's
-         *  own worktree). Otherwise [TrustInfo.source] flags whether
-         *  aggregates were carried from a prior trustworthy checkpoint
-         *  ("PRIOR") or filled with the session midpoint when no
-         *  prior trustworthy checkpoint existed ("MIDPOINT").
-         *  Empty when [run] was called with empty mainCheckpoints. */
         val mainTrust: Map<String, TrustInfo> = emptyMap(),
-        /** Per alt-checkpoint trust info, keyed by alt sha. Same shape
-         *  and semantics as [mainTrust] — set when an alt checkpoint's
-         *  aggregates were carried (because build/tests were broken on
-         *  the synthesised tree). */
         val altTrust: Map<String, TrustInfo> = emptyMap(),
     )
 
-    /** Per-checkpoint trust descriptor surfaced on [Result.mainTrust]. */
     data class TrustInfo(
         val trustworthy: Boolean,
-        /** Null when trustworthy; "PRIOR" or "MIDPOINT" otherwise. */
         val source: String?,
     )
 
-    /**
-     * @param mainCheckpoints user trajectory in chronological order. The
-     *   process-score walk relies on this order.
-     * @param alternatives synthesised IDE-driven alts; their `altCheckpoint`
-     *   is scored against main's running counters at `fromSha`.
-     * @param refactoringSteps miner output; both main process score (rate
-     *   denominators) and alt process score (`userRanTests` lookup via
-     *   `toCheckpointIndex`'s events) read this.
-     */
     fun run(
         mainCheckpoints: List<CheckpointReport>,
         alternatives: List<AlternativeTrajectory>,
         refactoringSteps: List<RefactoringStep>,
     ): Result {
-        // Trajectory-touched file set: union of every file path that
-        // appeared in any user-trajectory checkpoint's diff, computed
-        // once and held fixed for the whole session. Every Layer-1
-        // aggregator (cohesion, coupling, smells, duplication,
-        // readability, cognitive complexity) operates over this set
-        // only — the cleanliness composite measures the quality of
-        // the developer's working footprint, not the codebase at
-        // large. See RESEARCH-cleanliness-metrics.md §1–§6.
         val touchedSet: Set<String> = mainCheckpoints
             .flatMap { cp -> cp.diff.perFileChurn.map { it.path } }
             .toSet()
 
-        // Raw per-checkpoint aggregates — what CK/PMD/CPD actually
-        // produced at this SHA, restricted to [touchedSet]. Used as
-        // the input to range computation (filtered to trustworthy
-        // only) and as the carry-forward source for the trustworthy
-        // slots below.
         val mainRawAgg = mainCheckpoints.map { aggregate(it, touchedSet) }
 
-        // Pass 1: forward carry-forward. Untrustworthy slots inherit
-        // the previous trustworthy aggregate. Slots with no prior
-        // trustworthy aggregate are left null for pass 2 to fill.
         val mainEffectiveAgg = MutableList<Aggregates?>(mainCheckpoints.size) { null }
         val mainTrustInfo = MutableList(mainCheckpoints.size) { TrustInfo(true, null) }
         run {
@@ -231,20 +83,6 @@ class DerivedMetricsRunner(
         @Suppress("UNCHECKED_CAST")
         val mainAgg = (mainEffectiveAgg as List<Aggregates>)
 
-        // Alt-side two-pass — same shape, per-alt midpoint uses main's
-        // range (alts already get clamped normalisation against main's
-        // ranges; the midpoint placeholder uses the main ranges too so
-        // the alt slot is comparable). Per-alt trust info collected
-        // alongside so the pipeline can splice it onto alt CheckpointReports.
-        //
-        // Seed `lastGood` from the user's effective aggregate at
-        // `alt.fromSha` so an alt whose first cp is broken inherits
-        // the user's last-known-good state (PRIOR) rather than
-        // dropping to MIDPOINT. Without this, e.g. a no-op rework alt
-        // aliasing a broken user cp had no in-alt prior, so its
-        // cleanliness collapsed to session midpoint — wrong, because
-        // the natural "before" state is the same user cp the main
-        // walk already carry-forwarded for.
         val mainEffectiveBySha: Map<String, Aggregates> = mainCheckpoints
             .mapIndexed { i, cp -> cp.sha to mainAgg[i] }
             .toMap()
@@ -280,17 +118,8 @@ class DerivedMetricsRunner(
             perAlt.map { computeCleanliness(it, ranges, clamp = true) }
         }
 
-        // Composite-window mapping: groups refactoring steps into
-        // batches (≤ 60s gap, Murphy-Hill 2012) and records whether
-        // each batch was followed by a `TEST_RUN_FINISHED` event.
-        // Drives `W_SKIP_TESTS`'s denominator. Computed once and
-        // threaded into both the main and alt walks so they agree
-        // on the composite boundaries.
         val compositeInfoByStep = computeCompositeAssignments(refactoringSteps, mainCheckpoints)
         val mainProcess = computeMainProcess(mainCheckpoints, mainCleanliness, refactoringSteps, compositeInfoByStep)
-        // Wall-clock durations of the user's main checkpoints — alt
-        // steps borrow the slice of the user step they replace so the
-        // alt's `brokenMs` denominator stays comparable to the user's.
         val userDurations = computeDurations(mainCheckpoints)
         val altProcess: AltProcessOutput = computeAltProcess(
             alternatives = alternatives,
@@ -359,28 +188,13 @@ class DerivedMetricsRunner(
         )
     }
 
-    /** A checkpoint's cleanliness aggregates can be trusted iff the
-     *  code was demonstrably working there — build green AND tests
-     *  green. `TestResult.skipped(...)` writes `success = false` (the
-     *  pipeline only skips tests when the build already failed), so
-     *  this single check covers both "build broke" and "tests broke /
-     *  weren't run because build broke". */
     private fun isTrustworthy(cp: CheckpointReport): Boolean =
         cp.metrics.build.success && cp.metrics.tests.success
 
-    /** Midpoint aggregate `(lo + hi) / 2` per sub-signal — used as a
-     *  fallback for untrustworthy checkpoints with no prior trustworthy
-     *  baseline to carry forward (build/tests broken from session
-     *  start). Degenerate-range cases (no trustworthy checkpoints, or
-     *  a single one) collapse to a sensible constant via the existing
-     *  range-degenerate handling in [computeCleanliness]. */
     private fun midpointAggregates(ranges: Map<SubMetric, Range>): Aggregates {
         fun mid(m: SubMetric): Double = ranges[m]?.let { (it.lo + it.hi) / 2.0 } ?: 0.0
         return Aggregates(
             coupling = mid(SubMetric.COUPLING),
-            // Cohesion is the only sub-metric that's legitimately null
-            // when missing — if no trustworthy checkpoint produced a
-            // TCC, leave it null (matches today's "no signal" path).
             cohesion = ranges[SubMetric.COHESION]?.let { (it.lo + it.hi) / 2.0 },
             duplication = mid(SubMetric.DUPLICATION),
             readability = mid(SubMetric.READABILITY),
@@ -392,9 +206,6 @@ class DerivedMetricsRunner(
     // ---- aggregators ----
 
     private data class Aggregates(
-        // Only `cohesion` is nullable — frontend's view-model emits the
-        // others unconditionally (with 0 fallbacks for empty inputs), so
-        // we mirror that for bit-exact parity on existing fixtures.
         val coupling: Double,
         val cohesion: Double?,
         val duplication: Double,
@@ -405,30 +216,13 @@ class DerivedMetricsRunner(
 
     private fun aggregate(cp: CheckpointReport, touchedSet: Set<String>): Aggregates {
         val ck = cp.metrics.ck
-        // Mean of CBO over classes whose file lies in the trajectory-
-        // touched set. Empty touched-set ⇒ 0.0 fallback (mirrors the
-        // legacy "empty list" behaviour so the carry-forward and
-        // range-normalisation paths keep working on degenerate inputs).
         val touchedClasses = ck.perClass.filter { it.file in touchedSet }
         val cbos = touchedClasses.map { it.cbo.toDouble() }
         val coupling = if (cbos.isEmpty()) 0.0 else round1(cbos.average())
 
-        // Mean of TCC over touched classes; CK reports null TCC when
-        // undefined (< 2 eligible method pairs). Drop those before
-        // averaging — including them as 0 would falsely flag trivial
-        // classes as incohesive. Cohesion is the only sub-signal that
-        // remains genuinely nullable; computeCleanliness redistributes
-        // its weight when missing.
         val tccs = touchedClasses.mapNotNull { it.tcc?.toDouble() }
         val cohesion = if (tccs.isEmpty()) null else round2(tccs.average())
 
-        // Touched-file duplication rate:
-        //   duplicated_lines_in_touched / total_lines_in_touched.
-        // CPD's clone detection still runs codebase-wide so cross-file
-        // clones are found; we restrict the numerator (and the
-        // denominator) to occurrences/lines inside the touched
-        // footprint. Per-file line counts come from the readability
-        // runner to avoid a separate filesystem walk.
         val touchedDupLines = cp.metrics.cpd.duplications.sumOf { dup ->
             dup.occurrences.count { it.file in touchedSet } * dup.lines
         }
@@ -438,21 +232,11 @@ class DerivedMetricsRunner(
         val duplication = if (touchedTotalLines == 0) 0.0
             else round1(touchedDupLines.toDouble() / touchedTotalLines.toDouble() * 100.0)
 
-        // Per-file readability ratios restricted to the touched set,
-        // re-aggregated as a line-count-weighted mean before applying
-        // the uniform 0.20 blend across five Buse-Weimer features.
         val readability = readabilityTouched(cp.metrics.readability.perFile, touchedSet)
 
         val pmd = cp.metrics.pmd
-        // Mean of cognitive complexity per method, over methods in
-        // touched files. Σ would mechanically increase under
-        // Extract Method (more methods × constant per-entry weight);
-        // mean correctly rewards the refactoring.
         val cognitiveScores = pmd.methodMetrics.filter { it.file in touchedSet }.map { it.cognitive }
         val cognitive = if (cognitiveScores.isEmpty()) 0 else cognitiveScores.average().roundToInt()
-        // Unweighted count of PMD violations in touched files —
-        // priority weighting is reserved for the process-score smell
-        // ledger to avoid double-counting severity.
         val smells = pmd.violations.count { it.file in touchedSet }
 
         return Aggregates(
@@ -465,20 +249,6 @@ class DerivedMetricsRunner(
         )
     }
 
-    /**
-     * Uniform 0.20 blend of five Buse-Weimer 2010 features
-     * (line length, indentation depth, identifier length, single-
-     * letter rate, dictionary-word rate), evaluated on the touched
-     * subset of `perFile` and combined with a line-count weighting
-     * so a 1000-line file contributes more than a 10-line one.
-     * Returns a `[0, 100]` value; degenerates to 0.0 when no touched
-     * file exists at this checkpoint.
-     *
-     * Uniform weights follow Laplace's principle of insufficient
-     * reason — no in-domain calibration data distinguishes the five
-     * features' relative importance; treat them symmetrically. See
-     * RESEARCH-cleanliness-metrics.md §5.
-     */
     private fun readabilityTouched(
         perFile: List<FileReadability>,
         touchedSet: Set<String>,
@@ -503,14 +273,6 @@ class DerivedMetricsRunner(
 
     // ---- cleanliness ----
 
-    // Default uniform 1/6 weighting across the six sub-signals (encoded
-    // as 1.0 each — computeCleanliness divides by Σ wᵢ so absolute
-    // magnitudes are irrelevant for the blended score, only ratios are).
-    // Laplace's principle of insufficient reason: with no in-domain
-    // calibration corpus we have no basis to weight one sub-signal above
-    // another. See RESEARCH-cleanliness-metrics.md §7. Per-sub-signal
-    // weights are configurable via [ScoringConfig.cleanliness] so
-    // perturbation experiments can probe sensitivity.
     private enum class SubMetric(val id: String, val label: String, val betterLower: Boolean) {
         COGNITIVE("cognitive", "Cognitive complexity", betterLower = true),
         COUPLING("coupling", "Coupling", betterLower = true),
@@ -608,69 +370,26 @@ class DerivedMetricsRunner(
     // ---- process score ----
 
     private data class ProcessSnapshot(
-        /** Count of broken checkpoints — surfaced in the breakdown
-         *  detail string alongside the time numerator. */
         val brokenCount: Int,
-        /** Milliseconds spent in a broken state (build red OR tests
-         *  failed, excluding skipped). Numerator for `brokenFrac`. */
         val brokenMs: Long,
-        /** Total milliseconds covered by the walk so far. Denominator
-         *  for `brokenFrac`. */
         val elapsedMs: Long,
         val refactoringStepsCount: Int,
         val testsSkippedCount: Int,
         val ideRelevantCount: Int,
         val manualWhenIdeCount: Int,
-        /** Number of refactoring composites encountered so far on
-         *  this walk — used as the denominator for the `W_SKIP_TESTS`
-         *  fraction. A composite is a run of refactoring steps whose
-         *  inter-step gap is ≤ [COMPOSITE_GAP_MS] (Murphy-Hill et al.
-         *  2012). */
         val compositesCount: Int,
-        /** Number of composites that had NO `TEST_RUN_FINISHED` event
-         *  between their last step and the next composite's first
-         *  step (or session end). Numerator for `W_SKIP_TESTS`. */
         val skippedCompositesCount: Int,
-        /** Cumulative count of green-refactor checkpoints since the most
-         *  recent (real or synthetic) commit. Mirrors HygieneDetector's
-         *  `greenSinceLastCommit` walk: a checkpoint counts iff a
-         *  refactoring step landed there AND build+tests both passed
-         *  AND tests weren't skipped. Reset to 0 at a user commit or
-         *  after a commit-gap event fires. */
         val greenSinceLastCommit: Int,
-        /** Number of times the green-refactor counter has crossed
-         *  [MIN_COMMIT_GAP] so far on this trajectory — one event per
-         *  "you should have committed by now" overdue stretch. Drives
-         *  the W_COMMIT_GAP penalty in [buildProcessScore]. */
         val commitGapEvents: Int,
-        /** Cumulative `+W_LENGTH` bonus an alt has earned so far. Main
-         *  walks stay at 0.0 (no comparator). Alt walks ramp this up
-         *  evenly across their N steps to a terminal value of
-         *  `W_LENGTH × max(0, (userSteps − altSteps) / userSteps)`,
-         *  then the continuation walk inherits the locked-in value. */
         val altLengthBonusPoints: Double,
         val cleanliness0: Double?,
-        /** Final cleanliness scalar of the user's main trajectory.
-         *  Constant across the walk; used by the lag term to penalise
-         *  intermediate states whose cleanliness sits below the final
-         *  value (the trajectory's terminal cleanliness target).
-         *  Threaded through alt and continuation snapshots so all
-         *  walks share the same reference. Null when the user's final
-         *  cleanliness is itself null (degenerate trajectory). */
         val cleanlinessFinal: Double?,
-        /** Cumulative sum of per-checkpoint cleanliness deficit
-         *  `max(0, cleanlinessFinal - cleanT)`. Divided by
-         *  [checkpointsSoFar] at score time to get the running-mean
-         *  lag fraction in [0, 1]. */
         val lagSum: Double,
         val checkpointsSoFar: Int,
     )
 
     private data class MainProcessOutput(
         val scores: List<ProcessScore>,
-        // Snapshot indexed by main-checkpoint sha — captures running
-        // counters AFTER processing that checkpoint, which is exactly the
-        // state an alt branching from that sha should start from.
         val snapshots: Map<String, ProcessSnapshot>,
     )
 
@@ -708,14 +427,6 @@ class DerivedMetricsRunner(
         return MainProcessOutput(scores = scores, snapshots = snapshots)
     }
 
-    /**
-     * Per-checkpoint wall-clock duration: the time slice each cp covers
-     * in the user's IDE timeline. cp_i covers `[firstEventTs(cp_i),
-     * firstEventTs(cp_{i+1}))`; the last cp's duration is its own event
-     * span (mirrors [computeBrokenTime] charging the trailing broken
-     * run up to its last event). Drives the time-weighted `W_BROKEN`
-     * fraction in [buildProcessScore].
-     */
     private fun computeDurations(checkpoints: List<CheckpointReport>): List<Long> {
         fun firstTs(c: CheckpointReport) = c.events.minOfOrNull { it.timestamp }
         fun lastTs(c: CheckpointReport) = c.events.maxOfOrNull { it.timestamp }
@@ -727,10 +438,6 @@ class DerivedMetricsRunner(
         }
     }
 
-    /**
-     * Steps grouped by their landing checkpoint index — O(1) lookup for
-     * any per-checkpoint walk (main pass and continuation walks).
-     */
     private fun stepsByCheckpointIndex(
         refactoringSteps: List<RefactoringStep>,
     ): Map<Int, List<RefactoringStep>> {
@@ -741,7 +448,6 @@ class DerivedMetricsRunner(
         return out
     }
 
-    /** Zero snapshot for the start of a main walk. */
     private fun initialMainSnapshot(
         cleanliness0: Double?,
         cleanlinessFinal: Double?,
@@ -764,16 +470,6 @@ class DerivedMetricsRunner(
         checkpointsSoFar = 0,
     )
 
-    /**
-     * Walk one user-trajectory step forward from [snap]. Used both for
-     * the main pass (seeded with [initialMainSnapshot]) and for alt
-     * "continuation" walks past the merge point (seeded with the alt's
-     * terminal snapshot — see [computeAltContinuations]). Either way
-     * the per-step accounting is the same: real `wasPerformedByIde`
-     * flags from [stepsLandingHere] and real `TEST_RUN_FINISHED` events
-     * via [stepUserRanTests]. Returns the new snapshot and the
-     * cumulative process score after this step.
-     */
     private fun advanceMainStep(
         snap: ProcessSnapshot,
         cp: CheckpointReport,
@@ -807,10 +503,6 @@ class DerivedMetricsRunner(
                 ideRelevantCount += 1
                 if (!s.wasPerformedByIde) manualWhenIdeCount += 1
             }
-            // Composite accounting: only bump the running counts at
-            // the *first* step of each composite. A composite that
-            // had no `TEST_RUN_FINISHED` event in its post-batch
-            // window contributes 1 to the `W_SKIP_TESTS` numerator.
             val info = compositeInfoByStep[s.stepIndex]
             if (info != null && info.isFirstStepInComposite) {
                 compositesCount += 1
@@ -818,13 +510,6 @@ class DerivedMetricsRunner(
             }
         }
 
-        // Commit-gap walk: mirrors HygieneDetector's `greenSinceLastCommit`
-        // counter (`anchorIndex` checkpoint logic). Increments per
-        // green-refactor checkpoint; resets on real or synthetic commits;
-        // each threshold crossing emits one "missed commit" event. The
-        // penalty is per overdue stretch, not per step — so a developer
-        // who batches 18 green refactors without committing is charged
-        // 3 events, not 18 increments.
         val testsAtCpSuccess = testsOk && !testsSkipped
         val landsRefactor = stepsLandingHere.isNotEmpty()
         val greenRefactorCp = landsRefactor && build && testsAtCpSuccess
@@ -845,19 +530,12 @@ class DerivedMetricsRunner(
         val brokenMs = snap.brokenMs + brokenMsInc
         val elapsedMs = snap.elapsedMs + durationMs
 
-        // Main walk doesn't add to the alt-length bonus — it's
-        // carried through unchanged so continuation walks (which
-        // reuse this function) preserve the alt's locked-in bonus.
         val altLengthBonusPoints = snap.altLengthBonusPoints
 
         val checkpointsSoFar = snap.checkpointsSoFar + 1
         // Time-weighted broken fraction: avoids dilution from
         // many-small-checkpoints manual-edit clusters.
         val brokenFrac = if (elapsedMs > 0L) brokenMs.toDouble() / elapsedMs.toDouble() else 0.0
-        // Laplace smoothing only kicks in when at least one bad batch
-        // has happened; a perfect record (0 of N) returns 0 penalty.
-        // `skipFrac` is now per-composite (Murphy-Hill 2012 batch
-        // boundary); `manualFrac` stays per-step.
         val skipFrac = if (compositesCount == 0 || skippedCompositesCount == 0) 0.0
             else (skippedCompositesCount + 1).toDouble() / (compositesCount + 2).toDouble()
         val manualFrac = if (ideRelevantCount == 0 || manualWhenIdeCount == 0) 0.0
@@ -866,12 +544,6 @@ class DerivedMetricsRunner(
         val cleanlinessGain = if (cleanT == null || snap.cleanliness0 == null) 0.0
             else cleanT - snap.cleanliness0
 
-        // Intermediate cleanliness lag — penalises trajectories that
-        // linger in states below the final cleanliness target. The
-        // increment is the non-negative deficit `cleanlinessFinal - cleanT`
-        // (zero at the terminal checkpoint by construction; positive
-        // for intermediate states still below target). Reordering
-        // cleanup-earlier reduces the running mean.
         val lagInc = if (cleanT == null || snap.cleanlinessFinal == null) 0.0
             else max(0.0, snap.cleanlinessFinal - cleanT)
         val lagSum = snap.lagSum + lagInc
@@ -918,10 +590,6 @@ class DerivedMetricsRunner(
 
     private data class AltProcessOutput(
         val perStepScores: List<List<ProcessScore>>,
-        /** One entry per alt, in [alternatives] order. `null` when the
-         *  anchor `mainSnapshots[fromSha]` was missing (in which case
-         *  the alt's perStepScores are all [ProcessScore.EMPTY] and
-         *  there's nothing to continue from). */
         val finalSnapshots: List<ProcessSnapshot?>,
     )
 
@@ -940,13 +608,6 @@ class DerivedMetricsRunner(
         val finalSnapshots = mutableListOf<ProcessSnapshot?>()
         for (i in alternatives.indices) {
             val alt = alternatives[i]
-            // Snapshot at fromSha is "main pass after processing that
-            // checkpoint" — the starting state for the alt's first
-            // synthetic step. Each subsequent step advances the
-            // snapshot in place, so the chain accumulates penalties
-            // exactly like the main walk. Missing anchor (shouldn't
-            // happen, defensive): emit baselines for every step in
-            // the chain.
             val anchor = mainSnapshots[alt.fromSha]
             if (anchor == null) {
                 perStepScores += alt.altCheckpoints.map { ProcessScore.EMPTY }
@@ -955,17 +616,7 @@ class DerivedMetricsRunner(
             }
 
             val altDurations = altStepDurations(alt, userIdxBySha, stepByIndex, userDurations)
-            // W_LENGTH bonus: alt that covers the user's
-            // `fromSha → userToSha` window in fewer steps earns
-            // `+W_LENGTH × (userSteps − altSteps) / userSteps`.
-            // Distributed evenly across the alt's N steps so the
-            // chart's alt process-score line ramps smoothly rather
-            // than jumping at the merge point. Alts that don't save
-            // steps (ORDERING, HYGIENE) end up with 0 per-step bonus.
             val perStepLengthBonus = computeAltLengthBonusPerStep(alt, userIdxBySha)
-            // Track composites already counted on THIS alt's walk so
-            // collapses (IDE_REPLAY) and revisits (ORDERING duplicates)
-            // don't double-bump the composite counter.
             val seenCompositesPerAlt = mutableSetOf<Int>()
             var snap: ProcessSnapshot = anchor
             val perStep = mutableListOf<ProcessScore>()
@@ -988,32 +639,11 @@ class DerivedMetricsRunner(
         return AltProcessOutput(perStepScores, finalSnapshots)
     }
 
-    /**
-     * Per-alt-step refactoring-step accumulator delta. Mirrors what the
-     * main walk would have added at the user step(s) this alt cp
-     * replaces — `manualWhenIde` is always zero (alts are mechanically
-     * IDE-driven by construction).
-     *
-     * REWORK: zero — the rework cp isn't a refactoring step, it just
-     * removes round-trip code. `landsRefactor = false` so it doesn't
-     * contribute to the commit-gap counter either.
-     *
-     * IDE_REPLAY: cp[0] absorbs ALL the user steps it collapses (the
-     * single alt cp stands in for N user refactorings). Subsequent
-     * cleanup cps (`altCheckpoints.size > stepIndexes.size`) are
-     * residual — zero delta.
-     *
-     * ORDERING: 1:1, alt step k mirrors user step `stepIndexes[k]`.
-     */
     private data class AltStepDelta(
         val refactoringStepsInc: Int,
         val ideRelevantInc: Int,
         val compositesInc: Int,
         val skippedCompositesInc: Int,
-        /** Per-step contribution to the alt's `W_LENGTH` bonus.
-         *  Computed once per alt as `totalBonus / altCheckpoints.size`
-         *  in [computeAltProcess] and applied evenly across the alt's
-         *  steps so the alt's process-score line ramps smoothly. */
         val lengthBonusPoints: Double,
         val landsRefactor: Boolean,
     ) {
@@ -1050,17 +680,9 @@ class DerivedMetricsRunner(
         for (s in userSteps) {
             ref += 1
             if (s.refactoring.ideRelevant) ide += 1
-            // Composite accounting: count each composite once per
-            // alt walk (track via the caller-supplied set so the
-            // walker doesn't double-count across IDE_REPLAY
-            // collapses or ORDERING revisits).
             val info = compositeInfoByStep[s.stepIndex]
             if (info != null && seenCompositesPerAlt.add(info.compositeId)) {
                 comp += 1
-                // IDE_REPLAY alts are "you could have used the safer
-                // mechanical IDE refactor" counterfactuals — assume
-                // they include the post-batch test run. ORDERING
-                // alts inherit the user's actual batch-test behaviour.
                 val altTested = alt.kind == DivergenceKind.IDE_REPLAY || info.hasTestInWindow
                 if (!altTested) skipComp += 1
             }
@@ -1070,42 +692,11 @@ class DerivedMetricsRunner(
             ideRelevantInc = ide,
             compositesInc = comp,
             skippedCompositesInc = skipComp,
-            // Filled in by the caller via .copy() — `altStepDelta`
-            // computes per-step accumulator deltas; the length bonus
-            // is uniform across an alt's steps and known only at the
-            // outer loop level.
             lengthBonusPoints = 0.0,
             landsRefactor = true,
         )
     }
 
-    /**
-     * Per-alt-step wall-clock duration — what each alt step "borrows"
-     * from the user's timeline for its broken-frac denominator.
-     *
-     * IDE_REPLAY: a single alt cp can collapse multiple user steps,
-     * so the alt step covers the full span from `fromSha` to
-     * `userToSha`. We charge that whole span to the single alt cp;
-     * extra residual cps (when `altCheckpoints.size > stepIndexes.size`)
-     * get 0 ms — they're cleanup that happened "for free" in the alt.
-     *
-     * ORDERING / REWORK / HYGIENE: each alt step matches one user
-     * step 1:1, so it borrows that user step's checkpoint duration.
-     */
-    /**
-     * Per-alt-step `W_LENGTH` bonus contribution. Total bonus =
-     * `W_LENGTH × max(0, (userSteps − altSteps) / userSteps)` where
-     * `userSteps` is the number of user transitions covered by the
-     * alt's `[fromSha, userToSha]` window. The total is distributed
-     * evenly across the alt's N steps so the cumulative bonus
-     * reaches its full value exactly at the alt's terminal step
-     * and is then locked in for the continuation walk via the
-     * snapshot.
-     *
-     * Returns 0 for ORDERING (alt length == user length), HYGIENE
-     * (fromSha == userToSha, userSteps == 0), no-op REWORK
-     * (same case), and any alt that doesn't shorten the path.
-     */
     private fun computeAltLengthBonusPerStep(
         alt: AlternativeTrajectory,
         userIdxBySha: Map<String, Int>,
@@ -1140,21 +731,6 @@ class DerivedMetricsRunner(
                 List(n) { k -> if (k == 0) spanMs else 0L }
             }
             DivergenceKind.REWORK -> List(n) { k ->
-                // REWORK alts have empty `stepIndexes` (the rework
-                // isn't a typed refactor-miner step), so we use the
-                // `altCheckpointUserIndexes` map — populated by
-                // `computeReworkAlts` to record which user cp each
-                // alt step semantically lands at. Same offset
-                // convention as ORDERING: `userCpIdx - 1` is the
-                // user's transition-into-this-cp duration.
-                //
-                // Without this, every REWORK alt step contributed 0
-                // ms to `elapsedMs`, freezing the alt's brokenFrac at
-                // the value it had at `fromSha`. The user's main
-                // path would then accumulate more clean time post-
-                // fromSha and bring its own brokenFrac down, making
-                // the alt look worse than the user even when the
-                // alt was genuinely the better path.
                 val userCpIdx = alt.altCheckpointUserIndexes.getOrNull(k) ?: return@List 0L
                 val srcIdx = (userCpIdx - 1).coerceAtLeast(0)
                 userDurations.getOrNull(srcIdx) ?: 0L
@@ -1163,32 +739,12 @@ class DerivedMetricsRunner(
                 val userStepIdx = alt.stepIndexes.getOrNull(k) ?: return@List 0L
                 val userCpIdx = stepByIndex[userStepIdx]?.toCheckpointIndex
                     ?: return@List 0L
-                // The user step "lands" at userCpIdx; the time the user
-                // spent in that landing state is durations[userCpIdx-1]
-                // (the gap from the prior cp). Use that as the slice
-                // the alt step occupies.
                 val srcIdx = (userCpIdx - 1).coerceAtLeast(0)
                 userDurations.getOrNull(srcIdx) ?: 0L
             }
         }
     }
 
-    /**
-     * Roll each alt's terminal cumulative state forward through the
-     * user's checkpoints AFTER the alt's `userToSha`, recomputing
-     * process scores via [advanceMainStep] (user semantics, not alt
-     * semantics — these are the user's actual subsequent steps, with
-     * real `wasPerformedByIde` flags and real test-running events).
-     *
-     * Only process scores are recomputed: all other metrics are
-     * point-in-time functions of the code state, which is identical
-     * to the user's once the trees converge at the merge point.
-     *
-     * Returns one [AltProcessContinuation] per alt, in [alternatives]
-     * order. The list is empty when the alt's `userToSha` is the last
-     * main checkpoint, when its anchor snapshot was missing, or when
-     * `userToSha` isn't found in main.
-     */
     private fun computeAltContinuations(
         alternatives: List<AlternativeTrajectory>,
         altFinalSnapshots: List<ProcessSnapshot?>,
@@ -1233,8 +789,6 @@ class DerivedMetricsRunner(
         }
     }
 
-    /** Per-alt continuation result: parallel arrays of user-checkpoint
-     *  SHAs after the merge point and their recomputed process scores. */
     data class AltProcessContinuation(
         val checkpointShas: List<String>,
         val processScores: List<ProcessScore>,
@@ -1244,15 +798,6 @@ class DerivedMetricsRunner(
         }
     }
 
-    /** Walk one synthetic alt step forward from [snap] using [cp]'s
-     *  metrics and [cleanT]. The refactoring-step accumulators are
-     *  driven by [delta] (precomputed in [altStepDelta]) so REWORK
-     *  cps (no refactor) contribute 0, and IDE_REPLAY/ORDERING cps
-     *  contribute exactly what the user step(s) they replace would
-     *  have contributed in the main walk — minus the manual-when-IDE
-     *  count, which is always 0 (alts are mechanically IDE-driven).
-     *  Returns the new running snapshot and the cumulative process
-     *  score after this step. */
     private fun advanceAltStep(
         snap: ProcessSnapshot,
         cp: CheckpointReport,
@@ -1266,9 +811,6 @@ class DerivedMetricsRunner(
         val testsFailed = !testsOk && !testsSkipped
         val isBroken = !build || testsFailed
         val brokenInc = if (isBroken) 1 else 0
-        // Alt step's "time slice" mirrors the user-step it replaces —
-        // see `computeAltProcess` for the lookup. Lets an alt that
-        // avoids a long-broken stretch correctly out-score the user.
         val brokenMsInc = if (isBroken) durationMs else 0L
 
         val brokenCount = snap.brokenCount + brokenInc
@@ -1281,23 +823,9 @@ class DerivedMetricsRunner(
         val manualWhenIdeCount = snap.manualWhenIdeCount
         val compositesCount = snap.compositesCount + delta.compositesInc
         val skippedCompositesCount = snap.skippedCompositesCount + delta.skippedCompositesInc
-        // testsSkippedCount is no longer used by the score (replaced
-        // by skippedCompositesCount) but kept on the snapshot for
-        // diagnostics — alt walk just carries the prior value through.
         val testsSkippedCount = snap.testsSkippedCount
-        // Accumulate the W_LENGTH bonus — total reaches its locked-in
-        // value after the alt's last step; continuation walks inherit
-        // it unchanged via the snapshot.
         val altLengthBonusPoints = snap.altLengthBonusPoints + delta.lengthBonusPoints
 
-        // Commit-gap: alt steps land at synthesised commits which carry
-        // `isUserCommit = false` by default (HYGIENE COMMIT_GAP alts flip
-        // their anchor to `true` — same field, same reset rule). A
-        // green-refactor alt step adds to the running counter just like
-        // a green user step would; threshold crossings emit events.
-        // `landsRefactor` mirrors the main walk's gate — REWORK cps
-        // don't actually land a refactor so they're not eligible for
-        // the green-refactor count.
         val testsAtAltSuccess = testsOk && !testsSkipped
         val greenRefactorCp = delta.landsRefactor && build && testsAtAltSuccess
         var greenSinceLastCommit = snap.greenSinceLastCommit
@@ -1323,12 +851,6 @@ class DerivedMetricsRunner(
         val cleanlinessGain = if (cleanT == null || snap.cleanliness0 == null) 0.0
             else cleanT - snap.cleanliness0
 
-        // Lag accumulator on the alt walk uses the same `cleanlinessFinal`
-        // reference as the main walk (threaded in via the anchor snapshot
-        // — alts converge to the user's trajectory at `userToSha`, so the
-        // user's terminal cleanliness is the natural shared target). An
-        // alt that gets clean earlier than the user therefore accumulates
-        // a smaller lag mean by the merge point.
         val lagInc = if (cleanT == null || snap.cleanlinessFinal == null) 0.0
             else max(0.0, snap.cleanlinessFinal - cleanT)
         val lagSum = snap.lagSum + lagInc
@@ -1373,42 +895,17 @@ class DerivedMetricsRunner(
         return next to score
     }
 
-    /** True iff the checkpoint that the step landed on has any
-     *  `TEST_RUN_FINISHED` event — same heuristic as the frontend. */
     private fun stepUserRanTests(checkpoints: List<CheckpointReport>, s: RefactoringStep): Boolean {
         val cp = checkpoints.getOrNull(s.toCheckpointIndex) ?: return false
         return cp.events.any { it.type == EventType.TEST_RUN_FINISHED }
     }
 
-    /** Per-refactoring-step composite metadata: what composite it
-     *  belongs to, whether it's the chronologically-first step of
-     *  that composite, and whether the composite has any
-     *  `TEST_RUN_FINISHED` event in its test window. */
     private data class CompositeInfo(
         val compositeId: Int,
         val isFirstStepInComposite: Boolean,
         val hasTestInWindow: Boolean,
     )
 
-    /**
-     * Group refactoring steps into composites: a step joins the
-     * previous composite iff its `timestamp` is within
-     * [COMPOSITE_GAP_MS] of the previous step's `timestamp`,
-     * otherwise it starts a new one. Following Murphy-Hill, Parnin
-     * & Black 2012 (TSE, "How We Refactor and How We Know It"),
-     * who report ~40 % of tool-invoked refactorings cluster within
-     * 60 s of each other on their Eclipse-telemetry corpus.
-     *
-     * A composite is "tested" iff any checkpoint event of type
-     * [EventType.TEST_RUN_FINISHED] has its timestamp in the
-     * half-open interval `[firstStepOfThisComposite.timestamp,
-     * firstStepOfNextComposite.timestamp)` — at-or-after the
-     * composite's first step, strictly before the next composite
-     * begins. For the final composite the upper bound is `+∞`.
-     * This rewards the empirically-common pattern of testing once
-     * at the batch boundary (and handles synthetic same-timestamp
-     * fixtures naturally).
-     */
     private fun computeCompositeAssignments(
         refactoringSteps: List<RefactoringStep>,
         checkpoints: List<CheckpointReport>,
@@ -1482,15 +979,7 @@ class DerivedMetricsRunner(
         val brokenPoints = -weights.broken * brokenFrac
         val skipPoints = -weights.skipTests * skipFrac
         val manualPoints = -weights.manualIde * manualFrac
-        // Fixed −W_COMMIT_GAP per event (one "you should have committed
-        // by now" stretch). Unbounded — the score's overall [0, 100]
-        // clamp is the only ceiling. Each event = MIN_COMMIT_GAP green
-        // refactor checkpoints without a commit.
         val commitGapPoints = -weights.commitGap * commitGapEvents.toDouble()
-        // Running-mean cleanliness lag in [0, 1] — fraction of the
-        // final cleanliness gap the trajectory has averaged over its
-        // checkpoints so far. Penalises lingering below the terminal
-        // target; rewards getting clean earlier.
         val lagPoints = -weights.lag * lagFrac
 
         val contributions = listOf(
@@ -1572,9 +1061,6 @@ class DerivedMetricsRunner(
 
     private fun pct(x: Double): String = "${(x * 100.0).roundToInt()}%"
 
-    /** Compact ms → "12s" / "4m12s" / "1h04m". For the broken-time
-     *  contribution row; matches the order-of-magnitude the user
-     *  would say aloud. */
     private fun formatMs(ms: Long): String {
         if (ms <= 0L) return "0s"
         val totalSec = ms / 1000L

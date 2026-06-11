@@ -7,10 +7,6 @@ class PatchLineSurgeryTest {
 
     @Test
     fun `drops plus run beside a minus run and recomputes header`() {
-        // Hunk has one -OLD run at oldLine 11 and one +NEW run at
-        // newLine 11. Dropping just the +-run leaves the -run alive,
-        // so the hunk survives; new header reflects net oldLen=3,
-        // newLen=2 (no +NEW).
         val patch =
             "diff --git a/Foo.java b/Foo.java\n" +
             "--- a/Foo.java\n" +
@@ -262,9 +258,6 @@ class PatchLineSurgeryTest {
 
     @Test
     fun `two separate plus runs in same hunk each targetable`() {
-        // Context line between +x and +y → two distinct +-runs at
-        // newLines 11 and 13. Dropping both still leaves only context
-        // → hunk elided.
         val patch =
             "diff --git a/Foo.java b/Foo.java\n" +
             "--- a/Foo.java\n" +
@@ -285,11 +278,6 @@ class PatchLineSurgeryTest {
 
     @Test
     fun `modification collapses to pure insertion -- oldStart shifts back by one`() {
-        // Original: replace 17 old lines with 1 new line at position 31.
-        // Drop the -run → pure insertion of 1 line. Conventional header
-        // for "insert at position 31" is `@@ -30,0 +31,1 @@`, not
-        // `@@ -31,0 +31,1 @@` (which git apply would reject as the
-        // wrong insertion boundary).
         val patch =
             "diff --git a/Foo.java b/Foo.java\n" +
             "--- a/Foo.java\n" +
@@ -330,10 +318,6 @@ class PatchLineSurgeryTest {
 
     @Test
     fun `modification collapses to pure deletion -- newStart shifts back by one`() {
-        // Original: replace 1 old line at position 10 with 5 new lines.
-        // Drop the +run → pure deletion of old line 10. Conventional
-        // header for "delete old line 10 in a result that has no new
-        // line at position 10": `@@ -10,1 +9,0 @@`.
         val patch =
             "diff --git a/Foo.java b/Foo.java\n" +
             "--- a/Foo.java\n" +

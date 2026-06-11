@@ -7,13 +7,6 @@ import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiMethod
 import com.intellij.psi.util.PsiTreeUtil
 
-/**
- * Resolves edited regions or refactoring PSI elements to the enclosing
- * `(class, method?)` pairs. Shared by EDIT_BURST (range-based) and
- * REFACTORING_FINISHED (element-based) event capture.
- *
- * All entry points must be called under a read action.
- */
 object TouchedMemberResolver {
 
     fun fromRange(psiFile: PsiFile, start: Int, end: Int): List<TouchedMember> {

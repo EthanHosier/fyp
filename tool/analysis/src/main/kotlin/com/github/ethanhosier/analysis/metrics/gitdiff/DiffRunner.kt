@@ -2,14 +2,6 @@ package com.github.ethanhosier.analysis.metrics.gitdiff
 
 import com.github.ethanhosier.analysis.reconstruct.GitRunner
 
-/**
- * Computes per-checkpoint-transition diff stats by running
- * `git diff -M` against the previous checkpoint (or the seed commit for
- * the first one).
- *
- * Cheap compared to the build/test pass, so it runs sequentially after
- * the parallel state-metrics loop instead of borrowing a worktree.
- */
 class DiffRunner(private val git: GitRunner) {
 
     fun runAll(orderedShas: List<String>): Map<String, DiffStats> {
@@ -22,12 +14,6 @@ class DiffRunner(private val git: GitRunner) {
         return out
     }
 
-    /**
-     * Computes one [DiffStats] per `(from, to)` pair, keyed by `to`.
-     * Used for non-adjacent diffs like `fromSha → altSha` synthesised by
-     * `AlternativeTrajectoryRunner`, where the natural diff isn't against
-     * the previous entry in a list but against an explicit ancestor.
-     */
     fun runPairs(pairs: List<Pair<String, String>>): Map<String, DiffStats> {
         if (pairs.isEmpty()) return emptyMap()
         val out = LinkedHashMap<String, DiffStats>()

@@ -2,23 +2,6 @@ package com.github.ethanhosier.analysis.alternative.rework
 
 import com.github.ethanhosier.analysis.diffs.UnifiedDiffParser
 
-/**
- * Bridges raw unified-diff text and the chunk-level matching that
- * [ReworkDetector] performs.
- *
- * The output decomposes each hunk into two parallel sequences:
- *  - `addedRuns`: maximal contiguous runs of `+` lines, each tagged
- *    with its first line number in the *post-state* file.
- *  - `removedRuns`: maximal contiguous runs of `-` lines, each
- *    tagged with its first line number in the *pre-state* file.
- *
- * Body lines in [LineRun] have their `+` / `-` prefix stripped so
- * they hash identically when content matches.
- *
- * Pure functions; no git, no filesystem. The git-invocation step
- * (calling `GitRunner.diffPatch(...)`) is left to the caller —
- * keeps this layer testable with literal patch strings.
- */
 object HunkExtractor {
 
     data class FileHunks(
@@ -33,12 +16,6 @@ object HunkExtractor {
         val removedRuns: List<LineRun>,
     )
 
-    /**
-     * One maximal contiguous run of `+` or `-` lines.
-     * [startLine] is the first line's number on the relevant side
-     * — post-state line for an added run, pre-state line for a
-     * removed run.
-     */
     data class LineRun(
         val startLine: Int,
         val lines: List<String>,

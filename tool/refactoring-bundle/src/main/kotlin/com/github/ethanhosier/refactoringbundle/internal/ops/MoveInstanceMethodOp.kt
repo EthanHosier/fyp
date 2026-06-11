@@ -9,12 +9,6 @@ import org.eclipse.jdt.internal.corext.refactoring.structure.MoveInstanceMethodP
 import org.eclipse.jdt.internal.ui.preferences.JavaPreferencesSettings
 import org.eclipse.ltk.core.refactoring.participants.ProcessorBasedRefactoring
 
-/**
- * Move an instance method [methodName] on [sourceTypeFqn] to one of
- * its parameters or instance fields named [targetName]. Target's
- * declared type becomes the new home of the method. Method name must
- * be unambiguous on [sourceTypeFqn].
- */
 internal object MoveInstanceMethodOp {
 
     fun run(
@@ -36,9 +30,6 @@ internal object MoveInstanceMethodOp {
         val processor = MoveInstanceMethodProcessor(method, settings)
         val refactoring = ProcessorBasedRefactoring(processor)
 
-        // checkInitialConditions is what populates possibleTargets — call
-        // it now so we can pick the caller-supplied target before
-        // [RefactoringRunner.run] drives the rest of the LTK pipeline.
         val initial = refactoring.checkInitialConditions(NullProgressMonitor())
         if (initial.hasFatalError()) {
             return RefactoringRunner.Outcome.Failure(

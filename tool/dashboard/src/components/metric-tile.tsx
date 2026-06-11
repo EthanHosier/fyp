@@ -9,16 +9,7 @@ import {
 } from "@/components/ui/hover-card"
 import { cn } from "@/lib/utils"
 
-/**
- * Snapshot of a single metric at a point in time. Mirrors the
- * reference dashboard's tile: uppercase mono label, large mono value
- * with a small unit suffix, and an optional delta-from-baseline chip
- * coloured by whether the change is an improvement (per [better]).
- *
- * The progress-meter variant we used to render is gone — the
- * reference doesn't have one and the meter pulled the eye away from
- * the value. Range / fraction context lives on the chart itself.
- */
+/** Snapshot of a single metric at a point in time. */
 export function MetricTile({
   label,
   value,

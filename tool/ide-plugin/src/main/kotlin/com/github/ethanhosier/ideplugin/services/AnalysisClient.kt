@@ -17,15 +17,6 @@ import java.util.UUID
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 
-/**
- * Uploads a finished session to the analysis server and returns the raw
- * `AnalysisReport` JSON bytes. The plugin has no structural dependency on
- * the analysis module's report model — it just writes the response back to
- * the session folder as `analysis-report.json`.
- *
- * Server URL resolves once at construction from `REFACTORING_TRACER_SERVER_URL`,
- * defaulting to `http://localhost:8080`.
- */
 @Service(Service.Level.PROJECT)
 class AnalysisClient {
 
@@ -36,11 +27,6 @@ class AnalysisClient {
         .connectTimeout(Duration.ofSeconds(5))
         .build()
 
-    /**
-     * Uploads [sessionDir] to the server, blocks until the server responds,
-     * and returns the raw JSON body. Throws on any non-2xx response or I/O
-     * failure — callers handle error notification.
-     */
     fun upload(sessionDir: Path): ByteArray {
         val sessionJson = sessionDir.resolve("session.json")
         require(Files.isRegularFile(sessionJson)) { "session.json missing at $sessionJson" }

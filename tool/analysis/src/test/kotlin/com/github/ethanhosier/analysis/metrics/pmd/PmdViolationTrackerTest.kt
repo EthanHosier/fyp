@@ -37,10 +37,6 @@ class PmdViolationTrackerTest {
 
     @Test
     fun `delete first of N adjacent same-rule flags reports exactly one resolved`() {
-        // Five literal-if violations at lines 10..14 in A; user deletes
-        // the first. PMD on B reports four violations at 10..13 (lines
-        // shifted up). Tracker should match all four as carried with the
-        // seed origin and surface the deleted A@10 as resolved.
         val seed = "A"
         val nextSha = "B"
         val prev = result(*(10..14).map { violation("Foo.java", it) }.toTypedArray())
@@ -180,9 +176,6 @@ class PmdViolationTrackerTest {
 
     @Test
     fun `equal-count hunk lets in-place edits stay carried`() {
-        // Single-line in-place edit at line 5: still flagged by the same
-        // rule on the new side, line stays 5. The mapper pairs them 1:1
-        // and the tracker should treat it as carried.
         val prev = result(violation("Foo.java", 5))
         val curr = result(violation("Foo.java", 5))
         val mapper = DiffLineMapper.parse(

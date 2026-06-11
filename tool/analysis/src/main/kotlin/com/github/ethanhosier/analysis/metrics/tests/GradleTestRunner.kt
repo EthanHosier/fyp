@@ -7,23 +7,12 @@ import java.nio.file.Path
 import java.time.Duration
 import java.util.concurrent.TimeUnit
 
-/**
- * Runs `./gradlew test` on a checkpoint's worktree, then aggregates JUnit XML
- * reports from `build/test-results/test/`.
- *
- * Isolation caveats match [com.github.ethanhosier.analysis.metrics.gradlebuild.GradleBuildRunner]:
- * process-level only (worktree + --no-daemon + timeout + optional
- * session-shared gradle-user-home). Not a security sandbox.
- */
 class GradleTestRunner(
     private val timeout: Duration = Duration.ofMinutes(10),
     private val gradleUserHome: Path? = null,
     private val stderrTailBytes: Int = 8 * 1024,
 ) {
 
-    /**
-     * @param projectDir root of the Gradle project (must contain `gradlew`)
-     */
     fun run(projectDir: Path): TestResult {
         require(Files.isDirectory(projectDir)) { "not a directory: $projectDir" }
         val gradlew = projectDir.resolve("gradlew")
@@ -33,9 +22,6 @@ class GradleTestRunner(
             add(gradlew.toAbsolutePath().toString())
             add("--console=plain")
             add("--build-cache")
-            // See GradleBuildRunner: skip --stacktrace so stderrTail keeps
-            // the actionable "What went wrong" block instead of 40KB of
-            // Gradle internals.
             gradleUserHome?.let { add("--gradle-user-home=${it.toAbsolutePath()}") }
             add("test")
         }
@@ -82,10 +68,6 @@ class GradleTestRunner(
     }
 }
 
-/**
- * Bounded tail buffer — duplicated from GradleBuildRunner for now. Extract
- * into a shared helper if a third subprocess caller appears.
- */
 private class RingTail(private val limitBytes: Int) {
     private val buf = StringBuilder()
 

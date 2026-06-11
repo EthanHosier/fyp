@@ -46,9 +46,6 @@ class ReorderDebugTest {
 
     @Test
     fun `two extract methods in same host body commute under optimistic model`() {
-        // Both lift a region into a new method on the same host. Their
-        // selectionSubtreeHashes are content-addressed, so disjoint
-        // regions should commute. The optimistic model says: no edge.
         val specs = listOf(
             extractMethod(host = "render", sel = "aaaa", newName = "drawHeader"),
             extractMethod(host = "render", sel = "bbbb", newName = "drawFooter"),
@@ -63,10 +60,6 @@ class ReorderDebugTest {
 
     @Test
     fun `extract method then rename the extracted method chains via opaque match`() {
-        // ExtractMethod produces Method(com.Foo, drawHeader, OPAQUE).
-        // RenameMethod reads Method(com.Foo, drawHeader, Known(...)).
-        // The opaque-Method carve-out matches them by (type, name), so
-        // the rename gets ordered after the extract.
         val specs = listOf(
             extractMethod(host = "render", sel = "aaaa", newName = "drawHeader"),
             RefactoringSpec.RenameMethod(
@@ -86,11 +79,6 @@ class ReorderDebugTest {
 
     @Test
     fun `rename local before two disjoint extracts in same host chains both extracts`() {
-        // Rename writes the host body (identifier rewrite can perturb
-        // any anchor that references the renamed variable). Both
-        // extracts read the host, so each gets ordered after the rename.
-        // The two extracts still commute with each other under the
-        // optimistic model.
         val specs = listOf(
             RefactoringSpec.RenameLocalVariable(
                 relativeFilePath = "Foo.java",
@@ -149,11 +137,6 @@ class ReorderDebugTest {
 
     @Test
     fun `mixed window of extract, rename, and unrelated rename has partial chain`() {
-        // Realistic mid-sized window:
-        //  [0] ExtractMethod on com.Foo#render → drawHeader
-        //  [1] RenameMethod com.Foo#drawHeader → renderHeader   (depends on 0)
-        //  [2] RenameClass com.Bar → BarV2                       (independent)
-        //  [3] ExtractMethod on com.Foo#load → fetchUser         (independent of 0/1, but blocked by call-site write of 1)
         val specs = listOf(
             extractMethod(host = "render", sel = "aaaa", newName = "drawHeader"),
             RefactoringSpec.RenameMethod(
@@ -168,13 +151,6 @@ class ReorderDebugTest {
         val out = ReorderDebug.describe(specs)
         // 0 → 1 from opaque-method match.
         assertContains(out, "0 → 1")
-        // RenameMethod's coarse Type(com.Foo) write blocks the later
-        // load-host extract (which reads HostMethodBody on com.Foo,
-        // and Type matches via the call-site proxy? Actually no —
-        // HostMethodBody is a different entity than Type. So 1 → 3
-        // should NOT fire. The extracts on different hosts of com.Foo
-        // are independent of the rename's coarse Type write.) Just
-        // print and let the reviewer confirm.
         println(out)
     }
 }

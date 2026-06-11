@@ -9,16 +9,6 @@ import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.system.exitProcess
 
-/**
- * Temporary CLI harness around [AnalysisPipeline]. Runs the full pipeline
- * over one on-disk session folder and writes `analysis-report.json` back
- * next to the inputs. Will be replaced by a proper Clikt command once the
- * stages stabilise; the `:server` module is the production entrypoint.
- */
-
-/*
- ./gradlew :analysis:run --args="/Users/ethanhosier/IdeaProjects/gradleproject/.refactoring-traces/8b833c23-8803-449d-9de4-bcb5e71dfaa4" -q
- */
 
 private val reportJson = Json { prettyPrint = true; encodeDefaults = true }
 private val eventJson = Json { encodeDefaults = true }
