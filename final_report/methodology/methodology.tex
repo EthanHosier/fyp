@@ -215,7 +215,7 @@ The static-analysis signals are tracked across checkpoints rather than only comp
 
 A process score on its own tells the developer how a session went overall, but not where it went wrong or what they could have done instead. The tool therefore emits \emph{divergence points}, each one flagging a specific step where a better path was available. Four kinds of divergence point are reported, each catching a different way a session can fall short of a higher-scoring path: \emph{Ordering} (the same refactorings applied in a worse order than they could have been), \emph{Manual-Refactor} (the developer did by hand what the IDE could have done), \emph{Rework} (work that was added and later undone), and \emph{Hygiene} (missing safety checkpoints such as tests or commits).
 
-A \emph{divergence point} is a step where the user's trajectory can be compared with an alternative path that scores strictly higher under the process score. The detector reports the same four kinds of divergence:
+More formally, a \emph{divergence point} is a step where the user's trajectory can be compared with an alternative path that scores strictly higher under the process score. The four kinds above form the set
 \[
 \mathcal{K} = \{\emph{Ordering},\ \emph{Manual-Refactor},\ \emph{Rework},\ \emph{Hygiene}\}.
 \]
@@ -570,7 +570,7 @@ Two recovery measures describe how much divergence-point magnitude remains under
 \section{Evaluation dataset and labelling protocol}
 \label{sec:methodology-rater}
 
-The experiments in Chapter~\ref{ch:results} use a set of $45$ refactoring sessions that we recorded by hand on a Java library-style fixture in IntelliJ. This section explains how the sessions were assembled, how they were labelled, and how the labels were checked by raters.
+The detector experiments need a different kind of input than the score-formula sweeps above: actual sessions with externally agreed labels for what the detector should find. The experiments in Chapter~\ref{ch:results} therefore use a set of $45$ refactoring sessions that we recorded by hand on a Java library-style fixture in IntelliJ. This section explains how the sessions were assembled, how they were labelled, and how the labels were checked by raters.
 
 The IDE-event capture literature explored in \S\ref{sec:process-aware-logging} shows that detailed development traces can be collected, but we did not find an existing dataset that combines per-event code content with IDE-side refactoring events for Java sessions recorded in IntelliJ. This matters for the IDE-versus-manual signal. RefactoringMiner can recover a structural refactoring from a pair of code states, but cannot tell whether the developer used the IDE refactoring command or typed the change by hand. Since that distinction is part of the manual-when-IDE penalty in \S\ref{sec:methodology-score}, it has to be captured at recording time.
 
