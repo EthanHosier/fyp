@@ -10,26 +10,6 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption
 
-/**
- * Replays a normalized [Trace] into a shadow git repo.
- *
- * Layout produced under the session folder:
- * ```
- * <sessionFolder>/
- * ├── shadow-repo/       ← git repo: baseline commit + one commit per state-bearing event
- * └── event-commits.json ← EventCommitMap: every event -> commit SHA
- * ```
- *
- * A state-bearing event is one whose `changedFiles` actually alters the
- * working tree relative to the prior commit. No-op events (empty
- * `changedFiles`, or edits that write the same bytes already on disk) map to
- * the most recent preceding SHA so every event resolves to a commit without
- * polluting the history with empty ones.
- *
- * Path resolution strips [com.github.ethanhosier.ideplugin.model.SessionMetadata.projectPath]
- * from each absolute `FileSnapshot.path` to find the repo-relative location.
- * Anything that tries to escape the repo root aborts.
- */
 class ShadowRepoBuilder(
     private val json: Json = Json { prettyPrint = true; encodeDefaults = true },
 ) {
@@ -70,11 +50,6 @@ class ShadowRepoBuilder(
                 continue
             }
 
-            // Drop edits whose only effect is adding blank/whitespace-
-            // only lines — they don't materially change the code and
-            // would otherwise pollute the checkpoint stream with no-op
-            // commits. We roll the working tree + index back to HEAD so
-            // subsequent events apply on top of the pre-blank state.
             if (isBlankLineOnlyDiff(git.stagedDiff())) {
                 git.resetHard()
                 mapping[event.id] = previousSha

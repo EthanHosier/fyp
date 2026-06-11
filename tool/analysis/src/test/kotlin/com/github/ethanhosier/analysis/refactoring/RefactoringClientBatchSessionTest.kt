@@ -19,18 +19,6 @@ import kotlin.test.assertIs
 import kotlin.test.assertTrue
 import kotlin.test.fail
 
-/**
- * Verifies the bundle-side project-cache + keep-flag plumbing exposed
- * via [RefactoringClient.withBatchSession]. Each test reads
- * `client.initCount()` as a baseline and asserts the *delta*, because
- * the counter is process-wide and accumulates across the whole test
- * class run.
- *
- * The "perf-sensitive" case (`session_indexes_once`) is also the
- * correctness guarantee — one bundle init per session means we are
- * actually running both refactorings against the same indexed
- * `IJavaProject`. Regression here would silently re-index per call.
- */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Tag("slow")
 class RefactoringClientBatchSessionTest {
@@ -138,19 +126,6 @@ class RefactoringClientBatchSessionTest {
         )
     }
 
-    /**
-     * Sanity check: session-mode wall-clock is materially faster than
-     * non-session for the same N-step workload. The init-count delta
-     * already proves the *cause* (cache reused), but the user-visible
-     * win is wall-clock; log it so future regressions show up
-     * obviously and so it's easy to track perf as we add more ops.
-     *
-     * The assertion is intentionally lax: CI is noisy and the second
-     * apply's incremental index can occasionally rival a fresh full
-     * index on tiny fixtures. We just require the session not to be
-     * *slower*, which is the only outcome that would invalidate the
-     * design.
-     */
     @Test
     fun `session is materially faster than per-call init for two consecutive applies`(
         @TempDir wtSession: Path,
@@ -220,22 +195,8 @@ class RefactoringClientBatchSessionTest {
                 assertIs<RefactoringOutcome.Success>(r2)
             }
 
-            // ⚠ caveat: the inner session's `finally` clears the cache
-            // and resets the keep-flag, so a *third* apply here would
-            // re-init. Out of scope to fix in this slice — nested
-            // sessions don't compose, but they don't crash either.
-            // Locked in by this assertion: 2 inits across the nested
-            // batch (one per outer step due to inner clearing the
-            // cache between them is wrong! …actually let's measure).
         }
 
-        // We assert the actual delta rather than a magic number so a
-        // future "nested session is fully transparent" change can
-        // tighten this without rewriting the test fixture. Today the
-        // expected delta is 2 because the inner session clears the
-        // cache, costing the outer's would-be third call a re-init —
-        // but we have only two ops above so it's just 1 outer init +
-        // 1 inner init = 2.
         val delta = client.initCount() - before
         assertTrue(
             delta in 1..2,
@@ -269,11 +230,6 @@ class RefactoringClientBatchSessionTest {
     }
 
     private fun extractRequest(worktree: Path): ExtractMethodRequest {
-        // Selection: lines 5-6 of the fixture (`double sum = a + b;`
-        // and `double doubled = sum * 2;`). Anchor builder gives us
-        // the host method and selection hash — sufficient fidelity
-        // for the actual extract (we don't assert on the extracted
-        // body here, only on init counts).
         val builder = com.github.ethanhosier.analysis.refactoring.anchor.SpecAnchorBuilder(worktree)
         val anchor = builder.rangeAnchor(
             relativeFilePath = "src/org/example/Demo.java",

@@ -8,30 +8,9 @@ import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.io.path.extension
 
-/**
- * Computes [ReadabilityResult] for a checkpoint. Two passes:
- *
- *  1. PMD AST pass (shared with [com.github.ethanhosier.analysis.metrics.pmd.PmdRunner]'s
- *     infrastructure but independent analysis) collects the declared
- *     identifiers in every class and method.
- *  2. A raw text scan of each `.java` file computes line-length,
- *     blank/comment/code ratios, and indentation depth — cheap, tokenizer
- *     would be overkill.
- *
- * Per-file identifier stats are the union of every identifier declared in
- * classes and methods within that file.
- */
 class ReadabilityRunner(
     private val javaVersion: String = "21",
     private val tabWidth: Int = 4,
-    /**
-     * If non-null, PMD persists per-file analysis state for the
-     * identifier-collection pass here. Identical lifecycle to
-     * [com.github.ethanhosier.analysis.metrics.pmd.PmdRunner.cacheFile];
-     * keep this distinct from PmdRunner's cache because the rulesets
-     * differ — sharing one file risks one runner's close overwriting
-     * the other's entries.
-     */
     private val cacheFile: Path? = null,
 ) {
 
@@ -229,15 +208,6 @@ class ReadabilityRunner(
     private enum class LineKind { CODE, COMMENT, MIXED }
     private data class LineClass(val kind: LineKind, val endsInsideBlockComment: Boolean)
 
-    /**
-     * Classify a non-blank trimmed source line. Handles single-line `//`,
-     * block `/…/` forms, and multi-line block comments by carrying
-     * [inBlockComment] between calls.
-     *
-     *  - comment-only lines → COMMENT
-     *  - code-only lines    → CODE
-     *  - code plus a trailing line comment or a block comment share → MIXED
-     */
     private fun classifyLine(trimmed: String, inBlockComment: Boolean): LineClass {
         var insideBlock = inBlockComment
         var sawCode = false

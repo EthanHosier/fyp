@@ -8,29 +8,6 @@ import org.eclipse.jdt.internal.corext.refactoring.ParameterInfo
 import org.eclipse.jdt.internal.corext.refactoring.structure.ChangeSignatureProcessor
 import org.eclipse.ltk.core.refactoring.participants.ProcessorBasedRefactoring
 
-/**
- * Change the signature of the method [oldMethodName] on
- * [declaringTypeFqn] (optionally disambiguated by
- * [paramTypeSignatures]) to a new shape given by the parallel
- * [paramKinds] / [paramOldNames] / [paramNewNames] / [paramNewTypes] /
- * [paramDefaults] arrays.
- *
- * Each target parameter is described by one index across those five
- * arrays:
- *   * `kind="existing"` — carries an existing parameter through. The
- *     entry in [paramOldNames] identifies which original parameter by
- *     name; [paramNewNames] / [paramNewTypes] optionally rename /
- *     retype it (empty = keep). [paramDefaults] is unused.
- *   * `kind="added"`    — introduces a new parameter. [paramNewNames]
- *     and [paramNewTypes] give its name + type; [paramDefaults] gives
- *     the expression used at every existing call site. [paramOldNames]
- *     is unused.
- *
- * Original parameters not referenced by any "existing" entry are
- * deleted. Order of the entries becomes the new parameter order. Pass
- * a non-empty [newMethodName] / [newReturnType] to rename / retype;
- * empty means keep.
- */
 internal object ChangeMethodSignatureOp {
 
     fun run(
@@ -66,11 +43,6 @@ internal object ChangeMethodSignatureOp {
         if (newMethodName.isNotEmpty()) processor.setNewMethodName(newMethodName)
         if (newReturnType.isNotEmpty()) processor.setNewReturnTypeName(newReturnType)
 
-        // JDT's list starts as one ParameterInfo per original parameter,
-        // in declaration order. We rebuild it in the order requested:
-        // pick the old infos by oldName for "existing" entries, create
-        // fresh infos for "added" entries, and mark anything unreferenced
-        // as deleted.
         val originals = processor.parameterInfos.toList()
         val seen = mutableSetOf<String>()
         val rebuilt = mutableListOf<ParameterInfo>()

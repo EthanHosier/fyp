@@ -10,16 +10,6 @@ import org.eclipse.jdt.core.IMethod
 import org.eclipse.jdt.internal.corext.refactoring.structure.PushDownRefactoringProcessor
 import org.eclipse.ltk.core.refactoring.participants.ProcessorBasedRefactoring
 
-/**
- * Create a new subclass [newSubclassName] of [sourceTypeFqn] in the
- * same package, then push the listed members down into it. JDT has no
- * single processor for this; the two-step composition is what the
- * IntelliJ action produces for "Extract Subclass".
- *
- * The source type must not be final (push-down needs it subclassable).
- * Members named in [methodNames] / [fieldNames] must be unambiguous
- * on the source type.
- */
 internal object ExtractSubclassOp {
 
     fun run(
@@ -48,10 +38,6 @@ internal object ExtractSubclassOp {
         }
         pkg.createCompilationUnit(newCuName, body, false, NullProgressMonitor())
 
-        // Step 2: push down selected members. PushDownRefactoringProcessor
-        // distributes each member to every direct subclass of the
-        // declaring type — with our freshly-created subclass being the
-        // only one.
         val members = mutableListOf<IMember>()
         val pickedMethods = mutableListOf<IMethod>()
         for (name in methodNames) {

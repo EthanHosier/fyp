@@ -59,45 +59,19 @@ internal object ExtractMethodOp {
         val outcome = RefactoringRunner.run(refactoring)
         if (outcome !is RefactoringRunner.Outcome.Success) return outcome
 
-        // JDT only emits `static` when the new method *must* be
-        // static (every call site is in a static context). The
-        // user's IDE — IntelliJ — adds it whenever the body permits.
-        // RM gives us the user's actual modifier; force a match here
-        // via an ASTRewrite when the result we got from JDT differs.
         if (isStatic) {
             val rewriteOutcome = forceStaticModifier(icu, declaringTypeFqn, newMethodName)
             if (rewriteOutcome is RefactoringRunner.Outcome.Failure) return rewriteOutcome
         }
 
-        // JDT's `ExtractMethodAnalyzer.computeOutput()` fails to promote a
-        // mutated outer-scoped variable to a return when the selection sits
-        // inside a conditional branch — its post-selection liveness check
-        // doesn't walk past the enclosing block's join point. IntelliJ's
-        // analyzer does, so the user's "real" extraction looks like
-        // `t = handleGold(t)` against our `void handleGold(double t)`.
-        // Detect the shape and rewrite return-type + last stmt + call sites.
         val promoteOutcome = promoteVoidToReturn(icu, declaringTypeFqn, newMethodName)
         if (promoteOutcome is RefactoringRunner.Outcome.Failure) return promoteOutcome
 
-        // When the original selection ended with `return <localVar>;` and
-        // <localVar> was assigned earlier in the selection, JDT generates
-        // a returning method (good) but collapses the call site into
-        // `return f(args);` — discarding the outer-scope variable's identity.
-        // IntelliJ keeps `<localVar> = f(args); return <localVar>;`. Split
-        // those return-inlined call sites back into the assignment + return
-        // pair so the AST matches the user's extraction.
         val splitOutcome = splitInlinedReturnCallSites(icu, declaringTypeFqn, newMethodName)
         if (splitOutcome is RefactoringRunner.Outcome.Failure) return splitOutcome
         return outcome
     }
 
-    /**
-     * Detect the void-with-trailing-assignment-to-a-parameter shape and
-     * rewrite the method to return the new value, plus every call site to
-     * capture it. Returns Success (no-op) when the shape doesn't match or
-     * any call site can't be rewritten safely. Mirrors [forceStaticModifier]'s
-     * working-copy + ASTRewrite pattern.
-     */
     private fun promoteVoidToReturn(
         icu: ICompilationUnit,
         declaringTypeFqn: String,
@@ -105,9 +79,6 @@ internal object ExtractMethodOp {
     ): RefactoringRunner.Outcome {
         icu.becomeWorkingCopy(NullProgressMonitor())
         try {
-            // We need resolved bindings here (LHS / arg SimpleName →
-            // IVariableBinding); AnchorResolver.parse() parses without
-            // bindings. Run a binding-aware parse on the same ICU.
             val parser = ASTParser.newParser(AST.JLS_Latest).apply {
                 setKind(ASTParser.K_COMPILATION_UNIT)
                 setSource(icu)
@@ -147,12 +118,6 @@ internal object ExtractMethodOp {
             if (paramIdx < 0) return RefactoringRunner.Outcome.Success(emptyList())
             val paramType: Type = params[paramIdx].type
 
-            // Find every call site of (declaringTypeFqn, methodName). Require
-            // each to be a top-level ExpressionStatement whose paramIdx-th
-            // argument is a SimpleName, so we can rewrite `f(x);` → `x = f(x);`.
-            // If ANY caller breaks the shape, skip the whole promotion — we
-            // can't change the method's return type without breaking the
-            // value-discarding callers.
             data class CallSite(val stmt: ExpressionStatement, val invocation: MethodInvocation, val arg: SimpleName)
             val callSites = mutableListOf<CallSite>()
             var sawIncompatibleCaller = false
@@ -194,11 +159,6 @@ internal object ExtractMethodOp {
             val newReturnType = ASTNode.copySubtree(ast, paramType) as Type
             rewrite.set(method, MethodDeclaration.RETURN_TYPE2_PROPERTY, newReturnType, null)
 
-            // 2. Keep the trailing `<param> = <rhs>;` and append
-            // `return <param>;`. Matches IntelliJ's shape: the body's
-            // mutation stays intact (in case the variable is read again
-            // elsewhere inside the method) and we add a terminal return
-            // that exposes the new value to the caller.
             val returnStmt = ast.newReturnStatement().apply {
                 expression = ASTNode.copySubtree(ast, lhs) as Expression
             }
@@ -225,14 +185,6 @@ internal object ExtractMethodOp {
         }
     }
 
-    /**
-     * Detect call sites of the form `return f(args);` where the new
-     * method ends with `return <param>;` and the matching call-site
-     * argument is a SimpleName. Split each into
-     * `<arg> = f(args);` + `return <arg>;` so the caller's variable
-     * identity survives — matching IntelliJ's extract-method behaviour
-     * when the original selection ended with `return <localVar>;`.
-     */
     private fun splitInlinedReturnCallSites(
         icu: ICompilationUnit,
         declaringTypeFqn: String,
@@ -249,9 +201,6 @@ internal object ExtractMethodOp {
             val method = AnchorResolver.findMethodByName(cu, declaringTypeFqn, methodName)
                 ?: return RefactoringRunner.Outcome.Success(emptyList())
 
-            // Method must already be returning (non-void) and its last
-            // statement must be `return <SimpleName>;` where the name
-            // resolves to one of the method's parameters.
             val rType = method.returnType2 ?: return RefactoringRunner.Outcome.Success(emptyList())
             if (rType is PrimitiveType && rType.primitiveTypeCode == PrimitiveType.VOID) {
                 return RefactoringRunner.Outcome.Success(emptyList())
@@ -327,12 +276,6 @@ internal object ExtractMethodOp {
         }
     }
 
-    /**
-     * Re-parse [icu], locate the freshly-extracted method by
-     * `(declaringTypeFqn, methodName)`, and add `static` to its
-     * modifier list via an [ASTRewrite] iff it's not already there.
-     * Returns [RefactoringRunner.Outcome.Success] on no-op too.
-     */
     private fun forceStaticModifier(
         icu: ICompilationUnit,
         declaringTypeFqn: String,

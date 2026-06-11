@@ -6,28 +6,6 @@ import org.eclipse.jdt.core.IJavaProject
 import java.nio.file.Path
 import java.util.UUID
 
-/**
- * Shared wrapper for every bundle-side refactoring op. Initialises a
- * fresh Eclipse project pointed at the caller's worktree, waits for
- * indexing, hands [body] the project, then tears the project metadata
- * down regardless of outcome. Exceptions and typed failures are both
- * serialised to JSON for the host.
- *
- * ## Project caching for batch applies
- *
- * When [keepProjectFlag] is set (via [setKeepProject]), [run] keeps
- * the initialised [IJavaProject] alive across consecutive calls on
- * the *same* `projectRoot`. The first call still pays a full
- * init+index; subsequent calls skip both. On a different `projectRoot`
- * the cached project is torn down and replaced. [clearProjectCache]
- * tears down whatever's cached.
- *
- * Cache lifetime is bounded by the analysis-side `withBatchSession`
- * helper (which holds [com.github.ethanhosier.analysis.refactoring.RefactoringClient]'s
- * `ReentrantLock` for the duration of the batch and always calls
- * [clearProjectCache] in a `finally`). No state ever survives past
- * a batch; single-spec callers never see the cache.
- */
 internal object RefactoringHost {
 
     @Volatile
@@ -39,12 +17,6 @@ internal object RefactoringHost {
     @Volatile
     private var keepProjectFlag: Boolean = false
 
-    /**
-     * Test-only counter incremented every time [ProjectInitializer.initProject]
-     * is invoked from within [run]. Lets bundle smoke tests verify that a
-     * batch of N applies inits the project exactly once. Not part of the
-     * production wire format.
-     */
     @Volatile
     var initCount: Int = 0
         private set
@@ -63,17 +35,6 @@ internal object RefactoringHost {
         }
     }
 
-    /**
-     * Force the cached project to re-stat every file, propagating
-     * any disk-side changes (e.g. an out-of-band `git checkout`)
-     * into Eclipse's `IResource` model. Standard pathway for
-     * "files modified by something other than JDT" — IDE users
-     * exercise it constantly. No-op if no project is cached.
-     *
-     * Cost is proportional to file count. Don't call on hot paths
-     * inside a single refactoring; it's intended to bracket a
-     * wholesale on-disk state change like a git operation.
-     */
     fun refreshProject(): String {
         val jp = cachedProject ?: return OutcomeJson.ok(emptyList())
         return try {
@@ -96,10 +57,6 @@ internal object RefactoringHost {
         val javaProject: IJavaProject = try {
             if (cacheHit) {
                 val jp = cachedProject!!
-                // Even on a hit, wait for the index to settle so that any
-                // edits the previous step wrote via JDT have been picked
-                // up by the incremental indexer. Cheap when nothing has
-                // changed; cheap-ish after small edits.
                 IndexingGate.waitForIndex(jp)
                 jp
             } else {
@@ -140,17 +97,11 @@ internal object RefactoringHost {
                 runCatching {
                     javaProject.project.delete(false, true, NullProgressMonitor())
                 }
-                // The just-deleted project might *also* be the cached
-                // one if the flag was flipped off mid-session. Belt and
-                // braces: if so, drop the references too.
                 if (cachedProject === javaProject) {
                     cachedProject = null
                     cachedProjectRoot = null
                 }
             }
-            // keep=true: project stays alive in the cache. Teardown
-            // happens via [clearProjectCache] (called in the analysis-
-            // side `withBatchSession` finally block).
         }
     }
 

@@ -122,9 +122,6 @@ class TrajectoryAdvisorTest {
 
     @Test
     fun `long stretch without commit does not fire when no checkpoint is green-refactor`() {
-        // 10 checkpoints with no refactoring steps landing — `longest` = 0.
-        // Mirrors the score-formula's commit-gap term, which does not penalise
-        // sessions whose checkpoints are not green-refactor.
         val cps = (1..10).map { cp("s$it") }
         val items = advise(cps)
         assertNull(items.firstOrNull { it.kind == AdviceKind.LONG_STRETCH_WITHOUT_COMMIT })
@@ -330,10 +327,6 @@ class TrajectoryAdvisorTest {
 
     @Test
     fun `multiple rules can fire on the same report`() {
-        // Mix of broken-build and green-refactor checkpoints so all four
-        // rules trigger: BUILD_OFTEN_BROKEN (3 of 9 broken),
-        // SMELLS_ACCUMULATED_NET (1 → 12), PROCESS_SCORE_DEGRADED (80 → 30),
-        // LONG_STRETCH_WITHOUT_COMMIT (6 green-refactor in a row, no commit).
         val cps = listOf(
             cp("s1", buildSuccess = false, processTotal = 80, smells = 1),
             cp("s2", buildSuccess = false, processTotal = 60, smells = 10),

@@ -1,25 +1,4 @@
 #!/usr/bin/env python3
-"""
-Reconcile a session's events.jsonl into its session.json.
-
-Phase A's TraceLoader aborts if the two files' event counts disagree.
-This happens on agent-recorded sessions when the `agent-test` wrapper
-appended TEST_RUN_STARTED / TEST_RUN_FINISHED envelopes to events.jsonl
-after the plugin already flushed session.json — or, more generally, when
-`agent-finalize` wasn't run before the session was archived.
-
-This script rewrites session.json's `events` array from events.jsonl
-(line-by-line decoded), preserving every other top-level key
-(typically `metadata`). Idempotent — running on an already-consistent
-session is a no-op.
-
-Usage:
-    reconcile-session-events.py <session-dir> [<session-dir> ...]
-
-A "session-dir" is the directory that contains session.json and
-events.jsonl directly. For nested layouts (e.g. .refactoring-traces/<uuid>),
-pass the inner directory.
-"""
 import json
 import sys
 from pathlib import Path

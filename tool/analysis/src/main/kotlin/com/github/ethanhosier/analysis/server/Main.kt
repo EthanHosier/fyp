@@ -16,14 +16,6 @@ import kotlinx.serialization.json.Json
 import java.nio.file.Files
 import java.nio.file.Path
 
-/**
- * HTTP entrypoint for the analysis pipeline. Sibling to `cli` — same
- * module, same classpath, different invocation. Eventually this will
- * run remotely; for now it sits next to the IDE and accepts uploads
- * from the ide-plugin at session end.
- *
- * Run: `./gradlew :analysis:runServer`
- */
 
 private const val DEFAULT_PORT = 8080
 
@@ -35,9 +27,6 @@ fun main() {
 }
 
 fun Application.module() {
-    // Pay the Equinox + JDT boot cost once at server start. The
-    // resulting client is shared across every analysis request via
-    // the app-singleton AnalysisPipeline.
     val refactoringClient = bootRefactoringClient()
     monitor.subscribe(ApplicationStopped) { refactoringClient.close() }
     val pipeline = AnalysisPipeline(refactoringClient = refactoringClient)

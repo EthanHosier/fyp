@@ -21,12 +21,6 @@ import kotlin.test.assertTrue
 
 class ReorderSynthesiserTest {
 
-    /**
-     * Window-splitting concerns migrated verbatim from the deleted
-     * `ReorderWindowLoggerTest`. Tests construct a synthesiser with
-     * fakes that always succeed; assertions only look at splitting
-     * summary fields, computed before any synthesis runs.
-     */
     @Nested
     inner class WindowSplitting {
 
@@ -181,13 +175,6 @@ class ReorderSynthesiserTest {
 
         @Test
         fun `dfs visits each prefix once across all orderings`(@TempDir tmp: Path) {
-            // 3 specs, all pairwise-commuting RenameClass → 6 orderings
-            // total. Drop identity [0,1,2] → 5 alt orderings.
-            // Distinct non-empty prefixes across the alt orderings:
-            //   length-1: {0},{1},{2} → 3
-            //   length-2: {0,2},{1,0},{1,2},{2,0},{2,1} → 5
-            //   length-3: each of the 5 alt orderings → 5
-            // Total = 13.
             val steps = (0 until 3).map {
                 step(it, sha(it), sha(it + 1), renameClass("com.A$it", "B$it"))
             }
@@ -234,10 +221,6 @@ class ReorderSynthesiserTest {
 
         @Test
         fun `partial failure in subtree skips subtree continues siblings`(@TempDir tmp: Path) {
-            // Fake fails when applying spec #1 unconditionally. Every
-            // alt ordering applies spec 1 at some depth; that ordering
-            // fails at that depth. Sibling subtrees not passing
-            // through the failing spec still get explored.
             val steps = (0 until 3).map {
                 step(it, sha(it), sha(it + 1), renameClass("com.A$it", "B$it"))
             }
@@ -356,9 +339,6 @@ class ReorderSynthesiserTest {
 
         @Test
         fun `non-terminal prefixes are not hash-checked`(@TempDir tmp: Path) {
-            // 3-spec window: 5 alt orderings, 13 distinct prefixes, 5 terminals.
-            // hashWorktreeFile must be invoked exactly 5 times (one per
-            // terminal × 1 user-changed file).
             var workCalls = 0
             withDivergenceCtx(
                 tmp = tmp,
@@ -390,9 +370,6 @@ class ReorderSynthesiserTest {
                     step(1, "mid", "term", renameClass("com.A1", "B1")),
                 )
                 ctx.synth.run(steps, allValid(steps)) { ctx.lines += it }
-                // Both forced refs (depth-1 and depth-2) must still
-                // resolve in the shadow repo even though the ordering
-                // was filtered from the report.
                 val refs = listOf(
                     "reorder/win0/path/1",
                     "reorder/win0/path/1-0",
@@ -463,10 +440,6 @@ class ReorderSynthesiserTest {
             )
             try {
                 val synth = ReorderSynthesiser(
-                    // Returning Ok without writing files means every alt
-                    // ordering hits "no staged changes" and records as
-                    // failed — fine, splitting assertions only look at
-                    // counts + window log lines.
                     applySpec = { _, _ -> SpecDispatcher.Result.Ok },
                     refreshProject = { /* no-op in tests */ },
                     runInSession = { it() },
@@ -491,9 +464,6 @@ class ReorderSynthesiserTest {
         val shadow = tmp.resolve("shadow-repo")
         val pool = WorktreePool(shadowRepo = shadow, baseDir = tmp.resolve("synth-worktrees"), size = 1)
         try {
-            // Forward-declare ctx so the apply lambda can update it
-            // live (rather than via post-block closure capture, which
-            // assertions inside the block wouldn't see).
             lateinit var ctx: SynthCtxImpl
             val synth = ReorderSynthesiser(
                 applySpec = { spec, worktree ->
@@ -504,9 +474,6 @@ class ReorderSynthesiserTest {
                     if (failOnSpecIdx != null && specIdx == failOnSpecIdx) {
                         SpecDispatcher.Result.Failed("simulated failure on specIdx=$specIdx")
                     } else {
-                        // Mutate a spec-unique file so git observes a change.
-                        // On backtrack the synthesiser's `git checkout
-                        // --detach <parent>` will revert this naturally.
                         val target = worktree.resolve("renames/${rc.typeFqn.replace('.', '_')}.txt")
                         Files.createDirectories(target.parent)
                         target.writeText("renamed=${rc.newName}\n")
@@ -525,14 +492,6 @@ class ReorderSynthesiserTest {
         }
     }
 
-    /**
-     * Fixture for terminal-AST-divergence tests. Builds a shadow repo
-     * with a real second commit that adds a single user-side `.java`
-     * file, then re-points specific branch names so
-     * `changedJavaFilesBetween(fromSha, windowToSha)` returns
-     * exactly that file. Hashers are fully test-controlled so the
-     * worktree side and user side report whatever the test wants.
-     */
     private inline fun withDivergenceCtx(
         tmp: Path,
         userTerminalContent: String,

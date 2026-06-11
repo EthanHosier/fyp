@@ -8,11 +8,6 @@ import org.eclipse.jdt.core.refactoring.descriptors.RenameJavaElementDescriptor
 import org.eclipse.ltk.core.refactoring.RefactoringCore
 import org.eclipse.ltk.core.refactoring.RefactoringStatus
 
-/**
- * Rename the top-level type [typeFqn] to [newName] project-wide. The
- * underlying source file is also renamed on disk
- * (`Foo.java` → `<newName>.java`).
- */
 internal object RenameClassOp {
 
     fun run(

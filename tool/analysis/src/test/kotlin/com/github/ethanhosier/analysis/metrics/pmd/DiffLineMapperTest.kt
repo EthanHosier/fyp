@@ -15,9 +15,6 @@ class DiffLineMapperTest {
 
     @Test
     fun `pure deletion shifts lines below by minus one and marks the deleted line gone`() {
-        // Deletes the single line at old line 10. Mirrors the "delete one
-        // of N consecutive literal-ifs" scenario: surviving siblings shift
-        // up, and old line 10 itself reports as Deleted.
         val diff = """
             @@ -10 +9,0 @@
             -    if (x == 0) return;
@@ -32,9 +29,6 @@ class DiffLineMapperTest {
 
     @Test
     fun `equal-count hunk pairs lines 1 to 1 in order`() {
-        // In-place edit: the heuristic the design relies on — old/new
-        // line counts match, so a violation at the modified line keeps
-        // its identity at the corresponding new line.
         val diff = """
             @@ -3,5 +3,5 @@
             -    System.out.println("hi");
@@ -67,9 +61,6 @@ class DiffLineMapperTest {
 
     @Test
     fun `multiple hunks accumulate their net offsets`() {
-        // First hunk inserts 3 lines (net +3 below it); second deletes 1
-        // (net -1 below it). A line above both is unchanged, between the
-        // two it shifts by +3, after both by +2.
         val diff = """
             @@ -10,2 +10,5 @@
              keep

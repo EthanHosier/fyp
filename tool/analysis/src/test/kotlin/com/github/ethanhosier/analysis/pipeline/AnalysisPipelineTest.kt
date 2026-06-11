@@ -28,20 +28,10 @@ import kotlin.test.assertEquals
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
-/**
- * Unit tests for the pure in-memory report assembly — no I/O, no Gradle.
- * The full pipeline (`AnalysisPipeline.run`) is covered end-to-end by the
- * CLI regression; [MetricsRunnerTest] already exercises the expensive
- * per-SHA runners.
- */
 class AnalysisPipelineTest {
 
     @Test
     fun `groups events under the SHAs they landed on, preserving order`() {
-        // Three events across two unique SHAs:
-        //   e1 (SESSION_STARTED) → sha-a
-        //   e2 (EDIT_BURST)      → sha-a (collapsed — same SHA as preceding)
-        //   e3 (EDIT_BURST)      → sha-b
         val trace = Trace(
             metadata = metadata("sess-1"),
             events = listOf(
@@ -94,10 +84,6 @@ class AnalysisPipelineTest {
 
     @Test
     fun `checkpoint with no mapped events still appears in report`() {
-        // Pathological but possible: MetricsRunner computed a SHA for which
-        // no event directly maps (e.g. the baseline commit, if we ever map
-        // no event to it). The SHA must still surface in the report — with
-        // an empty event list — so the metrics aren't silently dropped.
         val trace = Trace(metadata = metadata("sess-2"), events = emptyList())
         val reconstruction = ReconstructionResult(
             repoDir = Path.of("/tmp/fake"),
@@ -140,9 +126,6 @@ class AnalysisPipelineTest {
         val fromMetrics = checkpoint("from")
         val toMetrics = checkpoint("to")
         val intermediateMetrics = checkpoint("ord-s0")
-        // Synthetic terminal alias — same content as `toMetrics` (slice 2b)
-        // but rebranded with the alt's terminal sha. In real pipelines this
-        // is built upstream; tests pass it via `augmentedAltMetricsBySha`.
         val terminalAliasMetrics = toMetrics.copy(sha = "ord-s1-terminal")
         val metrics = MetricsRunner.Summary(
             totalShas = 2,
@@ -209,12 +192,6 @@ class AnalysisPipelineTest {
 
     @Test
     fun `synthesised group expands per-refactoring + residual into AlternativeTrajectory chain`() {
-        // Two refactorings on the same (fromSha, toSha) window with a
-        // residual that landed cleanly should produce one
-        // AlternativeTrajectory whose altCheckpoints chain is
-        // [refactor1, refactor2, residual] — specs.size == 2 and
-        // altCheckpoints.size == specs.size + 1 to indicate the trailing
-        // residual step.
         val trace = Trace(metadata = metadata("sess-g1"), events = emptyList())
         val reconstruction = ReconstructionResult(
             repoDir = Path.of("/tmp/fake"),
@@ -301,10 +278,6 @@ class AnalysisPipelineTest {
 
     @Test
     fun `alt with non-trace-end userToSha gets a continuation chain`() {
-        // 3 user checkpoints: from → mid → end. Alt covers from → mid,
-        // so its userToSha is "mid" (not the trace end). The pipeline
-        // should populate continuationCheckpointShas with the user's
-        // post-merge SHAs (["end"]) and a matching continuation score.
         val trace = Trace(metadata = metadata("sess-cont"), events = emptyList())
         val reconstruction = ReconstructionResult(
             repoDir = Path.of("/tmp/fake"),
@@ -358,9 +331,6 @@ class AnalysisPipelineTest {
         val alt = report.alternativeTrajectories
             .single { it.kind != DivergenceKind.HYGIENE }
         assertEquals(listOf("end"), alt.continuationCheckpoints.map { it.sha })
-        // Static metrics carry forward from the user's checkpoint; the
-        // overlay swaps in the alt's recomputed process score, so each
-        // continuation entry has a non-empty `process`.
         assertTrue(alt.continuationCheckpoints.all { it.derivedMetrics.process.total in 0..100 })
     }
 
@@ -414,9 +384,6 @@ class AnalysisPipelineTest {
             reorderTrajectories = listOf(traj),
         )
 
-        // Failed orderings produce no reorder AlternativeTrajectory entries — the
-        // reorder window data still appears for diagnostics. (HYGIENE alts
-        // may fire on the synthetic fixture but they're a separate kind.)
         assertTrue(
             report.alternativeTrajectories.none { it.kind != DivergenceKind.HYGIENE },
         )

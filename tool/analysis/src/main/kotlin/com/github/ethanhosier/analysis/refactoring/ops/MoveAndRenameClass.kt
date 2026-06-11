@@ -4,12 +4,6 @@ import com.github.ethanhosier.analysis.refactoring.RefactoringClient
 import com.github.ethanhosier.analysis.refactoring.RefactoringOutcome
 import java.nio.file.Path
 
-/**
- * Move a class to [destinationPackage] and rename it to [newName] in
- * a single operation. Host-side composition of [moveClass] +
- * [renameClass]; JDT has no single processor for the combined action
- * but IntelliJ surfaces it as one.
- */
 data class MoveAndRenameClassRequest(
     val projectRoot: Path,
     val sourceFolders: List<String>,

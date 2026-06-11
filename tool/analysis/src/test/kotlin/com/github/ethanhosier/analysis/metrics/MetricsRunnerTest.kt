@@ -11,11 +11,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
-/**
- * End-to-end smoke test for the full metrics pipeline. Builds a shadow repo
- * from the gradle-fixture and runs every section (CK + PMD + Gradle build +
- * Gradle test) against the resulting SHA.
- */
 class MetricsRunnerTest {
 
     @Test

@@ -1,21 +1,3 @@
-/**
- * Pure-SVG process-signal chip in the bad/warn/good visual family used
- * by `PitfallCallout` and the trajectory chart's signal glyphs:
- *  - `bad`  — circular chip, tinted background, X strokes.
- *  - `warn` — rounded triangle, tinted fill, centred `!`.
- *  - `good` — circular chip, tinted background, check strokes.
- *
- * Self-contained `<svg>` so it slots into both DOM contexts (children of
- * a `<div>`) and SVG contexts (nested inside another `<svg>`, e.g. the
- * chart overlay) without any per-call wrapper plumbing. Ink follows the
- * tone token via inline `style.color` + `currentColor` paint, so a
- * caller wrapping in a coloured ancestor doesn't override it.
- *
- * `CommitChip` (below) shares the same circular-chip chrome but inlines
- * lucide's `GitMerge` glyph and is hard-painted in `--good` green so it
- * reads as a Git commit token at any size.
- */
-
 import { GitMerge } from "lucide-react"
 import {cn} from "@/lib/utils.ts";
 

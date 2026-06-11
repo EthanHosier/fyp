@@ -1,13 +1,4 @@
 #!/usr/bin/env python3
-"""
-Print per-event unified diffs for EDIT_BURST and REFACTORING_FINISHED events
-in a session's events.jsonl. Helpful when labelling sessions: each event's
-changedFiles[] entry stores the full file contents, not the delta, so eyeballing
-what actually changed in a given event is painful without a diff view.
-
-Usage: session-event-diffs.py <session-dir> [--only EDIT_BURST|REFACTORING_FINISHED]
-       e.g.  session-event-diffs.py tool/fixtures/sessions/014
-"""
 import difflib
 import json
 import sys
@@ -18,14 +9,12 @@ DIFF_TYPES = ("EDIT_BURST", "REFACTORING_FINISHED")
 
 
 def relpath(abs_path: str) -> str:
-    """Trim the absolute event path down to project-relative form."""
     if "/src/" in abs_path:
         return "src/" + abs_path.split("/src/", 1)[1]
     return Path(abs_path).name
 
 
 def load_initial_src(initial_src: Path) -> dict[str, str]:
-    """Walk initial-src/ and return {relpath: contents} for every regular file."""
     out: dict[str, str] = {}
     if not initial_src.is_dir():
         return out

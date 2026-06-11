@@ -1,16 +1,5 @@
 package com.github.ethanhosier.analysis.metrics.readability
 
-/**
- * Lazily-loaded English wordlist used by [ReadabilityRunner] to compute
- * `dictionaryWordRatio`. Bundled as a classpath resource at
- * `english-words.txt` — one word per line, lower-case.
- *
- * Source: dwyl/english-words (`words_alpha.txt`, public domain). ~370k
- * entries; intentionally broad so we catch domain-specific but real words
- * (`http`, `util`, `json`). Splits shorter than 2 chars should not be
- * checked — they add noise and are handled separately via single-letter
- * ratio.
- */
 internal object EnglishWords {
 
     private val words: Set<String> by lazy { load() }
