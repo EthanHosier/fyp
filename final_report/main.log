@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.10.5)  11 JUN 2026 18:41
+This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.10.5)  11 JUN 2026 18:50
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1497,7 +1497,7 @@ Overfull \hbox (5.44229pt too wide) in paragraph at lines 152--164
 [25]
 
 [26]
-Underfull \vbox (badness 1117) has occurred while \output is active []
+Underfull \vbox (badness 3803) has occurred while \output is active []
 
 
 
@@ -1505,9 +1505,9 @@ Underfull \vbox (badness 1117) has occurred while \output is active []
 
 [28]
 LaTeX Font Info:    Font shape `T1/cmtt/bx/n' in size <8> not available
-(Font)              Font shape `T1/cmtt/m/n' tried instead on input line 409.
+(Font)              Font shape `T1/cmtt/m/n' tried instead on input line 411.
 
-Overfull \hbox (12.82945pt too wide) in paragraph at lines 441--442
+Overfull \hbox (12.82945pt too wide) in paragraph at lines 443--444
 []\T1/cmr/m/n/10.95 The re-work syn-the-siser builds an al-ter-na-tive tra-jec-
 tory that skips the matched originating--
  []
@@ -1519,38 +1519,40 @@ tory that skips the matched originating--
 [30]
 
 [31]
-<architecture/dashboard_image.png, id=979, 1641.13126pt x 908.39375pt>
+<architecture/dashboard_image.png, id=978, 1641.13126pt x 908.39375pt>
 File: architecture/dashboard_image.png Graphic file (type png)
 <use architecture/dashboard_image.png>
 Package pdftex.def Info: architecture/dashboard_image.png  used on input line 5
-40.
+42.
 (pdftex.def)             Requested size: 426.79135pt x 236.23225pt.
 
 
-[32 <./architecture/dashboard_image.png>]
+[32]
 
-[33]
+[33 <./architecture/dashboard_image.png>]
 
 [34]
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `math shift' on input line 600.
+(hyperref)                removing `math shift' on input line 602.
 
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `\kappa' on input line 600.
+(hyperref)                removing `\kappa' on input line 602.
 
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `math shift' on input line 600.
+(hyperref)                removing `math shift' on input line 602.
 
-) (./results/results.tex
 
-[35]
+
+[35]) (./results/results.tex
+
+[36]
 Chapter 4.
 
 
-[36
+[37
 
 ]
 
@@ -1563,16 +1565,14 @@ LaTeX Font Warning: Font shape `T1/cmr/m/scit' undefined
 
 
 
-[37]
-
 [38]
+
+[39]
 Overfull \hbox (27.88179pt too wide) in paragraph at lines 113--127
  [][] 
  []
 
 
-
-[39]
 
 [40]
 
@@ -1583,6 +1583,8 @@ Overfull \hbox (27.88179pt too wide) in paragraph at lines 113--127
 [43]
 
 [44]
+
+[45]
 Overfull \hbox (9.39014pt too wide) in paragraph at lines 337--338
 \T1/cmr/m/n/10.95 recorded refac-tor-ing ses-sions on the same order-processing
  code-base (\T1/cmtt/m/n/10.95 user-study-fixture/\T1/cmr/m/n/10.95 ),
@@ -1590,9 +1592,9 @@ Overfull \hbox (9.39014pt too wide) in paragraph at lines 337--338
 
 
 
-[45]
-
 [46]
+
+[47]
 Overfull \hbox (33.24446pt too wide) in paragraph at lines 422--436
  [][] 
  []
@@ -1607,13 +1609,13 @@ LaTeX Font Warning: Font shape `T1/cmr/m/scit' undefined
 
 
 
-[47]
-
 [48]
 
 [49]
 
 [50]
+
+[51]
 Overfull \hbox (43.47473pt too wide) in paragraph at lines 529--530
 []\T1/cmr/m/n/10.95 Gemini 3.5 Flash with Open-Code, af-ter S03, re-sponded to 
 a \T1/cmtt/m/n/10.95 REFACTORING_INTRODUCED_SMELLS
@@ -1621,13 +1623,13 @@ a \T1/cmtt/m/n/10.95 REFACTORING_INTRODUCED_SMELLS
 
 
 
-[51]) (./conclusion/conclusion.tex
+[52]) (./conclusion/conclusion.tex
 
-[52]
+[53]
 Chapter 5.
 
 
-[53
+[54
 
 ]
 LaTeX Font Info:    Font shape `T1/cmtt/bx/n' in size <10.95> not available
@@ -1640,15 +1642,15 @@ y-book au-thor's judge-ment.[] \T1/cmr/m/n/10.95 The five ordering-
 
 
 
-[54]
+[55]
 
-[55]) (./declarations/declarations.tex
+[56]) (./declarations/declarations.tex
 
-[56]
+[57]
 Chapter 6.
 
 
-[57
+[58
 
 ]
 Overfull \hbox (6.00452pt too wide) in paragraph at lines 30--31
@@ -1664,7 +1666,7 @@ l are stored un-der \T1/cmtt/m/n/10.95 tool/fixtures/\T1/cmr/m/n/10.95 .
 
 ) (./appendix/appendix.tex
 
-[58]
+[59]
 Appendix A.
 
 Overfull \hbox (3.31305pt too wide) in paragraph at lines 24--25
@@ -1674,15 +1676,15 @@ r-study-interviews/user-study-interview.md\T1/cmr/m/n/10.95 .
 
 
 
-[59
+[60
 
 ]
 
-[60]) (./main.bbl
+[61]) (./main.bbl
 
-[61]
+[62]
 
-[62
+[63
 
 ]
 Underfull \hbox (badness 1540) in paragraph at lines 113--117
@@ -1698,11 +1700,11 @@ ne-Françoise
 
 
 
-[63]
-
 [64]
 
 [65]
+
+[66]
 Underfull \hbox (badness 10000) in paragraph at lines 376--382
 []\T1/cmr/m/n/10.95 Imperial Col-lege Lon-don.  Re-search ethics.  [][]$\T1/cmt
 t/m/n/10.95 https : / / www .
@@ -1722,7 +1724,7 @@ esearch-[]ethics/$[][]\T1/cmr/m/n/10.95 , 2026.
 
 )
 
-[66] (./main.aux)
+[67] (./main.aux)
  ***********
 LaTeX2e <2024-11-01> patch level 2
 L3 programming layer <2025-01-18>
@@ -1731,9 +1733,9 @@ Package rerunfilecheck Info: File `main.out' has not changed.
 (rerunfilecheck)             Checksum: 52936138D30B39EA5097A7B42C7E7F03;17370.
  ) 
 Here is how much of TeX's memory you used:
- 27453 strings out of 473190
- 518895 string characters out of 5715800
- 923394 words of memory out of 5000000
+ 27454 strings out of 473190
+ 518902 string characters out of 5715800
+ 924394 words of memory out of 5000000
  49871 multiletter control sequences out of 15000+600000
  599996 words of font info for 113 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
@@ -1784,10 +1786,10 @@ r/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sftt0800.pfb></usr/
 local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sftt1000.pfb></usr/lo
 cal/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sftt1095.pfb></usr/loca
 l/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sfxc0800.pfb>
-Output written on main.pdf (67 pages, 1479530 bytes).
+Output written on main.pdf (68 pages, 1481126 bytes).
 PDF statistics:
- 1627 PDF objects out of 1728 (max. 8388607)
- 1440 compressed objects within 15 object streams
- 324 named destinations out of 1000 (max. 500000)
+ 1635 PDF objects out of 1728 (max. 8388607)
+ 1447 compressed objects within 15 object streams
+ 325 named destinations out of 1000 (max. 500000)
  743 words of extra memory for PDF output out of 10000 (max. 10000000)
 

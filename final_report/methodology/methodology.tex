@@ -144,7 +144,7 @@ This is deliberately a narrow claim. Kudrjavets et al.~\cite{kudrjavets2022small
 \subsection{The cleanliness sub-score}
 \label{sec:methodology-cleanliness}
 
-The cleanliness sub-score $C(s)$ in Equation~\eqref{eq:process-score} gives each codebase state a normalised quality value in $[0, 100]$. It is built from six signals rather than one, following the argument in \S\ref{sec:smells-metrics} that individual quality measures are noisy and context-dependent. Combining several signals makes the score less dependent on any single metric. Table~\ref{tab:methodology-cleanliness} lists the six sub-signals, the source used to justify each one, and how each value is computed.
+So far $C(s)$ has appeared in the process score as a single number per state. This section unpacks where that number comes from. The cleanliness sub-score $C(s)$ in Equation~\eqref{eq:process-score} gives each codebase state a normalised quality value in $[0, 100]$. It is built from six signals rather than one, following the argument in \S\ref{sec:smells-metrics} that individual quality measures are noisy and context-dependent. Combining several signals makes the score less dependent on any single metric. Table~\ref{tab:methodology-cleanliness} lists the six sub-signals, the source used to justify each one, and how each value is computed.
 
 \begin{table}[htbp]
 \centering
@@ -185,7 +185,7 @@ The process score and cleanliness sub-score are computed from the state of the c
 \subsection{Event capture}
 \label{sec:arch-events}
 
-The IntelliJ plugin records the events emitted during a user's refactoring session. These include editor events (files opened, closed, saved, modified, renamed, and moved), refactoring events (refactoring start and finish), build events, test-run events with pass/fail counts, git events for newly observed commits, and session start/end events.
+Computing the score above depends on having a faithful per-step record of what the developer did during the session. The IntelliJ plugin records the events emitted during a user's refactoring session. These include editor events (files opened, closed, saved, modified, renamed, and moved), refactoring events (refactoring start and finish), build events, test-run events with pass/fail counts, git events for newly observed commits, and session start/end events.
 
 File modification activity is the noisiest source. IntelliJ emits an event for every keystroke, so we debounce these events before storing them. The debouncing layer groups keystrokes into an \emph{edit burst} across all files: once there has been no further typing for two seconds, it emits a single burst event containing the file's post-edit contents and the structured set of program elements touched.
 
@@ -213,7 +213,9 @@ The static-analysis signals are tracked across checkpoints rather than only comp
 \label{sec:methodology-detector}
 \label{sec:arch-synthesis}
 
-A \emph{divergence point} is a step where the user's trajectory can be compared with an alternative path that scores strictly higher under the process score. The detector reports four kinds of divergence:
+A process score on its own tells the developer how a session went overall, but not where it went wrong or what they could have done instead. The tool therefore emits \emph{divergence points}, each one flagging a specific step where a better path was available. Four kinds of divergence point are reported, each catching a different way a session can fall short of a higher-scoring path: \emph{Ordering} (the same refactorings applied in a worse order than they could have been), \emph{Manual-Refactor} (the developer did by hand what the IDE could have done), \emph{Rework} (work that was added and later undone), and \emph{Hygiene} (missing safety checkpoints such as tests or commits).
+
+A \emph{divergence point} is a step where the user's trajectory can be compared with an alternative path that scores strictly higher under the process score. The detector reports the same four kinds of divergence:
 \[
 \mathcal{K} = \{\emph{Ordering},\ \emph{Manual-Refactor},\ \emph{Rework},\ \emph{Hygiene}\}.
 \]
@@ -246,7 +248,7 @@ Refactorings need to identify the code element they should act on, but raw line 
 \label{sec:methodology-detector-ordering}
 \label{sec:methodology-reorder}
 
-\emph{Ordering} detection is applied to bracket-validated windows of consecutive refactoring steps (\S\ref{sec:methodology-validator}). For each window, the reorder synthesiser computes the valid permutations of those steps and measures how each ordering changes the process score relative to the developer's original order. The system emits at most one divergence point for the window, placed at its final step. Its magnitude is the best score improvement found among the admitted permutations, and the admitted permutations are attached as alternatives.
+Even when two paths apply the same set of refactorings, the order in which they apply them can leave the trajectory passing through intermediate states of very different quality. \emph{Ordering} detection is applied to bracket-validated windows of consecutive refactoring steps (\S\ref{sec:methodology-validator}). For each window, the reorder synthesiser computes the valid permutations of those steps and measures how each ordering changes the process score relative to the developer's original order. The system emits at most one divergence point for the window, placed at its final step. Its magnitude is the best score improvement found among the admitted permutations, and the admitted permutations are attached as alternatives.
 
 The reorder synthesiser produces these alternatives by reshuffling the user's refactoring steps while still requiring the final code state to match the user's. The following paragraphs describe how candidate reorderings are generated, filtered, and checked before they are scored.
 
@@ -320,7 +322,7 @@ The search keeps one borrowed worktree for the whole window. Forward steps, back
 \label{sec:methodology-manualrefactor}
 \label{sec:arch-wrap-patch}
 
-A \emph{Manual-Refactor} divergence point is emitted at any user step where (i) the action was performed by hand, and (ii) the resulting diff matches the structural pattern of an IDE-supported refactoring. IDE-driven refactorings arrive pre-tagged in the captured event stream, but a manual refactoring is just a series of edit bursts whose net effect happens to constitute a structured refactoring. The pipeline recovers them by running RefactoringMiner~\cite{alikhanifard2025rminer}, a standard tool that detects refactorings between two code states by AST-level structural matching, over a sliding window of commit pairs in the shadow repo. The window matters because a manual refactoring may unfold across several intermediate edit bursts, each of which on its own looks like an unrelated change; only by widening the window to cover the full span does the refactoring become visible to the miner. Each detected refactoring is then cross-checked against the captured event stream: a detection whose window contains a matching IDE-emitted refactoring event is recorded as IDE-driven, and one whose window contains no such event is flagged as manual. Adjacent candidate steps that share the same \texttt{(fromSha, toSha)} bracket are grouped into a single composite that the synthesiser treats as one refactoring.
+This is the detector behind the manual-when-IDE weight in \S\ref{sec:methodology-weights}, and the work it has to do is to recover the structural shape of an edit that was not tagged as a refactoring at recording time. A \emph{Manual-Refactor} divergence point is emitted at any user step where (i) the action was performed by hand, and (ii) the resulting diff matches the structural pattern of an IDE-supported refactoring. IDE-driven refactorings arrive pre-tagged in the captured event stream, but a manual refactoring is just a series of edit bursts whose net effect happens to constitute a structured refactoring. The pipeline recovers them by running RefactoringMiner~\cite{alikhanifard2025rminer}, a standard tool that detects refactorings between two code states by AST-level structural matching, over a sliding window of commit pairs in the shadow repo. The window matters because a manual refactoring may unfold across several intermediate edit bursts, each of which on its own looks like an unrelated change; only by widening the window to cover the full span does the refactoring become visible to the miner. Each detected refactoring is then cross-checked against the captured event stream: a detection whose window contains a matching IDE-emitted refactoring event is recorded as IDE-driven, and one whose window contains no such event is flagged as manual. Adjacent candidate steps that share the same \texttt{(fromSha, toSha)} bracket are grouped into a single composite that the synthesiser treats as one refactoring.
 
 \begin{figure}[H]
 \centering
@@ -464,7 +466,7 @@ The number of brackets that pass validation is limited by differences between JD
 \section{System architecture and pipeline phases}
 \label{sec:arch-phases}
 
-This section describes the four JVM modules that make up the tool and explains how they fit into the analysis pipeline. \S\ref{sec:arch-overview} gives the module-level overview and dataflow, and \S\ref{sec:methodology-phases-split} covers the Phase A / Phase B split used by the implementation.
+We have now described what the tool computes: the process score, the cleanliness sub-score, the divergence-point detector, and the alternative-trajectory synthesisers. This section zooms out and describes how those pieces are wired together as a system the developer interacts with. It covers the four JVM modules that make up the tool and explains how they fit into the analysis pipeline. \S\ref{sec:arch-overview} gives the module-level overview and dataflow, and \S\ref{sec:methodology-phases-split} covers the Phase A / Phase B split used by the implementation.
 
 \subsection{Architecture at a glance}
 \label{sec:arch-overview}
@@ -545,7 +547,7 @@ The main view is a trajectory chart showing the user's process score over time, 
 \section{Score-formula evaluation design}
 \label{sec:methodology-score-eval}
 
-The results chapter evaluates the score formula in two ways. The first asks whether the ranking of divergence points is stable when the weights are perturbed. The second asks whether the individual terms in the formula actually contribute to the magnitudes the detector reports. This section defines the shared experimental procedure; Chapter~\ref{ch:results} reports the observed numbers.
+With the tool now defined, the remaining sections of this chapter set up how each component is tested in Chapter~\ref{ch:results}. The results chapter evaluates the score formula in two ways. The first asks whether the ranking of divergence points is stable when the weights are perturbed. The second asks whether the individual terms in the formula actually contribute to the magnitudes the detector reports. This section defines the shared experimental procedure; Chapter~\ref{ch:results} reports the observed numbers.
 
 \subsection{Sensitivity perturbations}
 \label{sec:methodology-sensitivity-design}
