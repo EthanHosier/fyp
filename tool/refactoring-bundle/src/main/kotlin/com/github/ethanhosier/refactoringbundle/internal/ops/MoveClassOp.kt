@@ -14,12 +14,6 @@ import org.eclipse.jdt.internal.corext.refactoring.reorg.ReorgDestinationFactory
 import org.eclipse.jdt.internal.corext.refactoring.reorg.ReorgPolicyFactory
 import org.eclipse.ltk.core.refactoring.participants.ProcessorBasedRefactoring
 
-/**
- * Move the top-level type [typeFqn] to package [destinationPackage].
- * The source file is relocated on disk, its `package` statement is
- * rewritten, and every caller's `import` is updated. If the package
- * doesn't yet exist on the first source root, it's created.
- */
 internal object MoveClassOp {
 
     fun run(

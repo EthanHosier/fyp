@@ -10,9 +10,6 @@ data class MoveInstanceMethodRequest(
     val classpathJars: List<Path>,
     val sourceTypeFqn: String,
     val methodName: String,          // must be unambiguous on sourceTypeFqn
-    // Name of the parameter or instance field whose declared type becomes
-    // the method's new home. Must be one of the method's "possible targets"
-    // as computed by JDT.
     val targetName: String,
 )
 

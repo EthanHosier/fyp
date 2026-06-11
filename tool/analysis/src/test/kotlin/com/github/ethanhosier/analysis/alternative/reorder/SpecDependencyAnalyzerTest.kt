@@ -57,11 +57,6 @@ class SpecDependencyAnalyzerTest {
 
     @Test
     fun `two extracts in same host body do not auto-conflict (optimistic model)`() {
-        // Deliberately no edge — selectionSubtreeHash is content-addressed
-        // on the selection only, so disjoint regions commute. Overlap /
-        // containment can't be detected from spec fields alone; the
-        // synthesis PR will catch invalid orderings via its end-state
-        // check. See KDoc on `effectsOf` for the rationale.
         val a = extractMethod("run", "h1", "a")
         val b = extractMethod("run", "h2", "b")
         val dag = SpecDependencyAnalyzer.analyze(listOf(a, b))
@@ -70,10 +65,6 @@ class SpecDependencyAnalyzerTest {
 
     @Test
     fun `rename inside a host body still chains into a later extract on that host`() {
-        // Asymmetry: extracts don't write `host`, but renames do, and
-        // extracts read `host` — so a rename followed by an extract is
-        // ordered (the rename can change identifier names referenced
-        // inside the extract's region, mutating its hash anchor).
         val rename = RefactoringSpec.RenameLocalVariable(
             relativeFilePath = "F.java",
             declaringTypeFqn = "com.Foo",
@@ -97,11 +88,6 @@ class SpecDependencyAnalyzerTest {
 
     @Test
     fun `inline method of one method commutes with rename of unrelated method on same class`() {
-        // Optimistic InlineMethod model (see SpecEffects KDoc): the inline
-        // no longer writes the declaring Type coarsely for call sites,
-        // so an inline of `h` and a rename of unrelated `other` on the
-        // same class commute. Terminal-AST equivalence filters orderings
-        // where the rewrites actually interfere.
         val inline = RefactoringSpec.InlineMethod(
             declaringTypeFqn = "com.Foo",
             methodName = "h",

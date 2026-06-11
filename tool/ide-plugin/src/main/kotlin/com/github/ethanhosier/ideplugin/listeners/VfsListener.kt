@@ -15,15 +15,6 @@ import com.intellij.openapi.vfs.newvfs.events.*
 
 class VfsListener : BulkFileListener {
 
-    /**
-     * Deletes are handled *before* the operation executes so the VirtualFile is
-     * still alive — `fileType`, `isValid`, and `contentsToByteArray` all work.
-     * By the time `after()` fires, the file's `fileType` often resolves to
-     * `UnknownFileType` (whose `isBinary=true`), which would make
-     * [com.github.ethanhosier.ideplugin.util.shouldCapture] silently drop the
-     * event. Capturing in `before()` also lets us snapshot the pre-delete
-     * contents so downstream analysis has the file's final state inline.
-     */
     override fun before(events: List<VFileEvent>) {
         for (event in events) {
             if (event is VFileDeleteEvent) {
@@ -39,14 +30,6 @@ class VfsListener : BulkFileListener {
     override fun after(events: List<VFileEvent>) {
         for (event in events) {
             when (event) {
-                // TEMP FIX: defer the FILE_CREATED snapshot to the next EDT tick so
-                // IntelliJ's file template engine has time to populate the new file
-                // (e.g. `public class Ethan {}` for "New > Java Class"). Reading
-                // synchronously here observes the file before the template insertion
-                // runs and yields empty contents. Not bullet-proof — relies on the
-                // template engine completing within the same EDT round — but covers
-                // the common case. Replace with a `performWhenAllCommitted` /
-                // PSI-join flow if races appear.
                 is VFileCreateEvent -> {
                     val createdFile = event.file ?: continue
                     ApplicationManager.getApplication().invokeLater {
@@ -73,10 +56,6 @@ class VfsListener : BulkFileListener {
                     previousPath = event.oldPath,
                 )
 
-                // Content changes made inside the IDE editor are captured by EditBurstTracker
-                // and then re-emerge here with isFromSave=true when the document flushes to
-                // disk. Skip those to avoid double-counting. Anything else (git checkout,
-                // external editor, codemod run from terminal) goes through.
                 is VFileContentChangeEvent if !event.isFromSave -> handle(
                     file = event.file,
                     eventType = EventType.FILE_MODIFIED_EXTERNAL,
@@ -120,10 +99,6 @@ class VfsListener : BulkFileListener {
         )
     }
 
-    /**
-     * Reads file contents preferring the in-memory document (open editor state) over
-     * the VFS cache, so we get the exact text the user sees before any disk flush.
-     */
     private fun readContents(file: VirtualFile): String? {
         FileDocumentManager.getInstance().getDocument(file)?.let { return it.text }
         return try { String(file.contentsToByteArray()) } catch (e: Exception) { null }

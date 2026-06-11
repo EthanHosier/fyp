@@ -19,35 +19,6 @@ import kotlin.math.ln
 import kotlin.random.Random
 import kotlin.system.exitProcess
 
-/**
- * Multi-knob Monte Carlo robustness sweep.
- *
- * The single-knob sensitivity sweep ([SensitivityExperiment]) cannot
- * speak to the most natural reviewer concern about score-formula
- * calibration: what if *several* weights are misspecified at once? This
- * experiment perturbs every weight simultaneously by drawing a fresh
- * scale factor for each from the log-normal distribution
- *
- *     factor_i  ~  exp(sigma * Z),   Z ~ N(0, 1),   sigma = ln(2)
- *
- * so a 1-sigma swing on any individual weight is a multiplicative
- * factor of x2 either way and ~95% of samples land inside [x0.25, x4].
- * The log-normal is symmetric in log-space (treats scale-ups and
- * scale-downs identically, unlike the single-knob factor list) and has
- * bounded variance.
- *
- * For each (fixture, sample) pair the experiment computes Kendall tau-b
- * and top-1/3/5 hit rate against the production-weighted ranking. The
- * CSV layout intentionally mirrors [SensitivityExperiment]'s output for
- * easy cross-comparison.
- *
- * CLI:
- *     :analysis:multiKnobMC --corpus <dir-of-phaseA-json> --output <results.csv> [--samples 200] [--seed 1]
- *
- * Reproducibility: the seed (default 1) is fixed across runs and the
- * sampling is deterministic per (fixture-index, sample-index), so
- * re-running on the same corpus produces a byte-identical CSV.
- */
 object MultiKnobMonteCarloExperiment {
 
     private val readJson = Json { ignoreUnknownKeys = true; isLenient = true }
@@ -136,11 +107,6 @@ object MultiKnobMonteCarloExperiment {
         return out
     }
 
-    /**
-     * Draws one sample from the multi-knob log-normal perturbation
-     * distribution. Each of the 13 weights gets its own independent
-     * scale factor drawn from exp(sigma * N(0, 1)).
-     */
     private fun drawPerturbedConfig(rng: Random, sigma: Double): ScoringConfig {
         fun draw(): Double = exp(sigma * rng.nextGaussian())
         val prod = ScoringConfig.PRODUCTION
@@ -188,9 +154,6 @@ object MultiKnobMonteCarloExperiment {
     }
 }
 
-// Box-Muller-style standard normal via two uniforms is built into
-// kotlin.random.Random.nextGaussian on JVM. We expose a tiny extension
-// to keep the call site readable.
 private fun Random.nextGaussian(): Double {
     // Polar-rejection Marsaglia method — deterministic given the
     // underlying Random's state, so the experiment stays reproducible.

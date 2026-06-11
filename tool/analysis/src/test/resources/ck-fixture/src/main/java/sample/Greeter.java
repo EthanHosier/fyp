@@ -3,7 +3,6 @@ package sample;
 import java.util.ArrayList;
 import java.util.List;
 
-/** Tiny CK fixture: exercises LOC, WMC, methods, fields, loops, try/catch. */
 public class Greeter {
     private final String name;
     private final List<String> log = new ArrayList<>();

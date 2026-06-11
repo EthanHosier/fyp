@@ -8,17 +8,6 @@ import org.eclipse.jdt.core.dom.CompilationUnit
 import java.nio.file.Files
 import java.nio.file.Path
 
-/**
- * Canonical AST hash of a single `.java` file.
- *
- * Targeted, per-file hashing — never walks a whole worktree. The
- * validator only ever hashes files that appear in a `git diff`, so
- * a tree-wide snapshotter would be wasted work.
- *
- * Returns `null` when the file is missing or fails to parse. The
- * caller (typically [RefactoringStepValidator]) treats `null` on
- * either side of a comparison as a divergence.
- */
 object JavaFileAstHasher {
 
     fun hashFile(worktree: Path, relativePath: String): String? {
@@ -32,13 +21,6 @@ object JavaFileAstHasher {
         return hashSource(source)
     }
 
-    /**
-     * Hash the canonical AST of [relativePath] as it exists at [sha]
-     * in the [git] repo, without touching the working tree. Useful
-     * when comparing against a historical commit (e.g. the user's
-     * `windowToSha`) without borrowing a worktree. Returns `null`
-     * if the path is absent at that SHA or fails to parse.
-     */
     fun hashFileAtSha(git: GitRunner, sha: String, relativePath: String): String? {
         val source = git.showAtSha(sha, relativePath) ?: return null
         return hashSource(source)

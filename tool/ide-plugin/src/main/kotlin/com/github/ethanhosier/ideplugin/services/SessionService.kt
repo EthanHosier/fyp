@@ -19,9 +19,6 @@ class SessionService(private val project: Project) {
 
     @Volatile private var metadata: SessionMetadata? = null
 
-    // Guards every read/write of `events`. Plain ArrayList + lock is O(1) amortised
-    // per add; CopyOnWriteArrayList would copy the whole backing array on each add
-    // (O(n²) over a long session).
     private val eventsLock = Any()
     private val events: MutableList<TraceEvent> = ArrayList()
 
@@ -70,29 +67,9 @@ class SessionService(private val project: Project) {
         snapshotSource("initial-src")
         project.service<StorageService>().flushEvent(sessionStartedEvent)
 
-        // Start the git commit watcher after the session is fully recording
-        // so any commits made from this point land in the event stream.
-        // `now` here is the session-start timestamp passed to `git log
-        // --since=<unix>` to filter out pre-session commits.
         project.basePath?.let { project.service<GitCommitWatcher>().start(java.io.File(it), now) }
     }
 
-    /**
-     * Copies every capturable file under the project root into
-     * `<sessionDir>/<subdir>/`, preserving the tree structure relative to the
-     * project base path.
-     *
-     * Filtering goes through [SnapshotFilter]: a hardcoded skip list for
-     * generated output, IDE/VCS metadata, dependency caches, and an
-     * extension/size cap. This captures not just sources but also build
-     * config (build.gradle*, settings.gradle*, gradle.properties) and the
-     * Gradle wrapper (gradlew, gradle/wrapper/) — all of which the analysis
-     * pipeline needs to run `./gradlew` on a reconstructed checkpoint.
-     *
-     * The baseline snapshot at session start is what the analysis tool uses
-     * to reconstruct edit history via a shadow git repo. The same mechanism
-     * can later be reused for mid-session checkpoints.
-     */
     private fun snapshotSource(subdir: String) {
         val basePath = project.basePath ?: run {
             thisLogger().warn("RefactoringTracer: project has no basePath — skipping '$subdir' snapshot")
@@ -144,10 +121,6 @@ class SessionService(private val project: Project) {
         val meta = metadata ?: return
         if (meta.endTime != null) return
 
-        // Close any in-flight refactoring first so its accumulated state is emitted
-        // as REFACTORING_FINISHED before we tear down the session. Then drain pending
-        // edit bursts — otherwise addEvent() would reject the flushed events as
-        // post-session.
         project.service<RefactoringBurstCoordinator>().flushIfActive(outcome = "session_ended")
         project.service<EditBurstTracker>().flushAllPending()
         // Drain any pending reflog lines (macOS WatchService polls at ~10s)
@@ -177,7 +150,6 @@ class SessionService(private val project: Project) {
         project.service<StorageService>().flushEvent(event)
     }
 
-    /** Convenience overload: builds and records a TraceEvent without the caller needing to manage IDs or timestamps. */
     fun addEvent(
         type: EventType,
         changedFiles: List<FileSnapshot> = emptyList(),
@@ -229,9 +201,6 @@ class SessionService(private val project: Project) {
     }
 
     private fun runGit(workDir: String, vararg args: String): String? {
-        // stdout and stderr kept separate so a non-git project (which prints
-        // "fatal: not a git repository" on stderr) doesn't end up stored as
-        // the branch name. Only trust stdout when the process exits cleanly.
         val process = ProcessBuilder("git", *args)
             .directory(java.io.File(workDir))
             .start()

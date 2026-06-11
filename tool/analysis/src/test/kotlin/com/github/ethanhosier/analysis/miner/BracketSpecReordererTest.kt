@@ -8,10 +8,6 @@ class BracketSpecReordererTest {
 
     @Test
     fun `extract variable in a method that a sibling inline targets moves before the inline`() {
-        // Mirrors the real bug: user's bracket [InlineMethod handleSilver,
-        // ExtractVariable hostMethodName=handleSilver] would lose the
-        // host before the extract runs in RM's enumeration order. The
-        // reorderer must apply the extract first.
         val inline = RefactoringSpec.InlineMethod(
             declaringTypeFqn = "p.A",
             methodName = "handleSilver",
@@ -71,11 +67,6 @@ class BracketSpecReordererTest {
 
     @Test
     fun `unrelated rename between dependent pair preserves relative order`() {
-        // Bracket: [InlineMethod m, RenameClass, ExtractVariable host=m].
-        // Edge: ExtractVariable → InlineMethod. The Rename is unrelated;
-        // its input position (1) should be preserved relative to the
-        // other unrelated steps, and the extract must still precede the
-        // inline.
         val inline = RefactoringSpec.InlineMethod("p.A", "m")
         val rename = RefactoringSpec.RenameClass("p.A", "AA")
         val extract = RefactoringSpec.ExtractVariable(
@@ -87,10 +78,6 @@ class BracketSpecReordererTest {
             selectionNodeCount = 1,
             newName = "v",
         )
-        // Result: rename(1) is ready first by stepIndex tiebreak; then
-        // extract(2) becomes ready (its only edge points to inline);
-        // then inline(0) once its in-degree hits zero.
-        // Stable Kahn with index-sorted ready set gives [1, 2, 0].
         assertEquals(listOf(1, 2, 0), BracketSpecReorderer.reorder(listOf(inline, rename, extract)))
     }
 

@@ -10,16 +10,6 @@ import kotlin.io.path.isDirectory
 import kotlin.io.path.isRegularFile
 import kotlin.io.path.name
 
-/**
- * Per-session divergence-point counts by kind for a corpus of recorded
- * sessions (defaults to `fixtures/user-sessions`). Emits the same three
- * sections as the legacy Python `scripts/user-session-stats.py`:
- * per-session table, per-participant trajectory, per-kind aggregate.
- *
- * Counts are restricted to `report.divergencePoints[]` (not
- * `alternativeTrajectories[]`) with a strict `magnitude > 0` filter, to
- * match the downstream consumer at `DivergenceExperiment.kt:273`.
- */
 object UserSessionStats {
 
     private val KINDS = listOf(

@@ -12,13 +12,6 @@ import org.eclipse.jdt.internal.corext.refactoring.reorg.ReorgDestinationFactory
 import org.eclipse.jdt.internal.corext.refactoring.reorg.ReorgPolicyFactory
 import org.eclipse.ltk.core.refactoring.participants.ProcessorBasedRefactoring
 
-/**
- * Move an instance field [fieldName] from [sourceTypeFqn] to
- * [destinationTypeFqn]. All reads / writes of the field are rewritten
- * to target the new home. JDT's reorg machinery is the same path used
- * for Move Class — here it's pointed at an [IField] with another
- * [IType] as destination.
- */
 internal object MoveInstanceFieldOp {
 
     fun run(

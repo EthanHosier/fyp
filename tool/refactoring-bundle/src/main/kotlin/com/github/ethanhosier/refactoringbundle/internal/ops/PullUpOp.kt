@@ -8,12 +8,6 @@ import org.eclipse.jdt.internal.corext.refactoring.structure.PullUpRefactoringPr
 import org.eclipse.jdt.internal.ui.preferences.JavaPreferencesSettings
 import org.eclipse.ltk.core.refactoring.participants.ProcessorBasedRefactoring
 
-/**
- * Pull the listed members of [declaringTypeFqn] up to its immediate
- * superclass. Methods are disambiguated by name only — each entry in
- * [methodNames] must be unambiguous on [declaringTypeFqn]; if you need
- * overload disambiguation, extract a single method up per call.
- */
 internal object PullUpOp {
 
     fun run(

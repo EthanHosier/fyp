@@ -16,12 +16,6 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-/**
- * Validator tests use a real on-disk shadow repo + WorktreePool but
- * a fake `applySpec` lambda. The validator itself doesn't invoke
- * JDT — it only orchestrates apply + git diff + AST hash + compare,
- * so a fake apply that mutates files lets us exercise every branch.
- */
 @Tag("slow")
 class RefactoringStepValidatorTest {
 
@@ -203,9 +197,6 @@ class RefactoringStepValidatorTest {
     fun `two steps sharing bracket first apply fails both REFACTOR_FAILED`(@TempDir tmp: Path) {
         val (pool, shadowGit, ctx) = setup(tmp, beforeContent = SRC_A_V1, afterContent = SRC_A_V2)
         try {
-            // Step 0's apply fails → bracket short-circuits without
-            // touching the worktree. Step 1 should still report the
-            // shared verdict referencing step 0 as the culprit.
             val v = RefactoringStepValidator(
                 applySpec = { _, _ -> SpecDispatcher.Result.Failed("boom") },
                 pool = pool, shadowGit = shadowGit,
@@ -228,9 +219,6 @@ class RefactoringStepValidatorTest {
     fun `two steps sharing bracket second apply fails both REFACTOR_FAILED`(@TempDir tmp: Path) {
         val (pool, shadowGit, ctx) = setup(tmp, beforeContent = SRC_A_V1, afterContent = SRC_A_V2)
         try {
-            // First apply succeeds (mutates the file); second fails.
-            // Both steps should classify REFACTOR_FAILED and the
-            // reason should point at step #1.
             var calls = 0
             val v = RefactoringStepValidator(
                 applySpec = { _, worktree ->
@@ -280,29 +268,8 @@ class RefactoringStepValidatorTest {
 
     @Test
     fun `independent brackets are validated separately`(@TempDir tmp: Path) {
-        // Same file, two SHAs, but the validator's grouping is by
-        // (fromSha, toSha). When we feed two steps with different
-        // brackets (different stepIndex AND different toSha targets
-        // simulated via a fresh shadow git), each is validated alone.
-        // We use the same shadow repo + a singleton bracket twice
-        // to confirm the bracket grouping doesn't accidentally pull
-        // unrelated steps together.
         val (pool, shadowGit, ctx) = setup(tmp, beforeContent = SRC_A_V1, afterContent = SRC_A_V2)
         try {
-            // Step 0: real bracket fromSha→toSha — replays cleanly.
-            // Step 1: synthetic "from"→"to" SHAs that don't exist
-            //         in the repo. The validator's git-diff call
-            //         will throw; we expect the bracket grouping to
-            //         keep it isolated from step 0 (so step 0 still
-            //         classifies VALID even though step 1 errors).
-            //
-            // To avoid the throw polluting the test, we simply use
-            // two valid brackets but on the SAME (fromSha, toSha)
-            // — they'd be in one bracket. Instead we test the
-            // simpler property: two identical-bracket steps both
-            // classify VALID together (the positive multi-step case
-            // is already covered above), and the count of returned
-            // validations always equals the count of input steps.
             val v = RefactoringStepValidator(
                 applySpec = { _, worktree ->
                     Files.writeString(worktree.resolve("src/A.java"), SRC_A_V2)
@@ -325,9 +292,6 @@ class RefactoringStepValidatorTest {
 
     @Test
     fun `multi-step bracket invokes runInSession once around the apply loop`(@TempDir tmp: Path) {
-        // Pin the wrap invariant: every applySpec call in a bracket
-        // happens inside one runInSession call. Drives the production
-        // batch-session optimisation.
         val (pool, shadowGit, ctx) = setup(tmp, beforeContent = SRC_A_V1, afterContent = SRC_A_V2)
         try {
             var sessionEntries = 0
@@ -439,9 +403,6 @@ class RefactoringStepValidatorTest {
 
     @Test
     fun `validate does not borrow a second worktree across brackets`(@TempDir tmp: Path) {
-        // Pool size 1 — a second concurrent borrow would block forever.
-        // If the validator's helpers were still doing per-bracket toSha
-        // borrows, this would deadlock.
         val multi = setupMultiBracket(
             tmp,
             contents = listOf(SRC_A_V1, SRC_A_V2, SRC_A_INTERMEDIATE),
@@ -470,7 +431,6 @@ class RefactoringStepValidatorTest {
     private val SRC_A_V2 = "package p; public class A { public int run() { return 2; } }"
     private val SRC_A_V_OURS = "package p; public class A { public int run() { return 99; } }"
 
-    /** Halfway state used by the multi-step bracket tests: V1 → INTERMEDIATE → V2. */
     private val SRC_A_INTERMEDIATE = "package p; public class A { public int run() { return 1 + 1; } }"
 
     private val SAMPLE_SPEC: RefactoringSpec = RefactoringSpec.RenameClass("p.A", "AA")
@@ -501,10 +461,6 @@ class RefactoringStepValidatorTest {
 
     private data class MultiCtx(val pool: WorktreePool, val git: GitRunner, val shas: List<String>)
 
-    /** Linear chain of N commits where each commit overwrites
-     *  `src/A.java` with the corresponding entry from [contents].
-     *  Returns the SHAs in commit order. The pool is left at HEAD =
-     *  last SHA (so worktree adds at any prior SHA work). */
     private fun setupMultiBracket(
         tmpRoot: Path,
         contents: List<String>,

@@ -9,25 +9,6 @@ import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.io.path.extension
 
-/**
- * Runs PMD CPD across a project root and returns a typed [CpdResult].
- *
- * Uses the PMD 7.x programmatic CPD API — sibling of the rule engine used by
- * [com.github.ethanhosier.analysis.metrics.pmd.PmdRunner]. The two engines
- * share the same jar but have independent configs and lifecycles; keeping the
- * runner separate matches how every other metric (CK / build / tests) is
- * wired.
- */
-/**
- * Defaults:
- *  - `minimumTokens = 50` (CPD's Java default is 75). We track small refactorings
- *    where the duplicated unit is often a single 8-10 line method — 75 tokens
- *    misses those entirely.
- *  - `ignoreIdentifiers = true` — Type-2 clone detection. Identifier names
- *    (method/variable) are normalised, so `computeTotal` and `computeTotal2`
- *    with identical bodies match. This is exactly what Extract Method removes,
- *    so it's the right sensitivity for tracking refactoring behaviour.
- */
 class CpdRunner(
     private val minimumTokens: Int = 50,
     private val ignoreIdentifiers: Boolean = true,
@@ -116,11 +97,6 @@ class CpdRunner(
         )
     }
 
-    /**
-     * PMD's CPDReport does not expose total-lines across all scanned files, so
-     * we count them ourselves. Walks [root] the same way CPD does — recursive,
-     * `*.java` — and uses the raw line count of each file.
-     */
     private fun countJavaLines(root: Path): Int {
         var total = 0
         Files.walk(root).use { stream ->

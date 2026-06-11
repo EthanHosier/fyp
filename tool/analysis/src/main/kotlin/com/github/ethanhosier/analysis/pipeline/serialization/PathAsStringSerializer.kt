@@ -9,12 +9,6 @@ import kotlinx.serialization.encoding.Encoder
 import java.nio.file.Path
 import java.nio.file.Paths
 
-/**
- * Serialises a [Path] as its string form. Used on Phase-A artefact fields
- * (e.g. `ReconstructionResult.repoDir`) that need to round-trip through
- * JSON for the `:phaseB` cached-replay flow but where the absolute path
- * is the only thing downstream consumers care about.
- */
 object PathAsStringSerializer : KSerializer<Path> {
     override val descriptor: SerialDescriptor =
         PrimitiveSerialDescriptor("java.nio.file.Path", PrimitiveKind.STRING)

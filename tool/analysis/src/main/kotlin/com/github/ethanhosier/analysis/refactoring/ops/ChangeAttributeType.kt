@@ -4,12 +4,6 @@ import com.github.ethanhosier.analysis.refactoring.RefactoringClient
 import com.github.ethanhosier.analysis.refactoring.RefactoringOutcome
 import java.nio.file.Path
 
-/**
- * Change the declared type of a field identified by FQN + name to
- * [newTypeFqn]. Convenience wrapper over JDT's Change Type
- * refactoring — caller doesn't need to compute file offsets, we
- * locate the declaration via the Java model.
- */
 data class ChangeAttributeTypeRequest(
     val projectRoot: Path,
     val sourceFolders: List<String>,

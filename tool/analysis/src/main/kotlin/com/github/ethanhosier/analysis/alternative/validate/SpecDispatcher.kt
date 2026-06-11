@@ -56,20 +56,6 @@ import com.github.ethanhosier.analysis.refactoring.ops.renamePackage
 import com.github.ethanhosier.analysis.refactoring.ops.replaceVariableWithAttribute
 import java.nio.file.Path
 
-/**
- * Applies a typed [RefactoringSpec] to a worktree via [RefactoringClient].
- *
- * Single source of truth for the per-spec dispatch arms — both
- * `AlternativeTrajectoryRunner` (synthesis) and
- * [RefactoringStepValidator] (per-step ground-truth check) route
- * through this. Behaviour identical to the previous in-runner
- * `dispatch(...)`.
- *
- * Thread-safety: [RefactoringClient.invokeOnBundle] already holds a
- * process-wide [java.util.concurrent.locks.ReentrantLock], so multiple
- * worker threads calling [apply] in parallel automatically serialise
- * on the JDT step.
- */
 class SpecDispatcher(
     private val client: RefactoringClient,
     private val sourceFolders: List<String> = listOf("src/main/java"),

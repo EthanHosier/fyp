@@ -7,11 +7,6 @@ import org.eclipse.jdt.core.IType
 import org.eclipse.jdt.internal.corext.refactoring.structure.PushDownRefactoringProcessor
 import org.eclipse.ltk.core.refactoring.participants.ProcessorBasedRefactoring
 
-/**
- * Push the listed members of [declaringTypeFqn] down to every direct
- * subclass that currently exists on the project classpath. Methods
- * are disambiguated by name only.
- */
 internal object PushDownOp {
 
     fun run(

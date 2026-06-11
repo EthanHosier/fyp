@@ -2,15 +2,6 @@ package com.github.ethanhosier.refactoringbundle.internal
 
 import java.nio.file.Path
 
-/**
- * Serialise refactoring results as JSON strings across the OSGi
- * boundary. Hand-rolled so the bundle stays free of kotlinx-
- * serialization — the host parses the result with its own tooling.
- *
- * Format is stable and tiny:
- *   {"status":"ok","changedFiles":["/abs/path1", ...]}
- *   {"status":"failed","reason":"..."}
- */
 internal object OutcomeJson {
 
     fun ok(changedFiles: List<Path>): String {

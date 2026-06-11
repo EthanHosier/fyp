@@ -38,11 +38,6 @@ internal object ParameterizeVariableOp {
             host, selectionSubtreeHash, selectionNodeCount, AnchorOps.hintOrNull(originalLineHint),
         ) ?: return RefactoringRunner.Outcome.Failure("no AST subtree match for hash=$selectionSubtreeHash")
 
-        // IntroduceParameterRefactoring's fParameter is populated by
-        // checkInitialConditions, so setParameterName must be called
-        // after that. RefactoringRunner.run would re-invoke
-        // checkInitialConditions and clobber the custom name — so we
-        // inline the LTK pipeline here.
         val refactoring = IntroduceParameterRefactoring(icu, selection.startPosition, selection.length)
         val pm = NullProgressMonitor()
         val initial = refactoring.checkInitialConditions(pm)

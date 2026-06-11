@@ -11,25 +11,6 @@ import java.nio.file.Path
 import java.nio.file.Paths
 import kotlin.system.exitProcess
 
-/**
- * Render an [AnalysisReport]'s divergence points as a markdown summary
- * that can be injected into a coding agent's prompt before its next
- * session. Mirrors what a human participant takes away from looking at
- * the dashboard at session end.
- *
- * Output contract:
- *  - Every divergence point in `divergencePoints` is rendered (no top-K
- *    filter). Sorted by descending magnitude so the most impactful
- *    items come first.
- *  - Each entry is a markdown bullet showing kind, magnitude, title,
- *    explanation, and any kind-specific extras (file/scope for REWORK,
- *    replaced refactoringId for IDE_REPLAY, window steps for ORDERING,
- *    sub-kind + stretch length for HYGIENE).
- *
- * Usage (via `./gradlew :analysis:feedbackForAgent --args="--report <path> [--output <path>]"`):
- *   --report  path to an analysis-report.json produced by Phase A.
- *   --output  optional output file. Stdout if absent.
- */
 object FeedbackForAgent {
 
     private val readJson = Json { ignoreUnknownKeys = true; isLenient = true }

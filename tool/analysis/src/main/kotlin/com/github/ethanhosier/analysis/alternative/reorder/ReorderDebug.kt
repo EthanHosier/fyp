@@ -2,15 +2,6 @@ package com.github.ethanhosier.analysis.alternative.reorder
 
 import com.github.ethanhosier.analysis.miner.model.RefactoringSpec
 
-/**
- * Human-readable summary of a window's specs, derived edges, and
- * enumerated orderings. Test-only; not surfaced in production reports.
- *
- * Used during the manual-inspection workflow described in
- * `tool/plans/PLAN-reorder-enumerator.md` — paste the output, eyeball
- * whether the entity touches and edge reasons match intuition before
- * wiring synthesis.
- */
 object ReorderDebug {
 
     fun describe(specs: List<RefactoringSpec>, budget: EnumerationBudget = EnumerationBudget()): String {
@@ -73,7 +64,6 @@ object ReorderDebug {
         is Entity.Region -> "Region(${e.host.declaringTypeFqn}#${e.host.methodName}, ${shortHash(e.selectionSubtreeHash)})"
     }
 
-    /** Render `@v<n>` only when [v] is non-zero. v=0 = pre-window or unversioned (visual noise). */
     private fun ver(v: Int): String = if (v == 0) "" else "@v$v"
 
     private fun formatParams(p: ParamTypes): String = when (p) {
