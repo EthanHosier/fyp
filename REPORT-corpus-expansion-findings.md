@@ -209,7 +209,7 @@ Summary by arm:
 
 | Arm                                 | Sessions | Total DPs | DP / session |
 |-------------------------------------|---------:|----------:|-------------:|
-| with-feedback (will, yukie, bobby)  | 18       | 49        | 2.7          |
+| with-feedback (p1, p2, p3)  | 18       | 49        | 2.7          |
 | baseline (alex, vlad)               | 12       | 72        | **6.0**      |
 
 The full 30-row table is in §Appendix A. The per-kind shares are comparable
@@ -222,17 +222,17 @@ Final-checkpoint gain-stripped J at each session:
 
 | Participant         | Arm           | S1 | S2 | S3 | S4 | S5 | S6 | ΔJ  | slope  |
 |---------------------|---------------|---:|---:|---:|---:|---:|---:|----:|-------:|
-| will (P1)           | with-feedback | 25 | 22 | 41 | 38 | 34 | 48 | +23 | +4.60  |
-| yukie (P2)          | with-feedback | 16 | 13 | 29 | 39 | 37 | 47 | +31 | +6.20  |
-| bobby (P3)          | with-feedback | 39 | 15 | 42 | 42 | 31 | 48 | +9  | +1.80  |
-| alex-baseline (P4)  | baseline      | 22 | 17 |  8 | 22 | 12 | 15 | **−7** | −1.40 |
-| vlad-baseline (P5)  | baseline      | 23 | 17 |  9 | 36 | 11 | 20 | **−3** | −0.60 |
+| p1 (P1)           | with-feedback | 25 | 22 | 41 | 38 | 34 | 48 | +23 | +4.60  |
+| p2 (P2)          | with-feedback | 16 | 13 | 29 | 39 | 37 | 47 | +31 | +6.20  |
+| p3 (P3)          | with-feedback | 39 | 15 | 42 | 42 | 31 | 48 | +9  | +1.80  |
+| p4-baseline (P4)  | baseline      | 22 | 17 |  8 | 22 | 12 | 15 | **−7** | −1.40 |
+| p5-baseline (P5)  | baseline      | 23 | 17 |  9 | 36 | 11 | 20 | **−3** | −0.60 |
 
 **Notes on shape.**
 - S2 dips for most participants. S2 in the playbook is a refactor-heavy task
   where intermediate cleanliness drops by design; the dip is a property of the
   task, not the participant.
-- bobby (P3) starts at J = 39 — much closer to ceiling than the other
+- p3 (P3) starts at J = 39 — much closer to ceiling than the other
   with-feedback participants — so the slope is naturally smaller. The arc is
   still strictly non-decreasing on slope sign.
 
@@ -444,36 +444,36 @@ User study (30 sessions):
 
 ```
 session              ORD IDE REW HYG  Σ DP  J_prod  J_gain0
-will-01                1   5   0   1    7      25      25
-will-02                0   2   0   3    5      72      22
-will-03                0   4   2   0    6      24      41
-will-04                0   0   0   0    0      88      38
-will-05                0   1   0   1    2      50      34
-will-06                1   0   0   0    1      54      48
-yukie-01               0   3   0   2    5      16      16
-yukie-02               0   2   0   4    6      63      13
-yukie-03               1   1   0   2    4      33      29
-yukie-04               0   0   0   0    0      89      39
-yukie-05               0   2   0   0    2      37      37
-yukie-06               0   1   0   0    1      38      47
-bobby-01               0   0   0   0    0       0      39
-bobby-02               0   2   0   4    6      65      15
-bobby-03               0   1   0   0    1      42      42
-bobby-04               0   0   0   0    0      92      42
-bobby-05               0   2   0   1    3       9      31
-bobby-06               0   0   0   0    0      53      48
-alex-baseline-01       0   0   0   0    0       0      22
-alex-baseline-02       0   3   1   5    9      26      17
-alex-baseline-03       0   8   1   4   13      10       8
-alex-baseline-04       0   0   0   0    0      72      22
-alex-baseline-05       0   5   0   4    9      41      12
-alex-baseline-06       0   5   1   3    9      27      15
-vlad-baseline-01       1   5   0   4   10      23      23
-vlad-baseline-02       0   0   0   6    6      14      17
-vlad-baseline-03       0   3   0   3    6      21       9
-vlad-baseline-04       0   0   0   0    0      81      36
-vlad-baseline-05       0   2   0   2    4      48      11
-vlad-baseline-06       1   3   0   2    6      27      20
+p1-01                1   5   0   1    7      25      25
+p1-02                0   2   0   3    5      72      22
+p1-03                0   4   2   0    6      24      41
+p1-04                0   0   0   0    0      88      38
+p1-05                0   1   0   1    2      50      34
+p1-06                1   0   0   0    1      54      48
+p2-01               0   3   0   2    5      16      16
+p2-02               0   2   0   4    6      63      13
+p2-03               1   1   0   2    4      33      29
+p2-04               0   0   0   0    0      89      39
+p2-05               0   2   0   0    2      37      37
+p2-06               0   1   0   0    1      38      47
+p3-01               0   0   0   0    0       0      39
+p3-02               0   2   0   4    6      65      15
+p3-03               0   1   0   0    1      42      42
+p3-04               0   0   0   0    0      92      42
+p3-05               0   2   0   1    3       9      31
+p3-06               0   0   0   0    0      53      48
+p4-baseline-01       0   0   0   0    0       0      22
+p4-baseline-02       0   3   1   5    9      26      17
+p4-baseline-03       0   8   1   4   13      10       8
+p4-baseline-04       0   0   0   0    0      72      22
+p4-baseline-05       0   5   0   4    9      41      12
+p4-baseline-06       0   5   1   3    9      27      15
+p5-baseline-01       1   5   0   4   10      23      23
+p5-baseline-02       0   0   0   6    6      14      17
+p5-baseline-03       0   3   0   3    6      21       9
+p5-baseline-04       0   0   0   0    0      81      36
+p5-baseline-05       0   2   0   2    4      48      11
+p5-baseline-06       1   3   0   2    6      27      20
 ```
 
 Agent extension (48 sessions): in `tool/fixtures/notebooks/experiments.executed.ipynb`

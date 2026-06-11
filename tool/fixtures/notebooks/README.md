@@ -42,7 +42,7 @@ The notebook reads per-session Phase-A dumps directly from the session directori
 | `fixtures/user-sessions/<name>-NN/phase-a.json` | 30 user-study          | 5 participants × 6 sessions on `user-study-fixture/` |
 | `fixtures/agent-sessions/<stack>/NN/phase-a.json` | 48 agent-comparison    | 8 agent stacks × 6 sessions on `user-study-fixture/` |
 
-Plus three rater-manifest CSVs at `fixtures/sessions/manifest-v2{,-will,-yukie}.csv` for
+Plus three rater-manifest CSVs at `fixtures/sessions/manifest-v2{,-p1,-p2}.csv` for
 the inter-rater κ computation.
 
 ## Regenerating the notebook

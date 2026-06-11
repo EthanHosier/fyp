@@ -56,7 +56,7 @@ printf '[%s] discovered %d sessions; logs at %s\n' "$(date +%H:%M:%S)" "$total" 
 
 for session in "${sessions[@]}"; do
     processed=$((processed + 1))
-    # `fixtures/agent-sessions/foo/01` or `fixtures/user-sessions/will-03`
+    # `fixtures/agent-sessions/foo/01` or `fixtures/user-sessions/p1-03`
     rel="${session#$TOOL_ROOT/fixtures/}"
     out_file="$session/phase-a.json"
 

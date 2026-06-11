@@ -5,8 +5,8 @@
 The user study has grown from 2 → 5 participants (6 sessions each = 30 sessions). The agent comparison has grown from 1 → 8 agent stacks (6 sessions each = 48 sessions). Two participants and two agent stacks are no-feedback baselines — they ran the same playbook + reset cycle but were never shown the tool's feedback between sessions. This adds a *causal* arm to the chapter that wasn't possible with the original observational design.
 
 Naming convention (verified):
-- User participants ending in `-baseline`: `alex-baseline`, `vlad-baseline` (no-feedback).
-- User participants without suffix: `will`, `yukie`, `bobby` (with-feedback).
+- User participants ending in `-baseline`: `p4-baseline`, `p5-baseline` (no-feedback).
+- User participants without suffix: `p1`, `p2`, `p3` (with-feedback).
 - Agent stacks ending in `-baseline`: `claude-4.7-opus-medium-claude-code-baseline`, `gpt-5.5-medium-opencode-baseline`.
 - Agent stacks without suffix: 6 cells covering Claude / GPT / Gemini × Claude Code / OpenCode / Cursor.
 
@@ -18,9 +18,9 @@ The headline structural change Chapter 5 needs: §5.3 (user study) and §5.4 (ag
 
 ### A1. §5.3 user study — restructure
 
-Existing section is built around P1 (will) and P2 (yukie). Restructure into:
+Existing section is built around P1 and P2. Restructure into:
 
-1. **Intro** — five participants × six sessions = 30 sessions; 3 with-feedback (P1, P2, P3) + 2 no-feedback baseline (P4, P5). Map: P1 = will, P2 = yukie, P3 = bobby, P4 = alex-baseline, P5 = vlad-baseline. Anonymisation P1..P5 kept.
+1. **Intro** — five participants × six sessions = 30 sessions; 3 with-feedback (P1, P2, P3) + 2 no-feedback baseline (P4, P5). Anonymisation P1..P5 kept.
 2. **§5.3.1 Per-kind distribution** — extend `tab:results-userstudy-distribution` from 12 to 30 rows; add `condition` column (`with-feedback` / `baseline`).
 3. **§5.3.2 Per-participant trajectory** — extend `tab:results-userstudy-trajectory` and the gain-stripped trajectory plot to 5 lines (3 solid + 2 dashed).
 4. **§5.3.3 (new) With-feedback vs no-feedback comparison** — per-participant gain-stripped slope (J_S6 − J_S1) / 5, grouped by arm. Honest claim: 3 vs 2 doesn't support hypothesis testing, but the direction and magnitude are reportable. Threats subsection updated to reflect this.

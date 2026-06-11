@@ -89,4 +89,4 @@ log "----- agent feedback end -------"
 log "step 4: resetting fixture for next session"
 "$reset_script"
 
-log "done — next session number will be $(printf '%02d' $((next_n + 1)))"
+log "done — next session number p1 be $(printf '%02d' $((next_n + 1)))"
