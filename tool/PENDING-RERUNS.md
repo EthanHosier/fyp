@@ -12,11 +12,11 @@ event list — `events.any { it.type == EventType.GIT_COMMIT }`.
 
 ## Already re-run
 
-- `fixtures/user-sessions/bobby-01/`
-- `fixtures/user-sessions/bobby-02/`
-- `fixtures/user-sessions/bobby-03/`
+- `fixtures/user-sessions/p3-01/`
+- `fixtures/user-sessions/p3-02/`
+- `fixtures/user-sessions/p3-03/`
 
-Bobby-03 verified: `isUserCommit` now `true` on the three commit
+P3-03 verified: `isUserCommit` now `true` on the three commit
 checkpoints; the spurious HYGIENE (COMMIT_GAP) divergence point is gone
 (4 DPs now vs 5 before).
 
@@ -25,9 +25,9 @@ checkpoints; the spurious HYGIENE (COMMIT_GAP) divergence point is gone
 Per-session analysis reports — run `./gradlew :analysis:run --args=<dir> -q`
 on each:
 
-- `fixtures/user-sessions/vlad-baseline-01..06/` (6 sessions)
-- `fixtures/user-sessions/will-01..06/` (6 sessions)
-- `fixtures/user-sessions/yukie-01..06/` (6 sessions)
+- `fixtures/user-sessions/p5-baseline-01..06/` (6 sessions)
+- `fixtures/user-sessions/p1-01..06/` (6 sessions)
+- `fixtures/user-sessions/p2-01..06/` (6 sessions)
 - `fixtures/agent-sessions/claude-opus-4.7-medium-claude-code/01-agent..06-agent/` (6 sessions)
 - `fixtures/agent-sessions/claude-opus-4.7-medium-opencode/01..06/` (6 sessions)
 

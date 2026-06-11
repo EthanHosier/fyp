@@ -8,7 +8,7 @@ material. Everything Chapter 5 of the thesis cites is rooted here.
 | Path | Contents |
 |---|---|
 | `sessions/`              | The 45 hand-recorded **injection sessions** used in §5.2 (controlled bad-behaviour playbook). Each `sessions/NNN/` contains `initial-src/`, `events.jsonl`, `session.json`, `analysis-report.json`, and `phase-a.json`. |
-| `user-sessions/`         | The 30 **user-study sessions** (5 participants × 6 sessions): `alex-baseline-NN`, `bobby-NN`, `vlad-baseline-NN`, `will-NN`, `yukie-NN`. The `-baseline-` prefix marks the no-feedback control arm; the others are with-feedback. Same per-session file layout as `sessions/`. |
+| `user-sessions/`         | The 30 **user-study sessions** (5 participants × 6 sessions): `p1-NN`, `p2-NN`, `p3-NN`, `p4-baseline-NN`, `p5-baseline-NN`. The `-baseline-` infix marks the no-feedback control arm; the others are with-feedback. Same per-session file layout as `sessions/`. |
 | `agent-sessions/`        | The 48 **agent-comparison sessions** (8 agent stacks × 6 sessions). The 8 stacks vary by model (Claude, GPT, Gemini) × harness (Claude Code, OpenCode, Cursor); 2 of the 8 are no-feedback control arms (`*-baseline`). Same per-session file layout as `sessions/`. |
 | `playbook/`              | The 45 playbook prompts used to seed the injection sessions in `sessions/`. |
 | `user-study-playbook/`   | The 6 task prompts (S01..S06) used in `user-sessions/`. |

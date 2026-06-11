@@ -128,7 +128,7 @@ No new figures.
 1. **PDF builds clean.** `final_report/build.sh --light` returns "Output written" with no undefined refs and no labels-may-have-changed warnings.
 2. **Page-budget check.** Total chapter length extends by no more than 2 pages over the pre-agent-paragraph version (PLAN-user-study.md Phase 9 verification).
 3. **Numbers match the data.** Re-derive the agent totals from `analysis-report.json` files and confirm `tab:results-userstudy-agent-distribution` rows are byte-identical to that derivation. Same for the per-session trajectory table.
-4. **Anonymisation check on the new paragraph.** `grep -iE 'will|yukie|will-0|yukie-0' final_report/results/results.tex` returns 0 hits inside the new block (humans stay as P1/P2; the agent stays as "Claude Code, Opus 4.7").
+4. **Anonymisation check on the new paragraph.** `grep -iE 'p1|p2|p1-0|p2-0' final_report/results/results.tex` returns 0 hits inside the new block (humans stay as P1/P2; the agent stays as "Claude Code, Opus 4.7").
 5. **Disclosure check.** The paragraph mentions Claude Code, the model id, and the date 2026-05-21. `grep -E 'Claude Code|claude-opus-4-7|2026-05-21' final_report/results/results.tex` returns hits.
 
 ## Branch + commit strategy

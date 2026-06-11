@@ -107,9 +107,9 @@ object UserSessionStats {
         }
     }
 
-    // Accepts `<participant>-<NN>` (user-sessions, e.g. `will-01`) and
+    // Accepts `<participant>-<NN>` (user-sessions, e.g. `p1-01`, `p4-baseline-01`) and
     // `<NN>-<participant>` (agent-sessions, e.g. `01-agent`).
-    private val NAME_RE_USER = Regex("^([a-z]+)-(\\d+)$")
+    private val NAME_RE_USER = Regex("^([a-z][a-z0-9-]*?)-(\\d+)$")
     private val NAME_RE_AGENT = Regex("^(\\d+)-([a-z]+)$")
 
     private fun parseSessionName(name: String): Pair<String, Int>? {

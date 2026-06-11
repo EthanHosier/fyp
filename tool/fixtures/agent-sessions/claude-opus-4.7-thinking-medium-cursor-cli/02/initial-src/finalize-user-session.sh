@@ -7,8 +7,8 @@
 #   1. runs Phase A (:analysis:run) on the captured trace
 #   2. copies the trace + analysis output into
 #      ../user-sessions/${USER_NAME}-${NN}/   (NN is the next free number
-#                                              scoped to USER_NAME, so will-01,
-#                                              will-02, … ignoring other names)
+#                                              scoped to USER_NAME, so p1-01,
+#                                              p1-02, … ignoring other names)
 #   3. resets the fixture for the next session (reuses the same reset script
 #      as finalize-agent-session.sh; there is no separate user-reset)
 #   4. launches the dashboard with REFDASH_REPORT pointed at the copied
@@ -20,7 +20,7 @@
 set -euo pipefail
 
 # ---- config ----
-USER_NAME="alex-baseline"
+USER_NAME="p4-baseline"
 
 # ---- paths ----
 fixture_dir="$(cd "$(dirname "$0")" && pwd)"
