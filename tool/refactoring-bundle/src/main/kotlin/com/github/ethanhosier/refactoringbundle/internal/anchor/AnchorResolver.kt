@@ -15,14 +15,6 @@ import org.eclipse.jdt.core.dom.Statement
 import org.eclipse.jdt.core.dom.VariableDeclarationFragment
 import kotlin.math.abs
 
-/**
- * Mirror of analysis-side `SpecAnchorBuilder`: re-finds the host
- * method, then resolves an anchor-addressed selection or declaration
- * by hash. Walks recursively into every nested [Block] (for
- * sibling-statement windows) and every AST node under the host (for
- * single-node selections / declaration nodes), so selections inside
- * `if` / `for` bodies and sub-expression selections both round-trip.
- */
 internal object AnchorResolver {
 
     data class Selection(val firstNode: ASTNode, val lastNode: ASTNode) {
@@ -39,11 +31,6 @@ internal object AnchorResolver {
         return parser.createAST(null) as CompilationUnit
     }
 
-    /** Find a method declaration by `(declaringTypeFqn, methodName)` —
-     *  no param-type matching. Used to locate the freshly-extracted
-     *  method when post-processing modifiers. Returns the first match;
-     *  callers rely on extract-method names being unique within their
-     *  type at the moment of extraction. */
     fun findMethodByName(
         cu: CompilationUnit,
         declaringTypeFqn: String,
@@ -82,13 +69,6 @@ internal object AnchorResolver {
         return found
     }
 
-    /**
-     * Find a sibling-statement window of size [nodeCount] whose hash
-     * equals [expectedHash], OR (when [nodeCount] == 1) a single AST
-     * node whose hash equals [expectedHash]. Searches every [Block]
-     * under [host] for windows; falls back to a full subtree walk for
-     * single-node matches (covers sub-expression selections).
-     */
     fun findSelection(
         host: MethodDeclaration,
         expectedHash: String,
@@ -118,9 +98,6 @@ internal object AnchorResolver {
             }
         })
 
-        // Single-node fallback: matches any AST node whose own hash
-        // equals expectedHash. Catches sub-expression selections (e.g.
-        // extract-variable on an InfixExpression inside one statement).
         if (nodeCount == 1) {
             host.accept(object : ASTVisitor() {
                 override fun preVisit2(node: ASTNode): Boolean {
@@ -139,8 +116,6 @@ internal object AnchorResolver {
         return matches.minByOrNull { abs(cu.getLineNumber(it.startPosition) - tieBreakLineHint) }
     }
 
-    /** Find the [VariableDeclarationFragment] / [SingleVariableDeclaration]
-     *  under [host] whose hash equals [expectedHash]. */
     fun findDeclaration(
         host: MethodDeclaration,
         expectedHash: String,

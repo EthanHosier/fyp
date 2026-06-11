@@ -47,12 +47,6 @@ class JavaFileAstHasherTest {
         assertNull(JavaFileAstHasher.hashFile(tmp, "ghost/Nope.java"))
     }
 
-    /**
-     * Two extract-method orderings produce the same set of methods in
-     * different source positions. Java doesn't care, so the hash
-     * shouldn't either — otherwise the validator would mark a
-     * commuting alt ordering as `AST_DIVERGED` purely on cosmetics.
-     */
     @Test
     fun `method declaration order is canonicalised`(@TempDir tmp: Path) {
         write(
@@ -84,12 +78,6 @@ class JavaFileAstHasherTest {
         assertEquals(JavaFileAstHasher.hashFile(tmp, "A.java"), JavaFileAstHasher.hashFile(tmp, "B.java"))
     }
 
-    /**
-     * Field declarations stay positional — initializer
-     * cross-references make their order observable. Reordering fields
-     * MUST change the hash so we don't accidentally collapse two
-     * structurally different programs.
-     */
     @Test
     fun `field declaration order still affects the hash`(@TempDir tmp: Path) {
         write(

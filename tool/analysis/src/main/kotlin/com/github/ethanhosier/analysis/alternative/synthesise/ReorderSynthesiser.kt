@@ -16,48 +16,6 @@ import com.github.ethanhosier.analysis.reconstruct.GitRunner
 import com.github.ethanhosier.analysis.refactoring.RefactoringClient
 import java.nio.file.Path
 
-/**
- * Pipeline stage: for each VALID reorder window in the trace,
- * synthesise every alt ordering as a chain of git commits in the
- * shadow repo.
- *
- * Strategy: build the prefix trie of all alt orderings (excluding
- * the user's identity ordering), then DFS over the trie with
- * **one** worktree borrowed at the window's `fromSha` and **one**
- * `withBatchSession` open for the window. Forward edges are
- * applied via [SpecDispatcher.apply]; backtracking happens via
- * `git checkout --detach <parentSha>` followed by a project
- * `refreshLocal` so Eclipse's resource model picks up the on-disk
- * change.
- *
- * Each unique prefix gets one commit and one branch ref, shared
- * across every ordering passing through it. Branch refs use the
- * pattern `reorder/win<W>/path/<dash-joined-prefix>`. Result
- * schema unchanged ([ReorderOrdering] still carries `permutation`,
- * `stepShas`, `branchRefs` parallel to it); orderings with shared
- * prefixes simply reference the same SHAs and refs.
- *
- * Failure: when an apply fails (or produces no textual change) at
- * depth k of the trie, the failing prefix is recorded and its
- * subtree is skipped (sibling subtrees still explored). Every
- * ordering passing through that failing prefix has
- * `terminalSuccess = false`, `failedAt = k - 1`, and
- * stepShas/branchRefs truncated to length `k - 1`.
- *
- * This trades the per-ordering re-init+re-index cost (the previous
- * prefix-cache implementation paid one per cache-miss ordering)
- * for a per-backtrack `git checkout` + `refreshLocal` cost. On
- * sessions where index time dominates, the window's wall-clock
- * drops materially.
- *
- * Why git checkout instead of JDT undo: an earlier attempt used
- * `Change.perform`'s undo Change to revert between siblings, but
- * JDT's per-file caches (working-copy buffers + JavaModel element
- * info) didn't reliably invalidate, producing corrupted commits on
- * the next forward apply. Git checkout + refreshLocal goes through
- * Eclipse's standard out-of-band-edit pathway, which IDE users
- * exercise constantly and which JDT handles cleanly.
- */
 class ReorderSynthesiser(
     private val applySpec: (RefactoringSpec, Path) -> SpecDispatcher.Result,
     private val refreshProject: () -> Unit,
@@ -65,18 +23,11 @@ class ReorderSynthesiser(
     private val shadowGit: GitRunner,
     private val pool: WorktreePool,
     private val budget: EnumerationBudget = EnumerationBudget(),
-    /** Hash a file in a live worktree. Default: [JavaFileAstHasher.hashFile].
-     *  Tests inject spies / stubs. */
     private val hashWorktreeFile: (Path, String) -> String? = JavaFileAstHasher::hashFile,
-    /** Hash a file at a given SHA in [shadowGit]. Default uses
-     *  [JavaFileAstHasher.hashFileAtSha]. Tests inject spies / stubs. */
     private val hashShaFile: (String, String) -> String? =
         { sha, path -> JavaFileAstHasher.hashFileAtSha(shadowGit, sha, path) },
 ) {
 
-    /** Wires the production seams: real [SpecDispatcher] + the
-     *  bundle's `withBatchSession`. Tests use the primary
-     *  constructor with fakes. */
     constructor(
         client: RefactoringClient,
         shadowGit: GitRunner,
@@ -105,30 +56,13 @@ class ReorderSynthesiser(
         // Synthesis counts.
         val orderingsSynthesised: Int,
         val commitsCreated: Int,
-        // Apply / backtrack call counts at the trie level. For a
-        // clean DFS, applies == backtracks == distinct prefixes
-        // visited.
         val appliesIssued: Int,
         val backtracksIssued: Int,
-        // Terminal AST-equivalence audit. Every materialised terminal
-        // prefix (= leaf of the trie = complete ordering) is
-        // hash-compared against the user's `windowToSha` over the
-        // user-changed file set. Divergent terminals are filtered
-        // out of [trajectories] before return.
         val terminalsChecked: Int,
         val terminalsAstMatched: Int,
         val terminalsAstDiverged: Int,
     )
 
-    /** Per-prefix DFS outcome. `Materialised` means the apply
-     *  succeeded and the resulting commit was forced under the
-     *  per-prefix ref. `Failed` means the apply or the
-     *  staged-changes check failed and no commit exists.
-     *
-     *  [Materialised.terminalDivergence] is non-null iff the
-     *  prefix is a terminal (= a complete ordering) AND its tree
-     *  did not AST-match the user's `windowToSha`. Non-terminals
-     *  always carry null (no check ran). */
     private sealed interface NodeResult {
         data class Materialised(
             val sha: String,
@@ -207,11 +141,6 @@ class ReorderSynthesiser(
             val windowSpecLabels = window.map { it.refactoring.description }
             log("  reorder synth: window #$wIdx — trie has ${trie.size()} distinct prefix(es)")
 
-            // Pre-compute the user-changed `.java` set for this window
-            // and each path's canonical AST hash at `windowToSha`. We
-            // pull from the shadow repo via `git show` so we don't
-            // need a second worktree borrow. These hashes are the
-            // ground truth every terminal ordering is checked against.
             val userChanged = shadowGit.changedJavaFilesBetween(fromSha, windowToSha)
             val userHashes: Map<String, String?> =
                 userChanged.associateWith { hashShaFile(windowToSha, it) }
@@ -254,11 +183,6 @@ class ReorderSynthesiser(
                     prefixOutcomes = prefixOutcomes,
                 )
             }
-            // Filter terminally-divergent orderings out of the report.
-            // Their commits + refs persist in the shadow repo for
-            // offline forensics; the report only carries
-            // end-state-equivalent ones so Slice 2b scoring compares
-            // like-for-like.
             val (kept, divergent) = orderingResults.partition { it.terminalDivergedFiles == null }
             if (divergent.isNotEmpty()) {
                 log(
@@ -308,16 +232,6 @@ class ReorderSynthesiser(
         var terminalsAstDiverged: Int = 0
     }
 
-    /**
-     * DFS over the prefix trie. Forward edge → apply spec, commit,
-     * branchForce. Back edge → `git checkout --detach parentSha` +
-     * `refreshProject` so Eclipse re-stats files and JDT picks up
-     * the new on-disk state.
-     *
-     * On forward failure (apply Failed, or no staged changes): record
-     * the node as Failed, skip its subtree, return without
-     * backtracking (no commit was made; HEAD unchanged from parent).
-     */
 private fun walkTrie(
         node: PrefixTrie.Node,
         prefix: List<Int>,
@@ -354,9 +268,6 @@ private fun walkTrie(
             if (!worktreeGit.hasStagedChanges()) {
                 prefixOutcomes[prefix] = NodeResult.Failed("apply: no textual change")
                 log("    [depth ${prefix.size} prefix=$prefix specIdx=$specIdx ${specLabel(spec)}]: no textual change after ${applyMs}ms")
-                // Apply mutated some bundle-internal state but produced
-                // no diff. Force the worktree back to parent so the
-                // sibling apply starts from a known clean base.
                 worktreeGit.checkoutDetach(parentSha)
                 runCatching { refreshProject() }
                 return
@@ -365,10 +276,6 @@ private fun walkTrie(
             val ref = "reorder/win$windowIdx/path/${encodePrefix(prefix)}"
             shadowGit.branchForce(ref, sha)
 
-            // Terminal-only AST equivalence check. The worktree is
-            // currently AT this terminal SHA — no extra checkout
-            // needed. Hash only the user-changed file set; compare
-            // path-by-path to the user's `windowToSha` hashes.
             val divergence: TerminalDivergence? =
                 if (prefix.size == typedSpecs.size) {
                     val res = checkTerminalDivergence(worktree, userChanged, userHashes)
@@ -411,16 +318,9 @@ private fun walkTrie(
             )
         }
 
-        // Backtrack — only if this node materialised a commit (= mySha
-        // moved away from parentSha). Failed / no-change nodes already
-        // restored to parent inline above.
         if (prefix.isNotEmpty() && mySha != parentSha) {
             counters.backtracks++
             val backStart = System.currentTimeMillis()
-            // checkoutDetach rewrites working-tree files AND moves
-            // HEAD; refreshProject then tells Eclipse to re-stat
-            // everything. Standard "files changed under us" pathway —
-            // JDT exercises this constantly for IDE users.
             worktreeGit.checkoutDetach(parentSha)
             runCatching { refreshProject() }
             val backMs = System.currentTimeMillis() - backStart
@@ -428,12 +328,6 @@ private fun walkTrie(
         }
     }
 
-    /**
-     * Split [steps] on every step whose validation status is not
-     * [RefactoringStepValidator.Status.VALID]. Steps missing from
-     * [validations] are conservatively treated as splitters.
-     * Verbatim from the deleted `ReorderWindowLogger.splitOnInvalid`.
-     */
     private fun splitOnInvalid(
         steps: List<RefactoringStep>,
         validations: Map<Int, RefactoringStepValidator.StepValidation>,
@@ -503,18 +397,6 @@ private fun walkTrie(
         )
     }
 
-    /**
-     * Per-file AST hash comparison between the worktree's current
-     * state (a terminal SHA the DFS just committed at) and the
-     * user's pre-computed [userHashes] for `windowToSha`. Returns
-     * null if every user-changed path matches; otherwise the list
-     * of divergent paths.
-     *
-     * Mirrors `RefactoringStepValidator.kt:181, :191-205` — same
-     * predicate (`ours == null || theirs == null || ours != theirs`)
-     * so an unparseable / missing file on either side counts as a
-     * divergence rather than a silent match.
-     */
     private fun checkTerminalDivergence(
         worktree: Path,
         userChanged: Set<String>,
@@ -530,12 +412,8 @@ private fun walkTrie(
 
     private fun shortSha(sha: String): String = if (sha.length <= 8) sha else sha.take(8)
 
-    /** Encode a prefix as a dash-joined string of spec indices for
-     *  ref naming. Empty prefix → "root" (only used for log lines;
-     *  the root itself never gets a ref). */
     private fun encodePrefix(prefix: List<Int>): String =
         if (prefix.isEmpty()) "root" else prefix.joinToString("-")
 
-    /** One-word label for [spec], used in per-step progress lines. */
     private fun specLabel(spec: RefactoringSpec): String = spec::class.simpleName ?: "Spec"
 }

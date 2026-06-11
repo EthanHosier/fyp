@@ -13,9 +13,6 @@ class ReworkAlternativeBuilderTest {
 
     @Test
     fun `clean surgery succeeds -- both steps surgered to empty`() {
-        // 2-step trace: step 1 adds 3 lines, step 3 removes them. With
-        // no other content, both surgered patches are empty → plan
-        // contains two empty PlanSteps.
         val step1Patch =
             "diff --git a/Foo.java b/Foo.java\n" +
             "--- a/Foo.java\n" +
@@ -52,9 +49,6 @@ class ReworkAlternativeBuilderTest {
 
     @Test
     fun `intervening edit far from zone renumbers and survives`() {
-        // Step 1 adds 3 lines at user newLine 4 (zone covers 4..6).
-        // Step 2 modifies line 50 (well past the zone). Step 3
-        // removes the 3 lines.
         val step1Patch =
             "diff --git a/Foo.java b/Foo.java\n" +
             "--- a/Foo.java\n" +
@@ -331,16 +325,6 @@ class ReworkAlternativeBuilderTest {
 
     @Test
     fun `REMOVE_THEN_ADD with kept plus-run anchors zone past the kept run`() {
-        // Step 0 modification: `-l1..-l17 +blank` at line 31. Surgery
-        // drops the 17 `-` lines but keeps `+blank`. Both user post and
-        // synth post then have the blank at line 31; divergence begins
-        // at line 32 (where synth has the original switch content but
-        // user has post-deletion content).
-        //
-        // Step 1 modifies user line 31 (the blank). The correct zone
-        // (at userStartLine=32) leaves line 31 in identity-translate
-        // territory; the buggy old behaviour (zone at 31) would shift
-        // line 31 to a non-existent synth position.
         val step0Patch =
             "diff --git a/Foo.java b/Foo.java\n" +
             "--- a/Foo.java\n" +
@@ -395,16 +379,8 @@ class ReworkAlternativeBuilderTest {
             "+blank\n"
         assertEquals(expectedStep0, plan.steps[0].patch)
 
-        // Step 1 renumbered: user line 31 is at the zone boundary
-        // (just before the divergence begins at 32). Zone at user 32
-        // length 17 → translate(31) = 31 (identity). Header unchanged.
-        // With the buggy zone at user 31, translate(31) would have
-        // shifted to 48.
         assertEquals(step1Patch, plan.steps[1].patch)
 
-        // Step 2 surgered to pure deletion + my off-by-one fix:
-        // `@@ -31,1 +30,0 @@`. Still at line 31 (zone identity-
-        // translates lines < 32).
         val expectedStep2 =
             "diff --git a/Foo.java b/Foo.java\n" +
             "--- a/Foo.java\n" +
@@ -416,9 +392,6 @@ class ReworkAlternativeBuilderTest {
 
     @Test
     fun `REMOVE_THEN_ADD intermediate step past the kept plus-run translates by zone length`() {
-        // Same shape as above, but step 1 touches user line 50 — past
-        // the zone (which covers user 32..48). Translation must add
-        // the zone length 17 → synth line 67.
         val step0Patch =
             "diff --git a/Foo.java b/Foo.java\n" +
             "--- a/Foo.java\n" +

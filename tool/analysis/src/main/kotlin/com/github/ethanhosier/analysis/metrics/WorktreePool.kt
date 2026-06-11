@@ -7,19 +7,6 @@ import java.util.concurrent.ArrayBlockingQueue
 import java.util.concurrent.BlockingQueue
 import java.util.concurrent.ConcurrentHashMap
 
-/**
- * Bounded pool of `git worktree` directories for parallel checkpoint analysis.
- *
- * Each [borrow] creates a fresh worktree from the shadow repo at the requested
- * SHA; each [release] removes it. Up to `size` worktrees exist concurrently —
- * `borrow` blocks once that cap is reached. Fresh-per-borrow (rather than
- * reusing worktrees across SHAs via `git checkout`) is deliberate: it
- * guarantees no leftover `build/`, stale Gradle cache, or other cross-SHA
- * pollution in the worktree, at a cost of ~100ms per borrow.
- *
- * Thread-safe: [GitRunner] invocations carry no mutable state, and git itself
- * serialises concurrent worktree ops via its own repo lock.
- */
 class WorktreePool(
     shadowRepo: Path,
     private val baseDir: Path,
@@ -32,9 +19,6 @@ class WorktreePool(
 
     init {
         require(size > 0) { "pool size must be positive, was $size" }
-        // Wipe any leftover worktree dirs from a crashed prior run, then
-        // tell git to forget their admin entries. Together these make the
-        // pool idempotent on restart.
         if (Files.exists(baseDir)) baseDir.toFile().deleteRecursively()
         Files.createDirectories(baseDir)
         git.worktreePrune()
@@ -44,11 +28,6 @@ class WorktreePool(
         }
     }
 
-    /**
-     * Blocks until a slot is free, then creates and returns a worktree at
-     * [sha]. Every returned path must be handed back via [release] (or the
-     * slot leaks and eventually [borrow] will block forever).
-     */
     fun borrow(sha: String): Path {
         val slot = slots.take()
         val path = baseDir.resolve("w$slot")
@@ -72,10 +51,6 @@ class WorktreePool(
         }
     }
 
-    /**
-     * Removes all still-borrowed worktrees and prunes admin entries. Safe to
-     * call multiple times; safe to call after a crash mid-analysis.
-     */
     override fun close() {
         for ((path, _) in activePaths) {
             runCatching { git.worktreeRemove(path) }

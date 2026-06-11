@@ -36,25 +36,9 @@ import org.eclipse.text.templates.ContextTypeRegistry
 import org.eclipse.text.templates.TemplatePersistenceData
 import org.eclipse.text.templates.TemplateStoreCore
 
-/**
- * The bundle-side entry point for JDT-backed refactorings. Every public
- * method has a primitive-only signature (String / Int / Array<String>)
- * and returns a JSON-encoded outcome string — both so the host can
- * invoke them reflectively across the OSGi classloader boundary
- * without needing to load any Eclipse types itself.
- *
- * Each `@JvmStatic` method here is a thin delegation to a
- * [com.github.ethanhosier.refactoringbundle.internal.ops] object wrapped
- * in [RefactoringHost.run]. Adding a new refactoring = one new
- * `ops/<Name>Op.kt` + one delegation line here.
- */
 object JdtRefactorer {
 
     init {
-        // Normally set by the jdt.ui plugin activator; refactorings
-        // look up formatting / import-organisation prefs under this
-        // node. Without it `ProjectScope.getNode(null)` throws IAE from
-        // inside the refactoring condition checks.
         val nodeId = "org.eclipse.jdt.core"
         JavaManipulation.setPreferenceNodeId(nodeId)
 
@@ -69,16 +53,8 @@ object JdtRefactorer {
         node.put("org.eclipse.jdt.core.formatter.tabulation.size", "4")
         node.put("org.eclipse.jdt.core.formatter.indentation.size", "4")
 
-        // Normally invoked by the jdt.ui plugin activator. Without it
-        // member-structure refactorings (Pull Up / Push Down / Move
-        // Static Members) NPE the moment they try to read the members
-        // ordering prefs cache.
         JavaManipulationPlugin.getDefault().membersOrderPreferenceCacheCommon.install()
 
-        // Extract Interface / Superclass / Class look up code templates
-        // for generated method stubs + comments. Without a store, they
-        // NPE in TemplateStoreCore. An empty store is fine — JDT falls
-        // back to built-in defaults per template id.
         if (JavaManipulation.getCodeTemplateContextRegistry() == null) {
             val registry = ContextTypeRegistry()
             registry.addContextType(CodeTemplateContextType(CodeTemplateContextType.NEWTYPE_CONTEXTTYPE))
@@ -89,12 +65,6 @@ object JdtRefactorer {
 
         if (JavaManipulation.getCodeTemplateStore() == null) {
             val store = TemplateStoreCore(InstanceScope.INSTANCE.getNode(nodeId), "$nodeId.codetemplates")
-            // Extract Class (via ParameterObjectFactory) generates the
-            // new CU by calling CodeGeneration.getCompilationUnitContent,
-            // which returns null if the NEWTYPE template is missing —
-            // the null then NPEs inside setContents. jdt.ui normally
-            // seeds this from its plugin.xml CodeTemplates resource;
-            // we seed the minimal default here.
             store.add(
                 TemplatePersistenceData(
                     Template(
@@ -508,34 +478,15 @@ object JdtRefactorer {
         ExtractSuperclassOp.run(jp, sourceTypeFqn, newSupertypeName, methodNames, fieldNames)
     }
 
-    /**
-     * Flip the bundle's project-cache keep flag. While set, [RefactoringHost.run]
-     * keeps the indexed [org.eclipse.jdt.core.IJavaProject] alive across
-     * consecutive calls on the same `projectRoot`, skipping init+index
-     * on cache hits. Always paired with [clearProjectCache] in a
-     * `finally` block on the host side; never left set across batches.
-     */
     @JvmStatic
     fun setKeepProject(keep: Boolean): String = RefactoringHost.setKeepProject(keep)
 
-    /** Tear down the cached project (if any). No-op if the cache is empty. */
     @JvmStatic
     fun clearProjectCache(): String = RefactoringHost.clearProjectCache()
 
-    /**
-     * Force Eclipse to re-stat every file in the cached project.
-     * Use after rewriting working-tree files behind Eclipse's back
-     * (e.g. a host-side `git checkout`). Cost scales with file
-     * count.
-     */
     @JvmStatic
     fun refreshProject(): String = RefactoringHost.refreshProject()
 
-    /**
-     * Test-only: number of times [com.github.ethanhosier.refactoringbundle.internal.ProjectInitializer.initProject]
-     * has been invoked since process start. Lets bundle smoke tests
-     * verify that batch applies index exactly once.
-     */
     @JvmStatic
     fun initCount(): Int = RefactoringHost.initCount
 }

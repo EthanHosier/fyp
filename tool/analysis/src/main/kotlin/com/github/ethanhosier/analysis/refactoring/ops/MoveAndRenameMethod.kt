@@ -4,16 +4,6 @@ import com.github.ethanhosier.analysis.refactoring.RefactoringClient
 import com.github.ethanhosier.analysis.refactoring.RefactoringOutcome
 import java.nio.file.Path
 
-/**
- * Move an instance method to another class via [targetName] (a
- * parameter or field whose type is the new home), then rename it to
- * [newMethodName] in a single operation. Host-side composition of
- * [moveInstanceMethod] + [renameMethod].
- *
- * After the move, the method lives on [targetTypeFqn] — the caller
- * supplies this because JDT's move-instance-method step doesn't
- * surface the target type back through our primitive-only interface.
- */
 data class MoveAndRenameMethodRequest(
     val projectRoot: Path,
     val sourceFolders: List<String>,

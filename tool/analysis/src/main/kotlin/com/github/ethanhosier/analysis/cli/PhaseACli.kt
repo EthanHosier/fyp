@@ -9,13 +9,6 @@ import java.nio.file.Path
 import java.nio.file.Paths
 import kotlin.system.exitProcess
 
-/**
- * Standalone Phase-A driver: runs the expensive part of the pipeline
- * (reconstruct + mine + synthesise + metrics + diffs + tracking) over
- * a session folder and dumps the frozen [PhaseAResult] to JSON. Pair
- * with [PhaseBCli] to iterate on report assembly / scoring without
- * paying for Phase A again.
- */
 object PhaseACli {
     private val writeJson = Json { prettyPrint = true; encodeDefaults = true }
 

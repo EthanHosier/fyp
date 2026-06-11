@@ -4,26 +4,13 @@ import com.github.ethanhosier.analysis.refactoring.RefactoringClient
 import com.github.ethanhosier.analysis.refactoring.RefactoringOutcome
 import java.nio.file.Path
 
-/**
- * Describes one target parameter of the new signature. Original
- * parameters not referenced by any [Existing] entry are deleted.
- */
 sealed interface SignatureParameter {
-    /**
-     * Carry an existing parameter through. [oldName] identifies it in
-     * the current signature. [newName] / [newType] rename or retype
-     * (null to keep unchanged).
-     */
     data class Existing(
         val oldName: String,
         val newName: String? = null,
         val newType: String? = null,
     ) : SignatureParameter
 
-    /**
-     * Add a new parameter. [defaultValue] is the expression inserted at
-     * every existing call site.
-     */
     data class Added(
         val name: String,
         val type: String,

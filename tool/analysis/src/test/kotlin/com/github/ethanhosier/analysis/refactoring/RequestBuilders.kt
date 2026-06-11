@@ -12,24 +12,7 @@ import com.github.ethanhosier.analysis.refactoring.ops.RenameLocalVariableReques
 import com.github.ethanhosier.analysis.refactoring.ops.ReplaceVariableWithAttributeRequest
 import java.nio.file.Path
 
-/**
- * Test convenience factories: build an anchor-addressed request from
- * the original (line, column) selection by parsing the on-disk source
- * via [SpecAnchorBuilder] and computing the AST-subtree hash on the
- * fly. Production callers (RM mapper, ExtractAndMoveMethod composer)
- * already do this themselves; tests previously passed line/col directly
- * to the request constructors and now go through these helpers so the
- * call-site shape stays the same.
- */
 
-/**
- * Sentinel returned when no enclosing method exists at the requested
- * (line, col) — e.g. selection lands in a field declaration. Lets
- * callers deliberately exercise the "bundle gracefully fails on a bad
- * selection" path: the resulting request still has well-typed fields,
- * but `findHostMethod` returns null on the bundle side and the op
- * surfaces a typed `Failed` outcome.
- */
 private val UNRESOLVABLE_RANGE = SpecAnchorBuilder.RangeAnchor(
     declaringTypeFqn = "<unresolved>",
     hostMethodName = "<unresolved>",

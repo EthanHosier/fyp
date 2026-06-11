@@ -86,9 +86,6 @@ class DerivedMetricsRunnerTest {
 
     @Test
     fun `empty CK collapses coupling to zero and cohesion to null`() {
-        // Mirrors the frontend's view-model: coupling is always emitted
-        // (percentile of empty falls back to 0), cohesion is the only
-        // sub-metric that can legitimately be missing.
         val cp = checkpoint(sha = "a", ck = CkResult(perClass = emptyList()))
         val result = DerivedMetricsRunner().run(listOf(cp), emptyList(), emptyList())
         val d = result.main.getValue("a")
@@ -118,10 +115,6 @@ class DerivedMetricsRunnerTest {
 
         val a0 = result.main.getValue("a").process
         val b0 = result.main.getValue("b").process
-        // c0 starts below the trajectory's final cleanliness, so the
-        // lag term contributes a small penalty at the first checkpoint.
-        // The terminal checkpoint should still finish above baseline:
-        // gain term outweighs the residual lag.
         assertTrue(a0.total <= 50, "c0 should sit at-or-below baseline; got ${a0.total}")
         assertTrue(b0.total > 50, "b should score above baseline; got ${b0.total}")
         assertTrue(b0.total > a0.total, "trajectory should climb; got a=${a0.total} b=${b0.total}")
@@ -150,11 +143,6 @@ class DerivedMetricsRunnerTest {
 
     @Test
     fun `build-broken middle checkpoint carries forward cleanliness from prior trustworthy`() {
-        // a + c are clean & trustworthy; b has build broken with sparse
-        // PMD/CK that would otherwise look "cleaner" than its neighbours
-        // and pull the normalisation floor down. Carry-forward should
-        // hold b's aggregates equal to a's, so cleanliness is flat
-        // across a → b and the recovery a → b → c shows no fake gain.
         val a = checkpoint(
             "a",
             ck = ckResult(ckClass(cbo = 1, tcc = 0.9f)),
@@ -197,9 +185,6 @@ class DerivedMetricsRunnerTest {
 
     @Test
     fun `tests-broken middle checkpoint also carries forward (blocks gaming)`() {
-        // Build green, tests ran and failed — the gaming case where a
-        // user breaks tests to game a cleanliness win. Carry-forward
-        // should still trigger off the test-failure path.
         val a = checkpoint("a")
         val b = checkpoint(
             "b",
@@ -221,9 +206,6 @@ class DerivedMetricsRunnerTest {
 
     @Test
     fun `leading untrustworthy gap is filled with session midpoint`() {
-        // Session starts with build broken — no prior trustworthy to
-        // carry from. Expect MIDPOINT source on the first checkpoint,
-        // recovering to trustworthy at b.
         val a = checkpoint(
             "a",
             ck = ckResult(),
@@ -280,10 +262,6 @@ class DerivedMetricsRunnerTest {
 
     @Test
     fun `consecutive refactor steps within 60s collapse into one composite`() {
-        // 3 refactor steps within 60s of each other → one composite.
-        // No tests anywhere → 1 of 1 composite skipped (not 3 of 3).
-        // Stamps: t=0, 20s, 40s for the steps; checkpoints stamped to
-        // match so durations are well-defined.
         val a = checkpoint("a", events = listOf(syntheticEvent(0L)))
         val b = checkpoint("b", events = listOf(syntheticEvent(20_000L)))
         val c = checkpoint("c", events = listOf(syntheticEvent(40_000L)))
@@ -365,14 +343,6 @@ class DerivedMetricsRunnerTest {
 
     @Test
     fun `alt process score reads main snapshot at fromSha and adds one synthetic step`() {
-        // Main: a clean → b clean. Alt branches off `a` with worse
-        // cleanliness — its process score should be lower than b's
-        // because the alt step adds a manual-when-IDE-style penalty
-        // (skipped tests on the synthesised path).
-        //
-        // The alt replaces user step 0 (landing on `b`); the user
-        // didn't run tests after that step (no TEST_RUN_FINISHED event
-        // on b) so the alt inherits the skip-tests penalty.
         val a = checkpoint("a", ck = ckResult(ckClass(cbo = 5, tcc = 0.5f)))
         val b = checkpoint("b", ck = ckResult(ckClass(cbo = 1, tcc = 0.9f)))
         val altCheckpoint = checkpoint("alt", ck = ckResult(ckClass(cbo = 1, tcc = 0.9f)))
@@ -406,11 +376,6 @@ class DerivedMetricsRunnerTest {
 
     @Test
     fun `W_LENGTH bonus rewards alt that covers user window in fewer steps`() {
-        // User does 3 transitions a → b → c → d (3 steps over 3 cps).
-        // Alt collapses to 1 step a → alt → d (IDE_REPLAY style:
-        // 1 alt cp covers all 3 user steps).
-        // Bonus = W_LENGTH × (3 - 1) / 3 = 11 × 2/3 ≈ 7.33,
-        // distributed across 1 alt step → cumulative ≈ 7.33 at terminal.
         val a = checkpoint("a", ck = ckResult(ckClass(cbo = 1, tcc = 0.5f)))
         val b = checkpoint("b", ck = ckResult(ckClass(cbo = 1, tcc = 0.5f)))
         val c = checkpoint("c", ck = ckResult(ckClass(cbo = 1, tcc = 0.5f)))
@@ -481,18 +446,6 @@ class DerivedMetricsRunnerTest {
 
     @Test
     fun `alt continuation extends through remaining user checkpoints`() {
-        // 3 user checkpoints: a → b → c. User does a manual-when-IDE
-        // refactoring at b (incurs a manual penalty in the main walk).
-        // An alt covers a → b (IDE version, no manual penalty), then
-        // merges at b. After the merge, c is a quiet checkpoint with
-        // no further refactoring.
-        //
-        // Expectation: the continuation runs the alt's terminal
-        // snapshot forward through c, and produces a continuation
-        // entry for c whose process total is strictly greater than
-        // the user's process total at c — because the alt avoided
-        // the manual-when-IDE penalty that the user's main walk
-        // accumulated at b.
         val a = checkpoint("a")
         val b = checkpoint(
             "b",
@@ -558,10 +511,6 @@ class DerivedMetricsRunnerTest {
 
     @Test
     fun `alt continuation applies main-walk manual penalty for post-merge user steps`() {
-        // Alt covers a → b. After the merge, the user does another
-        // manual-when-IDE refactoring at c. The continuation walk uses
-        // advanceMainStep (not advanceAltStep), so the manualIde
-        // penalty MUST fire on the continuation score at c.
         val a = checkpoint("a")
         val b = checkpoint("b")
         val c = checkpoint("c")
@@ -593,10 +542,6 @@ class DerivedMetricsRunnerTest {
 
     @Test
     fun `aggregators filter to the trajectory-touched file set`() {
-        // Two checkpoints touch only A.java; B.java exists in CK output
-        // (whole-codebase analysis) but never appears in any churn record
-        // → it must be excluded from coupling, cohesion, smells, and
-        // cognitive aggregates.
         val touchedClass = CkClassMetrics(
             className = "A", file = "A.java", type = "class",
             cbo = 4, cboModified = 4, fanin = 0, fanout = 4,
@@ -644,11 +589,6 @@ class DerivedMetricsRunnerTest {
 
     @Test
     fun `composite weights are uniform across the six sub-signals`() {
-        // Two checkpoints with full coverage across every sub-signal so
-        // computeRanges produces a non-degenerate range for all six.
-        // Every contribution's weight field must equal 1.0 (the encoded
-        // form of the uniform 1/6 share — `computeCleanliness` divides
-        // by Σw at composition time, so per-row weight=1.0 is canonical).
         val readabilityFile = fileReadability(file = "A.java", totalLines = 100)
         val readabilityFileB = fileReadability(file = "A.java", totalLines = 100, avgLineLength = 90.0)
         val a = checkpoint(
@@ -702,11 +642,6 @@ class DerivedMetricsRunnerTest {
 
     @Test
     fun `duplication is touched-file rate, not whole-codebase share`() {
-        // A clone group with two occurrences: one in a touched file
-        // (A.java, 100 lines) and one in an untouched file (B.java).
-        // Touched-file rate = 10 / 100 * 100 = 10.0. The untouched
-        // occurrence must NOT contribute to the numerator, and B.java's
-        // lines must NOT contribute to the denominator.
         val dup = CpdDuplication(
             tokens = 0, lines = 10,
             occurrences = listOf(
@@ -732,10 +667,6 @@ class DerivedMetricsRunnerTest {
 
     @Test
     fun `readability is a uniform 0_20 blend with line-count weighting across touched files`() {
-        // Two touched files with very different sizes so the
-        // line-count weighting is observable. Hand-computed expected
-        // value verifies the uniform 0.20 blend across five Buse-
-        // Weimer features.
         val a = fileReadability(
             file = "A.java",
             totalLines = 100,
@@ -755,14 +686,6 @@ class DerivedMetricsRunnerTest {
             dictionaryWordRatio = 0.9,
         )
 
-        // Line-count-weighted means (total = 400 lines):
-        //   avgLineLength       = (40·100 + 80·300) / 400 = 70   → 1 − 70/100  = 0.30
-        //   avgIndentation      = ( 2·100 +  6·300) / 400 =  5   → 1 −  5/12   = 0.58333…
-        //   avgIdentifierLength = (10·100 +  5·300) / 400 = 6.25 → min(1, /5)  = 1.00
-        //   singleLetterRatio   = (0.1·100 + 0.3·300) / 400 = 0.25 → 1 − 0.25  = 0.75
-        //   dictionaryWordRatio = (0.5·100 + 0.9·300) / 400 = 0.80          = 0.80
-        // Blend: 0.20 · (0.30 + 0.58333 + 1.00 + 0.75 + 0.80) = 0.68666…
-        // × 100 round1                                              = 68.7
         val cp = checkpoint(
             sha = "a",
             readability = ReadabilityResult.EMPTY.copy(perFile = listOf(a, b)),
@@ -784,12 +707,6 @@ class DerivedMetricsRunnerTest {
         tests: TestResult = passingTests(),
         events: List<EventSummary> = emptyList(),
         pmdTracking: PmdTracking = PmdTracking.EMPTY,
-        // Trajectory-touched files. Defaults to the union of every file
-        // path referenced by the supplied CK / PMD / readability blocks
-        // so existing tests don't have to spell out the diff explicitly —
-        // production code derives the touched set from the git-diff
-        // runner upstream, but for unit tests "every file you gave
-        // metrics for is touched" is the natural default.
         touchedFiles: List<String>? = null,
     ): CheckpointReport {
         val derivedTouched = touchedFiles
@@ -817,10 +734,6 @@ class DerivedMetricsRunnerTest {
         )
     }
 
-    /** Neutral event whose only purpose is to anchor a checkpoint at a
-     *  specific timestamp — drives the time-weighted W_BROKEN
-     *  fraction. Event type is intentionally non-TEST so it doesn't
-     *  flip the `stepUserRanTests` predicate. */
     private fun syntheticEvent(timestamp: Long): EventSummary = EventSummary(
         id = "synthetic-$timestamp",
         type = EventType.EDIT_BURST,

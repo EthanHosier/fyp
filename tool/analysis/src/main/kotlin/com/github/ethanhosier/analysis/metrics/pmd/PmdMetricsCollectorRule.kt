@@ -11,20 +11,6 @@ import net.sourceforge.pmd.lang.metrics.MetricsUtil
 import net.sourceforge.pmd.lang.rule.Rule
 import java.util.Collections
 
-/**
- * Harvests PMD's quantitative metric values at each class and method node.
- *
- * A rule is the idiomatic AST-visit entry point in PMD 7.x — the built-in
- * `CyclomaticComplexityRule` follows exactly this shape. We do not call
- * `addViolation`, so the rule never contributes to the violation report; its
- * sole purpose is to populate the [Sink] during the analysis pass, which
- * [PmdRunner] reads back after the run.
- *
- * PMD clones each rule per analysis thread via [deepCopy] (reflective no-arg
- * construction), so a per-instance sink would be lost. We override `deepCopy`
- * to propagate the original sink into the clone; lists are synchronised so
- * concurrent clones can append safely.
- */
 internal class PmdMetricsCollectorRule : AbstractJavaRulechainRule(
     ASTTypeDeclaration::class.java,
     ASTExecutableDeclaration::class.java,
@@ -93,9 +79,6 @@ internal class PmdMetricsCollectorRule : AbstractJavaRulechainRule(
             atfd = MetricsUtil.computeMetric(JavaMetrics.ACCESS_TO_FOREIGN_DATA, node),
             noam = MetricsUtil.computeMetric(JavaMetrics.NUMBER_OF_ACCESSORS, node),
             nopa = MetricsUtil.computeMetric(JavaMetrics.NUMBER_OF_PUBLIC_FIELDS, node),
-            // PMD returns NaN for WOC when the class has no methods. Map
-            // NaN → null so we emit standard JSON and preserve the
-            // "undefined" distinction from a real 0.0.
             woc = MetricsUtil.computeMetric(JavaMetrics.WEIGHT_OF_CLASS, node).takeIf { it.isFinite() },
         )
     }

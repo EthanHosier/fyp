@@ -9,10 +9,6 @@ import org.eclipse.jdt.core.refactoring.descriptors.RenameJavaElementDescriptor
 import org.eclipse.ltk.core.refactoring.RefactoringCore
 import org.eclipse.ltk.core.refactoring.RefactoringStatus
 
-/**
- * Rename field [oldName] on [declaringTypeFqn] to [newName]
- * project-wide, updating all readers and writers.
- */
 internal object RenameFieldOp {
 
     fun run(

@@ -8,11 +8,6 @@ import org.eclipse.jdt.internal.corext.refactoring.structure.MoveStaticMembersPr
 import org.eclipse.jdt.internal.ui.preferences.JavaPreferencesSettings
 import org.eclipse.ltk.core.refactoring.participants.ProcessorBasedRefactoring
 
-/**
- * Move the listed static members from [sourceTypeFqn] to
- * [destinationTypeFqn]. Members must be static; methods are
- * disambiguated by name only.
- */
 internal object MoveStaticMembersOp {
 
     fun run(

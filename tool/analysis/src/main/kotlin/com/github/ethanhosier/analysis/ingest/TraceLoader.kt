@@ -8,20 +8,6 @@ import kotlinx.serialization.json.Json
 import java.nio.file.Files
 import java.nio.file.Path
 
-/**
- * Loads a trace from a session folder produced by the ide-plugin.
- *
- * Expects:
- *   <sessionFolder>/session.json   — full Session (metadata + events), written on clean session end
- *   <sessionFolder>/events.jsonl   — one JSON-encoded TraceEvent per line, appended live
- *
- * Missing `session.json` is fatal — a crashed session doesn't have a coherent
- * canonical form, so we don't try to recover one from the JSONL alone.
- *
- * As a consistency check the events in `session.json` are cross-referenced against
- * `events.jsonl`; any mismatch aborts the load. For a healthy session they are
- * constructed from the same in-memory list and should be identical.
- */
 class TraceLoader(
     private val json: Json = Json { ignoreUnknownKeys = true; encodeDefaults = true },
 ) {

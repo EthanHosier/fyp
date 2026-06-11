@@ -1,16 +1,5 @@
 package com.github.ethanhosier.analysis.metrics.readability
 
-/**
- * Splits an identifier into its camelCase / snake_case / digit parts.
- *
- *  - `computeTotal`  → ["compute", "total"]
- *  - `HTTP_PORT`     → ["HTTP", "PORT"]
- *  - `parseXMLFile`  → ["parse", "XML", "File"]
- *  - `x1y2`          → ["x", "1", "y", "2"]
- *  - `_foo$bar`      → ["foo", "bar"]
- *
- * Used for both the average-word-count metric and the dictionary lookup.
- */
 internal fun splitIdentifier(name: String): List<String> {
     if (name.isEmpty()) return emptyList()
     val parts = mutableListOf<String>()
@@ -35,9 +24,6 @@ internal fun splitIdentifier(name: String): List<String> {
         val boundary = when {
             prevKind == null -> false
             prevKind != kind -> {
-                // Transition. Lower → Upper: new part at the upper (parseXML → ["parse", "XML"]).
-                // Digit ↔ letter: always a boundary.
-                // Upper → lower: carries over (so XMLFile splits correctly via lookahead below).
                 prevKind == CharKind.LOWER && kind == CharKind.UPPER ||
                     prevKind == CharKind.DIGIT || kind == CharKind.DIGIT
             }
@@ -63,9 +49,6 @@ private fun kindOf(c: Char): CharKind? = when {
     else -> null
 }
 
-/**
- * Reduce a list of declared identifier names to aggregate [IdentifierStats].
- */
 internal fun identifierStatsFor(names: List<String>): IdentifierStats {
     if (names.isEmpty()) return IdentifierStats.EMPTY
     val count = names.size

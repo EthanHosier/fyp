@@ -9,15 +9,6 @@ import org.eclipse.ltk.core.refactoring.Refactoring
 import org.eclipse.ltk.core.refactoring.RefactoringStatus
 import java.nio.file.Path
 
-/**
- * Runs the LTK pipeline for a [Refactoring]:
- *   checkInitialConditions → checkFinalConditions → createChange → perform
- *
- * Returns the set of on-disk files the change touched, or a failure
- * reason string on any non-OK condition status. Never throws for
- * user-attributable failures (e.g. selection didn't cover clean
- * statements) — those come back as `Outcome.Failure`.
- */
 internal object RefactoringRunner {
 
     sealed interface Outcome {

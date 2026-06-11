@@ -9,11 +9,6 @@ import org.eclipse.jdt.core.dom.ASTParser
 import org.eclipse.jdt.core.dom.CompilationUnit
 import org.eclipse.jdt.internal.corext.refactoring.code.InlineMethodRefactoring
 
-/**
- * Inline every call to [methodName] on [declaringTypeFqn] by replacing
- * each call site with the method body, then deleting the declaration.
- * Disambiguate overloads via JDT-encoded [paramTypeSignatures].
- */
 internal object InlineMethodOp {
 
     fun run(

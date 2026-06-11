@@ -6,13 +6,6 @@ import java.nio.file.Paths
 import kotlin.io.path.name
 import kotlin.system.exitProcess
 
-/**
- * Cohen's $\kappa$ per kind between two manifest CSVs with the same
- * column layout as `fixtures/sessions/manifest-v2.csv`. Mirrors the
- * legacy Python `scripts/kappa.py`.
- *
- * Usage (via `:analysis:raterKappa --args="--rater <r1.csv> --rater <r2.csv>"`).
- */
 object RaterKappa {
 
     private val KINDS = listOf("ORDERING", "IDE_REPLAY", "REWORK", "HYGIENE")
@@ -85,9 +78,6 @@ object RaterKappa {
         return out
     }
 
-    // RFC-4180-ish single-line CSV parser: handles double-quoted fields
-    // containing commas and embedded "" escapes. The manifests are
-    // single-line records, so no multi-line quoted field handling is needed.
     private fun parseCsvLine(line: String): List<String> {
         val out = mutableListOf<String>()
         val cur = StringBuilder()

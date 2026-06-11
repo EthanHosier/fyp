@@ -8,18 +8,6 @@ import kotlin.test.assertTrue
 
 class SpecVersionerTest {
 
-    /**
-     * The classic "born → die → reborn" case the SSA pre-pass exists
-     * for. Without versioning the rename at the end would also
-     * spuriously read-after-consume against the *first* extract.
-     * With versioning the rename's read resolves to the *second*
-     * extract's version (v=2), and a cross-range edge ensures the
-     * inline (which closed range v=0) precedes the second extract.
-     *
-     * The combined constraints — direct pairwise + cross-range +
-     * coarse Type writes from the rename and inline — collapse the
-     * enumeration down to the user's order only.
-     */
     @Test
     fun `extract — inline — re-extract — rename forms a single linear chain`() {
         val specs = listOf(
@@ -44,10 +32,6 @@ class SpecVersionerTest {
 
     @Test
     fun `re-creating a name without an intervening consume preserves user order`() {
-        // Two extracts of a method named "helper" with no intervening
-        // inline. The user trace can't actually have run successfully
-        // (JDT would reject the second), but the analyser handles it
-        // gracefully via a fallback producer→producer cross-range edge.
         val specs = listOf(
             extractMethod("render", "h0", "helper"),
             extractMethod("render", "h1", "helper"),
@@ -122,9 +106,6 @@ class SpecVersionerTest {
 
     @Test
     fun `host-anchored entities — Region, HostMethodBody, Declaration — are not versioned`() {
-        // These entities are content-addressed (by hash), not by name,
-        // so SSA versioning doesn't apply to them. The versioner
-        // should leave them un-stamped (default version unchanged).
         val specs = listOf(extractMethod("render", "h0", "helper"))
         val ssa = SpecVersioner.version(specs)
         // ExtractMethod's reads include the Region and the HostMethodBody.

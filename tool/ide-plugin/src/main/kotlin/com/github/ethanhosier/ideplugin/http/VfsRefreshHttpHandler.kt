@@ -12,19 +12,6 @@ import io.netty.handler.codec.http.QueryStringDecoder
 import org.jetbrains.ide.HttpRequestHandler
 import java.nio.charset.StandardCharsets
 
-/**
- * GET /api/refactoring-tracer/refresh-vfs
- *
- * Synchronously refreshes IntelliJ's LocalFileSystem so that file changes
- * made by an external process (e.g. an agent editing files outside the IDE)
- * are picked up without the user having to click "Sync Project". Intended
- * to be polled at a fixed interval (~0.5s) by the agent-session wrapper
- * script while a recording is in progress.
- *
- * The endpoint is served on IntelliJ's built-in HTTP server, default port
- * 63342. No auth, no CSRF — relies on the built-in server's localhost-only
- * default binding.
- */
 class VfsRefreshHttpHandler : HttpRequestHandler() {
 
     override fun isSupported(request: FullHttpRequest): Boolean =
@@ -36,10 +23,6 @@ class VfsRefreshHttpHandler : HttpRequestHandler() {
         context: ChannelHandlerContext,
     ): Boolean {
         val start = System.currentTimeMillis()
-        // refresh(asynchronous=false): blocks the Netty event-loop thread
-        // until the VFS scan completes. The scan itself dispatches its
-        // change-events to the EDT internally; we just need to wait for
-        // them to finish so callers see a consistent view on return.
         LocalFileSystem.getInstance().refresh(false)
         val elapsedMs = System.currentTimeMillis() - start
         thisLogger().debug("VFS refresh completed in ${elapsedMs}ms")

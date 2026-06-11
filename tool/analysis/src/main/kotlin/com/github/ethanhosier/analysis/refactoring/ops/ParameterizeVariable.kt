@@ -4,16 +4,6 @@ import com.github.ethanhosier.analysis.refactoring.RefactoringClient
 import com.github.ethanhosier.analysis.refactoring.RefactoringOutcome
 import java.nio.file.Path
 
-/**
- * Promote an expression inside a method body into a new parameter of
- * the enclosing method. All existing call sites pass the original
- * expression.
- *
- * Same underlying JDT refactoring serves "Parameterize Variable" (for
- * a local) and "Parameterize Attribute" (for a field read) — caller
- * picks the selection; see [parameterizeAttribute] for a
- * declaration-oriented wrapper.
- */
 data class ParameterizeVariableRequest(
     val projectRoot: Path,
     val sourceFolders: List<String>,

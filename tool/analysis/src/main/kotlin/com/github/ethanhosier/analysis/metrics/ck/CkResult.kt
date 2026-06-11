@@ -2,16 +2,6 @@ package com.github.ethanhosier.analysis.metrics.ck
 
 import kotlinx.serialization.Serializable
 
-/**
- * CK (class-level OO metrics) output for one checkpoint.
- *
- * `perClass` holds one [CkClassMetrics] entry per successfully parsed class,
- * inner class, or anonymous class. `parseErrors` lists files CK could not
- * parse — this is *data*, not a run-abort signal, because a mid-refactor
- * checkpoint may legitimately contain unparseable Java. Any exception from
- * `CK.calculate()` itself (OOM, classpath issue, …) still propagates and
- * aborts the run.
- */
 @Serializable
 data class CkResult(
     val perClass: List<CkClassMetrics>,
@@ -19,15 +9,6 @@ data class CkResult(
     val durationMs: Long = 0,
 )
 
-/**
- * Per-class CK metrics. Field set is a curated subset of [com.github.mauricioaniche.ck.CKClassResult]
- * focused on OO structure + complexity proxies; the long tail (per-modifier
- * method/field counts, lambda counts, log-statement counts, …) is omitted for
- * now and can be added later if downstream analysis needs it.
- *
- * `file` is stored relative to the checkpoint root so metrics files stay
- * comparable across checkpoints and machines.
- */
 @Serializable
 data class CkClassMetrics(
     val className: String,

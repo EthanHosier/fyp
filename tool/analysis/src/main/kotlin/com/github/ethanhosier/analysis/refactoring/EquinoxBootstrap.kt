@@ -12,25 +12,8 @@ import java.util.jar.JarOutputStream
 import java.util.jar.Manifest
 import java.util.zip.ZipEntry
 
-/**
- * Boots an Equinox OSGi framework in-process, just far enough for JDT's
- * refactoring framework to run: `ResourcesPlugin.getWorkspace()` resolves
- * to a live workspace, `ExtractMethodRefactoring` and friends can be
- * driven via LTK, and our own refactoring bundle can look up every
- * service the Eclipse platform registers.
- *
- * The work is: scan `java.class.path` for jars, install each one that
- * carries a `Bundle-SymbolicName` (or wrap non-OSGi jars in a
- * fabricated manifest so OSGi accepts them), then start bundles in a
- * known-good dependency order. Felix SCR comes first so Declarative
- * Services is live before any Eclipse bundle tries to register a DS
- * component.
- */
 object EquinoxBootstrap {
 
-    // Maven artifact basename → OSGi Bundle-SymbolicName, for libraries
-    // Eclipse bundles `Require-Bundle` under a specific name but that
-    // don't ship OSGi manifests themselves.
     private val KNOWN_BUNDLE_NAMES = mapOf(
         "commonmark" to "org.commonmark",
         "commonmark-ext-gfm-tables" to "org.commonmark-gfm-tables",
@@ -42,30 +25,17 @@ object EquinoxBootstrap {
         "org.osgi.",
         "com.ibm.icu",
         "com.sun.jna",
-        // Kotlin stdlib (wrapped into a bundle on install) so our
-        // refactoring bundle's DynamicImport-Package can resolve
-        // `kotlin.*` / `kotlin.jvm.internal.*` at class-load time.
         "kotlin",
     )
 
-    // Bundles pulled transitively onto the classpath but not used by
-    // the refactoring engine. Skipping them avoids noisy resolver
-    // failures at boot — they each require UI-layer peers (SWT native
-    // fragments, JFace, full ICU) that we deliberately don't install.
     private val EXCLUDE_PREFIXES = listOf(
         "org.eclipse.jetty.",
         "org.eclipse.jgit",
-        // UI / text-viewer stack — ltk.core.refactoring and
-        // jdt.core.manipulation drag these in for code paths we don't
-        // exercise (editor integration, quick-fix UI).
         "org.eclipse.jface",          // covers org.eclipse.jface and org.eclipse.jface.text
         "org.eclipse.swt",
         "com.ibm.icu",
     )
 
-    // Felix SCR first (DS container), then Eclipse platform bundles in
-    // dependency order up to JDT core. Bundles not in this list start
-    // afterwards in unspecified order.
     private val START_ORDER = listOf(
         "org.apache.felix.scr",
         "org.eclipse.equinox.common",
@@ -89,16 +59,6 @@ object EquinoxBootstrap {
         return INSTALL_PREFIXES.any { symbolicName == it.trimEnd('.') || symbolicName.startsWith(it) }
     }
 
-    /**
-     * Boot an Equinox framework under [dataArea]. The returned [Framework]
-     * is already started and all discoverable Eclipse bundles are active;
-     * callers typically install their own bundle on top and invoke into
-     * it reflectively.
-     *
-     * [dataArea] is used for Equinox's config + workspace storage. It
-     * must be writable and should be distinct from any user worktree —
-     * Eclipse will drop a `.metadata/` directory inside `workspace/`.
-     */
     fun start(dataArea: Path): Framework {
         val configArea = dataArea.resolve("config")
         val instanceArea = dataArea.resolve("workspace")
@@ -129,9 +89,6 @@ object EquinoxBootstrap {
         for (path in classpathJars()) {
             val existing = bundleSymbolicName(path)
             if (existing == "org.eclipse.osgi") continue // the framework itself
-            // Install only bundles we actually want in the graph. Random
-            // OSGi-flagged test deps (jetty, jgit, slf4j, …) bring their
-            // own unmet requirements and poison the resolver.
             if (existing != null && !shouldInstall(existing)) continue
             try {
                 val installable = if (existing != null) path else wrapAsBundle(path, wrapArea)
@@ -168,13 +125,6 @@ object EquinoxBootstrap {
         }
     }
 
-    // Wrap a plain Maven jar into an OSGi bundle by copying its contents
-    // into a new jar with a fabricated MANIFEST.MF (Bundle-SymbolicName +
-    // Export-Package covering every package with classes). Equinox treats
-    // the result as a regular bundle and can now resolve Require-Bundle
-    // references to it — this is what unblocks things like JDT's hard
-    // dependency on `org.commonmark`, which isn't published as an OSGi
-    // bundle on Maven Central.
     private fun wrapAsBundle(jar: Path, wrapArea: Path): Path? {
         val packages = sortedSetOf<String>()
         JarFile(jar.toFile()).use { jf ->

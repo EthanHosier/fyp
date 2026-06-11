@@ -3,29 +3,6 @@ package com.github.ethanhosier.analysis.miner.model
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
-/**
- * Typed payload describing a detected refactoring with enough structured
- * data to drive the corresponding
- * [com.github.ethanhosier.analysis.refactoring.RefactoringClient] op.
- *
- * Carried two ways:
- *  1. **Transient** on each [RefactoringStep] (`@Transient val spec`)
- *     — used by `AlternativeTrajectoryRunner`. Excluded from the
- *     `refactoringSteps[]` JSON to keep that array byte-stable.
- *  2. **Serialised** on each
- *     [com.github.ethanhosier.analysis.metrics.model.AlternativeTrajectory]
- *     — surfaces in the report so the frontend knows exactly which IDE
- *     refactoring was synthesised and with what parameters.
- *
- * Field shapes mirror the typed-request data classes under
- * `analysis/refactoring/ops/`, minus the project-environment fields
- * (`projectRoot`, `sourceFolders`, `classpathJars`) which
- * `AlternativeTrajectoryRunner` supplies at synthesis time.
- *
- * RM detections that aren't on the IDE-relevant allowlist, or IDE-relevant
- * types whose RM-typed mapper hasn't yet been implemented, surface as
- * [Other] and are skipped by the alternative-trajectory stage.
- */
 @Serializable
 sealed interface RefactoringSpec {
 
@@ -45,12 +22,6 @@ sealed interface RefactoringSpec {
         val originalLineHint: Int? = null,
         val originalColumnHint: Int? = null,
         val newMethodName: String,
-        /** True iff the user's resulting method declaration carries
-         *  `static`. JDT's `ExtractMethodRefactoring` only adds the
-         *  modifier when it's *required*; IntelliJ's heuristic adds
-         *  it whenever the body permits. We post-process the result
-         *  to add `static` if this is set, so our reapplication
-         *  matches whatever the user actually did. */
         val isStatic: Boolean = false,
     ) : RefactoringSpec
 
@@ -282,9 +253,6 @@ sealed interface RefactoringSpec {
         @Serializable @SerialName("Added")
         data class Added(
             val name: String,
-            // Renamed in JSON to avoid colliding with kotlinx.serialization's
-            // default sealed-class discriminator ("type"). Kept as `type` in
-            // Kotlin so existing call sites compile unchanged.
             @SerialName("paramType") val type: String,
             val defaultValue: String,
         ) : ChangeSignatureParameter

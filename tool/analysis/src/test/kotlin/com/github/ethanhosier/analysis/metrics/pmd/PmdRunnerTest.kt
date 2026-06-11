@@ -25,9 +25,6 @@ class PmdRunnerTest {
             "expected at least one violation on Greeter.java with default rulesets",
         )
 
-        // Greeter catches NullPointerException in `safe()`, which the
-        // errorprone ruleset flags as AvoidCatchingNPE. This anchors the
-        // test to a rule that won't be retitled lightly.
         val npe = result.violations.firstOrNull { it.rule == "AvoidCatchingNPE" }
         assertNotNull(
             npe,
@@ -37,10 +34,6 @@ class PmdRunnerTest {
         assertTrue(npe.priority in 1..5, "priority out of range: ${npe.priority}")
         assertTrue(npe.ruleSet.isNotEmpty(), "ruleSet should be populated")
 
-        // Snippet ships as a self-contained mini unified-diff: file
-        // headers, one hunk with absolute line numbers, every body line a
-        // context line. Asserts both the framing and the offending source
-        // showing up in the body.
         val snippet = npe.snippet
         assertNotNull(snippet, "expected snippet for AvoidCatchingNPE violation")
         assertTrue(

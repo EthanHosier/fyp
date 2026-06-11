@@ -4,12 +4,6 @@ import com.github.ethanhosier.analysis.refactoring.RefactoringClient
 import com.github.ethanhosier.analysis.refactoring.RefactoringOutcome
 import java.nio.file.Path
 
-/**
- * Promote a local variable to a field on the enclosing class.
- * [visibility] is one of `"public"`, `"protected"`, `"private"`, or
- * `""` for package-private. The initializer stays at the original
- * declaration site by default.
- */
 data class ReplaceVariableWithAttributeRequest(
     val projectRoot: Path,
     val sourceFolders: List<String>,

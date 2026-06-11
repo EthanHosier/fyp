@@ -2,17 +2,6 @@ package com.github.ethanhosier.analysis.alternative.reorder
 
 import com.github.ethanhosier.analysis.miner.model.RefactoringSpec
 
-/**
- * What entities a [RefactoringSpec] touches when applied.
- *
- * - [reads]: must exist before the spec runs.
- * - [writes]: mutated in place — identity preserved post-state, contents differ.
- * - [produces]: exist after the spec but did not before.
- * - [consumes]: existed before but do not after (renamed, moved, inlined).
- *
- * Two specs whose effects overlap on the same [Entity] imply an
- * ordering constraint — see [SpecDependencyAnalyzer].
- */
 data class Effects(
     val reads: Set<Entity> = emptySet(),
     val writes: Set<Entity> = emptySet(),
@@ -20,46 +9,6 @@ data class Effects(
     val consumes: Set<Entity> = emptySet(),
 )
 
-/**
- * Returns the [Effects] of a spec.
- *
- * Some entities can't be fully pinned down from spec fields alone
- * (e.g. ExtractMethod's new method's param signature). These use
- * [ParamTypes.Opaque] — see [ParamTypes] for the matching contract.
- *
- * Coarse models: a few specs (RenameMethod, InlineMethod,
- * ChangeMethodSignature, ParameterizeVariable, ParameterizeAttribute)
- * affect every call site of the named method across the codebase.
- * v1 conservatively models that as writing the *declaring* [Entity.Type] —
- * any later op on the same class is therefore ordered after.
- *
- * **Optimistic model for Extract\* specs.** [RefactoringSpec.ExtractMethod],
- * [RefactoringSpec.ExtractVariable], and [RefactoringSpec.ExtractAttribute]
- * deliberately do *not* include their host body in `writes`. Two extracts
- * on the same host body therefore don't auto-conflict. Rationale: the
- * `selectionSubtreeHash` is content-addressed on the selection only, so
- * it's invariant to changes elsewhere in the body. Disjoint regions
- * genuinely commute, and we can't tell disjoint from
- * containing/overlapping from spec fields alone (would need either a
- * full Merkle of subtree hashes per spec, or a real AST parse here).
- *
- * Trade-off: this is *optimistic*. Two extracts whose regions overlap
- * or contain one another will be enumerated as freely commuting, then
- * fail at synthesis time when the second's anchor can't resolve. The
- * follow-up synthesis PR's end-state-equivalence check filters those.
- *
- * Extracts still keep `host` in `reads`, so genuinely mutating prior
- * ops (renames, inlines, type changes) — which write `host` — still
- * chain into a later extract. The asymmetry (extract doesn't block
- * others; others block extract) is intentional: extract's effect on
- * the body is purely lifting a region, which doesn't perturb other
- * anchors' content; identifier-rewriting ops do.
- *
- * To revisit: storing the full Merkle (set of all subtree hashes
- * inside the selection) on each range-based spec lets us detect
- * overlap by hash-set intersection — see "Future refinements" in
- * `tool/plans/PLAN-reorder-enumerator.md`.
- */
 @Suppress("LongMethod", "CyclomaticComplexMethod")
 fun effectsOf(spec: RefactoringSpec): Effects = when (spec) {
 
@@ -153,10 +102,6 @@ fun effectsOf(spec: RefactoringSpec): Effects = when (spec) {
     }
 
     is RefactoringSpec.MoveInstanceMethod -> {
-        // Coarse: targetName is the receiver name (param/field), so the
-        // destination *type* isn't fully knowable from spec fields. We
-        // model this as consuming the source method and writing both
-        // source and target types (call sites everywhere).
         val src = Entity.Method(spec.sourceTypeFqn, spec.methodName, ParamTypes.Opaque())
         Effects(
             reads = setOf(src, Entity.Type(spec.sourceTypeFqn)),
@@ -216,13 +161,6 @@ fun effectsOf(spec: RefactoringSpec): Effects = when (spec) {
     is RefactoringSpec.InlineMethod -> {
         val params = paramTypesOf(spec.paramTypeSignatures)
         val m = Entity.Method(spec.declaringTypeFqn, spec.methodName, params)
-        // Optimistic: deliberately no `writes = setOf(Entity.Type(...))` for
-        // call sites. Two inlines of distinct methods on the same class
-        // genuinely commute when neither inlined method calls the other;
-        // we can't tell that from spec fields alone, so we let them
-        // enumerate freely and rely on the terminal-AST equivalence check
-        // downstream to filter orderings whose call-site rewrites actually
-        // interfered. Mirrors the Extract* carve-out — see KDoc above.
         Effects(
             reads = setOf(m),
             consumes = setOf(m),
@@ -324,10 +262,6 @@ fun effectsOf(spec: RefactoringSpec): Effects = when (spec) {
     }
 
     is RefactoringSpec.ExtractAndMoveMethod -> {
-        // Position-based; not anchor-migrated yet. Treat conservatively
-        // as touching the declaring type and producing a new method
-        // with opaque params elsewhere (target type unknown — coarsely
-        // writes declaring type only).
         Effects(
             reads = setOf(Entity.Type(spec.declaringTypeFqn)),
             writes = setOf(Entity.Type(spec.declaringTypeFqn)),

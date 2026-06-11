@@ -89,9 +89,6 @@ private class TracerStatusPanel(private val project: Project, toolWindow: ToolWi
     }
     private val endSessionButton = JButton("End Session")
 
-    // Kept true from the moment End Session is clicked until the analysis
-    // upload finishes, so the active panel stays visible (with a spinner on
-    // the button) instead of flipping straight to idle.
     @Volatile private var analysing = false
 
     private companion object {
@@ -109,7 +106,6 @@ private class TracerStatusPanel(private val project: Project, toolWindow: ToolWi
         Disposer.register(toolWindow.disposable) { timer.stop() }
     }
 
-    /** Just the start button, top-aligned. */
     private fun buildIdlePanel(): JBPanel<*> =
         JBPanel<JBPanel<*>>(GridBagLayout()).apply {
             val gbc = GridBagConstraints().apply {
@@ -125,7 +121,6 @@ private class TracerStatusPanel(private val project: Project, toolWindow: ToolWi
             add(Box.createGlue(), gbc)
         }
 
-    /** Info fields + end button, top-aligned. */
     private fun buildActivePanel(): JBPanel<*> {
         val mutedColor = UIUtil.getContextHelpForeground().let {
             JBColor(
