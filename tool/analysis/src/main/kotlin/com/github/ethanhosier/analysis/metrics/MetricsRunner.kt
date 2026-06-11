@@ -17,30 +17,6 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.time.Duration
 
-/**
- * Computes [CheckpointMetrics] for every unique commit SHA produced by the
- * reconstruct stage.
- *
- * Unique-SHA dedup matters because a long session produces hundreds of events
- * but far fewer unique commits — every no-op event collapses onto its
- * preceding SHA.
- *
- * Sequential single-worktree strategy: provision one persistent worktree
- * off the shadow repo, then walk SHAs by `git checkout --detach <sha>`
- * between them — preserving the worktree's `build/` so Gradle's daemon +
- * `--build-cache` + incremental-compile machinery has prior state to
- * reuse. Empirically this beats parallel-fresh-worktree by ~2× on small
- * sessions because daemon warmup + cache reuse dominates over wall-clock
- * fan-out at this scale.
- *
- * The [parallelism] parameter is retained for API compatibility (the CLI
- * still accepts `--parallelism=N`) but is now ignored — metrics run
- * sequentially regardless.
- *
- * No on-disk caching of metrics output: each pipeline run recomputes every
- * SHA. Sessions are processed once and surrounding orchestration assumes
- * that, so caching the report adds invalidation surface for no real win.
- */
 class MetricsRunner(
     @Suppress("UNUSED_PARAMETER") parallelism: Int = (Runtime.getRuntime().availableProcessors() / 2).coerceAtLeast(1),
     private val gradleUserHome: Path? = null,
@@ -60,27 +36,9 @@ class MetricsRunner(
         // Keyed by SHA. Diff is vs. the previous checkpoint (or the seed commit
         // for the first).
         val diffBySha: Map<String, DiffStats> = emptyMap(),
-        // Metrics for any synthesised alternative-trajectory SHAs the caller
-        // passed via [run]'s `alternativeShas` parameter. Sibling of
-        // [checkpoints].
         val alternativeCheckpoints: List<CheckpointMetrics> = emptyList(),
     )
 
-    /**
-     * @param reconstruction the user's actual trace; each unique SHA in
-     *   `eventCommits` becomes a checkpoint.
-     * @param alternativeShas synthesised SHAs (e.g. from
-     *   `AlternativeTrajectoryRunner`) that should be measured alongside
-     *   the trace SHAs. Each must already be reachable in
-     *   `reconstruction.repoDir` (typically via a ref attached by the
-     *   caller). Diff is computed pairwise against
-     *   `alternativeFromShas[i]` rather than against the previous SHA in
-     *   the list, so non-adjacent ancestor chains work too.
-     * @param alternativeFromShas the parent SHA each entry in
-     *   [alternativeShas] should be diffed against. Must have the same
-     *   length as [alternativeShas]. Empty list when [alternativeShas]
-     *   is empty.
-     */
     fun run(
         reconstruction: ReconstructionResult,
         sessionFolder: Path,
@@ -95,13 +53,6 @@ class MetricsRunner(
         val worktreeBase = sessionFolder.resolve("shadow-worktrees")
         Files.createDirectories(worktreeBase)
         val worktreeDir = worktreeBase.resolve("metrics")
-        // PMD analysis caches per session: PMD reads on construction and
-        // rewrites on close, so SHAs after the first reuse per-file results
-        // for files whose content + ruleset hash hasn't changed. Sibling of
-        // shadow-repo / shadow-worktrees so `git checkout` between SHAs
-        // can't disturb them. Separate files per runner — each runner uses
-        // a distinct ruleset, and sharing one file risks one runner's close
-        // overwriting the other's entries.
         val pmdCacheFile = sessionFolder.resolve("pmd-analysis-cache")
         val readabilityCacheFile = sessionFolder.resolve("pmd-readability-cache")
 
@@ -127,9 +78,6 @@ class MetricsRunner(
 
         val total = allShas.size
         val results = try {
-            // Seed the worktree at the first SHA. Subsequent SHAs are
-            // reached by `git checkout --detach` *inside* the worktree,
-            // preserving its `build/` between checkpoints.
             val first = allShas.first()
             git.worktreeAdd(worktreeDir, first)
             logProgress(1, total, first)
@@ -185,9 +133,6 @@ class MetricsRunner(
             timeout = buildTimeout,
             gradleUserHome = gradleUserHome,
         ).run(worktree)
-        // Skip tests when build failed — `./gradlew test` re-runs compileJava
-        // and hits the same error, wasting seconds per broken checkpoint
-        // without producing any test outcome we didn't already know.
         val tests = if (build.success) {
             GradleTestRunner(
                 timeout = testTimeout,

@@ -9,13 +9,6 @@ import java.nio.file.Files
 import java.nio.file.Paths
 import kotlin.system.exitProcess
 
-/**
- * Cheap Phase-B replay: given a serialised [PhaseAResult] dump and a
- * JSON [ScoringConfig], reassemble an [AnalysisReport] without
- * re-running the expensive Phase-A pipeline. Intended for tuning
- * scoring weights / derived-metric logic against cached Phase-A
- * artefacts.
- */
 object PhaseBCli {
     private val readJson = Json { ignoreUnknownKeys = true; isLenient = true }
     // Mirror `Main.kt`'s `reportJson` so report files written by either

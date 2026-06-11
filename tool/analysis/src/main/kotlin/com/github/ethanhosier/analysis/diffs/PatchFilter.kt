@@ -1,21 +1,5 @@
 package com.github.ethanhosier.analysis.diffs
 
-/**
- * Filters a unified-diff patch down to only the hunks that touch
- * caller-supplied line ranges. Kept hunks are emitted byte-for-byte
- * (header + body including context) — we never synthesise new diff text,
- * so round-tripping a kept hunk through this function is an identity.
- *
- * A hunk is **kept** iff any *changed* line inside it (a `-` or `+`
- * line — not context) falls within one of:
- *  - [leftRanges]`[oldPath]`: line numbers in the `fromSha` tree, or
- *  - [rightRanges]`[newPath]`: line numbers in the `toSha` tree.
- *
- * A file entry (headers + its hunks) is emitted iff at least one of its
- * hunks was kept. Pure renames with no textual change have no hunks and
- * are therefore dropped — by design, the caller already knows a rename
- * happened from the RefactoringStep itself.
- */
 object PatchFilter {
 
     fun filter(
@@ -67,9 +51,6 @@ object PatchFilter {
         // Skip any pre-amble before the first `diff --git`.
         while (i < lines.size && !lines[i].startsWith("diff --git ")) i++
         while (i < lines.size) {
-            // headerLines = everything from `diff --git` up to (but not
-            // including) the first `@@` hunk header, or the next
-            // `diff --git` (file with no hunks — binary, pure rename).
             val headerStart = i
             i++
             while (i < lines.size &&
@@ -105,9 +86,6 @@ object PatchFilter {
         return m.groupValues[1].toInt() to m.groupValues[2].toInt()
     }
 
-    // Paths come from the `--- a/<path>` / `+++ b/<path>` lines, with
-    // `/dev/null` for add/delete. The `a/` and `b/` prefixes are git's
-    // default; we strip them. Renames still use the old→new paths here.
     private fun extractPaths(headerLines: List<String>): Pair<String?, String?> {
         var oldPath: String? = null
         var newPath: String? = null

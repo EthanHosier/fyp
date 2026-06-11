@@ -18,18 +18,6 @@ object TraceNormalizer {
     private fun sortByTimestamp(trace: Trace): Trace =
         trace.copy(events = trace.events.sortedBy { it.timestamp })
 
-    /**
-     * Drops `FILE_CREATED` events whose every path was already live at that
-     * point in the stream. This filters the lagging VFS `FILE_CREATED` that
-     * fires a few seconds after a refactoring has already captured the new
-     * file inside its own `REFACTORING_FINISHED` — the event is semantically
-     * a duplicate and pollutes the checkpoint report and refactoring-miner
-     * segmentation.
-     *
-     * "Live" is seeded from `initial-src/` and updated per event using each
-     * snapshot's `changeType`, so a legitimate re-create after `DELETED`
-     * correctly survives.
-     */
     private fun dropDuplicateFileCreations(trace: Trace, initialSrc: Path): Trace {
         val liveFiles = seedFromInitialSrc(initialSrc, trace.metadata.projectPath)
         val kept = ArrayList<TraceEvent>(trace.events.size)
@@ -54,16 +42,6 @@ object TraceNormalizer {
         return trace.copy(events = kept)
     }
 
-    /**
-     * Drops `EDIT_BURST` snapshots whose contents match the file's prior known
-     * state — stray bursts that IntelliJ occasionally emits when focus changes
-     * or formatters touch a document without actually mutating it. If every
-     * snapshot on a burst is a no-op, the whole event is dropped.
-     *
-     * Prior state is tracked across the stream. On a cache miss, the file is
-     * loaded lazily from `initial-src/` so we only pay for files events
-     * actually reference.
-     */
     private fun dropNoOpEditBursts(trace: Trace, initialSrc: Path): Trace {
         val prefix = trace.metadata.projectPath.trimEnd('/')
         val knownContent = HashMap<String, String?>()

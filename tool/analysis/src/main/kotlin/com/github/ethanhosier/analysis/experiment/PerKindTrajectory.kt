@@ -10,15 +10,6 @@ import kotlin.io.path.isDirectory
 import kotlin.io.path.isRegularFile
 import kotlin.io.path.name
 
-/**
- * Per-kind divergence-point trajectory across the six-session arc, one
- * block per participant plus a combined-cohort block. Mirrors the
- * legacy Python `scripts/per-kind-trajectory.py`.
- *
- * Counts are restricted to `report.divergencePoints[]` with strict
- * `magnitude > 0`, matching the downstream consumer at
- * `DivergenceExperiment.kt:273`.
- */
 object PerKindTrajectory {
 
     private val KINDS = listOf(

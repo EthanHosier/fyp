@@ -12,9 +12,6 @@ data class RenameMethodRequest(
     val declaringTypeFqn: String,
     val oldName: String,
     val newName: String,
-    // JDT-encoded parameter type signatures ("Ljava/lang/String;", "I",
-    // "V", …). Omit to let the client auto-pick when the name is
-    // unambiguous; include to disambiguate overloads.
     val paramTypeSignatures: List<String>? = null,
 )
 

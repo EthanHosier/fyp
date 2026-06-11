@@ -7,16 +7,6 @@ import kotlin.test.assertTrue
 
 class ReworkDetectorTest {
 
-    /**
-     * Build a `Foo.java` source with the given lines inserted at the
-     * top of `bar()`'s body. Produces:
-     *   line 1: package com.example;
-     *   line 2: public class Foo {
-     *   line 3:     public void bar() {
-     *   line 4..:        <bodyLines>
-     *   ...:          }
-     *   ...:      }
-     */
     private fun fooWithBarBody(vararg bodyLines: String): String =
         buildString {
             appendLine("package com.example;")
@@ -250,9 +240,6 @@ class ReworkDetectorTest {
 
     @Test
     fun `whitespace lines do not perturb chunk hash`() {
-        // Step 1's added chunk has a blank padding line in the
-        // middle; step 3's removed chunk doesn't. After normalisation
-        // the blank line is dropped → both hash identically.
         val empty = fooWithBarBody()
         val withBlankPad = fooWithBarBody("int a = 1;", "", "int b = 2;")
         val tight = fooWithBarBody("int a = 1;", "int b = 2;")
@@ -410,9 +397,6 @@ class ReworkDetectorTest {
 
     @Test
     fun `aggregation across content hashes sums line counts`() {
-        // Two different content chunks added at step 1 in bar(),
-        // both removed at step 3. Aggregated into one finding with
-        // summed lineCount.
         val empty = fooWithBarBody()
         val ab = fooWithBarBody("int a = 1;", "int b = 2;")
 
@@ -494,9 +478,6 @@ class ReworkDetectorTest {
 
     @Test
     fun `default threshold filters out 1-line false positives`() {
-        // 1-line add at step 1, 1-line remove at step 3. With default
-        // threshold (>= 2), the chunks never enter the matching pool
-        // → no findings, no chunk pairs.
         val empty = fooWithBarBody()
         val withX = fooWithBarBody("int x = 1;")
 

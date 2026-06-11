@@ -1,21 +1,3 @@
-/*
- * Collapsible card for a single PMD code-smell violation. Sibling of
- * `FileDiffCard`: shares the outer chrome (rounded panel, `bg-bg-3` body,
- * `bg-bg-2` header with chevron + file path) so smell cards and diff
- * cards sit cleanly side-by-side in the detail panel.
- *
- * The body delegates to `@pierre/diffs`'s `<FileDiff>` for syntax
- * highlighting + line numbers. The analysis pipeline emits the snippet
- * already in unified-diff form (a single hunk of context lines with the
- * absolute line range in the `@@` header), so we feed it straight
- * through `parsePatchFiles` — no diff is actually being shown, the
- * format is just the cheapest way to get Shiki rendering with proper
- * absolute line numbers.
- *
- * The violation range is highlighted via the library's `selectedLines`
- * with its default selection styling.
- */
-
 import { ChevronDownIcon, ChevronRightIcon, FileIcon } from "lucide-react"
 import { useState } from "react"
 import { parsePatchFiles } from "@pierre/diffs"

@@ -1,7 +1,4 @@
 #!/usr/bin/env python3
-"""Compare baseline-no-lag CSVs against new lag-term CSVs to characterise the
-impact of W_lag on ablation, sensitivity, MC robustness and divergence
-counts/magnitudes. Prints a structured plaintext summary."""
 import csv
 from collections import defaultdict
 from pathlib import Path
@@ -16,7 +13,6 @@ def load_csv(p):
 
 # ---- ABLATION ----
 def ablation_solo_recovery(rows):
-    """variant string contains a single knob set to nonzero (active_count==1)."""
     by_variant = defaultdict(list)
     for r in rows:
         if int(r['active_count']) == 1:
@@ -24,7 +20,6 @@ def ablation_solo_recovery(rows):
     return {v: mean(xs) for v, xs in by_variant.items()}
 
 def ablation_leave_one_out(rows, total_knobs):
-    """active_count == total_knobs - 1 (one knob removed) -> tau, top5."""
     by_variant = defaultdict(lambda: {'tau': [], 'top5': [], 'rec': []})
     for r in rows:
         if int(r['active_count']) == total_knobs - 1:
@@ -35,7 +30,6 @@ def ablation_leave_one_out(rows, total_knobs):
 
 # ---- SENSITIVITY ----
 def sens_per_weight(rows):
-    """group by (group,weight,factor) -> mean tau, top1, top5."""
     by_key = defaultdict(lambda: {'tau': [], 'top1': [], 'top5': []})
     for r in rows:
         key = (r['group'], r['weight'], r['factor'])

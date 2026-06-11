@@ -167,9 +167,6 @@ class DivergencePointBuilderTest {
 
     @Test
     fun `IDE_REPLAY emits a DP regardless of magnitude — small positive delta`() {
-        // The magnitude floor was removed from DivergencePointBuilder so that
-        // detection / synthesis / surfacing are decoupled from suggestion-quality
-        // at the tool layer. Downstream consumers apply their own threshold.
         val users = listOf(userCp("u0", 50), userCp("u1", 60))
         val alt = AlternativeTrajectory(
             kind = DivergenceKind.IDE_REPLAY,

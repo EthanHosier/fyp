@@ -50,9 +50,6 @@ class PatchLineRenumberTest {
 
     @Test
     fun `pure insertion at end of added zone translates to synth boundary`() {
-        // Zone covers user lines 3..8 (length 6). Insertion `@@ -8,0 +9,1 @@`
-        // means "insert after user line 8" — at the zone's end. In
-        // synth, this is "insert before line 3" → `@@ -2,0 +3,1 @@`.
         val patch =
             "diff --git a/Foo.java b/Foo.java\n" +
             "--- a/Foo.java\n" +
@@ -146,12 +143,6 @@ class PatchLineRenumberTest {
 
     @Test
     fun `multi-hunk patch translates each hunk and preserves intra-patch delta`() {
-        // Two hunks in user coords:
-        //   @@ -10,3 +10,5 @@  (mod, +2 net)
-        //   @@ -20,1 +22,1 @@  (mod, no net change; newStart=22 reflects prior +2)
-        // Zone: ADDED 5..7 (length 3) → drift -3 for everything past line 7.
-        // Hunk 1: oldStart 10 → 7, newStart 10 → 7
-        // Hunk 2: oldStart 20 → 17, newStart 22 → 19 (= 17 + (22-20))
         val patch =
             "diff --git a/Foo.java b/Foo.java\n" +
             "--- a/Foo.java\n" +
@@ -203,9 +194,6 @@ class PatchLineRenumberTest {
 
     @Test
     fun `pure insertion before zone uses direct translation`() {
-        // Zone 5..7. Insertion `@@ -4,0 +5,1 @@` — insert after user
-        // line 4 (just before zone). Direct translate(4) = 4, so synth
-        // header `@@ -4,0 +5,1 @@`.
         val patch =
             "diff --git a/Foo.java b/Foo.java\n" +
             "--- a/Foo.java\n" +

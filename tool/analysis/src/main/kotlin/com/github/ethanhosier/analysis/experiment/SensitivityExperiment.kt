@@ -16,72 +16,6 @@ import kotlin.io.path.extension
 import kotlin.io.path.nameWithoutExtension
 import kotlin.system.exitProcess
 
-/**
- * Phase-2.2 sensitivity sweep. For each Phase-A dump in `--corpus`,
- * assemble a baseline report at [ScoringConfig.PRODUCTION], then perturb
- * each individual weight in [ProcessScoreWeights] and [CleanlinessWeights]
- * by ×0.5 and ×1.5, reassemble, and compare the resulting
- * divergence-point ranking against the baseline using
- * [RankingMetrics.kendallTauB] and [RankingMetrics.topNHitRate].
- *
- * ## How to use
- *
- * ```
- * ./gradlew :analysis:sensitivity \
- *     --args="--corpus <dir-of-phaseA-jsons> --output <results.csv>"
- * ```
- *
- * `--corpus` is a directory containing one or more `*.json` files; each
- * is a serialised [PhaseAResult] (produced by `:phaseA`). Output is a
- * single CSV with header [HEADER]; one row per (fixture × weight ×
- * factor). 24 rows per fixture (12 weights × 2 factors). Phase B is
- * cheap, so on N fixtures the sweep takes ~24N × ~50ms — well under
- * 30s for the planned corpus.
- *
- * ## How to interpret
- *
- * Each row reports how much *one* weight perturbation reshapes the
- * detector's divergence-point output relative to production weights.
- *
- *  - `kendall_tau` ∈ [-1, 1]: full-ranking correlation. 1.0 = identical
- *    order; near 0 = uncorrelated; negative = inverted.
- *  - `top5_hit_rate` ∈ [0, 1]: fraction of the top-5 *distinct* step
- *    indices on the baseline that also appear in the perturbed top 5.
- *  - `baseline_size` / `perturbed_size`: total divergence-point counts.
- *    With the magnitude floor removed from `DivergencePointBuilder`,
- *    these are now driven purely by alt-synthesis success — drops in
- *    `perturbed_size` should be rare and indicate an alt that failed
- *    to synthesise under the perturbed weights (e.g. a knock-on through
- *    `wasPerformedByIde` classification). Use kendall_tau as the
- *    primary signal of "did the perturbation reshuffle the ranking?"
- *
- * Reading the headline: if τ stays ≈1.0 across all 24 perturbations,
- * the choice of weights is *robust* (a defence). If τ collapses for
- * some weights at one direction but not the other, that's evidence of
- * asymmetric sensitivity — discuss in the methodology chapter.
- *
- * ## Things to note
- *
- *  - There is no longer a magnitude floor in
- *    [com.github.ethanhosier.analysis.divergence.DivergencePointBuilder]
- *    (b03a7ba removed it). Every synthesised alt produces a DP — this
- *    sweep therefore measures pure rank perturbation, no threshold
- *    cliffs. Per-kind reporting downstream can apply a post-hoc
- *    magnitude threshold if needed.
- *  - HYGIENE COMMIT_GAP divergence points are emitted **without** any
- *    magnitude filter (the builder gates them on existence of a hygiene
- *    info entry only). They appear in every perturbation's ranking in
- *    the same position — so a corpus dominated by COMMIT_GAP sessions
- *    will produce artificially stable τ. Per-kind breakdown in
- *    aggregation is the honest read.
- *  - REWORK magnitude is reverted-line-count, **weight-independent**.
- *    REWORK points only fall out of the list on `lineCount < 2`, never
- *    on weight perturbation.
- *  - Each row is *one knob moved in isolation*. Interaction effects
- *    (e.g. simultaneously halving `gain` and doubling `broken`) are out
- *    of scope; covered by [AblationExperiment] for the cumulative-zero
- *    case.
- */
 object SensitivityExperiment {
 
     private val readJson = Json { ignoreUnknownKeys = true; isLenient = true }
@@ -204,11 +138,6 @@ object SensitivityExperiment {
         return out
     }
 
-    // Ties on magnitude (HYGIENE-COMMIT_GAP DPs all carry magnitude
-    // exactly W_cg by construction; saturated DPs all share the
-    // clamp-induced magnitude) are broken by ascending stepIndex so
-    // the ranking is a deterministic function of the report rather
-    // than relying on the stable-sort artefact of insertion order.
     private fun ranking(report: AnalysisReport): List<Int> =
         report.divergencePoints
             .sortedWith(
@@ -217,15 +146,6 @@ object SensitivityExperiment {
             )
             .map { it.stepIndex }
 
-    /**
-     * Number of divergence points whose terminal user- or alt-process
-     * score sits at the [0, 100] clamp boundary. A high count means τ
-     * understates true sensitivity — those DPs have weight-invariant
-     * magnitudes (clipping eats the perturbation), so the ranking can
-     * look stable when it shouldn't. A DP is counted as saturated if
-     * **any** of its referenced alts' terminal score OR the matching
-     * user-terminal score is at 0 or 100.
-     */
     private fun saturatedDpCount(report: AnalysisReport): Int {
         val userProcessBySha: Map<String, Int> = report.checkpoints
             .associate { it.sha to it.derivedMetrics.process.total }

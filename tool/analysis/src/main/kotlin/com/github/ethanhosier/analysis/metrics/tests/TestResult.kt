@@ -2,15 +2,6 @@ package com.github.ethanhosier.analysis.metrics.tests
 
 import kotlinx.serialization.Serializable
 
-/**
- * Result of running `./gradlew test` on a checkpoint's worktree, aggregated
- * across all JUnit XML reports.
- *
- * `success = false` covers every "tests did not all pass" case: a failing
- * assertion, an uncaught exception, a compilation failure before tests even
- * ran, a timeout. Errors mean the runner itself couldn't produce a verdict
- * and abort the run.
- */
 @Serializable
 data class TestResult(
     // true iff the test task exited 0 AND every testcase we parsed reported a pass.
@@ -27,9 +18,6 @@ data class TestResult(
     // Last N bytes of stderr — captures Gradle-level problems (compile errors,
     // dep resolution) that wouldn't show up in the JUnit XML at all.
     val stderrTail: String,
-    // True when we never invoked Gradle's `test` task — currently because the
-    // build task already failed, so tests would just re-hit the same compile
-    // error. `success = false` when skipped; [skipReason] carries the "why".
     val wasSkipped: Boolean = false,
     val skipReason: String? = null,
 ) {
@@ -51,11 +39,6 @@ data class TestResult(
     }
 }
 
-/**
- * One failed testcase. `type` distinguishes the JUnit XML element the failure
- * came from: `"failure"` = assertion failed (e.g. `AssertionError`),
- * `"error"` = uncaught exception.
- */
 @Serializable
 data class TestFailure(
     val className: String,

@@ -7,15 +7,6 @@ import javax.xml.XMLConstants
 import javax.xml.parsers.DocumentBuilderFactory
 import kotlin.io.path.extension
 
-/**
- * Parses Gradle's JUnit XML reports under `build/test-results/test/` and
- * aggregates totals + failure details. Uses JDK's built-in DOM parser — no
- * extra dependency.
- *
- * XML is treated as untrusted input (technically under our control, but
- * belt-and-braces): external entities and DOCTYPE are disabled to prevent
- * XXE regardless of what a build script might inject into the reports dir.
- */
 internal object JUnitXmlParser {
 
     private const val STACK_TRACE_TAIL_BYTES = 2_048

@@ -12,15 +12,6 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiMethod
 import com.intellij.refactoring.listeners.RefactoringEventData
 
-/**
- * Turns an IntelliJ refactoring's `(beforeData, afterData)` pair into the
- * list of [FileSnapshot]s that describe what actually happened to files on
- * disk. The semantics of the user-data keys vary per refactoring, so we
- * dispatch by `refactoringId`; unknown refactorings fall through to
- * [GenericDiffHandler] which conservatively marks everything MODIFIED.
- *
- * All handlers assume they are invoked under a read action.
- */
 fun interface RefactoringTypeHandler {
     fun snapshotsFor(
         project: Project,
@@ -29,12 +20,6 @@ fun interface RefactoringTypeHandler {
     ): List<FileSnapshot>
 }
 
-// Fallback for refactorings with no registered handler. Everything the
-// platform mentions in beforeData / afterData becomes MODIFIED — we refuse
-// to infer CREATED/DELETED here because USAGE_INFOS_KEY entries and
-// cross-file moves would trip the inference (usages pre-exist; a moved-to
-// target class file pre-exists). Specific handlers opt in to CREATED /
-// RENAMED / MOVED / DELETED where the semantics are known.
 private val GenericDiffHandler = RefactoringTypeHandler { _, before, after ->
     val out = LinkedHashMap<String, FileSnapshot>()
     val beforeFiles = filesFrom(before)
@@ -51,18 +36,6 @@ private val GenericDiffHandler = RefactoringTypeHandler { _, before, after ->
     out.values.toList()
 }
 
-// For extractSuper / extractInterface / extract.class, afterData.PSI_ELEMENT_KEY
-// authoritatively points at the newly-created class and beforeData.PSI_ELEMENT_KEY
-// at the source. Label the new file CREATED; everything else (usage sites etc.)
-// stays MODIFIED.
-// Extract Superclass / Extract Interface / Extract Class don't populate
-// USAGE_INFOS_KEY or PSI_ELEMENT_ARRAY_KEY with the pulled-up members — only
-// the two PsiClasses end up in event data. The pulled-up set is recoverable:
-// every method declared on the just-created target class IS a pulled-up
-// member. We attribute those signatures to both sides:
-//   - new superclass snapshot: (NewSuper, sig) for each declared method
-//   - source class snapshot:   (Source, sig) for each — same sigs, other side
-// This gives accurate per-method provenance without diffing beforeData.
 private val ExtractClassLikeHandler = RefactoringTypeHandler { _, before, after ->
     val beforeClass = primaryPsiClass(before)
     val afterClass = primaryPsiClass(after)
@@ -191,11 +164,6 @@ private fun renameOrMove(
     return out.values.toList()
 }
 
-/**
- * Per-file accumulator: the VirtualFile plus every PsiElement the refactoring
- * keys pointed at inside it. Handlers feed `elements` into [TouchedMemberResolver]
- * to derive `touchedMembers` for the emitted [FileSnapshot].
- */
 data class FileContributors(val vFile: VirtualFile, val elements: MutableList<PsiElement> = mutableListOf())
 
 private fun filesFrom(data: RefactoringEventData?): LinkedHashMap<String, FileContributors> {

@@ -9,11 +9,6 @@ import org.eclipse.jdt.core.refactoring.descriptors.RenameJavaElementDescriptor
 import org.eclipse.ltk.core.refactoring.RefactoringCore
 import org.eclipse.ltk.core.refactoring.RefactoringStatus
 
-/**
- * Rename package [oldPackage] → [newPackage] project-wide. Updates all
- * `package` / `import` statements, and moves source files to the new
- * directory on disk.
- */
 internal object RenamePackageOp {
 
     fun run(

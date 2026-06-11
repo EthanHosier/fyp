@@ -13,24 +13,6 @@ import org.eclipse.jdt.core.dom.Modifier
 import org.eclipse.jdt.core.dom.SingleVariableDeclaration
 import org.eclipse.jdt.core.dom.VariableDeclarationFragment
 
-/**
- * Resolves a stable scope identifier for a (file, line-number) pair by
- * parsing the file with JDT and finding the smallest enclosing member
- * declaration that contains the line.
- *
- * Scope-id formats:
- *  - Method: `<pkg>.<Type>#methodName(paramType,paramType,...)`
- *  - Field:  `<pkg>.<Type>::fieldName`
- *  - Static initializer: `<pkg>.<Type>#<clinit>`
- *  - Instance initializer: `<pkg>.<Type>#<init>`
- *  - Outside any member, or unparseable file: `<relativePath>#<file>`
- *
- * `relativePath` is used purely for the file-level fallback label.
- * `lineNumber` is 1-based, matching JDT and unified-diff convention.
- *
- * Comments and whitespace inside a method body still resolve to that
- * method — the member's source range spans braces inclusive.
- */
 object EnclosingScopeResolver {
 
     fun resolve(fileContent: String, relativePath: String, lineNumber: Int): String {

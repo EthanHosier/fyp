@@ -21,23 +21,6 @@ import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledFuture
 import java.util.concurrent.TimeUnit
 
-/**
- * Owns all debounce state for edit burst detection.
- *
- * Edits across **any** open document accumulate into one global burst
- * window — a single shared debounce timer is rescheduled on every
- * change, so a sequence of edits separated by less than [DEBOUNCE_MS]
- * (even if they touch different files) flushes as one EDIT_BURST event
- * with a `changedFiles` list containing every file that was touched in
- * the window. This is the right semantics for multi-file operations
- * like project-wide Find/Replace, IDE Rename across call sites, and
- * any human-driven sequence of related edits across files. Per-file
- * counters and content snapshots are still kept (in [accumulators]) so
- * the emitted event carries one [FileSnapshot] per touched file.
- *
- * Lifecycle is tied to the project: the scheduler is shut down cleanly
- * on dispose().
- */
 @Service(Service.Level.PROJECT)
 class EditBurstTracker(private val project: Project) : Disposable {
 
@@ -45,16 +28,8 @@ class EditBurstTracker(private val project: Project) : Disposable {
         Thread(r, "RefactoringTracer-EditDebounce").also { it.isDaemon = true }
     }
 
-    // Per-file content/region/touched-members snapshots. Keyed by VirtualFile URL
-    // for stable identity across renames. Multiple keys can be active at once if
-    // the user touches multiple files inside one burst window — every entry here
-    // becomes one FileSnapshot inside the next emitted EDIT_BURST.
     private val accumulators: ConcurrentHashMap<String, BurstAccumulator> = ConcurrentHashMap()
 
-    // One shared debounce timer. Rescheduled on every onDocumentChanged so the
-    // flush only fires after DEBOUNCE_MS of inactivity across *all* files. Mutated
-    // only under [futureLock] to keep cancel-and-reschedule atomic relative to
-    // flushAll().
     private val futureLock = Any()
     private var future: ScheduledFuture<*>? = null
 
@@ -71,9 +46,6 @@ class EditBurstTracker(private val project: Project) : Disposable {
         // Timestamp of the last edit to this file — used to derive the event timestamp
         // (max across files) so it reflects when the activity actually happened.
         var latestTimestamp: Long = System.currentTimeMillis(),
-        // Class/method members touched by any DocumentEvent in this burst. Resolved
-        // per-event because merging regionStart/regionEnd across events would falsely
-        // include members that sit between two actually-edited regions.
         val touchedMembers: LinkedHashSet<TouchedMember> = LinkedHashSet(),
     )
 
@@ -102,10 +74,6 @@ class EditBurstTracker(private val project: Project) : Disposable {
             acc
         }
 
-        // Reset the single shared debounce timer. Held under a lock so a concurrent
-        // flushAll() can't slip between cancel and schedule — that would leave the
-        // accumulator alive with no pending flush and lose the burst until the next
-        // edit.
         synchronized(futureLock) {
             future?.cancel(false)
             future = if (scheduler.isShutdown) {
@@ -120,9 +88,6 @@ class EditBurstTracker(private val project: Project) : Disposable {
         val accs: List<BurstAccumulator>
         synchronized(futureLock) {
             future = null
-            // Snapshot + clear together so a concurrent onDocumentChanged that arrives
-            // *after* we read can't lose its update — it'll see an empty map and
-            // start a fresh burst.
             accs = accumulators.values.toList()
             accumulators.clear()
         }
@@ -166,12 +131,6 @@ class EditBurstTracker(private val project: Project) : Disposable {
         )
     }
 
-    /**
-     * Synchronously flushes the pending burst (if any), cancelling the scheduled
-     * future first so the debounce timer can't race with the final flush. Called
-     * from SessionService.endSession so the last ~2 s of typing before a session
-     * ends is preserved instead of silently dropped.
-     */
     fun flushAllPending() {
         synchronized(futureLock) {
             future?.cancel(false)

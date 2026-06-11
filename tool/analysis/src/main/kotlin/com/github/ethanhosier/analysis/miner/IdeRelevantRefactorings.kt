@@ -1,18 +1,5 @@
 package com.github.ethanhosier.analysis.miner
 
-/**
- * Allowlist of RefactoringMiner detection types that correspond to a
- * first-class built-in IntelliJ refactoring action.
- *
- * Every `DetectedRefactoring.ideRelevant` is decided by membership in this
- * set. Matched against `RefactoringType.displayName` (e.g.
- * `"Extract Method"`) — stable strings in RM's public API.
- *
- * The set errs on the side of inclusion: anything a user could have
- * invoked via Refactor → … in IntelliJ is marked relevant. Types like
- * `Add Method Annotation` that are plain edits (no IDE refactoring action)
- * are left out.
- */
 object IdeRelevantRefactorings {
 
     private val names: Set<String> = setOf(

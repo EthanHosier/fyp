@@ -3,22 +3,7 @@ import { cva, type VariantProps } from "class-variance-authority"
 
 import { cn } from "@/lib/utils"
 
-/**
- * Single source of truth for dashboard typography. Variants bake in
- * family + size + weight + tracking; `tone` applies colour orthogonally.
- * Use in feature files instead of repeating `font-mono text-[10.5px] …`.
- *
- *  display      17 sans semibold — chart-toolbar title, detail-panel title
- *  heading      15 sans semibold — sub-section heading
- *  body         13 sans           — default prose / labels (matches body)
- *  bodySm       11.5 sans         — tooltip / denser prose
- *  caption      11 sans           — muted inline label
- *  eyebrow      10.5 mono upper   — section titles (RailSection uses this)
- *  mono         12 mono           — inline mono (filter chip, legend)
- *  monoStat     17 mono semibold  — big numeric readout (detail panel)
- *  monoCaption  10 mono           — unit suffix / micro label
- *  monoTiny     9.5 mono          — filmstrip timestamp
- */
+/** Single source of truth for dashboard typography. */
 const textStyles = cva("", {
   variants: {
     variant: {

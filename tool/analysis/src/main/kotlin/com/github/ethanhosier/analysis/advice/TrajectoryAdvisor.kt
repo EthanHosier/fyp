@@ -6,16 +6,6 @@ import com.github.ethanhosier.analysis.pipeline.AdviceSeverity
 import com.github.ethanhosier.analysis.pipeline.AnalysisReport
 import com.github.ethanhosier.analysis.pipeline.CheckpointReport
 
-/**
- * Trajectory-wide observations a senior engineer might call out after
- * watching a session play back. Each rule is a pure function over the
- * finished [AnalysisReport]; returns null when the pattern doesn't
- * apply. Results are emitted in registry order.
- *
- * Thresholds err on the loose side — we'd rather show three soft
- * observations than miss a real one. Numbers are baked into the body
- * strings so the frontend can stay a pure passthrough.
- */
 object TrajectoryAdvisor {
 
     fun advise(report: AnalysisReport): List<AdviceItem> =
@@ -104,16 +94,6 @@ object TrajectoryAdvisor {
         )
     }
 
-    /**
-     * Mirrors the `greenSinceLastCommit` counter in DerivedMetricsRunner
-     * so the advice rule fires on the same condition that drives the
-     * COMMIT_GAP divergence point and the score-formula commit-gap
-     * penalty: a contiguous run of green-refactor checkpoints (refactor
-     * step landed, build passing, tests passing-not-skipped) without a
-     * user commit landing within the run. Non-refactor and non-green
-     * checkpoints don't add to the counter; user-commit checkpoints
-     * close the run.
-     */
     private fun longestGreenRefactorRunBetweenCommits(report: AnalysisReport): Int {
         val refactorTouchedShas = report.refactoringSteps.map { it.toSha }.toSet()
         var longest = 0
@@ -135,9 +115,6 @@ object TrajectoryAdvisor {
         return longest
     }
 
-    // Matches ScoringConfig.minCommitGap default; the advice rule must
-    // not fire below this threshold or it diverges from the COMMIT_GAP
-    // divergence point and the score-formula commit-gap penalty.
     private const val MIN_COMMIT_GAP = 6
 
     private fun adviseRefactoringIntroducedSmells(report: AnalysisReport): AdviceItem? {

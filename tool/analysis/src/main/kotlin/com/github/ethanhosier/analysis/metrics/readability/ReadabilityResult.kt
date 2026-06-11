@@ -2,18 +2,6 @@ package com.github.ethanhosier.analysis.metrics.readability
 
 import kotlinx.serialization.Serializable
 
-/**
- * Readability signals for one checkpoint. Three parallel views:
- *  - [perFile] — whole-file text metrics (line length, blank/comment ratios,
- *    indentation) plus aggregated identifier stats.
- *  - [perClass] — identifier + size stats scoped to each class body.
- *  - [perMethod] — identifier + size stats scoped to each method body.
- *
- * Identifier stats cover declarations (variables, parameters, fields, plus the
- * member's own name where applicable). Reference sites are not counted — same
- * identifier at every call site would inflate the numbers without adding
- * signal.
- */
 @Serializable
 data class ReadabilityResult(
     val perFile: List<FileReadability>,
@@ -27,12 +15,6 @@ data class ReadabilityResult(
     }
 }
 
-/**
- * Checkpoint-level roll-up across every file / class / method. Raw aggregates
- * only — no composite "readability score". A proper model-based score
- * (Scalabrino / Buse-Weimer via readabilitySHARK) is a follow-up; exposing
- * the raw numbers lets downstream code plug in whatever weighting it wants.
- */
 @Serializable
 data class ReadabilitySummary(
     val fileCount: Int,
@@ -67,10 +49,6 @@ data class ReadabilitySummary(
     }
 }
 
-/**
- * Identifier-level aggregates for one scope. `count` is the number of
- * declared identifiers considered. All ratios return 0.0 when `count == 0`.
- */
 @Serializable
 data class IdentifierStats(
     val count: Int,

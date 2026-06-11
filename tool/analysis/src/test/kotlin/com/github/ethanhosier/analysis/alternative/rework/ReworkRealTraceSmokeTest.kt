@@ -6,15 +6,6 @@ import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable
 import java.io.File
 import java.nio.file.Files
 
-/**
- * Smoke test against a real shadow repo. Disabled by default; set
- * `REWORK_SMOKE_REPO=<path-to-shadow-repo>` to opt in. Prints findings
- * + planner outcomes; never asserts (it's an inspection tool).
- *
- * Example:
- *   REWORK_SMOKE_REPO=/Users/ethanhosier/IdeaProjects/exampleRefactoringProject/.refactoring-traces/cba51af4-d4fe-4e20-a916-d82c06596dae/shadow-repo \
- *   ./gradlew :analysis:test --tests "*ReworkRealTraceSmokeTest*"
- */
 @EnabledIfEnvironmentVariable(named = "REWORK_SMOKE_REPO", matches = ".+")
 class ReworkRealTraceSmokeTest {
 
@@ -98,11 +89,6 @@ class ReworkRealTraceSmokeTest {
             return
         }
 
-        // Build the user-trace SHA list the same way the first smoke
-        // test does — anchored at baseline, walking forward to the
-        // last EDIT_BURST. `--all --reverse` with timestamp ordering
-        // can interleave alt branches in subtle ways; this path is
-        // deterministic.
         val allCommits = ProcessBuilder("git", "log", "--all", "--format=%H %s")
             .directory(repo).redirectErrorStream(true).start()
             .inputStream.bufferedReader().readText().lines()
@@ -126,9 +112,6 @@ class ReworkRealTraceSmokeTest {
 
         val sessionFolder = Files.createTempDirectory("rework-smoke-session-").toFile()
         try {
-            // For each detected chunk pair, build StepInputs the same
-            // way the synthesiser does, then print original vs planned
-            // patches side-by-side so failure modes are inspectable.
             val shadowGit = com.github.ethanhosier.analysis.reconstruct.GitRunner(repo.toPath())
             val stepInputs = mutableListOf<ReworkDetector.StepInput>()
             for (k in 0 until shas.size - 1) {
@@ -175,11 +158,6 @@ class ReworkRealTraceSmokeTest {
             }
 
             println("\n========== byte-level diagnostic (pair 0) ==========")
-            // Apply pair-0's step 0 + step 1 planned patches in a temp
-            // worktree, then dump the file contents at the lines step 2
-            // wants to touch, with whitespace escaped. This tells us
-            // whether the planned step 2 hunks reference lines that
-            // actually exist in the synth tree as written.
             val diagPair = pairs.firstOrNull()
             if (diagPair != null) {
                 val diagPlan = ReworkAlternativeBuilder.plan(
@@ -220,17 +198,11 @@ class ReworkRealTraceSmokeTest {
                         Files.deleteIfExists(pf)
                     }
                     val planSteps = diagPlan?.steps.orEmpty()
-                    // Apply just step 0 and dump the file's full content
-                    // around the change to see where the inserted blank
-                    // actually landed.
                     val step0Plan = planSteps.first { it.stepIndex == diagPair.originatingStep }
                     applyAndCommit(step0Plan.stepIndex, step0Plan.patch)
                     val filePath0 = wt.resolve(diagPair.file)
                     val lines0 = Files.readAllLines(filePath0)
                     println("After step 0 only — file has ${lines0.size} lines.")
-                    // Find any line that differs from baseline indent of
-                    // surrounding context — easier: find lines whose
-                    // content is blank-ish.
                     for ((i, line) in lines0.withIndex()) {
                         if (line.isBlank() && line.length > 0) {
                             println("  blank-ish line at ${i + 1}: \"${line.replace(" ", "·")}\" (${line.length} chars)")

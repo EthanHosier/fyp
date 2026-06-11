@@ -11,17 +11,6 @@ import java.io.File
 import java.io.FileOutputStream
 import java.io.OutputStreamWriter
 
-/**
- * Handles all disk I/O for a session.
- *
- * Output layout:
- *   <projectDir>/.refactoring-traces/<sessionId>/
- *     ├── session.json    ← written on session end
- *     ├── events.jsonl    ← appended live (one JSON object per line, crash-safe)
- *     └── initial-src/    ← baseline source tree, written on session start
- *
- * Call [init] once after the session ID is known (from SessionService.startSession).
- */
 @Service(Service.Level.PROJECT)
 class StorageService {
 
@@ -52,11 +41,6 @@ class StorageService {
         thisLogger().info("RefactoringTracer: storage initialised at ${base.absolutePath}")
     }
 
-    /**
-     * If the project is a git repo, append `.refactoring-traces/` to `.gitignore` (creating the
-     * file if missing) so captured trace data doesn't sneak into commits via `git add .`.
-     * No-op for non-git projects.
-     */
     private fun ensureGitignoreEntry(projectRoot: File) {
         if (!File(projectRoot, ".git").exists()) return
         try {
@@ -71,7 +55,6 @@ class StorageService {
         }
     }
 
-    /** Appends a single event as one JSON line to events.jsonl. */
     fun flushEvent(event: TraceEvent) = synchronized(lock) {
         val writer = eventsWriter ?: return@synchronized
         try {
@@ -89,7 +72,6 @@ class StorageService {
         }
     }
 
-    /** Writes the full session summary. Called once on session end. */
     fun flushSession(session: Session) = synchronized(lock) {
         val dir = sessionDir ?: return@synchronized
         try {
@@ -103,15 +85,6 @@ class StorageService {
 
     fun getSessionDir(): File? = sessionDir
 
-    /**
-     * Writes raw bytes into the active session directory at [relativePath].
-     * Creates parent directories as needed. No-op if no session is active.
-     * Generic primitive used for ad-hoc session artifacts (e.g. source snapshots).
-     *
-     * [executable] preserves the POSIX +x bit — required for things like
-     * `gradlew` to survive the round-trip into the shadow repo and back out
-     * through a worktree, since git tracks file mode.
-     */
     fun writeSessionFile(relativePath: String, bytes: ByteArray, executable: Boolean = false) = synchronized(lock) {
         val dir = sessionDir ?: return@synchronized
         try {

@@ -12,21 +12,6 @@ import net.sourceforge.pmd.lang.java.rule.AbstractJavaRulechainRule
 import net.sourceforge.pmd.lang.rule.Rule
 import java.util.Collections
 
-/**
- * Walks class / method declarations and collects the identifier names
- * declared inside each scope. Follows the same rule-as-visitor pattern as
- * [com.github.ethanhosier.analysis.metrics.pmd.PmdMetricsCollectorRule].
- *
- * Collected names:
- *  - class scope: the class's simple name, all field names, all method
- *    names declared at this level.
- *  - method scope: the method's own name, parameter names, and local
- *    variable names.
- *
- * Reference sites (calls, field reads) are not counted — the goal is to
- * measure the *vocabulary a reader has to learn* per scope, which is the
- * set of declarations, not how often each name is used.
- */
 internal class ReadabilityCollectorRule : AbstractJavaRulechainRule(
     ASTTypeDeclaration::class.java,
     ASTExecutableDeclaration::class.java,
@@ -86,9 +71,6 @@ internal class ReadabilityCollectorRule : AbstractJavaRulechainRule(
     private fun collectType(node: ASTTypeDeclaration) {
         val identifiers = mutableListOf<String>()
         (node as? ASTClassDeclaration)?.simpleName?.let { identifiers += it }
-        // Direct-child fields (including multi-declarator forms) and method
-        // names declared at this class level. Nested classes' members are
-        // collected when their own ASTTypeDeclaration visit fires.
         node.children(ASTFieldDeclaration::class.java).forEach { field ->
             field.descendants(ASTVariableId::class.java).forEach { identifiers += it.name }
         }
@@ -97,9 +79,6 @@ internal class ReadabilityCollectorRule : AbstractJavaRulechainRule(
         sink.classes += CollectedClass(
             className = node.binaryName,
             file = fileOf(node),
-            // reportLocation / beginLine narrow to the class name token; map
-            // the node's full textRegion back through the document to get
-            // start/end lines covering the whole declaration including body.
             beginLine = span.startLine,
             endLine = span.endLine,
             identifiers = identifiers,

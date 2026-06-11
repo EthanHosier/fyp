@@ -1,4 +1,3 @@
-
 package com.github.ethanhosier.analysis.pipeline
 
 import com.github.ethanhosier.analysis.alternative.IdeRefactoringsRunner
@@ -23,29 +22,6 @@ import com.github.ethanhosier.analysis.refactoring.RefactoringClient
 import java.nio.file.Files
 import java.nio.file.Path
 
-/**
- * One-shot orchestration of the full analysis pipeline: load a session
- * folder, normalize its events, reconstruct a shadow git repo, mine
- * refactorings, synthesise IDE-driven alternative trajectories for any
- * manual multi-checkpoint refactorings, compute per-checkpoint metrics
- * (covering both the user's trace SHAs and the synthesised alt SHAs),
- * and produce an in-memory [AnalysisReport].
- *
- * The pipeline does **not** write the report to disk — callers decide.
- * The CLI writes it next to the inputs; the server returns it in the
- * HTTP response and discards the scratch directory.
- *
- * Side effect: as part of running, the reconstruct, alternative, and
- * metrics stages write `shadow-repo/`, `event-commits.json`,
- * `shadow-worktrees/`, `alternative-worktrees/`, and
- * `checkpoint-metrics/<sha>.json` into [sessionDir]. For CLI callers
- * these are intended artefacts; for server callers [sessionDir] should
- * be a temp directory that is cleaned up after [run] returns.
- *
- * [refactoringClient] drives the alternative-trajectory stage. It is
- * expected to live for the duration of the host process — boot it
- * once via `RefactoringClientFactory.create(...)` and inject it here.
- */
 class AnalysisPipeline(
     private val refactoringClient: RefactoringClient,
     private val parallelism: Int = defaultParallelism(),
@@ -83,13 +59,6 @@ class AnalysisPipeline(
         )
     }
 
-    /**
-     * Run only the expensive Phase A: load + reconstruct + mine +
-     * synthesise + metrics + diffs + tracking. Returns the frozen
-     * [PhaseAResult] without invoking [ReportAssembler]. Use this when
-     * you want to cache the heavy work and iterate on report assembly
-     * separately (Phase 1.3 CLI / tests).
-     */
     fun runPhaseA(sessionDir: Path): PhaseAResult =
         runPhaseAInternal(sessionDir).phaseA
 
@@ -141,10 +110,6 @@ class AnalysisPipeline(
             reorderTrajectories = reorderSynth.trajectories,
             augmentedAltMetricsBySha = altMetricsByShaMut,
             reworkSummary = reworkSummary,
-            // Side-table specs so `PhaseAResult` round-trips through JSON.
-            // `RefactoringStep.spec` is `@Transient` (the dashboard report
-            // doesn't carry typed specs), but Phase B assembly reads
-            // `step.spec` for divergence-point construction.
             specsByStepIndex = minedRefactorings.steps.mapNotNull { s ->
                 s.spec?.let { s.stepIndex to it }
             }.toMap(),
@@ -212,12 +177,6 @@ class AnalysisPipeline(
         reworkSummary: ReworkSynthesiser.Summary,
         automaticIdeRefactoringAlternatives: IdeRefactoringsRunner.Summary
     ): Triple<MutableMap<String, CheckpointMetrics>, List<CheckpointMetrics>, List<Pair<String, String>>> {
-        // Augment alt CheckpointMetrics with synthetic entries for kept
-        // reorder-ordering terminal SHAs. Terminals are AST-equivalent to
-        // windowToSha by construction (Slice 2b), so their metrics alias
-        // the user's windowToSha CheckpointMetrics — no rebuild. Pmd/Cpd
-        // tracking + DerivedMetricsRunner then have a CheckpointMetrics
-        // entry for every alt step SHA, terminals included.
         val userMetricsBySha = metricsSummary.checkpoints.associateBy { it.sha }
         val altMetricsByShaMut = metricsSummary.alternativeCheckpoints.associateBy { it.sha }.toMutableMap()
         for (traj in reorderSynth.trajectories) {
@@ -229,11 +188,6 @@ class AnalysisPipeline(
                 altMetricsByShaMut[terminalSha] = terminalAlias.copy(sha = terminalSha)
             }
         }
-        // No-op rework alts (user added then removed the same content,
-        // or vice versa, with no other code change) anchor their single
-        // "alt checkpoint" at the same SHA as the user's pre-rework
-        // state — no new commit, same tree. Alias the user's metrics
-        // for that SHA so altCheckpointFor can build a CheckpointReport.
         for (rw in reworkSummary.synthesised) {
             for (sha in rw.altShas) {
                 if (sha in altMetricsByShaMut) continue
@@ -243,11 +197,6 @@ class AnalysisPipeline(
         }
         val augmentedAltCheckpoints = altMetricsByShaMut.values.toList()
 
-        // Per-step alt pairs feed Diffs / Pmd / Cpd tracking for every
-        // applied alt step. Single-step alts contribute one pair; reorder
-        // orderings contribute N pairs (chained: each step's `from` is
-        // the previous step's altSha, except step 0 which anchors at
-        // windowFromSha).
         val singleAltPairs = mutableListOf<Pair<String, String>>()
         for (synth in automaticIdeRefactoringAlternatives.synthesised) {
             synth.altShas.forEachIndexed { i, sha ->
@@ -284,10 +233,6 @@ class AnalysisPipeline(
         sessionDir: Path
     ): Pair<MetricsRunner.Summary, Long> {
         val metricsStart = System.currentTimeMillis()
-        // Per-group SHA chain: each group contributes one entry per
-        // applied refactoring + an optional trailing residual SHA. The
-        // chain is parented sequentially so each SHA's `from` is the
-        // previous SHA in the same group (or `fromSha` for the first).
         val altShas = mutableListOf<String>()
         val altFromShas = mutableListOf<String>()
         for (synth in automaticIdeRefactoringAlternatives.synthesised) {
@@ -297,15 +242,6 @@ class AnalysisPipeline(
                 altFromShas += from
             }
         }
-        // Reorder intermediates piggy-back on the alt-shas bucket so
-        // MetricsRunner's existing dedup + sequential-walk path covers
-        // them. Terminal stepShas of successful orderings are excluded:
-        // they're AST-equivalent to windowToSha by construction (the
-        // synthesiser already filtered divergent terminals), so the
-        // user's windowToSha checkpoint metrics are reused for them at
-        // attach time — saves a build+test per ordering. Failed
-        // orderings (terminalSuccess=false) are skipped entirely per
-        // Slice 2b scope.
         val reorderIntermediateShas = mutableListOf<String>()
         val reorderIntermediateFromShas = mutableListOf<String>()
         for (traj in reorderSynth.trajectories) {
@@ -319,9 +255,6 @@ class AnalysisPipeline(
                 }
             }
         }
-        // Rework alt SHAs: same chain pattern as the IDE-driven alts —
-        // each step's parent is the previous step's altSha, except the
-        // first step which parents at the rework's fromSha.
         val reworkShas = mutableListOf<String>()
         val reworkFromShas = mutableListOf<String>()
         for (rw in reworkSummary.synthesised) {
@@ -354,11 +287,6 @@ class AnalysisPipeline(
         reconstruction: ReconstructionResult,
         sessionDir: Path
     ): ReworkSynthesiser.Summary {
-        // Rework alt synthesis: detect chunk-level rework (user added
-        // then removed the same content, or vice versa) and surgically
-        // replay the trajectory with the round-trip removed. Produces
-        // alt SHAs that feed into the same metrics + diff + tracking
-        // pipeline as the other alts.
         val reworkStart = System.currentTimeMillis()
         log("rework: starting")
         val reworkSummary = ReworkSynthesiser().run(reconstruction, sessionDir)
@@ -387,14 +315,6 @@ class AnalysisPipeline(
         sessionDir: Path,
         minedRefactorings: RefactoringMinerRunner.Summary,
     ): ReorderSynthesiser.Summary {
-        // Multi-step alt-trajectory synthesis: for each VALID
-        // reorder window, materialise every alt ordering as a chain
-        // of git commits in the shadow repo, with an ordered-prefix
-        // cache so orderings sharing a prefix re-use materialised
-        // commits. Replaces the previous inspection-only
-        // ReorderWindowLogger — same window-splitting + summary
-        // counts, plus the synthesis loop. See
-        // `tool/plans/PLAN-reorder-synthesis.md`.
         val validationsByIndex = validateMinedRefactorings(reconstruction, sessionDir, minedRefactorings)
         val reorderStart = System.currentTimeMillis()
         val reorderShadowGit = GitRunner(reconstruction.repoDir)
@@ -438,12 +358,6 @@ class AnalysisPipeline(
         sessionDir: Path,
         minedRefactorings: RefactoringMinerRunner.Summary
     ): Map<Int, RefactoringStepValidator.StepValidation> {
-        // Per-step ground-truth check before windowing: replay each
-        // typed spec from `fromSha` and compare the resulting AST to
-        // the user's `toSha`. Only steps that reproduce the user's
-        // end-state are eligible to participate in a reorder window;
-        // anything else (apply failed, AST diverged, untyped) becomes
-        // a window splitter. See `tool/plans/PLAN-step-validator.md`.
         val validatorStart = System.currentTimeMillis()
         val shadowGitForValidator = GitRunner(reconstruction.repoDir)
         val validatorPool = WorktreePool(
