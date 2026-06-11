@@ -10,7 +10,7 @@
 \contentsline {section}{\numberline {2.1}Definitions and framing}{9}{section.2.1}%
 \contentsline {subsection}{\numberline {2.1.1}Refactoring as behaviour-preserving transformation}{9}{subsection.2.1.1}%
 \contentsline {subsection}{\numberline {2.1.2}Atomic refactorings, smells, and sequences}{9}{subsection.2.1.2}%
-\contentsline {section}{\numberline {2.2}Outcome-based refactoring evaluation}{10}{section.2.2}%
+\contentsline {section}{\numberline {2.2}Endpoint-based evaluation and its limits}{10}{section.2.2}%
 \contentsline {subsection}{\numberline {2.2.1}Judging refactoring by the final state}{10}{subsection.2.2.1}%
 \contentsline {subsection}{\numberline {2.2.2}What endpoint evaluation captures, and what it misses}{10}{subsection.2.2.2}%
 \contentsline {section}{\numberline {2.3}Code smell detection and quality metrics}{11}{section.2.3}%
@@ -36,31 +36,31 @@
 \contentsline {section}{\numberline {3.2}Computing the process score}{18}{section.3.2}%
 \contentsline {subsection}{\numberline {3.2.1}The process score}{18}{subsection.3.2.1}%
 \contentsline {subsection}{\numberline {3.2.2}Process-score weights}{19}{subsection.3.2.2}%
-\contentsline {paragraph}{$W_{\textsc {g}}$ (gain, 50).}{19}{section*.9}%
-\contentsline {paragraph}{$W_{\textsc {b}}$ (broken, 28).}{19}{section*.10}%
+\contentsline {paragraph}{$W_{\textsc {g}}$ (gain, 50).}{20}{section*.9}%
+\contentsline {paragraph}{$W_{\textsc {b}}$ (broken, 28).}{20}{section*.10}%
 \contentsline {paragraph}{$W_{\textsc {st}}$ (skip-tests, 14).}{20}{section*.11}%
 \contentsline {paragraph}{$W_{\textsc {mi}}$ (manual-when-IDE, 11).}{20}{section*.12}%
-\contentsline {paragraph}{$W_{\textsc {l}}$ (length, 11).}{20}{section*.13}%
-\contentsline {paragraph}{$W_{\textsc {lag}}$ (lag, 11).}{20}{section*.14}%
+\contentsline {paragraph}{$W_{\textsc {l}}$ (length, 11).}{21}{section*.13}%
+\contentsline {paragraph}{$W_{\textsc {lag}}$ (lag, 11).}{21}{section*.14}%
 \contentsline {paragraph}{$W_{\textsc {cg}}$ (commit-gap, 7).}{21}{section*.15}%
-\contentsline {subsection}{\numberline {3.2.3}The cleanliness sub-score}{21}{subsection.3.2.3}%
-\contentsline {paragraph}{Composition rule and sub-weights.}{21}{section*.17}%
+\contentsline {subsection}{\numberline {3.2.3}The cleanliness sub-score}{22}{subsection.3.2.3}%
+\contentsline {paragraph}{Composition rule and sub-weights.}{22}{section*.17}%
 \contentsline {paragraph}{Caveats.}{22}{section*.18}%
-\contentsline {paragraph}{Coupling to the process score.}{22}{section*.19}%
+\contentsline {paragraph}{Coupling to the process score.}{23}{section*.19}%
 \contentsline {subsection}{\numberline {3.2.4}Event capture}{23}{subsection.3.2.4}%
 \contentsline {subsection}{\numberline {3.2.5}Shadow repo reconstruction and worktree pool}{23}{subsection.3.2.5}%
-\contentsline {subsection}{\numberline {3.2.6}Metrics calculation}{23}{subsection.3.2.6}%
+\contentsline {subsection}{\numberline {3.2.6}Metrics calculation}{24}{subsection.3.2.6}%
 \contentsline {section}{\numberline {3.3}Divergence points}{24}{section.3.3}%
-\contentsline {subsection}{\numberline {3.3.1}Applying refactorings via Eclipse JDT}{24}{subsection.3.3.1}%
+\contentsline {subsection}{\numberline {3.3.1}Applying refactorings via Eclipse JDT}{25}{subsection.3.3.1}%
 \contentsline {paragraph}{Batch sessions.}{25}{section*.20}%
 \contentsline {paragraph}{Anchor resolution.}{25}{section*.21}%
 \contentsline {subsection}{\numberline {3.3.2}Ordering}{25}{subsection.3.3.2}%
-\contentsline {paragraph}{Window splitting on validator verdicts.}{25}{section*.22}%
+\contentsline {paragraph}{Window splitting on validator verdicts.}{26}{section*.22}%
 \contentsline {paragraph}{Dependency-DAG construction.}{26}{section*.23}%
 \contentsline {paragraph}{SSA versioning across renames.}{26}{section*.24}%
 \contentsline {paragraph}{Topological enumeration.}{26}{section*.25}%
 \contentsline {paragraph}{Depth-first search over a prefix trie.}{26}{section*.26}%
-\contentsline {paragraph}{Terminal AST-equivalence audit.}{26}{section*.27}%
+\contentsline {paragraph}{Terminal AST-equivalence audit.}{27}{section*.27}%
 \contentsline {subsection}{\numberline {3.3.3}Manual-Refactor}{27}{subsection.3.3.3}%
 \contentsline {paragraph}{The wrap-and-patch layer.}{28}{section*.30}%
 \contentsline {subsection}{\numberline {3.3.4}Rework}{28}{subsection.3.3.4}%

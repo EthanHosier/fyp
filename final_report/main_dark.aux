@@ -57,8 +57,8 @@
 \citation{nikolaidis2024metricsbased}
 \citation{paixao2017balancing}
 \citation{industriallogic_critique}
-\@writefile{toc}{\contentsline {section}{\numberline {2.2}Outcome-based refactoring evaluation}{10}{section.2.2}\protected@file@percent }
-\newlabel{sec:outcome-eval}{{2.2}{10}{Outcome-based refactoring evaluation}{section.2.2}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {2.2}Endpoint-based evaluation and its limits}{10}{section.2.2}\protected@file@percent }
+\newlabel{sec:outcome-eval}{{2.2}{10}{Endpoint-based evaluation and its limits}{section.2.2}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {2.2.1}Judging refactoring by the final state}{10}{subsection.2.2.1}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {2.2.2}What endpoint evaluation captures, and what it misses}{10}{subsection.2.2.2}\protected@file@percent }
 \citation{fowler1999refactoring}
@@ -176,15 +176,13 @@
 \citation{dibiase2019decomposition}
 \citation{herzig2013tangled}
 \citation{kudrjavets2022small}
-\citation{cedrim2017refactoring}
-\citation{paixao2017balancing}
-\citation{paixao2017balancing}
 \@writefile{toc}{\contentsline {subsection}{\numberline {3.2.2}Process-score weights}{19}{subsection.3.2.2}\protected@file@percent }
 \newlabel{sec:methodology-weights}{{3.2.2}{19}{Process-score weights}{subsection.3.2.2}{}}
 \@writefile{lot}{\contentsline {table}{\numberline {3.2}{\ignorespaces Weights used in Equation~\eqref  {eq:process-score} and the literature supporting each term. The empirical contribution of each term is examined in the ablation analysis of \S  \ref {sec:results-ablation}.}}{19}{table.caption.8}\protected@file@percent }
 \newlabel{tab:methodology-weights}{{3.2}{19}{Weights used in Equation~\eqref {eq:process-score} and the literature supporting each term. The empirical contribution of each term is examined in the ablation analysis of \S \ref {sec:results-ablation}}{table.caption.8}{}}
-\@writefile{toc}{\contentsline {paragraph}{$W_{\textsc  {g}}$ (gain, 50).}{19}{section*.9}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{$W_{\textsc  {b}}$ (broken, 28).}{19}{section*.10}\protected@file@percent }
+\citation{cedrim2017refactoring}
+\citation{paixao2017balancing}
+\citation{paixao2017balancing}
 \citation{gautam2025refactorbench}
 \citation{murphyhill2009howrefactor}
 \citation{mens2004survey}
@@ -193,17 +191,20 @@
 \citation{harman2007pareto}
 \citation{mohan2019manyobjective}
 \citation{cortellessa2023manyobjective}
+\@writefile{toc}{\contentsline {paragraph}{$W_{\textsc  {g}}$ (gain, 50).}{20}{section*.9}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{$W_{\textsc  {b}}$ (broken, 28).}{20}{section*.10}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{$W_{\textsc  {st}}$ (skip-tests, 14).}{20}{section*.11}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{$W_{\textsc  {mi}}$ (manual-when-IDE, 11).}{20}{section*.12}\protected@file@percent }
 \citation{cunningham1992wycash}
 \citation{kruchten2012technicaldebt}
 \citation{cedrim2017refactoring}
-\@writefile{toc}{\contentsline {paragraph}{$W_{\textsc  {st}}$ (skip-tests, 14).}{20}{section*.11}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{$W_{\textsc  {mi}}$ (manual-when-IDE, 11).}{20}{section*.12}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{$W_{\textsc  {l}}$ (length, 11).}{20}{section*.13}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{$W_{\textsc  {lag}}$ (lag, 11).}{20}{section*.14}\protected@file@percent }
 \citation{taokim2015partitioning}
 \citation{dibiase2019decomposition}
 \citation{herzig2013tangled}
 \citation{kudrjavets2022small}
+\@writefile{toc}{\contentsline {paragraph}{$W_{\textsc  {l}}$ (length, 11).}{21}{section*.13}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{$W_{\textsc  {lag}}$ (lag, 11).}{21}{section*.14}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{$W_{\textsc  {cg}}$ (commit-gap, 7).}{21}{section*.15}\protected@file@percent }
 \citation{campbell2018cognitive}
 \citation{munozbaron2020cognitive}
 \citation{lavazza2023cognitive}
@@ -218,44 +219,43 @@
 \citation{wagner2015quamoco}
 \citation{bansiya2002qmood}
 \citation{coleman1994maintainability}
-\@writefile{toc}{\contentsline {paragraph}{$W_{\textsc  {cg}}$ (commit-gap, 7).}{21}{section*.15}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {3.2.3}The cleanliness sub-score}{21}{subsection.3.2.3}\protected@file@percent }
-\newlabel{sec:methodology-cleanliness}{{3.2.3}{21}{The cleanliness sub-score}{subsection.3.2.3}{}}
-\@writefile{toc}{\contentsline {paragraph}{Composition rule and sub-weights.}{21}{section*.17}\protected@file@percent }
 \citation{buse2010readability}
 \citation{munozbaron2020cognitive}
 \citation{lavazza2023cognitive}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.2.3}The cleanliness sub-score}{22}{subsection.3.2.3}\protected@file@percent }
+\newlabel{sec:methodology-cleanliness}{{3.2.3}{22}{The cleanliness sub-score}{subsection.3.2.3}{}}
 \@writefile{lot}{\contentsline {table}{\numberline {3.3}{\ignorespaces The six sub-signals used to compute the cleanliness sub-score $C(s)$. Each is given weight 1.0; the rationale for using equal weights is given in the composition rule below.}}{22}{table.caption.16}\protected@file@percent }
 \newlabel{tab:methodology-cleanliness}{{3.3}{22}{The six sub-signals used to compute the cleanliness sub-score $C(s)$. Each is given weight 1.0; the rationale for using equal weights is given in the composition rule below}{table.caption.16}{}}
+\@writefile{toc}{\contentsline {paragraph}{Composition rule and sub-weights.}{22}{section*.17}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{Caveats.}{22}{section*.18}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Coupling to the process score.}{22}{section*.19}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Coupling to the process score.}{23}{section*.19}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {3.2.4}Event capture}{23}{subsection.3.2.4}\protected@file@percent }
 \newlabel{sec:arch-events}{{3.2.4}{23}{Event capture}{subsection.3.2.4}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {3.2.5}Shadow repo reconstruction and worktree pool}{23}{subsection.3.2.5}\protected@file@percent }
 \newlabel{sec:arch-shadow}{{3.2.5}{23}{Shadow repo reconstruction and worktree pool}{subsection.3.2.5}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {3.2.6}Metrics calculation}{23}{subsection.3.2.6}\protected@file@percent }
-\newlabel{sec:arch-metrics}{{3.2.6}{23}{Metrics calculation}{subsection.3.2.6}{}}
 \citation{murphyhill2009howrefactor}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.2.6}Metrics calculation}{24}{subsection.3.2.6}\protected@file@percent }
+\newlabel{sec:arch-metrics}{{3.2.6}{24}{Metrics calculation}{subsection.3.2.6}{}}
 \@writefile{toc}{\contentsline {section}{\numberline {3.3}Divergence points}{24}{section.3.3}\protected@file@percent }
 \newlabel{sec:methodology-detector}{{3.3}{24}{Divergence points}{section.3.3}{}}
 \newlabel{sec:arch-synthesis}{{3.3}{24}{Divergence points}{section.3.3}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {3.3.1}Applying refactorings via Eclipse JDT}{24}{subsection.3.3.1}\protected@file@percent }
-\newlabel{sec:arch-jdt}{{3.3.1}{24}{Applying refactorings via Eclipse JDT}{subsection.3.3.1}{}}
 \citation{eclipse_jdt_faq}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.3.1}Applying refactorings via Eclipse JDT}{25}{subsection.3.3.1}\protected@file@percent }
+\newlabel{sec:arch-jdt}{{3.3.1}{25}{Applying refactorings via Eclipse JDT}{subsection.3.3.1}{}}
 \@writefile{toc}{\contentsline {paragraph}{Batch sessions.}{25}{section*.20}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{Anchor resolution.}{25}{section*.21}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {3.3.2}Ordering}{25}{subsection.3.3.2}\protected@file@percent }
 \newlabel{sec:methodology-detector-ordering}{{3.3.2}{25}{Ordering}{subsection.3.3.2}{}}
 \newlabel{sec:methodology-reorder}{{3.3.2}{25}{Ordering}{subsection.3.3.2}{}}
-\@writefile{toc}{\contentsline {paragraph}{Window splitting on validator verdicts.}{25}{section*.22}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Window splitting on validator verdicts.}{26}{section*.22}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{Dependency-DAG construction.}{26}{section*.23}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{SSA versioning across renames.}{26}{section*.24}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{Topological enumeration.}{26}{section*.25}\protected@file@percent }
 \newlabel{sec:arch-reorder-engine}{{3.3.2}{26}{Depth-first search over a prefix trie}{section*.26}{}}
 \@writefile{toc}{\contentsline {paragraph}{Depth-first search over a prefix trie.}{26}{section*.26}\protected@file@percent }
-\newlabel{sec:methodology-canonical-audit}{{3.3.2}{26}{Terminal AST-equivalence audit}{section*.27}{}}
-\@writefile{toc}{\contentsline {paragraph}{Terminal AST-equivalence audit.}{26}{section*.27}\protected@file@percent }
 \citation{alikhanifard2025rminer}
+\newlabel{sec:methodology-canonical-audit}{{3.3.2}{27}{Terminal AST-equivalence audit}{section*.27}{}}
+\@writefile{toc}{\contentsline {paragraph}{Terminal AST-equivalence audit.}{27}{section*.27}\protected@file@percent }
 \@writefile{lof}{\contentsline {figure}{\numberline {3.1}{\ignorespaces Reorder synthesis for a three-step window with one dependency edge ($A \to B$). The dependency graph on the left permits three valid orderings. The prefix trie on the right shows how shared prefixes are reused: the prefix $A$ is applied once, then reused by both orderings that begin with $A$.}}{27}{figure.caption.28}\protected@file@percent }
 \newlabel{fig:methodology-reorder-trie}{{3.1}{27}{Reorder synthesis for a three-step window with one dependency edge ($A \to B$). The dependency graph on the left permits three valid orderings. The prefix trie on the right shows how shared prefixes are reused: the prefix $A$ is applied once, then reused by both orderings that begin with $A$}{figure.caption.28}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {3.3.3}Manual-Refactor}{27}{subsection.3.3.3}\protected@file@percent }
