@@ -100,12 +100,12 @@
 \contentsline {section}{\numberline {4.2}Testing the divergence-point detector}{43}{section.4.2}%
 \contentsline {subsection}{\numberline {4.2.1}Inter-rater reliability}{43}{subsection.4.2.1}%
 \contentsline {subsection}{\numberline {4.2.2}Divergence experiment}{43}{subsection.4.2.2}%
-\contentsline {paragraph}{Precision and recall.}{44}{section*.55}%
+\contentsline {paragraph}{Precision and recall.}{43}{section*.55}%
 \contentsline {paragraph}{Detection quality.}{44}{section*.57}%
-\contentsline {paragraph}{Negative Ordering magnitudes.}{45}{section*.59}%
+\contentsline {paragraph}{Negative Ordering magnitudes.}{44}{section*.59}%
 \contentsline {paragraph}{Injection prominence.}{45}{section*.60}%
 \contentsline {paragraph}{Caveats.}{45}{section*.62}%
-\contentsline {subsection}{\numberline {4.2.3}Known limitation: ordering recall}{46}{subsection.4.2.3}%
+\contentsline {subsection}{\numberline {4.2.3}Known limitation: ordering recall}{45}{subsection.4.2.3}%
 \contentsline {section}{\numberline {4.3}User and agent studies}{46}{section.4.3}%
 \contentsline {subsection}{\numberline {4.3.1}User study}{46}{subsection.4.3.1}%
 \contentsline {paragraph}{Descriptive findings on the participants' sessions.}{47}{section*.63}%
@@ -115,31 +115,32 @@
 \contentsline {paragraph}{Per-step inspection as a usability win.}{50}{section*.70}%
 \contentsline {subsection}{\numberline {4.3.2}Agent extension experiment}{50}{subsection.4.3.2}%
 \contentsline {paragraph}{Framing.}{50}{section*.71}%
-\contentsline {paragraph}{Setup.}{51}{section*.72}%
+\contentsline {paragraph}{Setup.}{50}{section*.72}%
 \contentsline {paragraph}{Agent-level results.}{51}{section*.73}%
 \contentsline {paragraph}{Feedback vs no-feedback group.}{51}{section*.75}%
 \contentsline {paragraph}{Cross-agent effects.}{52}{section*.76}%
 \contentsline {paragraph}{Limits of applying the detector to agents.}{52}{section*.77}%
-\contentsline {paragraph}{Agents articulate adjustments in writing, but the score does not reflect them.}{53}{section*.78}%
+\contentsline {paragraph}{Agents articulate adjustments in writing, but the score does not reflect them.}{52}{section*.78}%
 \contentsline {section}{\numberline {4.4}Summary}{53}{section.4.4}%
-\contentsline {chapter}{\numberline {5}Discussion}{55}{chapter.5}%
-\contentsline {section}{\numberline {5.1}Summary of contributions}{55}{section.5.1}%
-\contentsline {section}{\numberline {5.2}Limitations}{55}{section.5.2}%
-\contentsline {subsection}{\numberline {5.2.1}Construct and weight calibration}{55}{subsection.5.2.1}%
+\contentsline {chapter}{\numberline {5}Discussion}{54}{chapter.5}%
+\contentsline {section}{\numberline {5.1}Signs of promise}{54}{section.5.1}%
+\contentsline {section}{\numberline {5.2}Summary of contributions}{54}{section.5.2}%
+\contentsline {section}{\numberline {5.3}Limitations}{55}{section.5.3}%
+\contentsline {subsection}{\numberline {5.3.1}Construct and weight calibration}{55}{subsection.5.3.1}%
 \contentsline {paragraph}{There is no external ground truth for ``refactoring quality''.}{55}{section*.79}%
-\contentsline {paragraph}{The weights are plausible, but not uniquely calibrated.}{56}{section*.80}%
-\contentsline {paragraph}{Agreement was checked on kinds, not ranking.}{56}{section*.81}%
-\contentsline {subsection}{\numberline {5.2.2}Study design and statistical power}{56}{subsection.5.2.2}%
+\contentsline {paragraph}{The weights are plausible, but not uniquely calibrated.}{55}{section*.80}%
+\contentsline {paragraph}{Agreement was checked on kinds, not ranking.}{55}{section*.81}%
+\contentsline {subsection}{\numberline {5.3.2}Study design and statistical power}{56}{subsection.5.3.2}%
 \contentsline {paragraph}{The user study is randomised, but too small for hypothesis testing.}{56}{section*.82}%
 \contentsline {paragraph}{The author is one of three raters.}{56}{section*.83}%
-\contentsline {subsection}{\numberline {5.2.3}Generalisation and implementation scope}{56}{subsection.5.2.3}%
+\contentsline {subsection}{\numberline {5.3.3}Generalisation and implementation scope}{56}{subsection.5.3.3}%
 \contentsline {paragraph}{The injection sessions are controlled exercises.}{56}{section*.84}%
-\contentsline {paragraph}{\texttt {SuboptimalOrdering} is based on the playbook author's judgement.}{57}{section*.85}%
-\contentsline {paragraph}{The agent extension is a feasibility experiment, not an agent evaluation.}{57}{section*.86}%
-\contentsline {paragraph}{The reorder enumerator has a hard size budget.}{57}{section*.87}%
-\contentsline {section}{\numberline {5.3}Headline findings}{57}{section.5.3}%
-\contentsline {section}{\numberline {5.4}Future work}{58}{section.5.4}%
-\contentsline {section}{\numberline {5.5}Closing}{58}{section.5.5}%
+\contentsline {paragraph}{\texttt {SuboptimalOrdering} is based on the playbook author's judgement.}{56}{section*.85}%
+\contentsline {paragraph}{The agent extension is a feasibility experiment, not an agent evaluation.}{56}{section*.86}%
+\contentsline {paragraph}{The reorder enumerator has a hard size budget.}{56}{section*.87}%
+\contentsline {section}{\numberline {5.4}Headline findings}{57}{section.5.4}%
+\contentsline {section}{\numberline {5.5}Future work}{57}{section.5.5}%
+\contentsline {section}{\numberline {5.6}Closing}{58}{section.5.6}%
 \contentsline {chapter}{\numberline {6}Declarations}{59}{chapter.6}%
 \contentsline {section}{\numberline {6.1}Use of Generative AI}{59}{section.6.1}%
 \contentsline {section}{\numberline {6.2}Ethical Considerations}{60}{section.6.2}%
