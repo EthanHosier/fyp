@@ -1,3 +1,8 @@
+```shell
+cd /Users/ethanhosier/Desktop/random/fyp/tool/dashboard
+REFDASH_REPORT=/Users/ethanhosier/Desktop/random/fyp/presentation/backup-demo-session/analysis-report.json
+```
+
 Block 1 (lines 11–34) → String validate(customer, items)
 The whole validation chunk ends with a single String error local. Select it, Extract Method, signature becomes:
 String error = validate(customer, items);
