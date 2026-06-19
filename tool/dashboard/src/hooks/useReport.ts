@@ -5,6 +5,19 @@ import reportData from "./analysis-report.json"
 
 const USE_HARDCODED_REPORT = false
 
+// Presentation branch: hide divergence points and alternative trajectories
+// that come from step reorderings — they distract from the demo narrative.
+function stripReorderingArtifacts(r: AnalysisReport | null): AnalysisReport | null {
+  if (r == null) return r
+  return {
+    ...r,
+    divergencePoints: r.divergencePoints?.filter((dp) => dp.kind !== "ORDERING"),
+    alternativeTrajectories: r.alternativeTrajectories?.filter(
+      (alt) => alt.kind !== "ORDERING",
+    ),
+  }
+}
+
 // Injected by vite.config.ts: true when the dev server was started with
 // `--report=/path/to/analysis-report.json`. In that case useReport
 // fetches /__dev_report.json (served by the dev middleware) and
@@ -69,5 +82,7 @@ export function useReport(): AnalysisReport | null {
     }
   }, [report])
 
-  return USE_HARDCODED_REPORT ? (reportData as AnalysisReport) : report
+  return stripReorderingArtifacts(
+    USE_HARDCODED_REPORT ? (reportData as AnalysisReport) : report,
+  )
 }

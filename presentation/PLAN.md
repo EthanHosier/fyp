@@ -19,12 +19,15 @@ Target total runtime: **~17 min** (1 min buffer per Imperial advice).
 | Section | Time | Slides |
 |---|---|---|
 | Opening / problem framing | ~2.5 min | 1–3 |
-| Solution overview | ~1.5 min | 4–5 |
-| Methodology (process score + divergences) | ~5.5 min | 6–13 |
-| Evaluation setup + headline results | ~3 min | 14–17 |
-| Demo (live dashboard, fixture session) | ~4 min | 18 (transition) |
-| Closing: contributions + impact | ~1 min | 19–20 |
-| **Total** | **~17 min** | |
+| Design space + solution shape | ~2 min | 4–5 |
+| Demo part 1 (kick off live recording) | ~1 min | 6 |
+| Architecture + Methodology | ~6 min | 7–15 |
+| Demo part 2 (live results + prepared alternative) | ~3 min | 16 |
+| Evaluation setup + headline results | ~3:15 min | 17–20 |
+| Closing: contributions + impact | ~1 min | 21–22 |
+| **Total** | **~18:15 min** | |
+
+The demo is **split into two halves**. At Slide 6 the live recording is started in IntelliJ (a short refactoring on a prepared fixture project). The analysis pipeline runs in the background while the audience watches the architecture + methodology slides. By the time we reach Slide 16, the report is ready: walk through the divergence points the tool found, then show a higher-scoring alternative prepared earlier as a backup.
 
 Demo is deliberately short. The slides carry the "how it works" and "why it matters" weight; the demo's only job is to make one concrete divergence + alternative tangible for the audience.
 
@@ -51,25 +54,50 @@ Demo is deliberately short. The slides carry the "how it works" and "why it matt
 - Gap: **no system scores an arbitrary observed refactoring session against an explicit process-quality metric, and shows where a better path was available.**
 - This is the gap the project fills.
 
-### Section 2 — Solution Overview (Slides 4–5, ~1.5 min)
+### Section 2 — Design space + solution shape (Slides 4–5, ~2 min)
 
-**Slide 4 — The core idea, visualised (~45s)**
-- Use the divergence diagram from `introduction/divergence_diagram.png`.
-- Solid line: user's trajectory. Dashed line: synthesised alternative. Both end at the same final state.
-- Mark the divergence point and the score gap ΔJ between final scores.
-- This single picture should communicate the whole thesis to a non-expert.
+**Slide 4 — Narrowing the design space (~50s)**
+- Opening line: *"Evaluating refactoring as a process is a wide, mostly-unexplored design space. Four requirements shaped what we built."*
+- Four design requirements, each with a one-clause prior-work nod where the report supports it:
+  - **Quantifiable + comparable score** — one number J(τ) per trajectory so sessions sit on a common scale. Builds on composite quality models (Quamoco, QMOOD), adapted from snapshot- to trajectory-level.
+  - **Seamless, in-workflow capture** — passive IDE plugin; zero developer effort during the session. IDE-event logging is a known-feasible approach (Damevski et al., CodeWatcher).
+  - **Actionable, moment-specific feedback** — point to a specific moment AND a concrete better alternative. *Inverts* prior refactoring recommenders (ReSynth, Refactoring Navigator, search-based refactoring): they output sequences as guidance; here, the synthesised sequence is the *comparison point* against an observed trace.
+  - **Efficient alternative synthesis** — the state-action space over a real codebase is too large to enumerate, so we decompose by *kind* of divergence: four targeted synthesisers, not one global search.
+- Closing line (looks forward): *"These four requirements fix the shape of the tool — the desired output (next slide), the score formula (Slide 8), the four divergence kinds (Slides 10–14), and what's out of scope (live recommendations, multi-developer collaboration, review-time feedback)."*
 
-**Slide 5 — What the tool does, end to end (~45s)**
+**Slide 5 — Desired outcome: a comparable counterfactual (~45s)**
+- Reframes the divergence diagram as the *concrete output* the four requirements pin down, not just a concept picture.
+- *"Given those four requirements, the concrete thing we wanted the tool to produce, for any recorded session:"*
+- Solid line: user's actual trajectory through code states.
+- Dashed line: synthesised alternative — same start, same finish, measurably higher J(τ).
+- Divergence point marks where the two paths split; ΔJ quantifies the gap.
+- Figure: `presentation/images/divergence-point.png` (embedded; the line chart from `fig:divergence` in the report intro).
+
+### Section 3 — Demo, part 1: live capture (Slide 6, ~1 min)
+
+This is the **opening half of the demo**. While the audience is still warm, switch to IntelliJ, start a recording, and do a short refactoring on a prepared fixture project (e.g. extract method + rename + 1–2 manual edits). The plugin keeps recording in the background while we move on to slides 7–15; the analysis pipeline should be ready by the time we reach Slide 16.
+
+**Slide 6 — Demo (part 1): live capture (~1 min)**
+- Centered title slide. Tagline: *"I'll start a short live refactoring session. The tool will analyse it in the background while we walk through the methodology."*
+- Live moves (rehearsed in advance):
+  1. Switch to IntelliJ sandbox.
+  2. Click "Start Session" in the Refactoring Tracer tool window.
+  3. Perform 2–3 small refactorings (~30–60s of activity).
+  4. Click "End Session" — the plugin uploads the event log to the analysis server.
+  5. Switch back to slides and keep talking. Analysis runs in the background.
+- **Backup if the live capture stalls:** advance to Slide 7 and use a pre-recorded fixture session at Slide 16 instead. Have its `analysis-report.json` pre-loaded in the dashboard.
+
+### Section 4 — Architecture + Methodology (Slides 7–15, ~6 min)
+
+**Slide 7 — What the tool does, end to end (~45s)**
 - IntelliJ plugin records every edit, refactoring, build, test, commit during a session.
-- Analysis backend reconstructs the trajectory, scores it, and looks for divergence points.
+- Analysis backend reconstructs the trajectory, scores it, and detects divergence points.
 - Dashboard surfaces: *"here is where you diverged, here is an alternative path, here is how much better it scores, and here is why."*
-- One-line architecture diagram (plugin → analysis → dashboard).
-
-### Section 3 — Methodology (Slides 6–13, ~5.5 min)
+- Three-stage architecture diagram with per-component sub-stages and data hand-offs (plugin → analysis → dashboard).
 
 The methodology block deliberately spends time per-divergence-kind. Each kind gets its own slide covering both what it is *and* the engineering behind detection + synthesis, to showcase the algorithmic depth on each.
 
-**Slide 6 — Scoring a trajectory (~1 min)**
+**Slide 8 — Scoring a trajectory (~1 min)**
 - Process score J(τ) on 0–100 scale, baseline 50.
 - Seven weighted terms grouped into three buckets:
   - **Positive:** cleanliness gain (W_g=50), step-savings bonus (W_l=11)
@@ -78,124 +106,115 @@ The methodology block deliberately spends time per-divergence-kind. Each kind ge
 - Key design choice: broken-state penalty is sized so **no single-step gain can outweigh a broken build** — behaviour preservation is non-negotiable.
 - (Optionally show the equation; don't dwell on it.)
 
-**Slide 7 — The cleanliness sub-score (~30s)**
+**Slide 9 — The cleanliness sub-score (~30s)**
 - Six equally-weighted code-quality signals: cognitive complexity, coupling (CBO), duplication (CPD), readability, smells (PMD), cohesion (TCC).
 - Normalised against the trajectory's own range so sessions are comparable.
 - Equal weights: no trajectory-level calibration data exists, so the least-assumptive choice. *(Trim to ~30s — this is a supporting detail.)*
 
-**Slide 8 — Four kinds of divergence (overview) (~20s)**
-- A roadmap slide: name the four kinds, one line each, no engineering yet.
-  1. **Ordering** — right refactorings, suboptimal order.
-  2. **Manual-Refactor** — hand-edited what the IDE could do safely.
-  3. **Rework** — added code then removed it (or vice versa); net-zero churn.
-  4. **Hygiene** — long stretches without tests or commits.
-- One sentence: *each is actionable, and each has its own detector + synthesiser, which the next four slides walk through.*
-- Keep this slide on screen briefly — it primes the audience for what's coming.
+**Slide 10 — Four kinds of divergence (overview) (~25s)**
+- Opening line: *"Four categories of process waste — each fitting the four requirements from Slide 4: detectable from the event stream, actionable for the developer, synthesisable as a concrete alternative."*
+  1. **Ordering** — right refactorings, wrong sequence.
+  2. **Manual-Refactor** — wrong tool (hand-edit when the IDE could safely have done it).
+  3. **Rework** — wrong churn (added then removed).
+  4. **Hygiene** — missing safety checkpoints (no tests, no commits).
+- One sentence: *each kind gets its own slide next, covering both the detection and the synthesis algorithm.*
+- Honest framing note: the report presents the four kinds as a chosen taxonomy, not as deductively-derived. Don't claim "derived"; claim "fitting".
 
-**Slide 9 — Ordering: detect + synthesise (~45s)**
+**Slide 11 — Ordering: detect + synthesise (~45s)**
 - **What:** developer applied the right refactorings, but in a suboptimal order — final state is fine, intermediate states are worse than they needed to be.
 - **Detect:** find a subsequence of refactorings whose reordering preserves the terminal state (matched by canonical AST hash, formatting/comments ignored).
 - **Synthesise:** build a dependency DAG over the refactorings in the window; **prefix-trie DFS** over valid topological orderings, sharing work across common prefixes; roll back with `git checkout` on backtrack.
-- **Scope limit (named honestly):** skip windows > 7 steps (5040-permutation cap). This is also the source of the Ordering recall gap on slide 15.
+- **Scope limit (named honestly):** skip windows > 7 steps (5040-permutation cap). This is also the source of the Ordering recall gap on slide 18.
 - Use figure `methodology-reorder-trie` if it reads at slide size.
 
-**Slide 10 — Manual-Refactor: detect + synthesise (~45s)**
+**Slide 12 — Manual-Refactor: detect + synthesise (~45s)**
 - **What:** developer hand-edited something the IDE could have done safely (and with its precondition checks).
 - **Detect:** run **RefactoringMiner** on sliding commit windows; cross-check against the IDE event stream — anything RefactoringMiner finds that the IDE did *not* emit is a manual refactoring.
 - **Synthesise:** apply the equivalent IDE refactoring, then **three-way merge** the user's other edits back on top.
 - **Wrap-and-patch layer:** reconciles minor JDT ↔ IntelliJ AST differences (e.g. static modifiers, variable liveness) so the synthesised path validates against the user's terminal state.
 
-**Slide 11 — Rework: detect + synthesise (~40s)**
+**Slide 13 — Rework: detect + synthesise (~40s)**
 - **What:** code added and later removed (or vice versa) — net-zero churn, but real cost while it was there.
 - **Detect:** hash normalised lines; pair add/remove events by `(file, scope, content-hash)`.
 - **Synthesise:** strip both halves from the trajectory; replay the rest of the user's edits unchanged; validate terminal state matches.
 - Simplest of the four synthesisers, but high recall: precision and recall both 1.00 on the injection set.
 
-**Slide 12 — Hygiene: detect + synthesise (~40s)**
+**Slide 14 — Hygiene: detect + synthesise (~40s)**
 - **What:** long stretches of work without safety checkpoints — no test runs, no commits.
 - **Detect:** 60-second windows with no test-run events; commit-gap events when commits are spaced beyond threshold.
 - **Synthesise:** model an alternative cadence that intersperses test-run and commit events at the right points; the alternative's J(τ) credits those checkpoints via the skip-tests and commit-gap terms.
 - Cheap to compute, but consistently surfaces meaningful divergences in the user study.
 
-**Slide 13 — Comparable divergence magnitudes (~45s)**
+**Slide 15 — Comparable divergence magnitudes (~45s)**
 - Magnitude = J(τ*_final) − J(τ_final): score gap when the alternative is substituted at the divergence point but the rest of the user's trajectory is left unchanged.
 - This makes magnitudes comparable across all four divergence kinds.
-- Lets the dashboard rank divergence points and surface the most impactful first.
+- Lets the dashboard surface each divergence point alongside its score impact, so the highest-impact moments are easy to spot in the session summary.
 - This is the number the demo will point at.
 
-### Section 4 — Evaluation (Slides 14–17, ~3 min)
+### Section 5 — Demo, part 2: results (Slide 16, ~3 min)
 
-**Slide 14 — Three datasets (~30s)**
-- 45 hand-recorded **injection sessions** with deliberately-injected bad behaviours (labelled ground truth).
-- 30-session **randomised user study**, 5 participants, 3 with-feedback vs 2 no-feedback baseline.
-- 48-session **agent extension** across 8 LLM agent stacks. *(Mention only — frame as motivation for future work.)*
+This is the **payoff half of the demo**. The live session captured on Slide 6 has been analysed by the backend during the methodology slides. We now open the dashboard, look at what the tool flagged in that live session, then contrast it against a higher-scoring alternative prepared earlier.
 
-**Slide 15 — Detector precision & recall (~1 min)**
+**Slide 16 — Demo (part 2): results (~3 min)**
+- Centered title slide. Tagline: *"Now the live session has been analysed: walk through the divergence points the tool found, then show a higher-scoring alternative I prepared earlier."*
+
+**Demo script (~3 min):**
+
+1. **(~30s) Switch to the dashboard.** The analysis of the Slide-6 live session should now be ready. *"This is the session I started a few minutes ago. The plugin uploaded the event stream when I clicked End Session; the analysis backend reconstructed the trajectory, scored it, and looked for divergence points while we talked through the methodology."*
+
+2. **(~45s) Orient + walk through the live results.** Point at the trajectory chart for the live session. Highlight 1–2 divergence points the tool found. *"For instance, here the tool flagged a [Manual-Refactor / Rework / Hygiene] divergence at this step — magnitude X.X."* Click into one and show what the alternative would have been.
+
+3. **(~1 min) Show the pre-prepared higher-scoring alternative.** Switch to a second pre-loaded session (run by you earlier, doing roughly the same refactoring task but cleanly — IDE refactorings throughout, tests run, commits at sensible points). *"Same starting code, same final state. Look at the score gap — this version scores Y points higher because the broken-state penalty is gone and the manual-when-IDE penalty drops to zero."*
+
+4. **(~30s) Land the close.** *"So that's the loop: record naturally, get back specific moments where there was a measurably better alternative — with the alternative made concrete and the score gap explained."*
+
+**Demo robustness — must do before the day:**
+- Pre-rehearse the live Slide-6 refactoring on the actual demo project so it consistently triggers at least one divergence point. Aim for a session with an obvious manual-refactor or rework that the tool will catch.
+- Boot the analysis backend and Vite dashboard **before** the talk (`./gradlew runPluginAndServers` in `tool/`, or just the analysis server + dashboard separately). Verify both are reachable.
+- Verify ports 8080 (analysis) and 5173 (dashboard) are free.
+- Have a **pre-recorded fixture session** loaded in a separate dashboard tab as a backup — if the live capture stalls or analysis fails, switch tabs and use the fixture for Slide 16.
+- The pre-prepared "higher-scoring alternative" session must be already analysed and pre-loaded — there's no time on stage to run it.
+- Have a static-screenshot fallback queued in case the dashboard fails to render at all.
+
+### Section 6 — Evaluation (Slides 17–20, ~3:15 min)
+
+**Slide 17 — What we wanted to evaluate (~45s)**
+- Frames the next three slides around three concrete questions, each tied to its dataset + experiment. Replaces the bare "three datasets" enumeration.
+- Each bullet: **bold question** + grey "answered by" clause with forward-reference to the slide where the answer lives.
+  - **Is the tool accurate? Does it detect real divergences without false positives?** *45 labelled injection sessions, with deliberately-introduced bad behaviours, scored against per-kind precision and recall (Slide 18).*
+  - **Is the process score reliable? Does the ranking hold up when the weights are perturbed?** *Injection set + user-study rankable subset, used for the sensitivity sweep and ablation study (Slide 19).*
+  - **Does the tool change developer behaviour? Fewer divergences over time when feedback is shown?** *30-session randomised user study, plus a 48-session agent extension as motivation for future work (Slide 20).*
+- Visual pattern matches Slide 4 (bold main + grey reference) for consistency.
+
+**Slide 18 — Detector precision & recall (~1 min)**
 - Per-kind table from results chapter:
   - **Precision = 1.00 across all four kinds.** Every detection is valid.
   - **Recall:** Rework 1.00, Hygiene 1.00, Manual-Refactor 0.76, Ordering 0.40.
   - Inter-rater agreement (Cohen's κ): 1.00 for Ordering & Manual-Refactor, 0.86 for Rework, 0.72 for Hygiene.
 - Ordering recall gap is honest and explained: synthesiser rejects windows it can't safely reproduce. A scope limit, not a detector flaw.
 
-**Slide 16 — Score robustness (~45s)**
+**Slide 19 — Score robustness (~45s)**
 - Single-knob sensitivity sweep: scaling any one weight by {0.1×–10×}, top-1 recommendation preserved in **96.5%** of user-study cases.
 - Multi-knob Monte Carlo (200 samples): top-1 stability drops to 84.6%, mean Kendall τ = 0.586. Honest framing: stable *near* chosen weights, not at arbitrary values.
 - Ablation confirms each process term contributes real signal — endpoint gain alone doesn't recover the ranking.
 
-**Slide 17 — User study: does feedback change behaviour? (~45s)**
+**Slide 20 — User study: does feedback change behaviour? (~45s)**
 - Headline numbers:
   - With-feedback group: **2.7 divergence points / session**.
   - No-feedback baseline: **6.0 divergence points / session**. (**2.2× difference.**)
   - Gain-stripped process-score slope across the 6-session arc: **+4.47 / session with feedback**, **−0.40 / session without**.
 - Honest caveat (one line): n=3 vs n=2 is directional evidence, not a hypothesis test.
 
-### Section 5 — Demo (~4 min)
+### Section 7 — Closing (Slides 21–22, ~1 min)
 
-**Slide 18 — Demo transition**
-- A single slide that says "Demo" with the one-sentence goal of the demo written on it, so the audience knows what to watch for:
-  - *"I'll show one identified divergence point and the alternative path the tool constructed — and how much better it scores."*
-
-**Demo script (~4 min, replay of fixture session — e.g. `fixtures/user-sessions/p1-01/`):**
-
-> **Replay-only, dashboard-only.** On the day you are **not** recording a fresh session or running the analysis pipeline live. You are loading a pre-computed `analysis-report.json` into the **dashboard in standalone mode** (no plugin, no analysis server, no IntelliJ sandbox, no JCEF/Equinox boot). The dashboard's `useReport` hook supports a dev-server replay path: start Vite with the report path as an env var and it serves it via the `/__dev_report.json` middleware. See `tool/dashboard/src/hooks/useReport.ts` for the contract.
->
-> Launch command (run before the talk, leave the tab open):
-> ```bash
-> cd tool/dashboard
-> REFDASH_REPORT=/absolute/path/to/fixtures/user-sessions/p1-01/analysis-report.json npm run dev
-> ```
-> Then open the printed Vite URL (typically `http://localhost:5173/`) in a regular browser tab.
-
-1. **(~30s) Set the scene.** "This is a real session from the user study — a participant performing a refactoring task on the order-processing fixture project. The plugin recorded their session passively while they worked normally in IntelliJ. The dashboard you're seeing is the analysis output."
-
-2. **(~30s) Orient on the trajectory chart.** Point at the time axis, point at the cleanliness curve, point at refactoring glyphs / commit markers. *"At a glance you can already see where the session degraded code quality and where it recovered."*
-
-3. **(~1 min) Identify the divergence point.** Open the divergence panel, sorted by magnitude. Pick the highest-magnitude one. *"The tool flagged this specific moment as the biggest divergence point in the session — magnitude X.X."* Click into it. Show the user's actions at that point (e.g. "they hand-edited an extract-method that the IDE could have done safely").
-
-4. **(~1.5 min) Show the alternative.** Switch to the alternative-path view. *"Here's the path our synthesiser constructed instead — same starting state, same final state, but using the IDE refactoring."* Show the side-by-side score breakdown: user's path scored Y, alternative scored Y+ΔJ. Walk the audience through *which terms* improved — e.g. "manual-when-IDE penalty dropped by N, step count fell by M".
-
-5. **(~30s) Cycle to a second example briefly** (only if comfortable on time) — ideally a different *kind* of divergence to show the taxonomy in action. Otherwise skip.
-
-6. **(~30s) Close the demo.** *"So that's the loop: record naturally, get back a ranked list of specific moments where there was a measurably better alternative, with the alternative made concrete."*
-
-**Demo robustness — must do before the day:**
-- Pre-select 1–2 fixture sessions with at least one large, easily-explained divergence. Vet that each renders cleanly in the standalone dashboard on the actual demo laptop.
-- Run `npm install` in `tool/dashboard/` on the demo machine ahead of time so `node_modules` is warm.
-- Boot the dashboard once the day before via the launch command above to warm the Vite cache; confirm the fixture report loads end-to-end.
-- Verify port 5173 is free immediately before going on stage (`lsof -i :5173`).
-- Have the Vite tab already open and the fixture report already loaded **before** you walk on; do not boot the dev server live.
-- Have a static screenshot fallback on the next slide in case the browser tab dies.
-
-### Section 6 — Closing (Slides 19–20, ~1 min)
-
-**Slide 19 — Contributions (~45s)**
+**Slide 21 — Contributions (~45s)**
 - Four bullets, claimed plainly:
   1. A process-quality metric J(τ) that combines endpoint, process, and safety signals in one principled score.
   2. A divergence-point detector with four actionable kinds and a per-kind synthesiser that constructs concrete alternative trajectories.
   3. Three datasets — 45 injection sessions, 30-session user study, 48-session agent extension — and reproducible analysis (Jupyter notebook reproduces every table/figure).
   4. A deployable end-to-end system: IntelliJ plugin + analysis backend + dashboard.
 
-**Slide 20 — Closing line (~15s)**
+**Slide 22 — Closing line (~15s)**
 - End on the through-line, strongly. Suggested wording:
   - *"Refactoring quality isn't just about where you end up — it's about the path you walked to get there. This work makes that path measurable, comparable, and improvable."*
 - Then: *"Happy to take questions."*
@@ -241,7 +260,7 @@ Worth preparing a short answer (~1 min each) for:
 
 There is nothing to "build" here — this is a presentation plan. Verification = rehearsal:
 
-1. **Cold rehearsal:** Run slides end-to-end with a timer. Aim for 17:00 ± 30s. If overrunning, the first cuts should be Slide 7 (cleanliness sub-score detail) and the multi-knob detail on Slide 16 (score robustness). If still overrunning, collapse Slide 8 (four-kinds overview) into the first per-kind slide.
+1. **Cold rehearsal:** Run slides end-to-end with a timer. Aim for ≤18:00. If overrunning, the first cuts should be Slide 9 (cleanliness sub-score detail) down to ~20s and the multi-knob detail on Slide 19 (score robustness). If still overrunning, drop one of the prior-work parentheticals on Slide 4 (e.g. "(Damevski et al., CodeWatcher)") or collapse Slide 10 (four-kinds overview) into the first per-kind slide.
 2. **Demo rehearsal:** Run the demo at least 3 times on the actual demo machine, with the chosen fixture, with the laptop on battery (in case the room's mains is awkward). Time it; the demo should fit in 4 min comfortably.
 3. **Fallback rehearsal:** Practise the demo once *from screenshots only*, in case the live dashboard fails. You should still be able to deliver the "we found this divergence, here's a better path, here's the score gap" story.
 4. **Q&A rehearsal:** Have someone (supervisor / lab mate) ask 3–4 of the anticipated questions above; rehearse keeping each answer under a minute.
