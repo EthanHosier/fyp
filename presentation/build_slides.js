@@ -58,13 +58,27 @@ function titled(title, subtitle = null) {
 // ─────────────────────────────────────────────────────────────
 {
   const s = titled("Same destination, different journeys");
-  bulletText(s, [
-    "Two developers refactor the same code and arrive at the same final state.",
-    "Developer A: ran tests, committed checkpoints, used IDE refactorings.",
-    "Developer B: broke the build twice, added then removed 80 lines, hand-edited what the IDE could do safely.",
-    "Which one would you want on your team?",
-    "Endpoint-only evaluation cannot tell them apart.",
-  ]);
+
+  // Top block: the scenario
+  bulletText(
+    s,
+    [
+      "Two developers refactor the same code and arrive at the same final state.",
+      "Developer A: ran tests, committed checkpoints, used IDE refactorings.",
+      "Developer B: broke the build twice, added then removed 80 lines, hand-edited what the IDE could do safely.",
+    ],
+    { y: 1.2, h: 2.5 },
+  );
+
+  // Bottom block: the question + punchline, sitting near the foot of the slide
+  bulletText(
+    s,
+    [
+      "Which one would you want on your team?",
+      "Endpoint-only evaluation cannot tell them apart.",
+    ],
+    { y: 4.2, h: 1.2 },
+  );
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -143,68 +157,26 @@ function titled(title, subtitle = null) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 5 - Desired outcome (divergence diagram)
-// ─────────────────────────────────────────────────────────────
-{
-  const s = titled("Desired outcome: a comparable counterfactual");
-  bulletText(
-    s,
-    [
-      "Given those four requirements, the concrete thing we wanted the tool to produce, for any recorded session:",
-      "Solid line - the user's actual trajectory through code states.",
-      "Dashed line - synthesised alternative; same start, same finish, measurably higher J(τ).",
-      "Divergence point marks where the two paths split; ΔJ quantifies the gap.",
-    ],
-    { y: 1.2, h: 1.6 },
-  );
-
-  // Divergence-point figure (fig:divergence from introduction). Original 1002x594 (~1.69:1).
-  const imgW = 4.2;
-  const imgH = 2.49;
-  s.addImage({
-    path: "images/divergence-point.png",
-    x: (10 - imgW) / 2,
-    y: 2.95,
-    w: imgW,
-    h: imgH,
-  });
-}
-
-// ─────────────────────────────────────────────────────────────
-// Slide 6 - Demo (part 1): live capture
+// Slide 5 - Demo
 // ─────────────────────────────────────────────────────────────
 {
   const s = pres.addSlide();
-  s.addText("Demo (part 1): live capture", {
-    x: 0.5, y: 2.0, w: 9, h: 1.0, fontSize: 44, bold: true, align: "center", margin: 0,
+  s.addText("Demo", {
+    x: 0.5, y: 2.2, w: 9, h: 1.2, fontSize: 80, bold: true, align: "center", valign: "middle", margin: 0,
   });
-  s.addText(
-    "I'll start a short live refactoring session. The tool will analyse it in the background while we walk through the methodology.",
-    { x: 0.5, y: 3.1, w: 9, h: 1.2, fontSize: 18, italic: true, align: "center", color: "555555" },
-  );
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 7 - End-to-end system
+// Slide 6 - End-to-end system
 // ─────────────────────────────────────────────────────────────
 {
   const s = titled("What the tool does, end to end");
 
-  // Short description bullets above the diagram
-  bulletText(
-    s,
-    [
-      "IntelliJ plugin: records every edit, refactoring, build, test, and commit during a session.",
-      "Analysis backend: reconstructs the trajectory, scores it, and detects divergence points.",
-      "Dashboard: surfaces where you diverged, an alternative path, how much better it scores, and why.",
-    ],
-    { y: 1.2, h: 1.7 },
-  );
-
-  // Three-stage pipeline diagram below the bullets, each box lists its sub-stages
-  const boxY = 3.05;
+  // Three-stage pipeline diagram, each box lists its sub-stages.
+  // Slide is just the title + diagram now; diagram sits roughly centred in the body area.
+  const boxY = 1.6;
   const boxW = 2.6;
-  const boxH = 2.3;
+  const boxH = 2.6;
   const gap = 0.9;
   const startX = (10 - (3 * boxW + 2 * gap)) / 2; // 0.4
 
@@ -218,7 +190,7 @@ function titled(title, subtitle = null) {
       items: [
         "Shadow repo reconstruction",
         "Metric calculation",
-        "Divergence synthesis",
+        "Divergence detection & synthesis",
       ],
     },
     {
@@ -284,7 +256,13 @@ function titled(title, subtitle = null) {
   });
 
   // Arrows between boxes, with a small flow label above each arrow
-  const flowLabels = ["events.jsonl + initial-src/", "analysis-report.json"];
+  const flowLabels = [
+    [{ text: "events.jsonl + initial-src/" }],
+    [
+      { text: "analysis", options: { breakLine: true } },
+      { text: "-report.json" },
+    ],
+  ];
   for (let i = 0; i < 2; i++) {
     const arrowX = startX + (i + 1) * boxW + i * gap;
     const arrowY = boxY + boxH / 2;
@@ -297,16 +275,47 @@ function titled(title, subtitle = null) {
     });
     s.addText(flowLabels[i], {
       x: arrowX - 0.05,
-      y: arrowY - 0.35,
+      y: arrowY - 0.55,
       w: gap + 0.1,
-      h: 0.3,
+      h: 0.5,
       fontSize: 9,
       italic: true,
       color: "555555",
       align: "center",
+      valign: "bottom",
       margin: 0,
     });
   }
+}
+
+// ─────────────────────────────────────────────────────────────
+// Slide 7 - Four kinds of divergence (overview)
+// ─────────────────────────────────────────────────────────────
+{
+  const s = titled("Four kinds of divergence");
+
+  // Each kind: name in black + grey description
+  const REF_COLOR = "888888";
+  const kinds = [
+    ["Ordering",        "right refactorings, wrong sequence."],
+    ["Manual-Refactor", "unnecessary risk (hand-edit when the IDE could have safely done it)."],
+    ["Rework",          "unnecessary churn (added then removed)."],
+    ["Hygiene",         "missing safety checkpoints (no tests, no commits)."],
+  ];
+
+  const runs = [];
+  kinds.forEach(([name, desc], i) => {
+    runs.push({
+      text: name + " ",
+      options: { bullet: true, paraSpaceAfter: 10 },
+    });
+    runs.push({
+      text: "- " + desc,
+      options: { color: REF_COLOR, breakLine: i < kinds.length - 1, paraSpaceAfter: 10 },
+    });
+  });
+
+  s.addText(runs, { x: 0.5, y: 1.5, w: 9, h: 3.5, fontSize: 18, valign: "top" });
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -341,6 +350,7 @@ function titled(title, subtitle = null) {
 
   // Weighted-term list as a borderless table so weight column is right-aligned
   // and term column is left-aligned, in a proper proportional font.
+  // Weights/× stay at the table-level fontSize (16); term names get bumped to 18.
   const weightCell = (sign) => ({
     bold: true,
     color: sign === "+" ? POS : NEG,
@@ -349,7 +359,7 @@ function titled(title, subtitle = null) {
     margin: 0.06,
   });
   const opCell = { color: "555555", align: "center", valign: "middle", margin: 0.04 };
-  const termCell = { color: "1A1A1A", align: "left", valign: "middle", margin: 0.06 };
+  const termCell = { color: "1A1A1A", align: "left", valign: "middle", margin: 0.06, fontSize: 18 };
 
   const terms = [
     ["+", 50, "cleanliness gain"],
@@ -357,8 +367,8 @@ function titled(title, subtitle = null) {
     ["−", 28, "broken build / test rate"],
     ["−", 14, "skipped-test rate"],
     ["−", 11, "manual edits the IDE could refactor"],
-    ["−", 11, "intermediate-state lag"],
-    ["−",  7, "commit-gap events"],
+    ["−", 11, "Intermediate cleanliness lag (degradation)"],
+    ["−",  7, "Long durations without commits"],
   ];
 
   const rows = terms.map(([sign, weight, name]) => [
@@ -391,10 +401,11 @@ function titled(title, subtitle = null) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 9 - Cleanliness sub-score
+// Slide 9 - Cleanliness sub-score (HIDDEN — backup detail for Q&A)
 // ─────────────────────────────────────────────────────────────
 {
   const s = titled("The cleanliness sub-score");
+  s.hidden = true;
   bulletText(s, [
     "Six equally-weighted code-quality signals.",
     "Cognitive complexity, coupling (CBO), duplication (CPD), readability, code smells (PMD), cohesion (TCC).",
@@ -404,22 +415,7 @@ function titled(title, subtitle = null) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 10 - Four kinds of divergence (overview)
-// ─────────────────────────────────────────────────────────────
-{
-  const s = titled("Four kinds of divergence");
-  bulletText(s, [
-    "Four categories of process waste - each fitting the four requirements: detectable from the event stream, actionable for the developer, synthesisable as a concrete alternative.",
-    "Ordering - right refactorings, wrong sequence.",
-    "Manual-Refactor - wrong tool (hand-edit when the IDE could safely have done it).",
-    "Rework - wrong churn (added then removed).",
-    "Hygiene - missing safety checkpoints (no tests, no commits).",
-    "Each kind gets its own slide next, covering both detection and synthesis.",
-  ]);
-}
-
-// ─────────────────────────────────────────────────────────────
-// Slide 11 - Ordering: detect + synthesise
+// Slide 10 - Ordering: detect + synthesise
 // ─────────────────────────────────────────────────────────────
 {
   const s = titled("Ordering: detect + synthesise");
@@ -447,7 +443,7 @@ function titled(title, subtitle = null) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 12 - Manual-Refactor: detect + synthesise
+// Slide 11 - Manual-Refactor: detect + synthesise
 // ─────────────────────────────────────────────────────────────
 {
   const s = titled("Manual-Refactor: detect + synthesise");
@@ -475,7 +471,7 @@ function titled(title, subtitle = null) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 13 - Rework: detect + synthesise
+// Slide 12 - Rework: detect + synthesise
 // ─────────────────────────────────────────────────────────────
 {
   const s = titled("Rework: detect + synthesise");
@@ -503,7 +499,7 @@ function titled(title, subtitle = null) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 14 - Hygiene: detect + synthesise
+// Slide 13 - Hygiene: detect + synthesise
 // ─────────────────────────────────────────────────────────────
 {
   const s = titled("Hygiene: detect + synthesise");
@@ -517,10 +513,11 @@ function titled(title, subtitle = null) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 15 - Comparable divergence magnitudes
+// Slide 14 - Comparable divergence magnitudes (HIDDEN — backup detail for Q&A)
 // ─────────────────────────────────────────────────────────────
 {
   const s = titled("Comparable divergence magnitudes");
+  s.hidden = true;
   bulletText(s, [
     "Magnitude = J(τ*_final) − J(τ_final).",
     "The score gap when the alternative is substituted at the divergence point but the rest of the user's trajectory is left unchanged.",
@@ -531,21 +528,7 @@ function titled(title, subtitle = null) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 16 - Demo (part 2): results
-// ─────────────────────────────────────────────────────────────
-{
-  const s = pres.addSlide();
-  s.addText("Demo (part 2): results", {
-    x: 0.5, y: 2.0, w: 9, h: 1.0, fontSize: 44, bold: true, align: "center", margin: 0,
-  });
-  s.addText(
-    "Now the live session has been analysed: walk through the divergence points the tool found, then show a higher-scoring alternative I prepared earlier.",
-    { x: 0.5, y: 3.1, w: 9, h: 1.2, fontSize: 18, italic: true, align: "center", color: "555555" },
-  );
-}
-
-// ─────────────────────────────────────────────────────────────
-// Slide 17 - What we wanted to evaluate (three questions, each tied to a dataset + experiment)
+// Slide 15 - What we wanted to evaluate (three questions, each tied to a dataset + experiment)
 // ─────────────────────────────────────────────────────────────
 {
   const s = titled("What we wanted to evaluate");
@@ -583,7 +566,7 @@ function titled(title, subtitle = null) {
         options: QUESTION_CELL,
       },
       {
-        text: "45 labelled injection sessions, scored against per-kind precision and recall (Slide 18).",
+        text: "45 labelled injection sessions, scored against per-kind precision and recall (Slide 16).",
         options: ANSWER_CELL,
       },
     ],
@@ -593,7 +576,7 @@ function titled(title, subtitle = null) {
         options: QUESTION_CELL,
       },
       {
-        text: "Injection set + user-study rankable subset, used for the sensitivity sweep and ablation study (Slide 19).",
+        text: "Injection set + user-study rankable subset, used for the sensitivity sweep and ablation study (Slide 17).",
         options: ANSWER_CELL,
       },
     ],
@@ -603,7 +586,7 @@ function titled(title, subtitle = null) {
         options: QUESTION_CELL,
       },
       {
-        text: "30-session randomised user study, plus a 48-session agent extension as motivation for future work (Slide 20).",
+        text: "30-session randomised user study, plus a 48-session agent extension as motivation for future work (Slide 18).",
         options: ANSWER_CELL,
       },
     ],
@@ -620,7 +603,7 @@ function titled(title, subtitle = null) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 18 - Detector precision & recall
+// Slide 16 - Detector precision & recall
 // ─────────────────────────────────────────────────────────────
 {
   const s = titled("Detector precision & recall");
@@ -633,7 +616,7 @@ function titled(title, subtitle = null) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 19 - Score robustness
+// Slide 17 - Score robustness
 // ─────────────────────────────────────────────────────────────
 {
   const s = titled("Score robustness");
@@ -646,7 +629,7 @@ function titled(title, subtitle = null) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 20 - User study: does feedback change behaviour?
+// Slide 18 - User study: does feedback change behaviour?
 // ─────────────────────────────────────────────────────────────
 {
   const s = titled("User study: does feedback change behaviour?");
@@ -659,7 +642,7 @@ function titled(title, subtitle = null) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 21 - Contributions
+// Slide 19 - Contributions
 // ─────────────────────────────────────────────────────────────
 {
   const s = titled("Contributions");
@@ -669,23 +652,6 @@ function titled(title, subtitle = null) {
     "Three datasets -45 injection sessions, 30-session user study, 48-session agent extension - with reproducible analysis (Jupyter notebook reproduces every table and figure).",
     "A deployable end-to-end system: IntelliJ plugin, analysis backend, and dashboard.",
   ]);
-}
-
-// ─────────────────────────────────────────────────────────────
-// Slide 22 - Closing
-// ─────────────────────────────────────────────────────────────
-{
-  const s = pres.addSlide();
-  s.addText(
-    "Refactoring quality isn't just about where you end up - it's about the path you walked to get there.",
-    { x: 0.5, y: 1.8, w: 9, h: 1.5, fontSize: 26, italic: true, align: "center", margin: 0 },
-  );
-  s.addText("This work makes that path measurable, comparable, and improvable.", {
-    x: 0.5, y: 3.4, w: 9, h: 0.8, fontSize: 22, bold: true, align: "center",
-  });
-  s.addText("Thank you - happy to take questions.", {
-    x: 0.5, y: 4.6, w: 9, h: 0.5, fontSize: 16, align: "center", color: "555555",
-  });
 }
 
 pres.writeFile({ fileName: "slides.pptx" }).then((name) => {
