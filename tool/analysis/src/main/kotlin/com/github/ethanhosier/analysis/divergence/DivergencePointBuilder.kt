@@ -71,7 +71,7 @@ object DivergencePointBuilder {
                 stepIndex = stepIndex,
                 kind = DivergenceKind.IDE_REPLAY,
                 magnitude = delta,
-                title = "$specLabel: IDE replay would have scored ${formatDelta(delta)}",
+                title = "$specLabel: performing this refactoring automatically via the IDE would have scored ${formatDelta(delta)}",
                 explanation = "You performed $specLabel manually across $nSteps $stepWord; " +
                     "the IDE-driven equivalent would have reached trajectory-final process " +
                     "score $altFinal vs your $userFinalProcess — a ${formatDelta(delta)} gap.",

@@ -28,6 +28,17 @@ export function ChartToolbar({
   const last = values[values.length - 1]?.toFixed(dp)
   const desc = METRIC_DESCRIPTORS[primary.id]
 
+  const bestAltTerminal =
+    primary.id === "process" ? bestAltTerminalProcessScore(vm) : null
+  const userTerminal =
+    primary.id === "process"
+      ? vm.checkpoints[vm.checkpoints.length - 1]?.processScore
+      : undefined
+  const showCounterfactual =
+    bestAltTerminal != null &&
+    typeof userTerminal === "number" &&
+    bestAltTerminal > userTerminal
+
   const Arrow = primary.better === "higher" ? ArrowUpIcon : ArrowDownIcon
 
   return (
@@ -36,8 +47,19 @@ export function ChartToolbar({
         Trajectory · {primary.label}
       </Text>
       <Text as="div" variant="display" tone="fg" className="mt-0.5">
-        {primary.label} over {vm.checkpoints.length} checkpoints
-        {first !== undefined && last !== undefined ? (
+        {primary.label} over {vm.checkpoints.length} checkpoints:
+        {showCounterfactual ? (
+          <Text as="span" variant="display" tone="inherit" className="ml-1.5">
+            Was {userTerminal!.toFixed(dp)} but{" "}
+            <Text as="span" variant="display" tone="inherit" className="italic">
+              could have
+            </Text>{" "}
+            been {" "}
+            <Text as="span" variant="display" tone="brand">
+              {bestAltTerminal!.toFixed(dp)}
+            </Text>
+          </Text>
+        ) : first !== undefined && last !== undefined ? (
           <Text variant="mono" tone="fg-4" className="ml-2.5 font-normal">
             {first} → {last} {primary.unit}
           </Text>
@@ -62,4 +84,20 @@ export function ChartToolbar({
       </div>
     </div>
   )
+}
+
+/** Highest terminal process score across alt trajectories, or null if
+ *  none exist. Looks at each alt's final continuation step when present
+ *  (alt merges back and we follow it to trace end), otherwise the alt's
+ *  own last step. */
+function bestAltTerminalProcessScore(vm: DashboardViewModel): number | null {
+  let best: number | null = null
+  for (const alt of vm.alternativeTrajectories) {
+    const lastCont = alt.continuationSteps[alt.continuationSteps.length - 1]
+    const lastStep = alt.steps[alt.steps.length - 1]
+    const terminal = lastCont?.processScore ?? lastStep?.cpVm.processScore
+    if (typeof terminal !== "number") continue
+    if (best == null || terminal > best) best = terminal
+  }
+  return best
 }
