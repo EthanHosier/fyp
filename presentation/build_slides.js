@@ -636,20 +636,149 @@ function titled(title, subtitle = null) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 16 - Detector precision & recall
+// Slide 16 - Detector evaluation: setup + label reliability + metric choice
 // ─────────────────────────────────────────────────────────────
 {
-  const s = titled("Detector precision & recall");
-  bulletText(s, [
-    "Precision = 1.00 across all four divergence kinds - every detection is valid.",
-    "Recall - Rework 1.00, Hygiene 1.00, Manual-Refactor 0.76, Ordering 0.40.",
-    "Inter-rater agreement (Cohen's κ) -1.00 for Ordering and Manual-Refactor, 0.86 for Rework, 0.72 for Hygiene.",
-    "Ordering recall gap is honest and explained: the synthesiser rejects windows it cannot safely reproduce. A scope limit, not a detector flaw.",
-  ]);
+  const s = titled("Is the tool accurate?");
+
+  // Same visual pattern as Slide 8: short black lead + grey continuation
+  const REF_COLOR = "888888";
+  const points = [
+    ["45 hand-labelled injection sessions", "on a Java codebase."],
+    ["3 raters (author + 2 external MEng cohort members)", "inter-rater Cohen's κ = 1.00 (Ordering, Manual-Refactor), 0.86–1.00 (Rework), 0.72–0.86 (Hygiene)."],
+    ["Disagreements predominantly surrounding hygiene + rework labels", "differences in opinion of what constitutes a step."],
+    ["Track all ordering points detected", "not only ones with a higher process score than the user."],
+    ["Measure precision + recall", "precision guards against FPs that waste the developer's attention. Recall guards against FNs that miss real opportunities. F1 averages the two - so a high score can hide a detector that's annoying users (lots of FPs) or one that's quietly missing things (lots of FNs). Accuracy is dominated by true negatives."],
+  ];
+
+  const runs = [];
+  points.forEach(([lead, tail], i) => {
+    const isLast = i === points.length - 1;
+    runs.push({
+      text: lead + " ",
+      options: { bullet: true, paraSpaceAfter: 10 },
+    });
+    runs.push({
+      text: "- " + tail,
+      options: { color: REF_COLOR, breakLine: !isLast, paraSpaceAfter: 10 },
+    });
+  });
+
+  s.addText(runs, { x: 0.5, y: 1.3, w: 9, h: 4.0, fontSize: 15, valign: "top" });
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 17 - Score robustness
+// Slide 17 - Per-kind decision matrices (4 mini 2×2 confusion matrices)
+// ─────────────────────────────────────────────────────────────
+{
+  // Custom-positioned title (nudged up vs. the shared TITLE constant so the 2×2 grid + footer all fit)
+  const s = pres.addSlide();
+  s.addText("Decision matrix per divergence kind", {
+    x: 0.5, y: 0.1, w: 9, h: 0.6, fontSize: 28, bold: true, margin: 0,
+  });
+
+  // Preamble: clarify the unit + scope
+  s.addText(
+    "Session-level (45 injection sessions).",
+    {
+      x: 0.5, y: 0.72, w: 9, h: 0.28,
+      fontSize: 12, italic: true, color: "555555", align: "center", margin: 0,
+    },
+  );
+
+  // Colours
+  const TP_FILL = "D4F0DC", TP_TEXT = "0A7D2A";
+  const FN_FILL = "F5D5CE", FN_TEXT = "B33A1E";
+  const FP_FILL = "F2F2F2", FP_TEXT = "888888";
+  const TN_FILL = "EAEAEA", TN_TEXT = "555555";
+
+  // Render a single 2×2 confusion matrix with kind title above + precision/recall caption below
+  function drawMatrix(mx, my, kindName, tp, fn, fp, tn, precision, recall) {
+    const labelW = 0.6, cellW = 1.25, cellH = 0.6;
+    const totalW = labelW + 2 * cellW;
+
+    // Kind title (h tightened from 0.3 → 0.22 so the title sits closer to the matrix below)
+    s.addText(kindName, {
+      x: mx, y: my, w: totalW, h: 0.22,
+      fontSize: 14, bold: true, align: "center", valign: "bottom", margin: 0,
+    });
+
+    // Column headers
+    s.addText("Predicted +", {
+      x: mx + labelW, y: my + 0.24, w: cellW, h: 0.22,
+      fontSize: 9, italic: true, color: "555555", align: "center", margin: 0,
+    });
+    s.addText("Predicted −", {
+      x: mx + labelW + cellW, y: my + 0.24, w: cellW, h: 0.22,
+      fontSize: 9, italic: true, color: "555555", align: "center", margin: 0,
+    });
+
+    // Row headers
+    s.addText("Actual +", {
+      x: mx, y: my + 0.48, w: labelW, h: cellH,
+      fontSize: 9, italic: true, color: "555555", align: "right", valign: "middle", margin: 0.04,
+    });
+    s.addText("Actual −", {
+      x: mx, y: my + 0.48 + cellH, w: labelW, h: cellH,
+      fontSize: 9, italic: true, color: "555555", align: "right", valign: "middle", margin: 0.04,
+    });
+
+    // 4 cells
+    const cells = [
+      { row: 0, col: 0, fill: TP_FILL, color: TP_TEXT, label: "TP", value: tp },
+      { row: 0, col: 1, fill: FN_FILL, color: FN_TEXT, label: "FN", value: fn },
+      { row: 1, col: 0, fill: FP_FILL, color: FP_TEXT, label: "FP", value: fp },
+      { row: 1, col: 1, fill: TN_FILL, color: TN_TEXT, label: "TN", value: tn },
+    ];
+    cells.forEach((c) => {
+      const cx = mx + labelW + c.col * cellW;
+      const cy = my + 0.56 + c.row * cellH;
+      s.addShape(pres.shapes.RECTANGLE, {
+        x: cx, y: cy, w: cellW, h: cellH,
+        fill: { color: c.fill }, line: { color: "999999", width: 0.5 },
+      });
+      s.addText(
+        [
+          { text: String(c.value), options: { fontSize: 20, bold: true, color: c.color, breakLine: true } },
+          { text: c.label, options: { fontSize: 9, color: "666666" } },
+        ],
+        { x: cx, y: cy, w: cellW, h: cellH, align: "center", valign: "middle", margin: 0, paraSpaceAfter: 0 },
+      );
+    });
+
+    // Precision · Recall caption below the matrix
+    s.addText(
+      [
+        { text: "Precision ", options: { color: "555555" } },
+        { text: precision, options: { bold: true, color: "1A1A1A" } },
+        { text: "   ·   Recall ", options: { color: "555555" } },
+        { text: recall, options: { bold: true, color: "1A1A1A" } },
+      ],
+      {
+        x: mx, y: my + 0.48 + 2 * cellH + 0.1, w: totalW, h: 0.22,
+        fontSize: 11, italic: true, align: "center", margin: 0,
+      },
+    );
+  }
+
+  // 2×2 grid of mini matrices (top row at 1.0; bottom row pushed to 3.2 for a larger inter-row gap)
+  drawMatrix(0.7,  1.00, "Manual-Refactor", 16,  5, 0, 24, "1.00", "0.76");
+  drawMatrix(5.2,  1.00, "Ordering",        14, 24, 0,  7, "1.00", "0.36");
+  drawMatrix(0.7,  3.20, "Rework",           9,  0, 0, 36, "1.00", "1.00");
+  drawMatrix(5.2,  3.20, "Hygiene",          8,  0, 0, 37, "1.00", "1.00");
+
+  // Footer: Ordering scope limit (shortened per request)
+  s.addText(
+    "Ordering recall is the outlier: the reorder synthesiser's splitOnInvalid validator rejects any window containing a step it cannot safely.",
+    {
+      x: 0.4, y: 5.3, w: 9.2, h: 0.28,
+      fontSize: 9, italic: true, color: "555555", align: "center", margin: 0,
+    },
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Slide 18 - Score robustness
 // ─────────────────────────────────────────────────────────────
 {
   const s = titled("Score robustness");
@@ -662,7 +791,7 @@ function titled(title, subtitle = null) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 18 - User study: does feedback change behaviour?
+// Slide 19 - User study: does feedback change behaviour?
 // ─────────────────────────────────────────────────────────────
 {
   const s = titled("User study: does feedback change behaviour?");
@@ -675,7 +804,7 @@ function titled(title, subtitle = null) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 19 - Contributions
+// Slide 20 - Contributions
 // ─────────────────────────────────────────────────────────────
 {
   const s = titled("Contributions");
