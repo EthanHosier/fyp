@@ -595,11 +595,11 @@ function titled(title, subtitle = null) {
     ],
     [
       {
-        text: "Is the tool accurate? Are the alternatives it generates actually better?",
+        text: "Is the tool accurate? Are the synthesised alternatives actually better than what the user did?",
         options: QUESTION_CELL,
       },
       {
-        text: "45 labelled injection sessions, scored against per-kind precision and recall (Slide 16).",
+        text: "45 labelled injection sessions: per-kind precision and recall (Slides 16-17) plus beat/tie/lose breakdown across all 66 detected divergence points (Slide 18).",
         options: ANSWER_CELL,
       },
     ],
@@ -609,7 +609,7 @@ function titled(title, subtitle = null) {
         options: QUESTION_CELL,
       },
       {
-        text: "Injection set + user-study rankable subset, used for the sensitivity sweep and ablation study (Slide 17).",
+        text: "Sensitivity sweep + ablation, headline on the 25-session user-study rankable subset (Slides 19-20).",
         options: ANSWER_CELL,
       },
     ],
@@ -619,7 +619,7 @@ function titled(title, subtitle = null) {
         options: QUESTION_CELL,
       },
       {
-        text: "30-session randomised user study, plus a 48-session agent extension as motivation for future work (Slide 18).",
+        text: "30-session randomised user study, 5 participants split between feedback and no-feedback arms (Slide 21).",
         options: ANSWER_CELL,
       },
     ],
@@ -993,20 +993,298 @@ function titled(title, subtitle = null) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 21 - User study: does feedback change behaviour?
+// Slide 21 - User study setup (does feedback change behaviour?)
 // ─────────────────────────────────────────────────────────────
 {
-  const s = titled("User study: does feedback change behaviour?");
-  bulletText(s, [
-    "With-feedback group: 2.7 divergence points per session.",
-    "No-feedback baseline: 6.0 divergence points per session -2.2× difference.",
-    "Gain-stripped process-score slope across the 6-session arc -+4.47 per session with feedback, −0.40 per session without.",
-    "Caveat: n=3 vs n=2 is directional evidence, not a hypothesis test.",
-  ]);
+  const s = titled("Does dashboard feedback change developer behaviour?");
+
+  const REF_COLOR = "888888";
+  const SUB_GAP = 6;
+  const GROUP_GAP = 18;
+
+  const groups = [
+    {
+      main: "How did we design the study?",
+      subs: [
+        ["5 MEng Computing participants, 6 sessions each, on an order-processing codebase", "30 sessions total on user-study-fixture/ (separate from the labelled-injection codebase)."],
+        ["Randomised into 2 arms", "P1, P2, P3 see dashboard feedback between sessions; P4 and P5 don't. Same playbook, codebase, instrumentation."],
+      ],
+    },
+    {
+      main: "What did we measure?",
+      subs: [
+        ["Divergence-point count per session", "does the detector still surface the same kinds of friction over time?"],
+        ["Process score across the arc, two views", "the production score, plus a gain-stripped variant (W_g = W_lag = 0) that isolates how the participant worked from how much cleaner the code ended up."],
+      ],
+    },
+  ];
+
+  const runs = [];
+  groups.forEach((g, gIdx) => {
+    const isLastGroup = gIdx === groups.length - 1;
+    runs.push({
+      text: g.main,
+      options: { bullet: true, bold: true, breakLine: true, paraSpaceAfter: 6 },
+    });
+    g.subs.forEach(([lead, tail], sIdx) => {
+      const isLastSub = sIdx === g.subs.length - 1;
+      const trailingGap = isLastSub && !isLastGroup ? GROUP_GAP : SUB_GAP;
+      runs.push({
+        text: lead + " ",
+        options: { bullet: { indent: 30 }, indentLevel: 1, paraSpaceAfter: trailingGap },
+      });
+      runs.push({
+        text: "- " + tail,
+        options: { color: REF_COLOR, breakLine: !(isLastGroup && isLastSub), paraSpaceAfter: trailingGap },
+      });
+    });
+  });
+
+  s.addText(runs, { x: 0.5, y: 1.3, w: 9, h: 3.6, fontSize: 15, valign: "top" });
+
+  // Footer caveat
+  s.addText(
+    "Random assignment, n = 3 vs n = 2. Treated as a directional finding, not a hypothesis test.",
+    { x: 0.5, y: 5.05, w: 9, h: 0.3, fontSize: 11, italic: true, color: "888888", align: "center" }
+  );
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 22 - Contributions
+// Slide 22 - Fewer divergences, but production score is noisy
+// ─────────────────────────────────────────────────────────────
+{
+  const s = pres.addSlide();
+  s.addText("Fewer divergences with feedback - but the raw score is noisy", {
+    x: 0.5, y: 0.15, w: 9, h: 0.55, fontSize: 24, bold: true, margin: 0, align: "center",
+  });
+
+  const LABELS = ["S1", "S2", "S3", "S4", "S5", "S6"];
+  const FB_DARK = "1F3F6F";
+  const BL_DARK = "B25500";
+
+  // Left: DP rate per session (per-participant mean, normalises for 3 vs 2 group sizes)
+  {
+    // Feedback: divide group total by 3 participants; baseline: divide by 2
+    const data = [
+      { name: "Feedback (per participant)", labels: LABELS, values: [4.0, 5.67, 3.67, 0, 2.33, 0.67] },
+      { name: "Baseline (per participant)", labels: LABELS, values: [5.0, 7.5, 9.5, 0, 6.5, 7.5] },
+    ];
+    s.addChart(pres.ChartType.line, data, {
+      x: 0.3, y: 0.95, w: 4.6, h: 3.3,
+      chartColors: [FB_DARK, BL_DARK],
+      lineSize: 2.5,
+      lineDataSymbol: "circle", lineDataSymbolSize: 6,
+      showTitle: true, title: "Divergence points per session (per participant)",
+      titleFontSize: 11, titleColor: "333333",
+      showLegend: true, legendPos: "b", legendFontSize: 9,
+      catAxisLabelFontSize: 9, valAxisLabelFontSize: 9,
+      valAxisMinVal: 0, valAxisMaxVal: 10, valAxisMajorUnit: 2,
+      showValAxisTitle: false, showCatAxisTitle: false,
+    });
+  }
+
+  // Right: production-weighted process score
+  {
+    const data = [
+      { name: "Feedback mean", labels: LABELS, values: [13.7, 66.7, 33.0, 89.7, 32.0, 48.3] },
+      { name: "Baseline mean", labels: LABELS, values: [11.5, 20.0, 15.5, 76.5, 44.5, 27.0] },
+    ];
+    s.addChart(pres.ChartType.line, data, {
+      x: 5.1, y: 0.95, w: 4.6, h: 3.3,
+      chartColors: [FB_DARK, BL_DARK],
+      lineSize: 2.5,
+      lineDataSymbol: "circle", lineDataSymbolSize: 6,
+      showTitle: true, title: "Production-weighted process score (with cleanliness gain)",
+      titleFontSize: 11, titleColor: "333333",
+      showLegend: true, legendPos: "b", legendFontSize: 9,
+      catAxisLabelFontSize: 9, valAxisLabelFontSize: 9,
+      valAxisMinVal: 0, valAxisMaxVal: 100, valAxisMajorUnit: 25,
+      showValAxisTitle: false, showCatAxisTitle: false,
+    });
+  }
+
+  // Bottom takeaway block
+  {
+    const runs = [
+      { text: "DP rate separates clearly: ", options: {} },
+      { text: "2.7", options: { bold: true, color: FB_DARK } },
+      { text: " (feedback) vs ", options: {} },
+      { text: "6.0", options: { bold: true, color: BL_DARK } },
+      { text: " DPs per session per participant - 2.2× difference.", options: { breakLine: true, paraSpaceAfter: 4 } },
+      { text: "But the production-weighted score is dominated by ", options: {} },
+      { text: "task difficulty", options: { italic: true } },
+      { text: " - both groups peak at S4 (a short, mechanical task) and dip together at S2/S5. The behavioural signal is buried in the cleanliness gain.", options: {} },
+    ];
+    s.addText(runs, {
+      x: 0.5, y: 4.45, w: 9, h: 0.95, fontSize: 12, valign: "top", align: "center", margin: 4,
+    });
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// Slide 23 - Strip the task signal: process discipline emerges
+// ─────────────────────────────────────────────────────────────
+{
+  const s = pres.addSlide();
+  s.addText("Strip the task signal - process discipline emerges", {
+    x: 0.5, y: 0.15, w: 9, h: 0.55, fontSize: 24, bold: true, margin: 0, align: "center",
+  });
+
+  const LABELS = ["S1", "S2", "S3", "S4", "S5", "S6"];
+  const FB_DARK = "1F3F6F";
+  const BL_DARK = "B25500";
+
+  // Single large gain-stripped chart, zoomed y-axis
+  {
+    const data = [
+      { name: "Feedback mean", labels: LABELS, values: [26.7, 22.0, 38.7, 47.7, 36.7, 49.0] },
+      { name: "Baseline mean", labels: LABELS, values: [22.5, 17.5, 11.0, 39.0, 16.5, 20.5] },
+    ];
+    s.addChart(pres.ChartType.line, data, {
+      x: 1.7, y: 0.85, w: 6.6, h: 3.4,
+      chartColors: [FB_DARK, BL_DARK],
+      lineSize: 3,
+      lineDataSymbol: "circle", lineDataSymbolSize: 7,
+      showTitle: true, title: "Gain-stripped process score (W_g = W_lag = 0)",
+      titleFontSize: 12, titleColor: "333333",
+      showLegend: true, legendPos: "b", legendFontSize: 10,
+      catAxisLabelFontSize: 10, valAxisLabelFontSize: 10,
+      valAxisMinVal: 0, valAxisMaxVal: 60, valAxisMajorUnit: 10,
+      showValAxisTitle: false, showCatAxisTitle: false,
+    });
+  }
+
+  // Bottom takeaway block
+  {
+    const runs = [
+      { text: "Once cleanliness gain is removed, the score reflects ", options: {} },
+      { text: "how disciplined the process was", options: { italic: true } },
+      { text: " - tests run, IDE refactorings used, commits at sensible points. The feedback group climbs ", options: {} },
+      { text: "+22.3", options: { bold: true, color: FB_DARK } },
+      { text: " across the arc; the baseline group moves ", options: {} },
+      { text: "−2.0", options: { bold: true, color: BL_DARK } },
+      { text: ".", options: { breakLine: true, paraSpaceAfter: 6 } },
+      { text: "n = 3 vs n = 2 - directional finding, not a hypothesis test.", options: { italic: true, color: "888888" } },
+    ];
+    s.addText(runs, {
+      x: 0.5, y: 4.45, w: 9, h: 0.95, fontSize: 12, valign: "top", align: "center", margin: 4,
+    });
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// Slide 24 - Agent extension: tool doesn't transfer to agent traces
+// ─────────────────────────────────────────────────────────────
+{
+  const s = pres.addSlide();
+  s.addText("Tool doesn't transfer cleanly to agent traces", {
+    x: 0.5, y: 0.15, w: 9, h: 0.50, fontSize: 24, bold: true, margin: 0, align: "center",
+  });
+
+  s.addText(
+    "48 sessions, 8 agents (Claude / GPT / Gemini × Claude Code / OpenCode / Cursor CLI), same playbook as the user study.",
+    { x: 0.5, y: 0.70, w: 9, h: 0.30, fontSize: 11, italic: true, color: "555555", align: "center" }
+  );
+
+  // ── LEFT: gain-stripped score chart (group means, same scale as Slide 23) ──
+  {
+    const LABELS = ["S1", "S2", "S3", "S4", "S5", "S6"];
+    const FB_DARK = "1F3F6F";
+    const BL_DARK = "B25500";
+    const data = [
+      { name: "Feedback mean (n=6)", labels: LABELS, values: [36.7, 40.0, 40.0, 50.0, 42.0, 39.7] },
+      { name: "Baseline mean (n=2)", labels: LABELS, values: [34.5, 40.0, 40.0, 50.0, 42.0, 41.0] },
+    ];
+    s.addChart(pres.ChartType.line, data, {
+      x: 0.3, y: 1.15, w: 4.6, h: 2.95,
+      chartColors: [FB_DARK, BL_DARK],
+      lineSize: 2.5,
+      lineDataSymbol: "circle", lineDataSymbolSize: 6,
+      showTitle: true, title: "Gain-stripped score (same scale as user study)",
+      titleFontSize: 11, titleColor: "333333",
+      showLegend: true, legendPos: "b", legendFontSize: 9,
+      catAxisLabelFontSize: 9, valAxisLabelFontSize: 9,
+      valAxisMinVal: 0, valAxisMaxVal: 60, valAxisMajorUnit: 10,
+      showValAxisTitle: false, showCatAxisTitle: false,
+    });
+  }
+
+  // ── RIGHT: compact detector-by-kind table ──
+  const HEADER_CELL = {
+    bold: true, color: "000000", fill: { color: "F0F0F0" },
+    align: "center", valign: "middle", margin: 0.06, fontSize: 10,
+  };
+  const KIND_CELL = {
+    bold: true, color: "000000",
+    align: "left", valign: "middle", margin: 0.06, fontSize: 11,
+  };
+  const COUNT_FIRED_CELL = {
+    bold: true, color: "0A7D2A", fontSize: 16,
+    align: "center", valign: "middle", margin: 0.06,
+  };
+  const COUNT_ZERO_CELL = {
+    color: "999999", fontSize: 14,
+    align: "center", valign: "middle", margin: 0.06,
+  };
+  const WHY_CELL = {
+    color: "555555", fontSize: 10,
+    align: "left", valign: "middle", margin: 0.06,
+  };
+
+  const rows = [
+    [
+      { text: "Kind", options: HEADER_CELL },
+      { text: "DPs", options: HEADER_CELL },
+      { text: "Why under-fires", options: HEADER_CELL },
+    ],
+    [
+      { text: "Manual-Refactor", options: KIND_CELL },
+      { text: "41", options: COUNT_FIRED_CELL },
+      { text: "text edits, not IDE menu", options: WHY_CELL },
+    ],
+    [
+      { text: "Hygiene", options: KIND_CELL },
+      { text: "0", options: COUNT_ZERO_CELL },
+      { text: "batched commits don't trip threshold", options: WHY_CELL },
+    ],
+    [
+      { text: "Rework", options: KIND_CELL },
+      { text: "0", options: COUNT_ZERO_CELL },
+      { text: "edit bursts collapse to one", options: WHY_CELL },
+    ],
+    [
+      { text: "Ordering", options: KIND_CELL },
+      { text: "1", options: COUNT_ZERO_CELL },
+      { text: "same burst-collapse", options: WHY_CELL },
+    ],
+  ];
+
+  s.addTable(rows, {
+    x: 5.10, y: 1.15, w: 4.65,
+    colW: [1.55, 0.55, 2.55],
+    rowH: 0.50,
+    fontFace: "Calibri",
+  });
+
+  // ── BOTTOM: tight takeaway (single paragraph + future-work closer) ──
+  {
+    const runs = [
+      { text: "Score is blind to the difference: ", options: { bold: true } },
+      { text: "feedback ΔJ ", options: {} },
+      { text: "+3.0", options: { bold: true, color: "1F3F6F" } },
+      { text: " vs baseline ", options: {} },
+      { text: "+6.5", options: { bold: true, color: "B25500" } },
+      { text: ". Yet 5 of 6 agents wrote explicit \"I'll do X next session\" plans citing prior warnings - the detectors just can't see those changes happen.", options: { breakLine: true, paraSpaceAfter: 6 } },
+      { text: "Scope limit by design - adapting detectors for agent traces is future work.", options: { italic: true, color: "888888" } },
+    ];
+    s.addText(runs, {
+      x: 0.5, y: 4.30, w: 9, h: 1.20, fontSize: 12, valign: "top", align: "center", margin: 4,
+    });
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// Slide 25 - Contributions
 // ─────────────────────────────────────────────────────────────
 {
   const s = titled("Contributions");

@@ -61,3 +61,39 @@ A correlation coefficient for **ranked lists** that handles ties (the "-b" varia
 Mechanically, τ-b counts concordant pairs (both rankings agree which item is higher) minus discordant pairs, normalised so ties don't artificially inflate the numerator. Used here because the per-session DP rankings are short and frequently contain ties (e.g. Ordering DPs that tie at zero magnitude), and τ-b is the standard tie-aware variant.
 
 **Headline τ for this work**: under multi-knob perturbation on the user-study rankable subset, **mean τ-b = 0.586** — meaningful positive correlation but well short of full preservation, which is why the framing is "locally robust, not globally robust".
+
+---
+
+## Part 3 — Why two separate datasets? (injection vs user-study)
+
+Likely viva question: *"Why have a separate labelled injection dataset and a separate user-study dataset? Why not just label some of the user-study sessions and have one combined dataset?"*
+
+### What each dataset is for
+
+| Dataset | Question it answers | Reported as |
+|---|---|---|
+| **Injection** (45 sessions, library codebase, single author) | Is the detector accurate? — per-kind precision / recall | Detector-evaluation tables (precision/recall, κ) |
+| **User-study** (30 sessions, order-processing codebase, 5 participants in 2 arms) | Does dashboard feedback change behaviour? — DP rate Δ and gain-stripped score Δ across the 6-session arc | Descriptive trajectories, group means |
+
+The two datasets answer **different questions**, and merging them would break both.
+
+### Important nuance about ground truth (correction to a tempting wrong answer)
+
+`expected_kinds` in `manifest-v2.csv` is **not** "pre-declared what I planted before recording". It's a label column filled in *post-hoc* by inspecting the recorded events under the same labelling protocol any rater would apply. The `pattern` column (e.g. `ManualExtractMethod loud`) is the scenario I set out to perform — that's the only pre-declared field, and **we don't report on it**.
+
+So the injection set's privilege is **not** privileged ground-truth provenance. Labels in both datasets would come from the same post-hoc protocol.
+
+### The four reasons that actually hold
+
+1. **The injection set is a designed test bed.** I picked the scenarios (`pattern`) and parameters (`strength`) specifically to provoke clean instances of each of the 4 kinds in balanced quantities. The underlying behaviour in each session is curated; user-study traces are unscripted, with multiple kinds often overlapping in one session.
+2. **Balanced kind coverage by design.** ~8–16 sessions per kind in injection. User-study skewed heavily Hygiene + Manual-Refactor naturally — too few Rework / Ordering examples to compute meaningful per-kind precision/recall.
+3. **Participant confound (the strongest single reason).** Feedback-arm participants can't simultaneously be (a) subjects of the behavioural study and (b) ground truth for detector accuracy, because their behaviour is the dependent variable the detector is supposed to influence. Using their sessions to validate the detector would conflate cause and measurement.
+4. **Two codebases = generalisation check.** Injection uses `tool/fixtures/` (library code), user-study uses `user-study-fixture/` (order-processing). If the detector worked on the codebase I designed it against but fell over on a different codebase with different people, I'd want to know — one combined dataset on one codebase = one evaluation point.
+
+### The link between them
+
+The two datasets are not isolated: P1 and P2 labelled the injection set **before** doing their own user-study sessions. The fact that all three raters reach κ ≥ 0.72 on the injection labels is what licenses everything downstream — it shows the labelling protocol is reliable enough that the detector's "ground truth" isn't just one person's opinion.
+
+### One-liner for the viva
+
+*"The injection set is a scenario-curated test bed where I designed sessions to provoke balanced clean instances of each kind so per-kind precision/recall is meaningful; the user-study is unscripted refactoring on a different codebase to measure the behavioural effect of feedback. Labels in both come from the same post-hoc protocol — what differs is whether the underlying scenario was controlled or naturalistic. Merging them would (a) lose balanced kind coverage, (b) use feedback-arm subjects as their own ground truth, and (c) collapse to a single evaluation codebase."*
