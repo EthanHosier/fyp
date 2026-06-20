@@ -322,7 +322,11 @@ function titled(title, subtitle = null) {
 // Slide 8 - Scoring a trajectory
 // ─────────────────────────────────────────────────────────────
 {
-  const s = titled("Scoring a trajectory: J(τ)");
+  // Title position is nudged up vs. the shared TITLE constant so the formula has a touch more room
+  const s = pres.addSlide();
+  s.addText("Scoring a trajectory: J(τ)", {
+    x: 0.5, y: 0.15, w: 9, h: 0.7, fontSize: 28, bold: true, margin: 0,
+  });
 
   const POS = "0A7D2A"; // green for positive weights
   const NEG = "B33A1E"; // red for negative (penalty) weights
@@ -338,9 +342,9 @@ function titled(title, subtitle = null) {
     ],
     {
       x: 0.5,
-      y: 1.25,
+      y: 0.92,
       w: 9,
-      h: 0.6,
+      h: 0.45,
       fontSize: 22,
       align: "center",
       valign: "middle",
@@ -371,18 +375,23 @@ function titled(title, subtitle = null) {
     ["−",  7, "Long durations without commits"],
   ];
 
-  const rows = terms.map(([sign, weight, name]) => [
-    { text: sign + String(weight), options: weightCell(sign) },
-    { text: "×", options: opCell },
-    { text: name, options: termCell },
-  ]);
+  const rows = terms.map(([sign, weight, name]) => {
+    // First row (cleanliness gain) carries an inline asterisk pointing to the footer.
+    // Uses a non-breaking space so the asterisk can't wrap to a new line.
+    const displayName = name === "cleanliness gain" ? name + "*" : name;
+    return [
+      { text: sign + String(weight), options: weightCell(sign) },
+      { text: "×", options: opCell },
+      { text: displayName, options: termCell },
+    ];
+  });
 
   s.addTable(rows, {
     x: 2.6,
-    y: 2.05,
+    y: 1.4,
     w: 4.8,
     colW: [0.8, 0.4, 3.6],
-    rowH: 0.34,
+    rowH: 0.32,
     fontSize: 16,
     border: { type: "none" },
   });
@@ -390,14 +399,38 @@ function titled(title, subtitle = null) {
   // Closing paren centred below
   s.addText(")", {
     x: 0.5,
-    y: 4.55,
+    y: 4.1,
     w: 9,
-    h: 0.5,
+    h: 0.45,
     fontSize: 22,
     align: "center",
     valign: "middle",
     margin: 0,
   });
+
+  // Footer expanding the cleanliness-gain asterisk + justifying the equal sub-weights
+  s.addText(
+    [
+      {
+        text: "* cleanliness gain = mean of 6 normalised signals: complexity, coupling, duplication, readability, smells, cohesion.",
+        options: { breakLine: true },
+      },
+      {
+        text: "All 6 weighted equally - no trajectory-level calibration data exists, so equal weights are the least-assumptive choice.",
+      },
+    ],
+    {
+      x: 0.5,
+      y: 4.95,
+      w: 9,
+      h: 0.6,
+      fontSize: 11,
+      italic: true,
+      color: "777777",
+      align: "center",
+      margin: 0,
+    },
+  );
 }
 
 // ─────────────────────────────────────────────────────────────
