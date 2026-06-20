@@ -297,8 +297,8 @@ function titled(title, subtitle = null) {
   // Each kind: name in black + grey description
   const REF_COLOR = "888888";
   const kinds = [
-    ["Ordering",        "right refactorings, wrong sequence."],
     ["Manual-Refactor", "unnecessary risk (hand-edit when the IDE could have safely done it)."],
+    ["Ordering",        "right refactorings, wrong sequence."],
     ["Rework",          "unnecessary churn (added then removed)."],
     ["Hygiene",         "missing safety checkpoints (no tests, no commits)."],
   ];
@@ -434,17 +434,31 @@ function titled(title, subtitle = null) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 9 - Cleanliness sub-score (HIDDEN — backup detail for Q&A)
+// Slide 9 - Manual-Refactor: detect + synthesise
 // ─────────────────────────────────────────────────────────────
 {
-  const s = titled("The cleanliness sub-score");
-  s.hidden = true;
-  bulletText(s, [
-    "Six equally-weighted code-quality signals.",
-    "Cognitive complexity, coupling (CBO), duplication (CPD), readability, code smells (PMD), cohesion (TCC).",
-    "Normalised against the trajectory's own range, so different sessions are comparable.",
-    "Equal weights are justified: no trajectory-level calibration data exists, so equal weights are the least-assumptive choice.",
-  ]);
+  const s = titled("Manual-Refactor: detect + synthesise");
+  bulletText(
+    s,
+    [
+      "What: developer hand-edited something the IDE could have done safely (and with its precondition checks).",
+      "Detect: run RefactoringMiner on sliding commit windows; cross-check against the IDE event stream - anything RefactoringMiner finds that the IDE did not emit is a manual refactoring.",
+      "Synthesise: apply the equivalent IDE refactoring, then three-way merge the user's other edits back on top.",
+      "Wrap-and-patch layer reconciles minor JDT ↔ IntelliJ AST differences (e.g. static modifiers, variable liveness).",
+    ],
+    { y: 1.2, h: 1.85, fontSize: 13 },
+  );
+
+  // Manual-Refactor figure: edit-burst stream with miner detections. Original 1422x466 (~3.05:1).
+  const imgW = 6.8;
+  const imgH = 2.23;
+  s.addImage({
+    path: "images/manual-refactor.png",
+    x: (10 - imgW) / 2,
+    y: 3.15,
+    w: imgW,
+    h: imgH,
+  });
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -476,35 +490,7 @@ function titled(title, subtitle = null) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 11 - Manual-Refactor: detect + synthesise
-// ─────────────────────────────────────────────────────────────
-{
-  const s = titled("Manual-Refactor: detect + synthesise");
-  bulletText(
-    s,
-    [
-      "What: developer hand-edited something the IDE could have done safely (and with its precondition checks).",
-      "Detect: run RefactoringMiner on sliding commit windows; cross-check against the IDE event stream - anything RefactoringMiner finds that the IDE did not emit is a manual refactoring.",
-      "Synthesise: apply the equivalent IDE refactoring, then three-way merge the user's other edits back on top.",
-      "Wrap-and-patch layer reconciles minor JDT ↔ IntelliJ AST differences (e.g. static modifiers, variable liveness).",
-    ],
-    { y: 1.2, h: 1.85, fontSize: 13 },
-  );
-
-  // Manual-Refactor figure: edit-burst stream with miner detections. Original 1422x466 (~3.05:1).
-  const imgW = 6.8;
-  const imgH = 2.23;
-  s.addImage({
-    path: "images/manual-refactor.png",
-    x: (10 - imgW) / 2,
-    y: 3.15,
-    w: imgW,
-    h: imgH,
-  });
-}
-
-// ─────────────────────────────────────────────────────────────
-// Slide 12 - Rework: detect + synthesise
+// Slide 11 - Rework: detect + synthesise
 // ─────────────────────────────────────────────────────────────
 {
   const s = titled("Rework: detect + synthesise");
@@ -532,7 +518,7 @@ function titled(title, subtitle = null) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 13 - Hygiene: detect + synthesise
+// Slide 12 - Hygiene: detect + synthesise
 // ─────────────────────────────────────────────────────────────
 {
   const s = titled("Hygiene: detect + synthesise");
@@ -546,22 +532,7 @@ function titled(title, subtitle = null) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 14 - Comparable divergence magnitudes (HIDDEN — backup detail for Q&A)
-// ─────────────────────────────────────────────────────────────
-{
-  const s = titled("Comparable divergence magnitudes");
-  s.hidden = true;
-  bulletText(s, [
-    "Magnitude = J(τ*_final) − J(τ_final).",
-    "The score gap when the alternative is substituted at the divergence point but the rest of the user's trajectory is left unchanged.",
-    "Makes magnitudes comparable across all four divergence kinds.",
-    "Lets the dashboard surface each divergence point alongside its score impact, so the highest-impact moments are easy to spot in the session summary.",
-    "This is the number the demo will point at.",
-  ]);
-}
-
-// ─────────────────────────────────────────────────────────────
-// Slide 15 - What we wanted to evaluate (three questions, each tied to a dataset + experiment)
+// Slide 13 - What we wanted to evaluate (three questions, each tied to a dataset + experiment)
 // ─────────────────────────────────────────────────────────────
 {
   const s = titled("What we wanted to evaluate");
@@ -599,7 +570,7 @@ function titled(title, subtitle = null) {
         options: QUESTION_CELL,
       },
       {
-        text: "45 labelled injection sessions: per-kind precision and recall (Slides 16-17) plus beat/tie/lose breakdown across all 66 detected divergence points (Slide 18).",
+        text: "45 labelled injection sessions: per-kind precision and recall (Slides 14-15) plus beat/tie/lose breakdown across all 66 detected divergence points (Slide 16).",
         options: ANSWER_CELL,
       },
     ],
@@ -609,7 +580,7 @@ function titled(title, subtitle = null) {
         options: QUESTION_CELL,
       },
       {
-        text: "Sensitivity sweep + ablation, headline on the 25-session user-study rankable subset (Slides 19-20).",
+        text: "Sensitivity sweep + ablation, headline on the 25-session user-study rankable subset (Slides 17-18).",
         options: ANSWER_CELL,
       },
     ],
@@ -619,7 +590,7 @@ function titled(title, subtitle = null) {
         options: QUESTION_CELL,
       },
       {
-        text: "30-session randomised user study, 5 participants split between feedback and no-feedback arms (Slide 21).",
+        text: "30-session randomised user study, 5 participants split between feedback and no-feedback arms (Slide 19).",
         options: ANSWER_CELL,
       },
     ],
@@ -636,7 +607,7 @@ function titled(title, subtitle = null) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 16 - Detector evaluation: setup + label reliability + metric choice
+// Slide 14 - Detector evaluation: setup + label reliability + metric choice
 // ─────────────────────────────────────────────────────────────
 {
   const s = titled("Is the tool accurate?");
@@ -668,7 +639,7 @@ function titled(title, subtitle = null) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 17 - Per-kind decision matrices (4 mini 2×2 confusion matrices)
+// Slide 15 - Per-kind decision matrices (4 mini 2×2 confusion matrices)
 // ─────────────────────────────────────────────────────────────
 {
   // Custom-positioned title (nudged up vs. the shared TITLE constant so the 2×2 grid + footer all fit)
@@ -778,7 +749,7 @@ function titled(title, subtitle = null) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 18 - Are the alternatives actually better? (synthesis quality)
+// Slide 16 - Are the alternatives actually better? (synthesis quality)
 // ─────────────────────────────────────────────────────────────
 {
   // Custom-positioned title to match Slide 17's geometry
@@ -887,7 +858,7 @@ function titled(title, subtitle = null) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 19 - Is the process score reliable? (setup)
+// Slide 17 - Is the process score reliable? (setup)
 // ─────────────────────────────────────────────────────────────
 {
   const s = titled("Is the process score reliable?");
@@ -940,7 +911,7 @@ function titled(title, subtitle = null) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 20 - Score is locally robust (4-card 2×2 results grid)
+// Slide 18 - Score is locally robust (4-card 2×2 results grid)
 // ─────────────────────────────────────────────────────────────
 {
   const s = titled("Score is locally robust");
@@ -993,7 +964,7 @@ function titled(title, subtitle = null) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 21 - User study setup (does feedback change behaviour?)
+// Slide 19 - User study setup (does feedback change behaviour?)
 // ─────────────────────────────────────────────────────────────
 {
   const s = titled("Does dashboard feedback change developer behaviour?");
@@ -1050,7 +1021,7 @@ function titled(title, subtitle = null) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 22 - Fewer divergences, but production score is noisy
+// Slide 20 - Fewer divergences, but production score is noisy
 // ─────────────────────────────────────────────────────────────
 {
   const s = pres.addSlide();
@@ -1122,7 +1093,7 @@ function titled(title, subtitle = null) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 23 - Strip the task signal: process discipline emerges
+// Slide 21 - Strip the task signal: process discipline emerges
 // ─────────────────────────────────────────────────────────────
 {
   const s = pres.addSlide();
@@ -1173,7 +1144,7 @@ function titled(title, subtitle = null) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 24 - Agent extension: tool doesn't transfer to agent traces
+// Slide 22 - Agent extension: tool doesn't transfer to agent traces
 // ─────────────────────────────────────────────────────────────
 {
   const s = pres.addSlide();
@@ -1284,16 +1255,22 @@ function titled(title, subtitle = null) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 25 - Contributions
+// Slide 23 - Conclusion
 // ─────────────────────────────────────────────────────────────
 {
-  const s = titled("Contributions");
+  const s = titled("Conclusion");
+
+  s.addText(
+    "Process-aware refactoring evaluation is tractable, and the resulting feedback shifts developer behaviour.",
+    { x: 0.5, y: 1.15, w: 9, h: 0.75, fontSize: 17, italic: true, color: "1F3F6F", align: "center", valign: "middle" }
+  );
+
   bulletText(s, [
     "A process-quality metric J(τ) combining endpoint, process, and safety signals in one principled score.",
     "A divergence-point detector with four actionable kinds, each with a per-kind synthesiser that constructs a concrete alternative trajectory.",
     "Three datasets -45 injection sessions, 30-session user study, 48-session agent extension - with reproducible analysis (Jupyter notebook reproduces every table and figure).",
     "A deployable end-to-end system: IntelliJ plugin, analysis backend, and dashboard.",
-  ]);
+  ], { y: 2.10, h: 3.3 });
 }
 
 pres.writeFile({ fileName: "slides.pptx" }).then((name) => {
