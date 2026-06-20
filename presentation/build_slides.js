@@ -484,7 +484,7 @@ function titled(title, subtitle = null) {
     s,
     [
       "What: developer hand-edited something the IDE could have done safely (and with its precondition checks).",
-      "Detect: run RefactoringMiner on sliding commit windows; cross-check against the IDE event stream — anything RefactoringMiner finds that the IDE did not emit is a manual refactoring.",
+      "Detect: run RefactoringMiner on sliding commit windows; cross-check against the IDE event stream - anything RefactoringMiner finds that the IDE did not emit is a manual refactoring.",
       "Synthesise: apply the equivalent IDE refactoring, then three-way merge the user's other edits back on top.",
       "Wrap-and-patch layer reconciles minor JDT ↔ IntelliJ AST differences (e.g. static modifiers, variable liveness).",
     ],
@@ -595,7 +595,7 @@ function titled(title, subtitle = null) {
     ],
     [
       {
-        text: "Is the tool accurate? Does it detect real divergences without false positives?",
+        text: "Is the tool accurate? Are the alternatives it generates actually better?",
         options: QUESTION_CELL,
       },
       {
@@ -778,7 +778,116 @@ function titled(title, subtitle = null) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 18 - Score robustness
+// Slide 18 - Are the alternatives actually better? (synthesis quality)
+// ─────────────────────────────────────────────────────────────
+{
+  // Custom-positioned title to match Slide 17's geometry
+  const s = pres.addSlide();
+  s.addText("Are the alternatives actually better?", {
+    x: 0.5, y: 0.1, w: 9, h: 0.6, fontSize: 28, bold: true, margin: 0,
+  });
+
+  // Headline subtitle
+  s.addText(
+    "41 of 66 synthesised alternatives strictly beat the user's trajectory (~62%). Quality varies sharply by kind.",
+    {
+      x: 0.5, y: 0.78, w: 9, h: 0.3,
+      fontSize: 13, italic: true, color: "555555", align: "center", margin: 0,
+    },
+  );
+
+  // Colour palette — match Slide 17 quadrants where possible
+  const TP_FILL = "D4F0DC", TP_TEXT = "0A7D2A";
+  const TIE_FILL = "FFF4D6", TIE_TEXT = "8A6A00";
+  const FN_FILL = "F5D5CE", FN_TEXT = "B33A1E";
+
+  // Cell formatting
+  const HEADER = { bold: true, color: "1A1A1A", fill: { color: "F0F0F0" }, align: "center", valign: "middle", margin: 0.08 };
+  const HEADER_LEFT = { ...HEADER, align: "left" };
+  const KIND = { bold: true, color: "1A1A1A", align: "left", valign: "middle", margin: 0.08 };
+  const NEUTRAL = { color: "1A1A1A", align: "center", valign: "middle", margin: 0.08 };
+  const BEAT = { bold: true, color: TP_TEXT, fill: { color: TP_FILL }, align: "center", valign: "middle", margin: 0.08 };
+  const TIE = { bold: true, color: TIE_TEXT, fill: { color: TIE_FILL }, align: "center", valign: "middle", margin: 0.08 };
+  const LOSE = { bold: true, color: FN_TEXT, fill: { color: FN_FILL }, align: "center", valign: "middle", margin: 0.08 };
+  const RATE_HIGH = { bold: true, color: TP_TEXT, align: "center", valign: "middle", margin: 0.08 };
+  const RATE_LOW = { bold: true, color: "1A1A1A", align: "center", valign: "middle", margin: 0.08 };
+  const MAX_STANDOUT = { bold: true, color: TP_TEXT, align: "center", valign: "middle", margin: 0.08 };
+
+  const rows = [
+    [
+      { text: "Kind", options: HEADER_LEFT },
+      { text: "DPs", options: HEADER },
+      { text: "Beats ✓", options: HEADER },
+      { text: "Ties =", options: HEADER },
+      { text: "Loses ✗", options: HEADER },
+      { text: "Beat rate", options: HEADER },
+      { text: "Max Δ", options: HEADER },
+    ],
+    [
+      { text: "Hygiene", options: KIND },
+      { text: "13", options: NEUTRAL },
+      { text: "13", options: BEAT },
+      { text: "0", options: TIE },
+      { text: "0", options: LOSE },
+      { text: "100%", options: RATE_HIGH },
+      { text: "+9", options: NEUTRAL },
+    ],
+    [
+      { text: "Manual-Refactor", options: KIND },
+      { text: "16", options: NEUTRAL },
+      { text: "12", options: BEAT },
+      { text: "3", options: TIE },
+      { text: "1", options: LOSE },
+      { text: "75%", options: RATE_HIGH },
+      { text: "+23", options: MAX_STANDOUT },
+    ],
+    [
+      { text: "Rework", options: KIND },
+      { text: "13", options: NEUTRAL },
+      { text: "6", options: BEAT },
+      { text: "1", options: TIE },
+      { text: "6", options: LOSE },
+      { text: "46%", options: RATE_LOW },
+      { text: "+8", options: NEUTRAL },
+    ],
+    [
+      { text: "Ordering", options: KIND },
+      { text: "24", options: NEUTRAL },
+      { text: "10", options: BEAT },
+      { text: "12", options: TIE },
+      { text: "2", options: LOSE },
+      { text: "42%", options: RATE_LOW },
+      { text: "+9", options: NEUTRAL },
+    ],
+  ];
+
+  s.addTable(rows, {
+    x: 0.7, y: 1.3, w: 8.6,
+    colW: [1.9, 0.7, 1.1, 1.0, 1.1, 1.2, 1.6],
+    rowH: 0.45,
+    fontSize: 14,
+    border: { type: "solid", pt: 0.5, color: "CCCCCC" },
+  });
+
+  // Footer — saturation / same-end-state explanations
+  s.addText(
+    [
+      {
+        text: "Ordering alternatives share the end state, so only W_lag (intermediate cleanliness) can separate them. They tie when intermediate cleanliness is identical - often when build/tests broke and cleanliness stats are frozen at the last trustworthy value. ",
+      },
+      {
+        text: "Manual-Refactor's 3 ties + 1 loss come from the [0,100] score clamp - the user's score is pinned at the floor, so the IDE alternative can't score lower either.",
+      },
+    ],
+    {
+      x: 0.4, y: 4.6, w: 9.2, h: 0.6,
+      fontSize: 10, italic: true, color: "777777", align: "center", margin: 0,
+    },
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Slide 19 - Score robustness
 // ─────────────────────────────────────────────────────────────
 {
   const s = titled("Score robustness");
@@ -791,7 +900,7 @@ function titled(title, subtitle = null) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 19 - User study: does feedback change behaviour?
+// Slide 20 - User study: does feedback change behaviour?
 // ─────────────────────────────────────────────────────────────
 {
   const s = titled("User study: does feedback change behaviour?");
@@ -804,7 +913,7 @@ function titled(title, subtitle = null) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 20 - Contributions
+// Slide 21 - Contributions
 // ─────────────────────────────────────────────────────────────
 {
   const s = titled("Contributions");
