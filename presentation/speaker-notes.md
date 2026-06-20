@@ -1,6 +1,10 @@
-# Score-formula speaker notes
+# Speaker notes
 
-Q&A-prep reference for the **Scoring a trajectory** slide (visible) and the **Cleanliness sub-score** slide (hidden). All numeric stats verified against `final_report/methodology/methodology.tex` and `final_report/results/results.tex`.
+Q&A-prep reference for the presentation. All numeric stats verified against `final_report/methodology/methodology.tex` and `final_report/results/results.tex`.
+
+## Part 1 — Score formula
+
+Reference for the **Scoring a trajectory** slide (visible) and the **Cleanliness sub-score** slide (hidden).
 
 ---
 
@@ -37,3 +41,23 @@ Q&A-prep reference for the **Scoring a trajectory** slide (visible) and the **Cl
 - **Top-1 robustness.** Single-knob sweep: **96.5%** of user-study rankable cases keep their top-1 DP under any 1-weight perturbation. Clamp-frozen rate just 1.8% — so almost all of the stability is genuine perturbation response, not a clamp artefact. Multi-knob sweep (σ = ln 2, covers ≈ ×0.25 – ×4 of production weights): top-1 drops to **84.6%**, mean Kendall τ = **0.586**.
 - **Cleanliness vs process weights.** Perturbing any single cleanliness sub-weight changes top-1 in **≤ 0.9%** of cases. Process weights change it in 5.3 – 10.7% of cases. ≈ 10× difference — supports the equal-weight cleanliness design.
 - **Honest scope limit.** Weights are **not fitted** to outcome data. They follow the literature-severity ordering set in `methodology.tex:80`. Full predictive validation would require an external ground-truth dataset of longitudinal code-quality / maintenance outcomes, which does not currently exist. The score is **defensible locally** — robust to plausible weight perturbations — not claimed to be globally optimal.
+
+---
+
+## Part 2 — Is the process score reliable?
+
+Reference for the **"Is the process score reliable?"** setup slide and the **"Score is locally robust"** results slide.
+
+- **Rankable subset** — sessions with ≥ 2 detected divergence points only (15 injection / 25 user-study / 20 agent). Sessions with 0 or 1 DP have a mechanically τ = 1.0 ranking (no order to perturb), so they're excluded from rank stats to avoid inflating the headline numbers.
+- **Magnitude vs ranking** — magnitude tables use the **full** session sets (45 / 30 / 48), since per-DP magnitude is well-defined on every session regardless of DP count. **Rank** statistics use only the rankable subset.
+
+### Kendall's τ-b — what it is
+
+A correlation coefficient for **ranked lists** that handles ties (the "-b" variant). For two rankings of the same N items:
+- **τ = 1.0** → identical order.
+- **τ = 0.0** → uncorrelated (50/50 whether any given pair is in the same order).
+- **τ = −1.0** → fully reversed.
+
+Mechanically, τ-b counts concordant pairs (both rankings agree which item is higher) minus discordant pairs, normalised so ties don't artificially inflate the numerator. Used here because the per-session DP rankings are short and frequently contain ties (e.g. Ordering DPs that tie at zero magnitude), and τ-b is the standard tie-aware variant.
+
+**Headline τ for this work**: under multi-knob perturbation on the user-study rankable subset, **mean τ-b = 0.586** — meaningful positive correlation but well short of full preservation, which is why the framing is "locally robust, not globally robust".

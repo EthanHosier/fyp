@@ -647,7 +647,7 @@ function titled(title, subtitle = null) {
     ["45 hand-labelled injection sessions", "on a Java codebase."],
     ["3 raters (author + 2 external MEng cohort members)", "inter-rater Cohen's κ = 1.00 (Ordering, Manual-Refactor), 0.86–1.00 (Rework), 0.72–0.86 (Hygiene)."],
     ["Disagreements predominantly surrounding hygiene + rework labels", "differences in opinion of what constitutes a step."],
-    ["Track all ordering points detected", "not only ones with a higher process score than the user."],
+    ["Track all divergence points detected", "not only ones with a higher process score than the user."],
     ["Measure precision + recall", "precision guards against FPs that waste the developer's attention. Recall guards against FNs that miss real opportunities. F1 averages the two - so a high score can hide a detector that's annoying users (lots of FPs) or one that's quietly missing things (lots of FNs). Accuracy is dominated by true negatives."],
   ];
 
@@ -887,20 +887,113 @@ function titled(title, subtitle = null) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 19 - Score robustness
+// Slide 19 - Is the process score reliable? (setup)
 // ─────────────────────────────────────────────────────────────
 {
-  const s = titled("Score robustness");
-  bulletText(s, [
-    "Single-knob sensitivity sweep: scale any one weight by {0.1×–10×}, top-1 recommendation is preserved in 96.5% of user-study cases.",
-    "Multi-knob Monte Carlo (200 samples): top-1 stability drops to 84.6%; mean Kendall τ = 0.586.",
-    "Honest framing - stable near the chosen weights, less stable under arbitrary joint perturbations.",
-    "Ablation confirms each process term contributes real signal; endpoint gain alone does not recover the ranking.",
-  ]);
+  const s = titled("Is the process score reliable?");
+
+  const REF_COLOR = "888888";
+  const SUB_GAP = 6;
+  const GROUP_GAP = 18;
+
+  // Two main questions, each with sub-bullets describing the experiment specifics
+  const groups = [
+    {
+      main: "How stable is the score?",
+      subs: [
+        ["Two perturbation sweeps", "single-knob (one weight scaled ×0.1 to ×10) + multi-knob Monte Carlo (200 samples, σ = ln 2, so ~×0.25 to ×4 of production)."],
+        ["Stability metrics", "top-1 hit rate (does the top-ranked DP stay on top?) + Kendall's τ-b on per-session rankings."],
+      ],
+    },
+    {
+      main: "Does every component of the process score hold weight?",
+      subs: [
+        ["Process-side ablation", "enumerate all 2⁷ = 128 subsets of the 7 process weights → 5,760 cases per session set."],
+        ["Recovery metrics", "sum-over-sum magnitude recovery (does the term carry signal?) + leave-one-out Kendall's τ-b (does removing it reshuffle rankings?)."],
+      ],
+    },
+  ];
+
+  const runs = [];
+  groups.forEach((g, gIdx) => {
+    const isLastGroup = gIdx === groups.length - 1;
+    // Main bullet
+    runs.push({
+      text: g.main,
+      options: { bullet: true, bold: true, breakLine: true, paraSpaceAfter: 6 },
+    });
+    g.subs.forEach(([lead, tail], sIdx) => {
+      const isLastSub = sIdx === g.subs.length - 1;
+      const trailingGap = isLastSub && !isLastGroup ? GROUP_GAP : SUB_GAP;
+      runs.push({
+        text: lead + " ",
+        options: { bullet: { indent: 30 }, indentLevel: 1, paraSpaceAfter: trailingGap },
+      });
+      runs.push({
+        text: "- " + tail,
+        options: { color: REF_COLOR, breakLine: !(isLastGroup && isLastSub), paraSpaceAfter: trailingGap },
+      });
+    });
+  });
+
+  s.addText(runs, { x: 0.5, y: 1.3, w: 9, h: 4.0, fontSize: 15, valign: "top" });
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 20 - User study: does feedback change behaviour?
+// Slide 20 - Score is locally robust (4-card 2×2 results grid)
+// ─────────────────────────────────────────────────────────────
+{
+  const s = titled("Score is locally robust");
+
+  const REF_COLOR = "888888";
+  const SUB_GAP = 6;
+  const GROUP_GAP = 18;
+
+  // Two main questions (echo Slide 19 verbatim), each answered with key numbers + a short sentence.
+  const groups = [
+    {
+      main: "How stable is the score?",
+      subs: [
+        ["Single-knob: 96.5% top-1 preserved", "top-ranked DP rarely changes under any one-weight perturbation. Only 1.8% of cases are clamp-frozen, so this is genuine response - not a clamp artefact."],
+        ["Multi-knob: 84.6% top-1 preserved (τ-b = 0.586)", "when all weights move at once, top-1 holds in ~85% of cases and ~79% of pairs still rank in the same order. Meaningful correlation, not full preservation."],
+      ],
+    },
+    {
+      main: "Does every component of the process score hold weight?",
+      subs: [
+        ["Length is the rank-carrier (LOO τ-b = 0.527)", "removing length reshuffles the per-session ranking more than removing any other process term - the most influential term."],
+        ["Cleanliness sub-weights: ≤ 0.9% top-1 disruption", "perturbing any single one of the 6 cleanliness signals barely shifts the ranking (~10× less than process weights), so equal-weights for the sub-signals is defensible."],
+      ],
+    },
+  ];
+
+  const runs = [];
+  groups.forEach((g, gIdx) => {
+    const isLastGroup = gIdx === groups.length - 1;
+    // Main bullet (the question, restated from Slide 19)
+    runs.push({
+      text: g.main,
+      options: { bullet: true, bold: true, breakLine: true, paraSpaceAfter: 6 },
+    });
+    g.subs.forEach(([lead, tail], sIdx) => {
+      const isLastSub = sIdx === g.subs.length - 1;
+      const trailingGap = isLastSub && !isLastGroup ? GROUP_GAP : SUB_GAP;
+      runs.push({
+        text: lead + " ",
+        options: { bullet: { indent: 30 }, indentLevel: 1, paraSpaceAfter: trailingGap },
+      });
+      runs.push({
+        text: "- " + tail,
+        options: { color: REF_COLOR, breakLine: !(isLastGroup && isLastSub), paraSpaceAfter: trailingGap },
+      });
+    });
+  });
+
+  s.addText(runs, { x: 0.5, y: 1.3, w: 9, h: 4.0, fontSize: 15, valign: "top" });
+}
+
+// ─────────────────────────────────────────────────────────────
+// Slide 21 - User study: does feedback change behaviour?
 // ─────────────────────────────────────────────────────────────
 {
   const s = titled("User study: does feedback change behaviour?");
@@ -913,7 +1006,7 @@ function titled(title, subtitle = null) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 21 - Contributions
+// Slide 22 - Contributions
 // ─────────────────────────────────────────────────────────────
 {
   const s = titled("Contributions");
