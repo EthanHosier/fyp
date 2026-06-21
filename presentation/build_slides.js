@@ -1545,39 +1545,18 @@ function quoteCard(slide, quote, attribution, opts = {}) {
   const FB_DARK = "0000CD";
   const BL_DARK = "B25500";
 
-  // Left: DP rate per session (per-participant mean, normalises for 3 vs 2 group sizes)
-  {
-    // Feedback: divide group total by 3 participants; baseline: divide by 2
-    const data = [
-      { name: "Feedback (per participant)", labels: LABELS, values: [4.0, 5.67, 3.67, 0, 2.33, 0.67] },
-      { name: "Baseline (per participant)", labels: LABELS, values: [5.0, 7.5, 9.5, 0, 6.5, 7.5] },
-    ];
-    s.addChart(pres.ChartType.line, data, {
-      x: 0.3, y: 0.95, w: 4.6, h: 3.3,
-      chartColors: [FB_DARK, BL_DARK],
-      lineSize: 2.5,
-      lineDataSymbol: "circle", lineDataSymbolSize: 6,
-      showTitle: true, title: "Divergence points per session (per participant)",
-      titleFontSize: 11, titleColor: "333333",
-      showLegend: true, legendPos: "b", legendFontSize: 9,
-      catAxisLabelFontSize: 9, valAxisLabelFontSize: 9,
-      valAxisMinVal: 0, valAxisMaxVal: 10, valAxisMajorUnit: 2,
-      showValAxisTitle: false, showCatAxisTitle: false,
-    });
-  }
-
-  // Right: production-weighted process score
+  // LEFT: production-weighted process score (the noisy chart — visual evidence for the title)
   {
     const data = [
       { name: "Feedback mean", labels: LABELS, values: [13.7, 66.7, 33.0, 89.7, 32.0, 48.3] },
       { name: "Baseline mean", labels: LABELS, values: [11.5, 20.0, 15.5, 76.5, 44.5, 27.0] },
     ];
     s.addChart(pres.ChartType.line, data, {
-      x: 5.1, y: 0.95, w: 4.6, h: 3.3,
+      x: 0.30, y: 1.00, w: 4.95, h: 3.65,
       chartColors: [FB_DARK, BL_DARK],
       lineSize: 2.5,
       lineDataSymbol: "circle", lineDataSymbolSize: 6,
-      showTitle: true, title: "Production-weighted process score (with cleanliness gain)",
+      showTitle: true, title: "Production-weighted process score",
       titleFontSize: 11, titleColor: "333333",
       showLegend: true, legendPos: "b", legendFontSize: 9,
       catAxisLabelFontSize: 9, valAxisLabelFontSize: 9,
@@ -1586,22 +1565,46 @@ function quoteCard(slide, quote, attribution, opts = {}) {
     });
   }
 
-  // Bottom takeaway block
-  {
+  // RIGHT: 2 stat cards (DP-count facts, replacing the old DP chart)
+  function statCard(opts) {
+    const { x, y, w, h, big, bigSize = 32, subtitle, sentence } = opts;
+    s.addShape(pres.shapes.ROUNDED_RECTANGLE, {
+      x, y, w, h,
+      fill: { color: "F5F5F5" },
+      line: { type: "none" },
+      rectRadius: 0.08,
+    });
     const runs = [
-      { text: "DP rate separates clearly: ", options: {} },
-      { text: "2.7", options: { bold: true, color: FB_DARK } },
-      { text: " (feedback) vs ", options: {} },
-      { text: "6.0", options: { bold: true, color: BL_DARK } },
-      { text: " DPs per session per participant - 2.2× difference.", options: { breakLine: true, paraSpaceAfter: 4 } },
-      { text: "But the production-weighted score is dominated by ", options: {} },
-      { text: "task difficulty", options: { italic: true } },
-      { text: " - both groups peak at S4 (a short, mechanical task) and dip together at S2/S5. The behavioural signal is buried in the cleanliness gain.", options: {} },
+      { text: big, options: { fontSize: bigSize, bold: true, color: "0000CD", breakLine: true, paraSpaceAfter: 6 } },
     ];
+    if (subtitle) {
+      runs.push({ text: subtitle, options: { fontSize: 11, bold: true, color: "1A1A1A", breakLine: true, paraSpaceAfter: 8 } });
+    }
+    if (sentence) {
+      runs.push({ text: sentence, options: { fontSize: 10, italic: true, color: "555555" } });
+    }
     s.addText(runs, {
-      x: 0.5, y: 4.45, w: 9, h: 0.95, fontSize: 12, valign: "top", align: "center", margin: 4,
+      x: x + 0.2, y: y + 0.10, w: w - 0.4, h: h - 0.20,
+      align: "center", valign: "middle", margin: 0,
     });
   }
+
+  // Single card — Headline rate gap (centred vertically against the chart on the left)
+  statCard({
+    x: 5.40, y: 1.55, w: 4.35, h: 2.55,
+    big: "2.7  vs  6.0", bigSize: 40,
+    subtitle: "DPs per session per participant  ·  feedback vs baseline",
+    sentence: "Participants who saw feedback flagged a divergence less than half as often. 2.2× difference across the 30-session study.",
+  });
+
+  // Bottom summary (sets up Slide 27)
+  s.addText(
+    "But the production-weighted score is dominated by task difficulty - both groups peak at S4. The behavioural signal needs the gain-stripped view (next slide).",
+    {
+      x: 0.5, y: 4.85, w: 9, h: 0.50, fontSize: 12, italic: true, color: "0000CD",
+      align: "center", valign: "middle", margin: 0,
+    },
+  );
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -1617,6 +1620,22 @@ function quoteCard(slide, quote, attribution, opts = {}) {
   const FB_DARK = "0000CD";
   const BL_DARK = "B25500";
 
+  // Custom chart title with proper subscripts (pptxgenjs's built-in chart title
+  // can't render rich runs, so we render it as an addText overlay above the chart).
+  s.addText(
+    [
+      { text: "Gain-stripped process score (W" },
+      { text: "g", options: { subscript: true } },
+      { text: " = W" },
+      { text: "lag", options: { subscript: true } },
+      { text: " = 0)" },
+    ],
+    {
+      x: 0.5, y: 0.85, w: 9, h: 0.30,
+      fontSize: 12, color: "333333", align: "center", margin: 0,
+    },
+  );
+
   // Single large gain-stripped chart, zoomed y-axis
   {
     const data = [
@@ -1624,12 +1643,11 @@ function quoteCard(slide, quote, attribution, opts = {}) {
       { name: "Baseline mean", labels: LABELS, values: [22.5, 17.5, 11.0, 39.0, 16.5, 20.5] },
     ];
     s.addChart(pres.ChartType.line, data, {
-      x: 1.7, y: 0.85, w: 6.6, h: 3.4,
+      x: 1.7, y: 1.20, w: 6.6, h: 3.10,
       chartColors: [FB_DARK, BL_DARK],
       lineSize: 3,
       lineDataSymbol: "circle", lineDataSymbolSize: 7,
-      showTitle: true, title: "Gain-stripped process score (W_g = W_lag = 0)",
-      titleFontSize: 12, titleColor: "333333",
+      showTitle: false,
       showLegend: true, legendPos: "b", legendFontSize: 10,
       catAxisLabelFontSize: 10, valAxisLabelFontSize: 10,
       valAxisMinVal: 0, valAxisMaxVal: 60, valAxisMajorUnit: 10,
@@ -1656,24 +1674,12 @@ function quoteCard(slide, quote, attribution, opts = {}) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 28 - Extension divider (Agent Traces)
+// Slide 28 - Extension: tool doesn't transfer cleanly to agent traces
 // ─────────────────────────────────────────────────────────────
 {
   const s = pres.addSlide({ masterName: "MAIN" });
-  s.addText("Extension: Agent Traces", {
-    x: 0.5, y: 2.2, w: 9, h: 1.2,
-    fontSize: 36, bold: true, color: "1A1A1A",
-    align: "center", valign: "middle", margin: 0,
-  });
-}
-
-// ─────────────────────────────────────────────────────────────
-// Slide 29 - Agent extension: tool doesn't transfer to agent traces
-// ─────────────────────────────────────────────────────────────
-{
-  const s = pres.addSlide({ masterName: "MAIN" });
-  s.addText("Tool doesn't transfer cleanly to agent traces", {
-    x: 0.5, y: 0.15, w: 9, h: 0.50, fontSize: 24, bold: true, margin: 0, align: "center",
+  s.addText("Extension: tool doesn't transfer cleanly to agent traces", {
+    x: 0.5, y: 0.15, w: 9, h: 0.50, fontSize: 22, bold: true, margin: 0, align: "center",
   });
 
   s.addText(
@@ -1779,7 +1785,7 @@ function quoteCard(slide, quote, attribution, opts = {}) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 30 - Conclusion
+// Slide 29 - Conclusion
 // ─────────────────────────────────────────────────────────────
 {
   const s = titled("Conclusion");
