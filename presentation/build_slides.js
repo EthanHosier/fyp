@@ -1795,15 +1795,17 @@ function quoteCard(slide, quote, attribution, opts = {}) {
     { x: 0.5, y: 1.10, w: 9, h: 0.85, fontSize: 15, italic: true, color: "0000CD", align: "center", valign: "middle" }
   );
 
+  const BLANK = { text: " ", options: { bullet: false, breakLine: true } };
   const conclusionRuns = [
     // Bullet 1 with inline italic on "arbitrary sessions"
-    { text: "A process-quality metric on ", options: { bullet: true, paraSpaceAfter: 6 } },
-    { text: "arbitrary sessions", options: { italic: true, paraSpaceAfter: 6 } },
-    { text: " combining endpoint, process, and safety signals in one principled score.", options: { breakLine: true, paraSpaceAfter: 6 } },
-    // Bullets 2-4 plain
-    { text: "A divergence-point detector with four actionable kinds, each with a per-kind synthesiser that constructs a concrete alternative trajectory.", options: { bullet: true, breakLine: true, paraSpaceAfter: 6 } },
-    { text: "Three datasets -45 injection sessions, 30-session user study, 48-session agent extension - with reproducible analysis (Jupyter notebook reproduces every table and figure).", options: { bullet: true, breakLine: true, paraSpaceAfter: 6 } },
-    { text: "A working end-to-end research prototype: IntelliJ plugin, analysis backend, and dashboard.", options: { bullet: true, paraSpaceAfter: 6 } },
+    { text: "A process-quality metric on ", options: { bullet: true } },
+    { text: "arbitrary sessions", options: { italic: true, breakLine: true } },
+    BLANK,
+    { text: "A divergence-point detector & synthesiser of alternative trajectories.", options: { bullet: true, breakLine: true } },
+    BLANK,
+    { text: "Three datasets - 45 injection sessions, 30-session user study, 48-session agent extension.", options: { bullet: true, breakLine: true } },
+    BLANK,
+    { text: "A working end-to-end research prototype: IntelliJ plugin, analysis backend, and dashboard.", options: { bullet: true } },
   ];
   s.addText(conclusionRuns, { ...BODY, y: 2.10, h: 2.9 });
 
