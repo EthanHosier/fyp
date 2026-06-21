@@ -29,26 +29,48 @@ function titled(title, subtitle = null) {
   return s;
 }
 
+// Small italic-quote card pinned to the very top-right corner of a slide.
+// Sized to coexist with a narrowed (w: 6.3) title on its left.
+function quoteCard(slide, quote, attribution, opts = {}) {
+  const x = opts.x ?? 7.05;
+  const y = opts.y ?? 0.30;
+  const w = opts.w ?? 2.8;
+  const h = opts.h ?? 0.70;
+  slide.addText(
+    [
+      { text: "“ " + quote + " ”", options: { breakLine: true, paraSpaceAfter: 2 } },
+      { text: "— " + attribution, options: { color: "888888", italic: false } },
+    ],
+    {
+      x, y, w, h,
+      fontSize: 11, italic: true, color: "333333",
+      valign: "top", margin: 3,
+      fill: { color: "F5F5F5" },
+    },
+  );
+}
+
 // ─────────────────────────────────────────────────────────────
 // Slide 1 - Title
 // ─────────────────────────────────────────────────────────────
 {
   const s = pres.addSlide();
-  s.addText(
-    [
-      { text: "Beyond Before-and-After", options: { breakLine: true } },
-      { text: "Process-Quality Evaluation of Refactoring Sessions" },
-    ],
-    { x: 0.5, y: 1.3, w: 9, h: 1.6, fontSize: 32, bold: true, align: "center", margin: 0 },
-  );
+  // Eyebrow: small italic grey, with colon
+  s.addText("Beyond Before-and-After:", {
+    x: 0.5, y: 1.35, w: 9, h: 0.4, fontSize: 18, italic: true, color: "555555", align: "center", margin: 0,
+  });
+  // Main title (line space underneath eyebrow)
+  s.addText("Process-Quality Evaluation of Refactoring Sessions", {
+    x: 0.5, y: 1.95, w: 9, h: 0.9, fontSize: 32, bold: true, align: "center", margin: 0,
+  });
   s.addText(
     "Scoring the path a developer takes through a refactoring session, and pointing to where a better path existed.",
-    { x: 0.5, y: 3.1, w: 9, h: 0.9, fontSize: 18, italic: true, align: "center", color: "555555" },
+    { x: 0.5, y: 3.05, w: 9, h: 0.9, fontSize: 18, italic: true, align: "center", color: "555555" },
   );
   s.addText("Ethan Hosier  ·  Imperial College London  ·  Department of Computing", {
     x: 0.5, y: 4.4, w: 9, h: 0.4, fontSize: 14, align: "center", color: "777777",
   });
-  s.addText("Supervisor: [Robert Chatley]  ·  Second marker: [Cristian Cadar]", {
+  s.addText("Supervisor: Dr Robert Chatley  ·  Second marker: Dr Cristian Cadar", {
     x: 0.5, y: 4.8, w: 9, h: 0.4, fontSize: 12, align: "center", color: "777777",
   });
 }
@@ -225,7 +247,7 @@ function titled(title, subtitle = null) {
 {
   const s = pres.addSlide();
   s.addText("Demo", {
-    x: 0.5, y: 2.2, w: 9, h: 1.2, fontSize: 80, bold: true, align: "center", valign: "middle", margin: 0,
+    x: 0.5, y: 2.2, w: 9, h: 1.2, fontSize: 60, bold: true, align: "center", valign: "middle", margin: 0,
   });
 }
 
@@ -500,7 +522,8 @@ function titled(title, subtitle = null) {
 // Slide 10 - Manual-Refactor: detect + synthesise
 // ─────────────────────────────────────────────────────────────
 {
-  const s = titled("Manual-Refactor: detect + synthesise");
+  const s = pres.addSlide();
+  s.addText("Manual-Refactor: detect + synthesise", { ...TITLE, w: 6.3, fontSize: 24 });
   {
     const intro = "Developer hand-edited something the IDE could have done safely (and with its precondition checks).";
     const steps = [
@@ -519,6 +542,7 @@ function titled(title, subtitle = null) {
       });
     });
     s.addText(runs, { x: 0.5, y: 1.2, w: 9, h: 1.95, fontSize: 13, valign: "top" });
+    quoteCard(s, "Very actionable - at the start I didn't know most IntelliJ actions.", "P2");
   }
 
   // Manual-Refactor figure: edit-burst stream with miner detections. Original 1422x466 (~3.05:1).
@@ -537,7 +561,8 @@ function titled(title, subtitle = null) {
 // Slide 11 - Ordering: detect + synthesise
 // ─────────────────────────────────────────────────────────────
 {
-  const s = titled("Ordering: detect + synthesise");
+  const s = pres.addSlide();
+  s.addText("Ordering: detect + synthesise", { ...TITLE, w: 6.3, fontSize: 24 });
   {
     const intro = "Developer performed their refactoring steps in a sub-optimal order, leading to unnecessary intermediate degradation.";
     const steps = [
@@ -556,6 +581,7 @@ function titled(title, subtitle = null) {
       });
     });
     s.addText(runs, { x: 0.5, y: 1.2, w: 9, h: 2.05, fontSize: 14, valign: "top" });
+    quoteCard(s, "How can you actually apply that in the future without knowing beforehand?", "P2");
   }
 
   // Reorder-synthesis figure (Dependency DAG + Prefix-trie DFS). Original 1680x574 (~2.93:1).
@@ -574,7 +600,8 @@ function titled(title, subtitle = null) {
 // Slide 12 - Rework: detect + synthesise
 // ─────────────────────────────────────────────────────────────
 {
-  const s = titled("Rework: detect + synthesise");
+  const s = pres.addSlide();
+  s.addText("Rework: detect + synthesise", { ...TITLE, w: 6.3, fontSize: 24 });
   {
     const intro = "Code added and later removed (or vice versa) - unnecessary churn.";
     const steps = [
@@ -592,6 +619,7 @@ function titled(title, subtitle = null) {
       });
     });
     s.addText(runs, { x: 0.5, y: 1.2, w: 9, h: 1.95, fontSize: 13, valign: "top" });
+    quoteCard(s, "Over-penalised undos + redos.", "P1");
   }
 
   // Rework figure: Add/Remove paired by (File, Scope, Content Hash). Original 1190x574 (~2.07:1).
@@ -610,7 +638,8 @@ function titled(title, subtitle = null) {
 // Slide 13 - Hygiene: detect + synthesise
 // ─────────────────────────────────────────────────────────────
 {
-  const s = titled("Hygiene: detect + synthesise");
+  const s = pres.addSlide();
+  s.addText("Hygiene: detect + synthesise", { ...TITLE, w: 6.3, fontSize: 24 });
 
   const intro = "Long stretches of work without test runs, or commits.";
   const steps = [
@@ -636,6 +665,7 @@ function titled(title, subtitle = null) {
   });
 
   s.addText(runs, { x: 0.5, y: 1.2, w: 9, h: 4.0, fontSize: 14, valign: "top" });
+  quoteCard(s, "The most actionable kind - committing more frequently in particular.", "P1");
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -644,73 +674,58 @@ function titled(title, subtitle = null) {
 {
   const s = titled("What we wanted to evaluate");
 
-  const HEADER_CELL = {
-    bold: true,
-    color: "1A1A1A",
-    fill: { color: "F0F0F0" },
-    align: "left",
-    valign: "middle",
-    margin: 0.08,
-  };
-  const QUESTION_CELL = {
-    bold: true,
-    color: "1A1A1A",
-    align: "left",
-    valign: "middle",
-    margin: 0.1,
-  };
-  const ANSWER_CELL = {
-    color: "555555",
-    align: "left",
-    valign: "middle",
-    margin: 0.1,
-  };
+  const REF_COLOR = "555555";
+  const SUB_GAP = 6;
+  const GROUP_GAP = 20;
 
-  const rows = [
-    [
-      { text: "Question", options: HEADER_CELL },
-      { text: "Answered by", options: HEADER_CELL },
-    ],
-    [
-      {
-        text: "Is the tool accurate? Are the synthesised alternatives actually better than what the user did?",
-        options: QUESTION_CELL,
-      },
-      {
-        text: "45 labelled injection sessions: per-kind precision and recall (Slides 16-17) plus beat/tie/lose breakdown across all 66 detected divergence points (Slide 18).",
-        options: ANSWER_CELL,
-      },
-    ],
-    [
-      {
-        text: "Is the process score reliable? Does the ranking hold up when the weights are perturbed?",
-        options: QUESTION_CELL,
-      },
-      {
-        text: "Sensitivity sweep + ablation, headline on the 25-session user-study rankable subset (Slides 20-21).",
-        options: ANSWER_CELL,
-      },
-    ],
-    [
-      {
-        text: "Does the tool change developer behaviour? Fewer divergences over time when feedback is shown?",
-        options: QUESTION_CELL,
-      },
-      {
-        text: "30-session randomised user study, 5 participants split between feedback and no-feedback arms (Slide 23).",
-        options: ANSWER_CELL,
-      },
-    ],
+  const groups = [
+    {
+      main: "3 Questions",
+      subs: [
+        "Is the tool accurate?",
+        "Is the process score reliable?",
+        "Does the tool change developer behaviour?",
+      ],
+    },
+    {
+      main: "2 Datasets",
+      subs: [
+        ["45-session labelled injection set", "controlled, balanced per-kind coverage; ground-truth labels at κ ≥ 0.72."],
+        ["30-session randomised user study", "5 MEng participants × 6 sessions, 2 arms (feedback vs no-feedback)."],
+      ],
+    },
   ];
 
-  s.addTable(rows, {
-    x: 0.5,
-    y: 1.4,
-    w: 9,
-    colW: [3.8, 5.2],
-    fontSize: 13,
-    border: { type: "solid", pt: 0.5, color: "CCCCCC" },
+  const runs = [];
+  groups.forEach((g, gIdx) => {
+    const isLastGroup = gIdx === groups.length - 1;
+    runs.push({
+      text: g.main,
+      options: { bullet: true, bold: true, breakLine: true, paraSpaceAfter: 8 },
+    });
+    g.subs.forEach((sub, sIdx) => {
+      const isLastSub = sIdx === g.subs.length - 1;
+      const trailingGap = isLastSub && !isLastGroup ? GROUP_GAP : SUB_GAP;
+      if (typeof sub === "string") {
+        runs.push({
+          text: sub,
+          options: { bullet: { indent: 30 }, indentLevel: 1, breakLine: !(isLastGroup && isLastSub), paraSpaceAfter: trailingGap },
+        });
+      } else {
+        const [lead, tail] = sub;
+        runs.push({
+          text: lead + " ",
+          options: { bullet: { indent: 30 }, indentLevel: 1, paraSpaceAfter: trailingGap },
+        });
+        runs.push({
+          text: "- " + tail,
+          options: { color: REF_COLOR, breakLine: !(isLastGroup && isLastSub), paraSpaceAfter: trailingGap },
+        });
+      }
+    });
   });
+
+  s.addText(runs, { x: 0.5, y: 1.3, w: 9, h: 4.0, fontSize: 16, valign: "top" });
 }
 
 // ─────────────────────────────────────────────────────────────
