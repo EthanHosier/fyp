@@ -549,18 +549,6 @@ function quoteCard(slide, quote, attribution, opts = {}) {
     border: { type: "none" },
   });
 
-  // Closing paren centred below
-  s.addText(")", {
-    x: 0.5,
-    y: 4.1,
-    w: 9,
-    h: 0.45,
-    fontSize: 22,
-    align: "center",
-    valign: "middle",
-    margin: 0,
-  });
-
   // Footer expanding the cleanliness-gain asterisk + justifying the equal sub-weights
   s.addText(
     [
@@ -1820,6 +1808,18 @@ function quoteCard(slide, quote, attribution, opts = {}) {
       fontSize: 11, italic: true, color: "888888", align: "center", valign: "middle", margin: 0,
     },
   );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Slide 30 - Q & A
+// ─────────────────────────────────────────────────────────────
+{
+  const s = pres.addSlide({ masterName: "MAIN" });
+  s.addText("Q & A", {
+    x: 0.5, y: 2.0, w: 9, h: 1.5,
+    fontSize: 72, bold: true, color: "1A1A1A",
+    align: "center", valign: "middle", margin: 0,
+  });
 }
 
 pres.writeFile({ fileName: "slides.pptx" }).then((name) => {
