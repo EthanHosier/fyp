@@ -1278,10 +1278,97 @@ function quoteCard(slide, quote, attribution, opts = {}) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 22 - Score is locally robust (4-card 2×2 results grid)
+// Slide 22 - Experiment 2 results (compressed 4-card view)
+// ─────────────────────────────────────────────────────────────
+{
+  const s = pres.addSlide({ masterName: "MAIN" });
+  s.addText("Experiment 2: Is the process score reliable?", {
+    x: 0.5, y: 0.15, w: 9, h: 0.55, fontSize: 24, bold: true, margin: 0, align: "center",
+  });
+
+  // Cluster labels above each column (mirrors Slide 17)
+  s.addText("STABILITY", {
+    x: 0.30, y: 0.80, w: 4.55, h: 0.25,
+    fontSize: 10, bold: true, color: "888888", align: "center", margin: 0, charSpacing: 2,
+  });
+  s.addText("ABLATION", {
+    x: 5.15, y: 0.80, w: 4.55, h: 0.25,
+    fontSize: 10, bold: true, color: "888888", align: "center", margin: 0, charSpacing: 2,
+  });
+
+  // Card helper — same shape as Slide 17's helper (duplicated to keep slide blocks self-contained)
+  function statCard(opts) {
+    const { x, y, w, h, big, bigSize = 44, subtitle, sentence } = opts;
+    s.addShape(pres.shapes.ROUNDED_RECTANGLE, {
+      x, y, w, h,
+      fill: { color: "F5F5F5" },
+      line: { type: "none" },
+      rectRadius: 0.08,
+    });
+    const runs = [
+      { text: big, options: { fontSize: bigSize, bold: true, color: "0000CD", breakLine: true, paraSpaceAfter: 6 } },
+    ];
+    if (subtitle) {
+      runs.push({ text: subtitle, options: { fontSize: 11, bold: true, color: "1A1A1A", breakLine: true, paraSpaceAfter: 8 } });
+    }
+    if (sentence) {
+      runs.push({ text: sentence, options: { fontSize: 10, italic: true, color: "555555" } });
+    }
+    s.addText(runs, {
+      x: x + 0.2, y: y + 0.10, w: w - 0.4, h: h - 0.20,
+      align: "center", valign: "middle", margin: 0,
+    });
+  }
+
+  // ── Card 1 (TL) — Single-knob stability
+  statCard({
+    x: 0.30, y: 1.10, w: 4.55, h: 1.95,
+    big: "96.5%", bigSize: 44,
+    subtitle: "Single-knob top-1 preserved",
+    sentence: "Top-ranked divergence rarely changes under any one-weight perturbation. Only 1.8% of cases are clamp-frozen, so this is genuine response - not a clamp artefact.",
+  });
+
+  // ── Card 2 (TR) — Every term contributes
+  statCard({
+    x: 5.15, y: 1.10, w: 4.55, h: 1.95,
+    big: "7 / 7", bigSize: 44,
+    subtitle: "Process terms with measurable rank effect  ·  LOO τ-b range 0.527 - 0.784",
+    sentence: "Length is the strongest rank-carrier (0.527); lag the weakest (0.784, but contributes via magnitude). No process term is redundant.",
+  });
+
+  // ── Card 3 (BL) — Multi-knob stability
+  statCard({
+    x: 0.30, y: 3.20, w: 4.55, h: 1.85,
+    big: "84.6%", bigSize: 44,
+    subtitle: "Multi-knob top-1 preserved  ·  mean τ-b = 0.586",
+    sentence: "When all 7 weights move at once (σ = ln 2 ≈ ×0.25 to ×4), the top-ranked divergence holds in ~85% of samples. Meaningful rank correlation, not full preservation.",
+  });
+
+  // ── Card 4 (BR) — Cleanliness sub-weights barely matter
+  statCard({
+    x: 5.15, y: 3.20, w: 4.55, h: 1.85,
+    big: "≤ 0.9%", bigSize: 44,
+    subtitle: "Top-1 disruption from any single cleanliness sub-weight",
+    sentence: "Perturbing any of the 6 cleanliness signals (complexity, coupling, duplication, readability, smells, cohesion) barely shifts the ranking - ~10× less than process weights. Equal weights are defensible.",
+  });
+
+  // Bottom summary (folds in the critical-reflection cue from the original slide)
+  s.addText(
+    "Top-1 holds under both single- and multi-knob perturbation, and every process term carries measurable rank effect. Robustness ≠ calibration: weights aren't validated against downstream outcomes.",
+    {
+      x: 0.5, y: 5.15, w: 9, h: 0.40,
+      fontSize: 11, italic: true, color: "0000CD",
+      align: "center", valign: "middle", margin: 0,
+    },
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Slide 23 - Score is locally robust (HIDDEN — backup detail)
 // ─────────────────────────────────────────────────────────────
 {
   const s = titled("Score is locally robust");
+  s.hidden = true;
 
   const REF_COLOR = "888888";
 
@@ -1367,7 +1454,7 @@ function quoteCard(slide, quote, attribution, opts = {}) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 23 - Experiment 3 divider
+// Slide 24 - Experiment 3 divider
 // ─────────────────────────────────────────────────────────────
 {
   const s = pres.addSlide({ masterName: "MAIN" });
@@ -1379,7 +1466,7 @@ function quoteCard(slide, quote, attribution, opts = {}) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 24 - User study setup (does feedback change behaviour?) (HIDDEN — backup)
+// Slide 25 - User study setup (does feedback change behaviour?) (HIDDEN — backup)
 // ─────────────────────────────────────────────────────────────
 {
   const s = titled("Does dashboard feedback change developer behaviour?");
@@ -1446,7 +1533,7 @@ function quoteCard(slide, quote, attribution, opts = {}) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 25 - Fewer divergences, but production score is noisy
+// Slide 26 - Fewer divergences, but production score is noisy
 // ─────────────────────────────────────────────────────────────
 {
   const s = pres.addSlide({ masterName: "MAIN" });
@@ -1518,7 +1605,7 @@ function quoteCard(slide, quote, attribution, opts = {}) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 26 - Strip the task signal: process discipline emerges
+// Slide 27 - Strip the task signal: process discipline emerges
 // ─────────────────────────────────────────────────────────────
 {
   const s = pres.addSlide({ masterName: "MAIN" });
@@ -1569,7 +1656,7 @@ function quoteCard(slide, quote, attribution, opts = {}) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 27 - Extension divider (Agent Traces)
+// Slide 28 - Extension divider (Agent Traces)
 // ─────────────────────────────────────────────────────────────
 {
   const s = pres.addSlide({ masterName: "MAIN" });
@@ -1581,7 +1668,7 @@ function quoteCard(slide, quote, attribution, opts = {}) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 28 - Agent extension: tool doesn't transfer to agent traces
+// Slide 29 - Agent extension: tool doesn't transfer to agent traces
 // ─────────────────────────────────────────────────────────────
 {
   const s = pres.addSlide({ masterName: "MAIN" });
@@ -1692,7 +1779,7 @@ function quoteCard(slide, quote, attribution, opts = {}) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 29 - Conclusion
+// Slide 30 - Conclusion
 // ─────────────────────────────────────────────────────────────
 {
   const s = titled("Conclusion");

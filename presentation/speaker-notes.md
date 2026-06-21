@@ -3,7 +3,8 @@
 Q&A-prep reference for the presentation. All numeric stats verified against `final_report/methodology/methodology.tex` and `final_report/results/results.tex`.
 
 # DEMO
-START THE TOOL FIRST
+START THE TOOL FIRST + MAKE OBVIOUS THAT IS DEVELOPER'S POV
+
 validateCustomer()
 calculateTaxedAmount()
 calculateFinalTotal()
