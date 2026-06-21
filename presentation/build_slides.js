@@ -446,16 +446,25 @@ function titled(title, subtitle = null) {
 // ─────────────────────────────────────────────────────────────
 {
   const s = titled("Manual-Refactor: detect + synthesise");
-  bulletText(
-    s,
-    [
-      "What: developer hand-edited something the IDE could have done safely (and with its precondition checks).",
-      "Detect: run RefactoringMiner on sliding commit windows; cross-check against the IDE event stream - anything RefactoringMiner finds that the IDE did not emit is a manual refactoring.",
-      "Synthesise: apply the equivalent IDE refactoring, then three-way merge the user's other edits back on top.",
-      "Wrap-and-patch layer reconciles minor JDT ↔ IntelliJ AST differences (e.g. static modifiers, variable liveness).",
-    ],
-    { y: 1.2, h: 1.85, fontSize: 13 },
-  );
+  {
+    const intro = "Developer hand-edited something the IDE could have done safely (and with its precondition checks).";
+    const steps = [
+      "Refactoring Miner on sliding commit windows (of shadow repo) - anything we find that the IDE did not emit an event for is a manual refactoring.",
+      "Apply the equivalent IDE refactoring (Eclipse / JDT).",
+      "Reconcile minor JDT ↔ IntelliJ AST differences (e.g. static modifiers, variable liveness).",
+      "Merge the user's other edits back on top.",
+    ];
+    const runs = [
+      { text: intro, options: { bullet: true, breakLine: true, paraSpaceAfter: 20 } },
+    ];
+    steps.forEach((t, i) => {
+      runs.push({
+        text: t,
+        options: { bullet: { type: "number" }, indentLevel: 1, breakLine: i < steps.length - 1, paraSpaceAfter: 6 },
+      });
+    });
+    s.addText(runs, { x: 0.5, y: 1.2, w: 9, h: 1.95, fontSize: 13, valign: "top" });
+  }
 
   // Manual-Refactor figure: edit-burst stream with miner detections. Original 1422x466 (~3.05:1).
   const imgW = 6.8;
@@ -474,16 +483,25 @@ function titled(title, subtitle = null) {
 // ─────────────────────────────────────────────────────────────
 {
   const s = titled("Ordering: detect + synthesise");
-  bulletText(
-    s,
-    [
-      "What: the right refactorings, performed in a suboptimal order - final state is fine, intermediate states are worse than they needed to be.",
-      "Detect: find a subsequence of refactorings whose reordering still validates to the user's terminal state (canonical AST hash, formatting/comments ignored).",
-      "Synthesise: build a dependency DAG over the refactorings in the window.",
-      "Prefix-trie DFS over valid topological orderings - shares work across common prefixes, rolls back with git checkout on backtrack.",
-    ],
-    { y: 1.2, h: 1.95, fontSize: 14 },
-  );
+  {
+    const intro = "Developer performed their refactoring steps in a sub-optimal order, leading to unnecessary intermediate degradation.";
+    const steps = [
+      "Identify dependencies between steps → DAG.",
+      "Enumerate valid topological orderings.",
+      "Synthesise (Eclipse / JDT), utilising Prefix Trie (DFS) and git checkouts on backtrack.",
+      "Normalize AST + compare with original.",
+    ];
+    const runs = [
+      { text: intro, options: { bullet: true, breakLine: true, paraSpaceAfter: 20 } },
+    ];
+    steps.forEach((t, i) => {
+      runs.push({
+        text: t,
+        options: { bullet: { type: "number" }, indentLevel: 1, breakLine: i < steps.length - 1, paraSpaceAfter: 6 },
+      });
+    });
+    s.addText(runs, { x: 0.5, y: 1.2, w: 9, h: 2.05, fontSize: 14, valign: "top" });
+  }
 
   // Reorder-synthesis figure (Dependency DAG + Prefix-trie DFS). Original 1680x574 (~2.93:1).
   const imgW = 6.0;
@@ -502,16 +520,24 @@ function titled(title, subtitle = null) {
 // ─────────────────────────────────────────────────────────────
 {
   const s = titled("Rework: detect + synthesise");
-  bulletText(
-    s,
-    [
-      "What: code added and later removed (or vice versa) - net-zero churn, but real cost while it was there.",
-      "Detect: hash normalised lines; pair add/remove events by (file, scope, content-hash).",
-      "Synthesise: strip both halves from the trajectory; replay the rest of the user's edits unchanged; validate the terminal state matches.",
-      "Simplest of the four synthesisers, but high recall - precision and recall both 1.00 on the injection set.",
-    ],
-    { y: 1.2, h: 1.85, fontSize: 13 },
-  );
+  {
+    const intro = "Code added and later removed (or vice versa) - unnecessary churn.";
+    const steps = [
+      "Compare git diffs between adjacent steps of shadow repo.",
+      "Hash each hunk, and look for a matching, opposite hunk with matching (file, scope, content-hash) in a future git diff.",
+      "Remove that hunk from both diffs, calculate the updated line numbers of every git diff hunk between each of the intermediate states, and replay these new diffs from the start step.",
+    ];
+    const runs = [
+      { text: intro, options: { bullet: true, breakLine: true, paraSpaceAfter: 20 } },
+    ];
+    steps.forEach((t, i) => {
+      runs.push({
+        text: t,
+        options: { bullet: { type: "number" }, indentLevel: 1, breakLine: i < steps.length - 1, paraSpaceAfter: 6 },
+      });
+    });
+    s.addText(runs, { x: 0.5, y: 1.2, w: 9, h: 1.95, fontSize: 13, valign: "top" });
+  }
 
   // Rework figure: Add/Remove paired by (File, Scope, Content Hash). Original 1190x574 (~2.07:1).
   const imgW = 4.8;
@@ -530,13 +556,31 @@ function titled(title, subtitle = null) {
 // ─────────────────────────────────────────────────────────────
 {
   const s = titled("Hygiene: detect + synthesise");
-  bulletText(s, [
-    "What: long stretches of work without safety checkpoints - no test runs, no commits.",
-    "Detect: 60-second windows with no test-run events; commit-gap events when commits are spaced beyond threshold.",
-    "Synthesise: model an alternative cadence that inserts test-run and commit events at the right points.",
-    "The alternative's J(τ) credits those checkpoints via the skip-tests and commit-gap terms.",
-    "Cheap to compute, but consistently surfaces meaningful divergences in the user study.",
-  ]);
+
+  const intro = "Long stretches of work without test runs, or commits.";
+  const steps = [
+    "Iterate through each run's IDE events.",
+    "If there has been > 1 minute since the last edit and still no test run, flag a Test DP.",
+    "If there has been > 5 refactoring steps since the last commit, flag a Commit DP.",
+    "For each DP, generate an identical run but with the corresponding test or commit event.",
+  ];
+  const outro = "Very cheap to compute.";
+
+  const runs = [
+    { text: intro, options: { bullet: true, breakLine: true, paraSpaceAfter: 20 } },
+  ];
+  steps.forEach((t, i) => {
+    runs.push({
+      text: t,
+      options: { bullet: { type: "number" }, indentLevel: 1, breakLine: true, paraSpaceAfter: i === steps.length - 1 ? 20 : 6 },
+    });
+  });
+  runs.push({
+    text: outro,
+    options: { bullet: true, paraSpaceAfter: 6 },
+  });
+
+  s.addText(runs, { x: 0.5, y: 1.2, w: 9, h: 4.0, fontSize: 14, valign: "top" });
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -578,7 +622,7 @@ function titled(title, subtitle = null) {
         options: QUESTION_CELL,
       },
       {
-        text: "45 labelled injection sessions: per-kind precision and recall (Slides 14-15) plus beat/tie/lose breakdown across all 66 detected divergence points (Slide 16).",
+        text: "45 labelled injection sessions: per-kind precision and recall (Slides 15-16) plus beat/tie/lose breakdown across all 66 detected divergence points (Slide 17).",
         options: ANSWER_CELL,
       },
     ],
@@ -588,7 +632,7 @@ function titled(title, subtitle = null) {
         options: QUESTION_CELL,
       },
       {
-        text: "Sensitivity sweep + ablation, headline on the 25-session user-study rankable subset (Slides 17-18).",
+        text: "Sensitivity sweep + ablation, headline on the 25-session user-study rankable subset (Slides 19-20).",
         options: ANSWER_CELL,
       },
     ],
@@ -598,7 +642,7 @@ function titled(title, subtitle = null) {
         options: QUESTION_CELL,
       },
       {
-        text: "30-session randomised user study, 5 participants split between feedback and no-feedback arms (Slide 19).",
+        text: "30-session randomised user study, 5 participants split between feedback and no-feedback arms (Slide 22).",
         options: ANSWER_CELL,
       },
     ],
@@ -615,7 +659,19 @@ function titled(title, subtitle = null) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 14 - Detector evaluation: setup + label reliability + metric choice
+// Slide 14 - Experiment 1 divider
+// ─────────────────────────────────────────────────────────────
+{
+  const s = pres.addSlide();
+  s.addText("Experiment 1: Is the tool accurate?", {
+    x: 0.5, y: 2.2, w: 9, h: 1.2,
+    fontSize: 36, bold: true, color: "1A1A1A",
+    align: "center", valign: "middle", margin: 0,
+  });
+}
+
+// ─────────────────────────────────────────────────────────────
+// Slide 15 - Detector evaluation: setup + label reliability + metric choice
 // ─────────────────────────────────────────────────────────────
 {
   const s = titled("Is the tool accurate?");
@@ -647,7 +703,7 @@ function titled(title, subtitle = null) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 15 - Per-kind decision matrices (4 mini 2×2 confusion matrices)
+// Slide 16 - Per-kind decision matrices (4 mini 2×2 confusion matrices)
 // ─────────────────────────────────────────────────────────────
 {
   // Custom-positioned title (nudged up vs. the shared TITLE constant so the 2×2 grid + footer all fit)
@@ -757,7 +813,7 @@ function titled(title, subtitle = null) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 16 - Are the alternatives actually better? (synthesis quality)
+// Slide 17 - Are the alternatives actually better? (synthesis quality)
 // ─────────────────────────────────────────────────────────────
 {
   // Custom-positioned title to match Slide 17's geometry
@@ -866,7 +922,19 @@ function titled(title, subtitle = null) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 17 - Is the process score reliable? (setup)
+// Slide 18 - Experiment 2 divider
+// ─────────────────────────────────────────────────────────────
+{
+  const s = pres.addSlide();
+  s.addText("Experiment 2: Is the process score reliable?", {
+    x: 0.5, y: 2.2, w: 9, h: 1.2,
+    fontSize: 36, bold: true, color: "1A1A1A",
+    align: "center", valign: "middle", margin: 0,
+  });
+}
+
+// ─────────────────────────────────────────────────────────────
+// Slide 19 - Is the process score reliable? (setup)
 // ─────────────────────────────────────────────────────────────
 {
   const s = titled("Is the process score reliable?");
@@ -919,7 +987,7 @@ function titled(title, subtitle = null) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 18 - Score is locally robust (4-card 2×2 results grid)
+// Slide 20 - Score is locally robust (4-card 2×2 results grid)
 // ─────────────────────────────────────────────────────────────
 {
   const s = titled("Score is locally robust");
@@ -972,7 +1040,19 @@ function titled(title, subtitle = null) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 19 - User study setup (does feedback change behaviour?)
+// Slide 21 - Experiment 3 divider
+// ─────────────────────────────────────────────────────────────
+{
+  const s = pres.addSlide();
+  s.addText("Experiment 3: Does feedback change developer behaviour?", {
+    x: 0.5, y: 2.2, w: 9, h: 1.2,
+    fontSize: 32, bold: true, color: "1A1A1A",
+    align: "center", valign: "middle", margin: 0,
+  });
+}
+
+// ─────────────────────────────────────────────────────────────
+// Slide 22 - User study setup (does feedback change behaviour?)
 // ─────────────────────────────────────────────────────────────
 {
   const s = titled("Does dashboard feedback change developer behaviour?");
@@ -1029,7 +1109,7 @@ function titled(title, subtitle = null) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 20 - Fewer divergences, but production score is noisy
+// Slide 23 - Fewer divergences, but production score is noisy
 // ─────────────────────────────────────────────────────────────
 {
   const s = pres.addSlide();
@@ -1101,7 +1181,7 @@ function titled(title, subtitle = null) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 21 - Strip the task signal: process discipline emerges
+// Slide 24 - Strip the task signal: process discipline emerges
 // ─────────────────────────────────────────────────────────────
 {
   const s = pres.addSlide();
@@ -1152,7 +1232,19 @@ function titled(title, subtitle = null) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 22 - Agent extension: tool doesn't transfer to agent traces
+// Slide 25 - Extension divider (Agent Traces)
+// ─────────────────────────────────────────────────────────────
+{
+  const s = pres.addSlide();
+  s.addText("Extension: Agent Traces", {
+    x: 0.5, y: 2.2, w: 9, h: 1.2,
+    fontSize: 36, bold: true, color: "1A1A1A",
+    align: "center", valign: "middle", margin: 0,
+  });
+}
+
+// ─────────────────────────────────────────────────────────────
+// Slide 26 - Agent extension: tool doesn't transfer to agent traces
 // ─────────────────────────────────────────────────────────────
 {
   const s = pres.addSlide();
@@ -1263,7 +1355,7 @@ function titled(title, subtitle = null) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 23 - Conclusion
+// Slide 27 - Conclusion
 // ─────────────────────────────────────────────────────────────
 {
   const s = titled("Conclusion");
