@@ -855,10 +855,11 @@ function quoteCard(slide, quote, attribution, opts = {}) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 16 - Detector evaluation: setup + label reliability + metric choice
+// Slide 16 - Detector evaluation: setup + label reliability + metric choice (HIDDEN — backup)
 // ─────────────────────────────────────────────────────────────
 {
   const s = titled("Is the tool accurate?");
+  s.hidden = true;
 
   // Same visual pattern as Slide 8: short black lead + grey continuation
   const REF_COLOR = "888888";
@@ -887,11 +888,99 @@ function quoteCard(slide, quote, attribution, opts = {}) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 17 - Per-kind decision matrices (4 mini 2×2 confusion matrices)
+// Slide 17 - Experiment 1 results (compressed 4-card view)
+// ─────────────────────────────────────────────────────────────
+{
+  const s = pres.addSlide({ masterName: "MAIN" });
+  s.addText("Experiment 1: Is the tool accurate?", {
+    x: 0.5, y: 0.15, w: 9, h: 0.55, fontSize: 24, bold: true, margin: 0, align: "center",
+  });
+
+  // Cluster labels above each column
+  s.addText("DETECTION", {
+    x: 0.30, y: 0.80, w: 4.55, h: 0.25,
+    fontSize: 10, bold: true, color: "888888", align: "center", margin: 0, charSpacing: 2,
+  });
+  s.addText("SYNTHESIS", {
+    x: 5.15, y: 0.80, w: 4.55, h: 0.25,
+    fontSize: 10, bold: true, color: "888888", align: "center", margin: 0, charSpacing: 2,
+  });
+
+  // Card-drawing helper — rounded rect background + a single text box that
+  // vertically centres the headline / subtitle / sentence as multi-paragraph runs.
+  function statCard(opts) {
+    const { x, y, w, h, big, bigSize = 38, subtitle, sentence } = opts;
+    s.addShape(pres.shapes.ROUNDED_RECTANGLE, {
+      x, y, w, h,
+      fill: { color: "F5F5F5" },
+      line: { type: "none" },
+      rectRadius: 0.08,
+    });
+    const runs = [
+      { text: big, options: { fontSize: bigSize, bold: true, color: "0000CD", breakLine: true, paraSpaceAfter: 6 } },
+    ];
+    if (subtitle) {
+      runs.push({ text: subtitle, options: { fontSize: 11, bold: true, color: "1A1A1A", breakLine: true, paraSpaceAfter: 8 } });
+    }
+    if (sentence) {
+      runs.push({ text: sentence, options: { fontSize: 10, italic: true, color: "555555" } });
+    }
+    s.addText(runs, {
+      x: x + 0.2, y: y + 0.10, w: w - 0.4, h: h - 0.20,
+      align: "center", valign: "middle", margin: 0,
+    });
+  }
+
+  // ── Card 1 (TL) — Precision
+  statCard({
+    x: 0.30, y: 1.10, w: 4.55, h: 1.95,
+    big: "1.00", bigSize: 44,
+    subtitle: "Precision  ·  all four kinds",
+    sentence: "When the detector flags a divergence, it's never a false positive. (45 labelled sessions, three raters at Cohen's κ ≥ 0.72.)",
+  });
+
+  // ── Card 2 (TR) — Overall beat rate
+  statCard({
+    x: 5.15, y: 1.10, w: 4.55, h: 1.95,
+    big: "62%", bigSize: 44,
+    subtitle: "Alternatives beat user trajectory  ·  41 of 66",
+    sentence: "When the tool flags a divergence, the synthesised alternative usually scores higher than the path the user actually took.",
+  });
+
+  // ── Card 3 (BL) — Recall by kind
+  statCard({
+    x: 0.30, y: 3.20, w: 4.55, h: 1.85,
+    big: "1.00  /  1.00  /  0.76  /  0.36", bigSize: 22,
+    subtitle: "Recall  ·  Hygiene / Rework / MR / Ordering",
+    sentence: "Three kinds catch everything; Ordering's validator is deliberately conservative - a known scope limit.",
+  });
+
+  // ── Card 4 (BR) — Beat rate by kind
+  statCard({
+    x: 5.15, y: 3.20, w: 4.55, h: 1.85,
+    big: "100%  /  75%  /  46%  /  42%", bigSize: 22,
+    subtitle: "Beat rate by kind  ·  Hygiene / MR / Rework / Ordering",
+    sentence: "Hygiene and Manual-Refactor reliably improve the score; Ordering ties often because alternatives reach the same end state.",
+  });
+
+  // Bottom summary line
+  s.addText(
+    "Precision-perfect detection, balanced recall (one known scope limit on Ordering), and a higher-scoring alternative in roughly two-thirds of detected moments.",
+    {
+      x: 0.5, y: 5.15, w: 9, h: 0.40,
+      fontSize: 11, italic: true, color: "0000CD",
+      align: "center", valign: "middle", margin: 0,
+    },
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Slide 18 - Per-kind decision matrices (HIDDEN — backup detail)
 // ─────────────────────────────────────────────────────────────
 {
   // Custom-positioned title (nudged up vs. the shared TITLE constant so the 2×2 grid + footer all fit)
   const s = pres.addSlide({ masterName: "MAIN" });
+  s.hidden = true;
   s.addText("Decision matrix per divergence kind", {
     x: 0.5, y: 0.05, w: 9, h: 0.5, fontSize: 28, bold: true, margin: 0,
   });
@@ -1005,11 +1094,12 @@ function quoteCard(slide, quote, attribution, opts = {}) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 18 - Are the alternatives actually better? (synthesis quality)
+// Slide 19 - Are the alternatives actually better? (HIDDEN — backup detail)
 // ─────────────────────────────────────────────────────────────
 {
   // Custom-positioned title to match Slide 17's geometry
   const s = pres.addSlide({ masterName: "MAIN" });
+  s.hidden = true;
   s.addText("Are the alternatives actually better?", {
     x: 0.5, y: 0.1, w: 9, h: 0.6, fontSize: 28, bold: true, margin: 0,
   });
@@ -1122,7 +1212,7 @@ function quoteCard(slide, quote, attribution, opts = {}) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 19 - Experiment 2 divider
+// Slide 20 - Experiment 2 divider
 // ─────────────────────────────────────────────────────────────
 {
   const s = pres.addSlide({ masterName: "MAIN" });
@@ -1134,10 +1224,11 @@ function quoteCard(slide, quote, attribution, opts = {}) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 20 - Is the process score reliable? (setup)
+// Slide 21 - Is the process score reliable? (setup) (HIDDEN — backup)
 // ─────────────────────────────────────────────────────────────
 {
   const s = titled("Is the process score reliable?");
+  s.hidden = true;
 
   const REF_COLOR = "888888";
   const SUB_GAP = 6;
@@ -1187,7 +1278,7 @@ function quoteCard(slide, quote, attribution, opts = {}) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 21 - Score is locally robust (4-card 2×2 results grid)
+// Slide 22 - Score is locally robust (4-card 2×2 results grid)
 // ─────────────────────────────────────────────────────────────
 {
   const s = titled("Score is locally robust");
@@ -1276,7 +1367,7 @@ function quoteCard(slide, quote, attribution, opts = {}) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 22 - Experiment 3 divider
+// Slide 23 - Experiment 3 divider
 // ─────────────────────────────────────────────────────────────
 {
   const s = pres.addSlide({ masterName: "MAIN" });
@@ -1288,10 +1379,11 @@ function quoteCard(slide, quote, attribution, opts = {}) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 23 - User study setup (does feedback change behaviour?)
+// Slide 24 - User study setup (does feedback change behaviour?) (HIDDEN — backup)
 // ─────────────────────────────────────────────────────────────
 {
   const s = titled("Does dashboard feedback change developer behaviour?");
+  s.hidden = true;
 
   const REF_COLOR = "888888";
   const SUB_GAP = 6;
@@ -1354,7 +1446,7 @@ function quoteCard(slide, quote, attribution, opts = {}) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 24 - Fewer divergences, but production score is noisy
+// Slide 25 - Fewer divergences, but production score is noisy
 // ─────────────────────────────────────────────────────────────
 {
   const s = pres.addSlide({ masterName: "MAIN" });
@@ -1426,7 +1518,7 @@ function quoteCard(slide, quote, attribution, opts = {}) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 25 - Strip the task signal: process discipline emerges
+// Slide 26 - Strip the task signal: process discipline emerges
 // ─────────────────────────────────────────────────────────────
 {
   const s = pres.addSlide({ masterName: "MAIN" });
@@ -1477,7 +1569,7 @@ function quoteCard(slide, quote, attribution, opts = {}) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 26 - Extension divider (Agent Traces)
+// Slide 27 - Extension divider (Agent Traces)
 // ─────────────────────────────────────────────────────────────
 {
   const s = pres.addSlide({ masterName: "MAIN" });
@@ -1489,7 +1581,7 @@ function quoteCard(slide, quote, attribution, opts = {}) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 27 - Agent extension: tool doesn't transfer to agent traces
+// Slide 28 - Agent extension: tool doesn't transfer to agent traces
 // ─────────────────────────────────────────────────────────────
 {
   const s = pres.addSlide({ masterName: "MAIN" });
@@ -1600,7 +1692,7 @@ function quoteCard(slide, quote, attribution, opts = {}) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 28 - Conclusion
+// Slide 29 - Conclusion
 // ─────────────────────────────────────────────────────────────
 {
   const s = titled("Conclusion");
