@@ -101,25 +101,70 @@ function quoteCard(slide, quote, attribution, opts = {}) {
 {
   const s = titled("Same destination, different journeys");
 
-  // Top block: the scenario
-  bulletText(
-    s,
-    [
-      "Two developers refactor the same code and arrive at the same final state.",
-      "Developer A: ran tests, committed checkpoints, used IDE refactorings.",
-      "Developer B: broke the build twice, added then removed 80 lines, hand-edited what the IDE could do safely.",
-    ],
-    { y: 1.2, h: 2.5 },
+  // Intro line
+  s.addText(
+    "Two developers refactor the same code and arrive at the same final state.",
+    { x: 0.5, y: 1.2, w: 9, h: 0.45, fontSize: 16, italic: true, color: "555555", align: "center", margin: 0 },
   );
 
-  // Bottom block: the question + punchline, sitting near the foot of the slide
+  // Two developer cards (side by side)
+  const cards = [
+    {
+      label: "Developer A",
+      accent: "0A7D2A",
+      fill: "EBF7F0",
+      behaviours: [
+        "Ran tests.",
+        "Committed checkpoints.",
+        "Used IDE refactorings.",
+      ],
+      x: 0.6,
+    },
+    {
+      label: "Developer B",
+      accent: "B33A1E",
+      fill: "FBEDE9",
+      behaviours: [
+        "Broke the build twice.",
+        "Added then removed 80 lines.",
+        "Hand-edited what the IDE could do safely.",
+      ],
+      x: 5.2,
+    },
+  ];
+
+  cards.forEach((c) => {
+    // Rounded-rect card background
+    s.addShape(pres.shapes.ROUNDED_RECTANGLE, {
+      x: c.x, y: 1.85, w: 4.2, h: 2.05,
+      fill: { color: c.fill },
+      line: { color: c.accent, width: 1 },
+      rectRadius: 0.1,
+    });
+    // Header label
+    s.addText(c.label, {
+      x: c.x, y: 1.92, w: 4.2, h: 0.4,
+      fontSize: 18, bold: true, color: c.accent, align: "center", margin: 0,
+    });
+    // Behaviour bullets inside the card
+    const bulletRuns = c.behaviours.map((b, i) => ({
+      text: b,
+      options: { bullet: true, breakLine: i < c.behaviours.length - 1, paraSpaceAfter: 6 },
+    }));
+    s.addText(bulletRuns, {
+      x: c.x + 0.35, y: 2.38, w: 3.55, h: 1.45,
+      fontSize: 13, color: "1A1A1A", valign: "top",
+    });
+  });
+
+  // Bottom block: the question + punchline
   bulletText(
     s,
     [
       "Which one would you want on your team?",
       "Endpoint-only evaluation cannot tell them apart.",
     ],
-    { y: 4.2, h: 1.2 },
+    { y: 4.15, h: 1.3 },
   );
 }
 
@@ -131,13 +176,16 @@ function quoteCard(slide, quote, attribution, opts = {}) {
   s.addText("Evaluating the refactoring process: what's missing in prior work", {
     ...TITLE, y: 0.7,
   });
+  const BLANK = { text: " ", options: { bullet: false, breakLine: true } };
   const runs = [
-    { text: "Endpoint quality metrics (CK, smells, readability):", options: { bullet: true, bold: true, paraSpaceAfter: 6 } },
-    { text: " compare before vs after, ignore the path taken.", options: { breakLine: true, paraSpaceAfter: 6 } },
-    { text: "Refactoring recommenders / sequence generators", options: { bullet: true, bold: true, paraSpaceAfter: 6 } },
-    { text: ": produce new sequences (typically at small scale), but do not evaluate the one the developer actually walked.", options: { breakLine: true, paraSpaceAfter: 6 } },
-    { text: "Exercise-scoped feedback tools:", options: { bullet: true, bold: true, paraSpaceAfter: 6 } },
-    { text: " one or two look for explicit events inside predefined exercises - but don't generalise to arbitrary refactoring sessions.", options: { paraSpaceAfter: 6 } },
+    { text: "Endpoint quality metrics (CK, smells, readability):", options: { bullet: true, bold: true } },
+    { text: " compare before vs after, ignore the path taken.", options: { breakLine: true } },
+    BLANK,
+    { text: "Refactoring recommenders / sequence generators", options: { bullet: true, bold: true } },
+    { text: ": produce new sequences (typically at small scale), but do not evaluate the one the developer actually walked.", options: { breakLine: true } },
+    BLANK,
+    { text: "Exercise-scoped feedback tools:", options: { bullet: true, bold: true } },
+    { text: " one or two look for explicit events inside predefined exercises - but don't generalise to arbitrary refactoring sessions.", options: {} },
   ];
   s.addText(runs, { ...BODY, y: 1.95 });
 }
@@ -233,17 +281,20 @@ function quoteCard(slide, quote, attribution, opts = {}) {
     const isLast = i === requirements.length - 1;
     runs.push({
       text: req.title + " ",
-      options: { bullet: true, bold: true, paraSpaceAfter: 6 },
+      options: { bullet: true, bold: true },
     });
     runs.push({
       text: "- " + req.body,
-      options: { color: REF_COLOR, breakLine: !req.mark && isLast ? false : !req.mark, paraSpaceAfter: 6 },
+      options: { color: REF_COLOR, breakLine: !req.mark && isLast ? false : !req.mark },
     });
     if (req.mark) {
       runs.push({
         text: " " + req.mark,
-        options: { color: REF_COLOR, breakLine: !isLast, paraSpaceAfter: 6 },
+        options: { color: REF_COLOR, breakLine: !isLast },
       });
+    }
+    if (!isLast) {
+      runs.push({ text: " ", options: { bullet: false, breakLine: true } });
     }
   });
 
@@ -528,14 +579,18 @@ function quoteCard(slide, quote, attribution, opts = {}) {
 
   const runs = [];
   kinds.forEach(([name, desc], i) => {
+    const isLast = i === kinds.length - 1;
     runs.push({
       text: name + " ",
-      options: { bullet: true, paraSpaceAfter: 10 },
+      options: { bullet: true },
     });
     runs.push({
       text: "- " + desc,
-      options: { color: REF_COLOR, breakLine: i < kinds.length - 1, paraSpaceAfter: 10 },
+      options: { color: REF_COLOR, breakLine: !isLast },
     });
+    if (!isLast) {
+      runs.push({ text: " ", options: { bullet: false, breakLine: true } });
+    }
   });
 
   s.addText(runs, { x: 0.5, y: 1.5, w: 9, h: 3.5, fontSize: 18, valign: "top" });
