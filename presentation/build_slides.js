@@ -84,7 +84,7 @@ function quoteCard(slide, quote, attribution, opts = {}) {
     x: 0.5, y: 1.95, w: 9, h: 0.9, fontSize: 32, bold: true, align: "center", margin: 0,
   });
   s.addText(
-    "Scoring the path a developer takes through a refactoring session, and pointing to where a better path existed.",
+    "Scoring the path a developer takes through a refactoring session, and generating reference trajectories where a better path existed.",
     { x: 0.5, y: 3.05, w: 9, h: 0.9, fontSize: 18, italic: true, align: "center", color: "555555" },
   );
   s.addText("Ethan Hosier  ·  Imperial College London  ·  Department of Computing", {
@@ -103,7 +103,11 @@ function quoteCard(slide, quote, attribution, opts = {}) {
 
   // Intro line
   s.addText(
-    "Two developers refactor the same code and arrive at the same final state.",
+    [
+      { text: "Two developers refactor the same code " },
+      { text: "and arrive at the same final state", options: { bold: true } },
+      { text: "." },
+    ],
     { x: 0.5, y: 1.2, w: 9, h: 0.45, fontSize: 16, italic: true, color: "555555", align: "center", margin: 0 },
   );
 
@@ -173,21 +177,41 @@ function quoteCard(slide, quote, attribution, opts = {}) {
 // ─────────────────────────────────────────────────────────────
 {
   const s = pres.addSlide({ masterName: "MAIN" });
-  s.addText("Evaluating the refactoring process: what's missing in prior work", {
-    ...TITLE, y: 0.7,
+  s.addText("Motivation: what's missing in prior work", {
+    ...TITLE, y: 0.45,
   });
+
+  // Motivation intro
+  s.addText(
+    [
+      { text: "To help developers refactor better, we need to measure what a " },
+      { text: "good refactoring session", options: { italic: true } },
+      { text: " actually looks like - not just what code it produces." },
+    ],
+    { x: 0.6, y: 1.20, w: 8.8, h: 0.7, fontSize: 15, italic: true, color: "333333", align: "center", margin: 0 },
+  );
+
+  // Transition line into the prior-work bullets
+  s.addText(
+    "But prior work mostly measures outcomes, not the process:",
+    { x: 0.5, y: 1.95, w: 9, h: 0.35, fontSize: 14, bold: true, color: "1A1A1A", align: "center", margin: 0 },
+  );
+
+  const REF_COLOR = "555555";
   const BLANK = { text: " ", options: { bullet: false, breakLine: true } };
   const runs = [
-    { text: "Endpoint quality metrics (CK, smells, readability):", options: { bullet: true, bold: true } },
-    { text: " compare before vs after, ignore the path taken.", options: { breakLine: true } },
+    { text: "Endpoint quality metrics ", options: { bullet: true, bold: true } },
+    { text: "(CK, smells, cohesion, coupling)", options: { color: REF_COLOR, italic: true } },
+    { text: " - compare before vs after; ignore the path between, and can't distinguish two sessions ending at the same code.", options: { color: REF_COLOR, breakLine: true } },
     BLANK,
-    { text: "Refactoring recommenders / sequence generators", options: { bullet: true, bold: true } },
-    { text: ": produce new sequences (typically at small scale), but do not evaluate the one the developer actually walked.", options: { breakLine: true } },
+    { text: "Refactoring recommenders / sequence generators ", options: { bullet: true, bold: true } },
+    { text: "(search-based, ReSynth)", options: { color: REF_COLOR, italic: true } },
+    { text: " - generate paths toward a target end state; don't score the developer's own path.", options: { color: REF_COLOR, breakLine: true } },
     BLANK,
-    { text: "Exercise-scoped feedback tools:", options: { bullet: true, bold: true } },
-    { text: " one or two look for explicit events inside predefined exercises - but don't generalise to arbitrary refactoring sessions.", options: {} },
+    { text: "Exercise-scoped feedback tools ", options: { bullet: true, bold: true } },
+    { text: "- match explicit events inside predefined exercises; don't generalise to arbitrary sessions.", options: { color: REF_COLOR } },
   ];
-  s.addText(runs, { ...BODY, y: 1.95 });
+  s.addText(runs, { x: 0.5, y: 2.45, w: 9, h: 3.0, fontSize: 13, valign: "top", paraSpaceAfter: 8 });
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -260,19 +284,19 @@ function quoteCard(slide, quote, attribution, opts = {}) {
       mark: "[1]",
     },
     {
-      title: "Seamless, in-workflow capture",
-      body: "zero extra developer effort to use the tool.",
-      mark: "[2]",
-    },
-    {
       title: "Actionable, moment-specific feedback",
       body: 'point to a specific moment AND a "what you could have done instead" alternative.',
-      mark: "[3]",
+      mark: "[2]",
     },
     {
       title: "Efficient alternative synthesis",
       body: 'the state-action space over a real codebase is too large to enumerate, so we must find efficient methods of identifying "better" alternatives.',
       mark: null,
+    },
+    {
+      title: "Seamless, in-workflow capture",
+      body: "zero extra developer effort to use the tool.",
+      mark: "[3]",
     },
   ];
 
@@ -303,8 +327,8 @@ function quoteCard(slide, quote, attribution, opts = {}) {
   // Footer references
   const footerRuns = [
     { text: "[1] Composite quality models (Quamoco, QMOOD), adapted from snapshot- to trajectory-level.   ", options: {} },
-    { text: "[2] IDE-event logging (Damevski et al., CodeWatcher).   ", options: {} },
-    { text: "[3] Inverts prior refactoring recommenders (ReSynth, Refactoring Navigator, search-based refactoring).", options: {} },
+    { text: "[2] Inverts prior refactoring recommenders (ReSynth, Refactoring Navigator, search-based refactoring).   ", options: {} },
+    { text: "[3] IDE-event logging (Damevski et al., CodeWatcher).", options: {} },
   ];
   s.addText(footerRuns, {
     x: 0.5, y: 5.10, w: 9, h: 0.45,
