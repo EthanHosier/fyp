@@ -337,23 +337,10 @@ function quoteCard(slide, quote, attribution, opts = {}) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 6 - Demo
+// Slide 6 - End-to-end system
 // ─────────────────────────────────────────────────────────────
 {
-  const s = pres.addSlide({ masterName: "MAIN" });
-  s.addText("Demo", {
-    x: 0.5, y: 1.95, w: 9, h: 1.2, fontSize: 60, bold: true, align: "center", valign: "middle", margin: 0,
-  });
-  s.addText("OrderProcessor: Breaking up a long method into smaller methods", {
-    x: 0.5, y: 3.25, w: 9, h: 0.5, fontSize: 20, italic: true, color: "555555", align: "center", valign: "middle", margin: 0,
-  });
-}
-
-// ─────────────────────────────────────────────────────────────
-// Slide 7 - End-to-end system
-// ─────────────────────────────────────────────────────────────
-{
-  const s = titled("What the tool does, end to end");
+  const s = titled("The tool, end to end: actionable refactoring process analysis");
 
   // Three-stage pipeline diagram, each box lists its sub-stages.
   // Slide is just the title + diagram now; diagram sits roughly centred in the body area.
@@ -469,6 +456,19 @@ function quoteCard(slide, quote, attribution, opts = {}) {
       margin: 0,
     });
   }
+}
+
+// ─────────────────────────────────────────────────────────────
+// Slide 7 - Demo
+// ─────────────────────────────────────────────────────────────
+{
+  const s = pres.addSlide({ masterName: "MAIN" });
+  s.addText("Demo", {
+    x: 0.5, y: 1.95, w: 9, h: 1.2, fontSize: 60, bold: true, align: "center", valign: "middle", margin: 0,
+  });
+  s.addText("OrderProcessor: Breaking up a long method into smaller methods", {
+    x: 0.5, y: 3.25, w: 9, h: 0.5, fontSize: 20, italic: true, color: "555555", align: "center", valign: "middle", margin: 0,
+  });
 }
 
 // ─────────────────────────────────────────────────────────────
