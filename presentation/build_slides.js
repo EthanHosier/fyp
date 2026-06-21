@@ -85,17 +85,72 @@ function titled(title, subtitle = null) {
 // Slide 3 - What's missing in prior work
 // ─────────────────────────────────────────────────────────────
 {
-  const s = titled("What's missing in prior work");
-  bulletText(s, [
-    "Endpoint quality metrics (CK, smells, readability): compare before vs after, ignore the path taken.",
-    "Refactoring recommenders / sequence generators: produce new sequences, but do not evaluate the one the developer actually walked.",
-    "Gap: no system scores an arbitrary observed refactoring session against an explicit process-quality metric, and shows where a better path was available.",
-    "This is the gap the project fills.",
-  ]);
+  const s = pres.addSlide();
+  s.addText("Evaluating the refactoring process: what's missing in prior work", {
+    ...TITLE, y: 0.7,
+  });
+  const runs = [
+    { text: "Endpoint quality metrics (CK, smells, readability):", options: { bullet: true, bold: true, paraSpaceAfter: 6 } },
+    { text: " compare before vs after, ignore the path taken.", options: { breakLine: true, paraSpaceAfter: 6 } },
+    { text: "Refactoring recommenders / sequence generators", options: { bullet: true, bold: true, paraSpaceAfter: 6 } },
+    { text: ": produce new sequences (typically at small scale), but do not evaluate the one the developer actually walked.", options: { breakLine: true, paraSpaceAfter: 6 } },
+    { text: "Exercise-scoped feedback tools:", options: { bullet: true, bold: true, paraSpaceAfter: 6 } },
+    { text: " one or two look for explicit events inside predefined exercises - but don't generalise to arbitrary refactoring sessions.", options: { paraSpaceAfter: 6 } },
+  ];
+  s.addText(runs, { ...BODY, y: 1.95 });
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 4 - Narrowing the design space
+// Slide 4 - Closest existing tool (Industrial Logic e-learning)
+// ─────────────────────────────────────────────────────────────
+{
+  const s = pres.addSlide();
+  s.addText(
+    [
+      { text: "Closest Existing Tool...", options: {} },
+      { text: "  Industrial Logic", options: { color: "888888" } },
+    ],
+    TITLE,
+  );
+
+  // Three Industrial Logic screenshots in a row, uniform width.
+  //   score        : 1686x1238 → h ≈ 3.00 / 1.36 = 2.20
+  //   compilation  : 1610x784  → h ≈ 3.00 / 2.05 = 1.46
+  //   refactorings : 1620x954  → h ≈ 3.00 / 1.70 = 1.76
+  const ROW_Y = 1.30;
+  const W = 3.0;
+  const GAP = 0.15;
+  const xs = [0.35, 0.35 + W + GAP, 0.35 + 2 * (W + GAP)];
+
+  const images = [
+    { path: "images/industrial-logic-score.png",             h: 2.20, caption: "Score" },
+    { path: "images/industrial-logic-compilation-tests.png", h: 1.46, caption: "Compilation + tests" },
+    { path: "images/industrial-logic-refactorings.png",      h: 1.76, caption: "Refactorings" },
+  ];
+
+  images.forEach((img, i) => {
+    s.addImage({ path: img.path, x: xs[i], y: ROW_Y, w: W, h: img.h });
+    s.addText(img.caption, {
+      x: xs[i], y: ROW_Y + 2.30, w: W, h: 0.30,
+      fontSize: 12, italic: true, color: "555555", align: "center", margin: 0,
+    });
+  });
+
+  // Closing punchline at the bottom of the slide
+  s.addText(
+    [
+      { text: "Gap: ", options: { bold: true } },
+      { text: "no system scores an arbitrary observed refactoring session against an explicit process-quality metric, and shows where a better path was available.", options: {} },
+    ],
+    {
+      x: 0.5, y: 4.40, w: 9, h: 1.0,
+      fontSize: 14, italic: true, color: "1F3F6F", align: "center", valign: "middle", margin: 0,
+    },
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Slide 5 - Narrowing the design space
 // ─────────────────────────────────────────────────────────────
 {
   const s = titled("Narrowing the design space");
@@ -165,7 +220,7 @@ function titled(title, subtitle = null) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 5 - Demo
+// Slide 6 - Demo
 // ─────────────────────────────────────────────────────────────
 {
   const s = pres.addSlide();
@@ -175,7 +230,7 @@ function titled(title, subtitle = null) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 6 - End-to-end system
+// Slide 7 - End-to-end system
 // ─────────────────────────────────────────────────────────────
 {
   const s = titled("What the tool does, end to end");
@@ -297,7 +352,7 @@ function titled(title, subtitle = null) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 7 - Scoring a trajectory
+// Slide 8 - Scoring a trajectory
 // ─────────────────────────────────────────────────────────────
 {
   // Title position is nudged up vs. the shared TITLE constant so the formula has a touch more room
@@ -412,7 +467,7 @@ function titled(title, subtitle = null) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 8 - Four kinds of divergence (overview)
+// Slide 9 - Four kinds of divergence (overview)
 // ─────────────────────────────────────────────────────────────
 {
   const s = titled("Four kinds of divergence");
@@ -442,7 +497,7 @@ function titled(title, subtitle = null) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 9 - Manual-Refactor: detect + synthesise
+// Slide 10 - Manual-Refactor: detect + synthesise
 // ─────────────────────────────────────────────────────────────
 {
   const s = titled("Manual-Refactor: detect + synthesise");
@@ -479,7 +534,7 @@ function titled(title, subtitle = null) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 10 - Ordering: detect + synthesise
+// Slide 11 - Ordering: detect + synthesise
 // ─────────────────────────────────────────────────────────────
 {
   const s = titled("Ordering: detect + synthesise");
@@ -516,7 +571,7 @@ function titled(title, subtitle = null) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 11 - Rework: detect + synthesise
+// Slide 12 - Rework: detect + synthesise
 // ─────────────────────────────────────────────────────────────
 {
   const s = titled("Rework: detect + synthesise");
@@ -552,7 +607,7 @@ function titled(title, subtitle = null) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 12 - Hygiene: detect + synthesise
+// Slide 13 - Hygiene: detect + synthesise
 // ─────────────────────────────────────────────────────────────
 {
   const s = titled("Hygiene: detect + synthesise");
@@ -584,7 +639,7 @@ function titled(title, subtitle = null) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 13 - What we wanted to evaluate (three questions, each tied to a dataset + experiment)
+// Slide 14 - What we wanted to evaluate (three questions, each tied to a dataset + experiment)
 // ─────────────────────────────────────────────────────────────
 {
   const s = titled("What we wanted to evaluate");
@@ -622,7 +677,7 @@ function titled(title, subtitle = null) {
         options: QUESTION_CELL,
       },
       {
-        text: "45 labelled injection sessions: per-kind precision and recall (Slides 15-16) plus beat/tie/lose breakdown across all 66 detected divergence points (Slide 17).",
+        text: "45 labelled injection sessions: per-kind precision and recall (Slides 16-17) plus beat/tie/lose breakdown across all 66 detected divergence points (Slide 18).",
         options: ANSWER_CELL,
       },
     ],
@@ -632,7 +687,7 @@ function titled(title, subtitle = null) {
         options: QUESTION_CELL,
       },
       {
-        text: "Sensitivity sweep + ablation, headline on the 25-session user-study rankable subset (Slides 19-20).",
+        text: "Sensitivity sweep + ablation, headline on the 25-session user-study rankable subset (Slides 20-21).",
         options: ANSWER_CELL,
       },
     ],
@@ -642,7 +697,7 @@ function titled(title, subtitle = null) {
         options: QUESTION_CELL,
       },
       {
-        text: "30-session randomised user study, 5 participants split between feedback and no-feedback arms (Slide 22).",
+        text: "30-session randomised user study, 5 participants split between feedback and no-feedback arms (Slide 23).",
         options: ANSWER_CELL,
       },
     ],
@@ -659,7 +714,7 @@ function titled(title, subtitle = null) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 14 - Experiment 1 divider
+// Slide 15 - Experiment 1 divider
 // ─────────────────────────────────────────────────────────────
 {
   const s = pres.addSlide();
@@ -671,7 +726,7 @@ function titled(title, subtitle = null) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 15 - Detector evaluation: setup + label reliability + metric choice
+// Slide 16 - Detector evaluation: setup + label reliability + metric choice
 // ─────────────────────────────────────────────────────────────
 {
   const s = titled("Is the tool accurate?");
@@ -703,7 +758,7 @@ function titled(title, subtitle = null) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 16 - Per-kind decision matrices (4 mini 2×2 confusion matrices)
+// Slide 17 - Per-kind decision matrices (4 mini 2×2 confusion matrices)
 // ─────────────────────────────────────────────────────────────
 {
   // Custom-positioned title (nudged up vs. the shared TITLE constant so the 2×2 grid + footer all fit)
@@ -813,7 +868,7 @@ function titled(title, subtitle = null) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 17 - Are the alternatives actually better? (synthesis quality)
+// Slide 18 - Are the alternatives actually better? (synthesis quality)
 // ─────────────────────────────────────────────────────────────
 {
   // Custom-positioned title to match Slide 17's geometry
@@ -922,7 +977,7 @@ function titled(title, subtitle = null) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 18 - Experiment 2 divider
+// Slide 19 - Experiment 2 divider
 // ─────────────────────────────────────────────────────────────
 {
   const s = pres.addSlide();
@@ -934,7 +989,7 @@ function titled(title, subtitle = null) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 19 - Is the process score reliable? (setup)
+// Slide 20 - Is the process score reliable? (setup)
 // ─────────────────────────────────────────────────────────────
 {
   const s = titled("Is the process score reliable?");
@@ -987,7 +1042,7 @@ function titled(title, subtitle = null) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 20 - Score is locally robust (4-card 2×2 results grid)
+// Slide 21 - Score is locally robust (4-card 2×2 results grid)
 // ─────────────────────────────────────────────────────────────
 {
   const s = titled("Score is locally robust");
@@ -1040,7 +1095,7 @@ function titled(title, subtitle = null) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 21 - Experiment 3 divider
+// Slide 22 - Experiment 3 divider
 // ─────────────────────────────────────────────────────────────
 {
   const s = pres.addSlide();
@@ -1052,7 +1107,7 @@ function titled(title, subtitle = null) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 22 - User study setup (does feedback change behaviour?)
+// Slide 23 - User study setup (does feedback change behaviour?)
 // ─────────────────────────────────────────────────────────────
 {
   const s = titled("Does dashboard feedback change developer behaviour?");
@@ -1109,7 +1164,7 @@ function titled(title, subtitle = null) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 23 - Fewer divergences, but production score is noisy
+// Slide 24 - Fewer divergences, but production score is noisy
 // ─────────────────────────────────────────────────────────────
 {
   const s = pres.addSlide();
@@ -1181,7 +1236,7 @@ function titled(title, subtitle = null) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 24 - Strip the task signal: process discipline emerges
+// Slide 25 - Strip the task signal: process discipline emerges
 // ─────────────────────────────────────────────────────────────
 {
   const s = pres.addSlide();
@@ -1232,7 +1287,7 @@ function titled(title, subtitle = null) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 25 - Extension divider (Agent Traces)
+// Slide 26 - Extension divider (Agent Traces)
 // ─────────────────────────────────────────────────────────────
 {
   const s = pres.addSlide();
@@ -1244,7 +1299,7 @@ function titled(title, subtitle = null) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 26 - Agent extension: tool doesn't transfer to agent traces
+// Slide 27 - Agent extension: tool doesn't transfer to agent traces
 // ─────────────────────────────────────────────────────────────
 {
   const s = pres.addSlide();
@@ -1355,7 +1410,7 @@ function titled(title, subtitle = null) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 27 - Conclusion
+// Slide 28 - Conclusion
 // ─────────────────────────────────────────────────────────────
 {
   const s = titled("Conclusion");

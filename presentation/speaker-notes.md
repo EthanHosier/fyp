@@ -44,7 +44,69 @@ Reference for the **Scoring a trajectory** slide (visible) and the **Cleanliness
 
 ---
 
-## Part 2 — Is the process score reliable?
+## Part 2 — Ordering DAG: dependency analysis between refactoring steps (Slide 11)
+
+For viva prep — how the Ordering synthesiser builds the dependency DAG before topological enumeration. Code lives in `tool/analysis/.../alternative/reorder/`: `SpecDependencyAnalyzer.kt`, `SpecVersioner.kt`, `SpecEffects.kt` (called from `ReorderSynthesiser.kt:122`).
+
+### What's a "step"?
+
+A `RefactoringSpec` — one of ~30 sealed-interface variants (RenameClass, ExtractMethod, MoveInstanceField, …). Carries FQNs, AST subtree hashes (`declarationSubtreeHash`, `selectionSubtreeHash`), and method/field metadata. **No git Change object, no Eclipse JDT handle — the DAG is built from refactoring metadata alone.**
+
+### Effects: four sets per step (`SpecEffects.effectsOf`)
+
+Each spec is statically reduced to four sets of *entities* (Type / Method / Field / Package, keyed by FQN):
+
+| set | meaning | example |
+|---|---|---|
+| `reads`     | entities referenced              | RenameClass reads the old type |
+| `writes`    | entities modified                | RenameMethod writes the declaring type (call-sites) |
+| `produces`  | new entities created             | ExtractMethod produces a new method |
+| `consumes`  | entities destroyed               | RenameClass consumes the old type |
+
+### Four edge rules — for each pair (i, j) with i < j
+
+If *any* of these fires, add edge i → j:
+
+1. **READ-AFTER-WRITE / READ-AFTER-CONSUME** — j reads X, i produced / wrote / consumed X.
+2. **WRITE-AFTER-WRITE** — j writes X, i wrote or consumed X.
+3. **CONSUME-AFTER-CONSUME** — both i and j consume X.
+4. **PRODUCES-AFTER-CONSUME** (cross-range, via `SpecVersioner`) — j re-creates X under a new SSA version after i consumed the previous version.
+
+### SSA-style versioning
+
+`SpecVersioner` tracks **live ranges** per entity key. Producing opens a new version; consuming closes the current one. Reads/writes are stamped with the live version. Two reads of "method foo" don't conflate if they refer to *different* live versions — so renaming foo → bar → foo doesn't introduce spurious dependencies.
+
+### What this analysis is NOT
+
+- No AST def-use, no binding-key tracking, no call-site resolution.
+- No conservative "if uncertain, treat as dependent." Edges only added when an effect-set match fires.
+- Parameter types treated as opaque when unknown (this *broadens* method-entity matching, never restricts it).
+
+### Encoding
+
+```
+SpecDag(
+  nodes: List<RefactoringSpec>,
+  edges: Map<Int, Set<Int>>,                  // adjacency: i → successor indices
+  edgeReasons: Map<Pair<Int,Int>, List<...>>  // why each edge exists (for debug / UI)
+)
+```
+
+### Acyclicity
+
+The user's actual trajectory is acyclic by construction (it really happened in some order). SSA discipline prevents the analyser from inventing cycles. No explicit cycle check — `TopologicalEnumerator` uses in-degree DFS and assumes a valid DAG.
+
+### Why this is "necessary but not sufficient"
+
+The DAG only encodes *known* dependencies from spec metadata. After enumeration, each candidate ordering is replayed on a borrowed git worktree, and the **terminal AST is hashed** against the user's terminal AST (`ReorderSynthesiser.checkTerminalDivergence`). If the hash doesn't match, the ordering is discarded — so a too-permissive DAG (missing a real dependency) is caught at the validation gate, not silently accepted.
+
+### One-line summary for the viva
+
+*"Metadata-driven SSA-versioned dependency graph: each refactoring spec emits four entity effect sets — reads / writes / produces / consumes — and edges are added whenever those sets conflict between an earlier and a later step. Validation by terminal-AST-hash on replay is the safety net for any dependency the metadata can't see."*
+
+---
+
+## Part 3 — Is the process score reliable?
 
 Reference for the **"Is the process score reliable?"** setup slide and the **"Score is locally robust"** results slide.
 
@@ -64,7 +126,7 @@ Mechanically, τ-b counts concordant pairs (both rankings agree which item is hi
 
 ---
 
-## Part 3 — Why two separate datasets? (injection vs user-study)
+## Part 4 — Why two separate datasets? (injection vs user-study)
 
 Likely viva question: *"Why have a separate labelled injection dataset and a separate user-study dataset? Why not just label some of the user-study sessions and have one combined dataset?"*
 
