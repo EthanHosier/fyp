@@ -9,6 +9,21 @@ pres.layout = "LAYOUT_16x9"; // 10" x 5.625"
 pres.author = "Ethan Hosier";
 pres.title = "Beyond Before-and-After: Process-Quality Evaluation of Refactoring Sessions";
 
+// ── Theme ─────────────────────────────────────────────────────
+// Subtle off-white background + a thin deep-blue accent strip at the top of
+// every slide. Same accent colour the deck already uses (feedback group, J(τ)
+// closing line, italic conclusion text).
+const THEME_ACCENT = "0000CD";
+const THEME_BG     = "FAFAFA";
+
+pres.defineSlideMaster({
+  title: "MAIN",
+  background: { color: THEME_BG },
+  objects: [
+    { rect: { x: 0, y: 0, w: 10, h: 0.05, fill: { color: THEME_ACCENT }, line: { type: "none" } } },
+  ],
+});
+
 // Slide geometry constants (inches)
 const TITLE = { x: 0.5, y: 0.3, w: 9, h: 0.7, fontSize: 28, bold: true, margin: 0 };
 const SUBTITLE = { x: 0.5, y: 1.0, w: 9, h: 0.5, fontSize: 16, italic: true, color: "555555" };
@@ -23,7 +38,7 @@ function bulletText(slide, items, opts = {}) {
 }
 
 function titled(title, subtitle = null) {
-  const s = pres.addSlide();
+  const s = pres.addSlide({ masterName: "MAIN" });
   s.addText(title, TITLE);
   if (subtitle) s.addText(subtitle, SUBTITLE);
   return s;
@@ -54,7 +69,12 @@ function quoteCard(slide, quote, attribution, opts = {}) {
 // Slide 1 - Title
 // ─────────────────────────────────────────────────────────────
 {
-  const s = pres.addSlide();
+  const s = pres.addSlide({ masterName: "MAIN" });
+  // Imperial College London logo, top-left. Native 12900x1417 (~9.1:1), shrunk to 1.8" wide.
+  s.addImage({
+    path: "images/Imperial_College_London_new_logo.png",
+    x: 0.4, y: 0.30, w: 1.8, h: 0.198,
+  });
   // Eyebrow: small italic grey, with colon
   s.addText("Beyond Before-and-After:", {
     x: 0.5, y: 1.35, w: 9, h: 0.4, fontSize: 18, italic: true, color: "555555", align: "center", margin: 0,
@@ -107,7 +127,7 @@ function quoteCard(slide, quote, attribution, opts = {}) {
 // Slide 3 - What's missing in prior work
 // ─────────────────────────────────────────────────────────────
 {
-  const s = pres.addSlide();
+  const s = pres.addSlide({ masterName: "MAIN" });
   s.addText("Evaluating the refactoring process: what's missing in prior work", {
     ...TITLE, y: 0.7,
   });
@@ -126,7 +146,7 @@ function quoteCard(slide, quote, attribution, opts = {}) {
 // Slide 4 - Closest existing tool (Industrial Logic e-learning)
 // ─────────────────────────────────────────────────────────────
 {
-  const s = pres.addSlide();
+  const s = pres.addSlide({ masterName: "MAIN" });
   s.addText(
     [
       { text: "Closest Existing Tool...", options: {} },
@@ -166,7 +186,7 @@ function quoteCard(slide, quote, attribution, opts = {}) {
     ],
     {
       x: 0.5, y: 4.40, w: 9, h: 1.0,
-      fontSize: 14, italic: true, color: "1F3F6F", align: "center", valign: "middle", margin: 0,
+      fontSize: 14, italic: true, color: "0000CD", align: "center", valign: "middle", margin: 0,
     },
   );
 }
@@ -217,7 +237,7 @@ function quoteCard(slide, quote, attribution, opts = {}) {
     });
     runs.push({
       text: "- " + req.body,
-      options: { breakLine: !req.mark && isLast ? false : !req.mark, paraSpaceAfter: 6 },
+      options: { color: REF_COLOR, breakLine: !req.mark && isLast ? false : !req.mark, paraSpaceAfter: 6 },
     });
     if (req.mark) {
       runs.push({
@@ -245,7 +265,7 @@ function quoteCard(slide, quote, attribution, opts = {}) {
 // Slide 6 - Demo
 // ─────────────────────────────────────────────────────────────
 {
-  const s = pres.addSlide();
+  const s = pres.addSlide({ masterName: "MAIN" });
   s.addText("Demo", {
     x: 0.5, y: 1.95, w: 9, h: 1.2, fontSize: 60, bold: true, align: "center", valign: "middle", margin: 0,
   });
@@ -381,7 +401,7 @@ function quoteCard(slide, quote, attribution, opts = {}) {
 // ─────────────────────────────────────────────────────────────
 {
   // Title position is nudged up vs. the shared TITLE constant so the formula has a touch more room
-  const s = pres.addSlide();
+  const s = pres.addSlide({ masterName: "MAIN" });
   s.addText("Scoring a trajectory: J(τ)", {
     x: 0.5, y: 0.15, w: 9, h: 0.7, fontSize: 28, bold: true, margin: 0,
   });
@@ -525,7 +545,7 @@ function quoteCard(slide, quote, attribution, opts = {}) {
 // Slide 10 - Manual-Refactor: detect + synthesise
 // ─────────────────────────────────────────────────────────────
 {
-  const s = pres.addSlide();
+  const s = pres.addSlide({ masterName: "MAIN" });
   s.addText("Manual-Refactor: detect + synthesise", { ...TITLE, w: 6.3, fontSize: 24 });
   {
     const intro = "Developer hand-edited something the IDE could have done safely (and with its precondition checks).";
@@ -564,7 +584,7 @@ function quoteCard(slide, quote, attribution, opts = {}) {
 // Slide 11 - Ordering: detect + synthesise
 // ─────────────────────────────────────────────────────────────
 {
-  const s = pres.addSlide();
+  const s = pres.addSlide({ masterName: "MAIN" });
   s.addText("Ordering: detect + synthesise", { ...TITLE, w: 6.3, fontSize: 24 });
   {
     const intro = "Developer performed their refactoring steps in a sub-optimal order, leading to unnecessary intermediate degradation.";
@@ -603,7 +623,7 @@ function quoteCard(slide, quote, attribution, opts = {}) {
 // Slide 12 - Rework: detect + synthesise
 // ─────────────────────────────────────────────────────────────
 {
-  const s = pres.addSlide();
+  const s = pres.addSlide({ masterName: "MAIN" });
   s.addText("Rework: detect + synthesise", { ...TITLE, w: 6.3, fontSize: 24 });
   {
     const intro = "Code added and later removed (or vice versa) - unnecessary churn.";
@@ -641,7 +661,7 @@ function quoteCard(slide, quote, attribution, opts = {}) {
 // Slide 13 - Hygiene: detect + synthesise
 // ─────────────────────────────────────────────────────────────
 {
-  const s = pres.addSlide();
+  const s = pres.addSlide({ masterName: "MAIN" });
   s.addText("Hygiene: detect + synthesise", { ...TITLE, w: 6.3, fontSize: 24 });
 
   const intro = "Long stretches of work without test runs, or commits.";
@@ -738,7 +758,7 @@ function quoteCard(slide, quote, attribution, opts = {}) {
     ],
     {
       x: 0.5, y: 5.0, w: 9, h: 0.5,
-      fontSize: 14, italic: true, color: "1F3F6F", align: "center", valign: "middle", margin: 0,
+      fontSize: 14, italic: true, color: "0000CD", align: "center", valign: "middle", margin: 0,
     },
   );
 }
@@ -747,7 +767,7 @@ function quoteCard(slide, quote, attribution, opts = {}) {
 // Slide 15 - Experiment 1 divider
 // ─────────────────────────────────────────────────────────────
 {
-  const s = pres.addSlide();
+  const s = pres.addSlide({ masterName: "MAIN" });
   s.addText("Experiment 1: Is the tool accurate?", {
     x: 0.5, y: 2.2, w: 9, h: 1.2,
     fontSize: 36, bold: true, color: "1A1A1A",
@@ -792,7 +812,7 @@ function quoteCard(slide, quote, attribution, opts = {}) {
 // ─────────────────────────────────────────────────────────────
 {
   // Custom-positioned title (nudged up vs. the shared TITLE constant so the 2×2 grid + footer all fit)
-  const s = pres.addSlide();
+  const s = pres.addSlide({ masterName: "MAIN" });
   s.addText("Decision matrix per divergence kind", {
     x: 0.5, y: 0.05, w: 9, h: 0.5, fontSize: 28, bold: true, margin: 0,
   });
@@ -910,7 +930,7 @@ function quoteCard(slide, quote, attribution, opts = {}) {
 // ─────────────────────────────────────────────────────────────
 {
   // Custom-positioned title to match Slide 17's geometry
-  const s = pres.addSlide();
+  const s = pres.addSlide({ masterName: "MAIN" });
   s.addText("Are the alternatives actually better?", {
     x: 0.5, y: 0.1, w: 9, h: 0.6, fontSize: 28, bold: true, margin: 0,
   });
@@ -1026,7 +1046,7 @@ function quoteCard(slide, quote, attribution, opts = {}) {
 // Slide 19 - Experiment 2 divider
 // ─────────────────────────────────────────────────────────────
 {
-  const s = pres.addSlide();
+  const s = pres.addSlide({ masterName: "MAIN" });
   s.addText("Experiment 2: Is the process score reliable?", {
     x: 0.5, y: 2.2, w: 9, h: 1.2,
     fontSize: 36, bold: true, color: "1A1A1A",
@@ -1180,7 +1200,7 @@ function quoteCard(slide, quote, attribution, opts = {}) {
 // Slide 22 - Experiment 3 divider
 // ─────────────────────────────────────────────────────────────
 {
-  const s = pres.addSlide();
+  const s = pres.addSlide({ masterName: "MAIN" });
   s.addText("Experiment 3: Does feedback change developer behaviour?", {
     x: 0.5, y: 2.2, w: 9, h: 1.2,
     fontSize: 32, bold: true, color: "1A1A1A",
@@ -1258,13 +1278,13 @@ function quoteCard(slide, quote, attribution, opts = {}) {
 // Slide 24 - Fewer divergences, but production score is noisy
 // ─────────────────────────────────────────────────────────────
 {
-  const s = pres.addSlide();
+  const s = pres.addSlide({ masterName: "MAIN" });
   s.addText("Fewer divergences with feedback - but the raw score is noisy", {
     x: 0.5, y: 0.15, w: 9, h: 0.55, fontSize: 24, bold: true, margin: 0, align: "center",
   });
 
   const LABELS = ["S1", "S2", "S3", "S4", "S5", "S6"];
-  const FB_DARK = "1F3F6F";
+  const FB_DARK = "0000CD";
   const BL_DARK = "B25500";
 
   // Left: DP rate per session (per-participant mean, normalises for 3 vs 2 group sizes)
@@ -1330,13 +1350,13 @@ function quoteCard(slide, quote, attribution, opts = {}) {
 // Slide 25 - Strip the task signal: process discipline emerges
 // ─────────────────────────────────────────────────────────────
 {
-  const s = pres.addSlide();
+  const s = pres.addSlide({ masterName: "MAIN" });
   s.addText("Strip the task signal - process discipline emerges", {
     x: 0.5, y: 0.15, w: 9, h: 0.55, fontSize: 24, bold: true, margin: 0, align: "center",
   });
 
   const LABELS = ["S1", "S2", "S3", "S4", "S5", "S6"];
-  const FB_DARK = "1F3F6F";
+  const FB_DARK = "0000CD";
   const BL_DARK = "B25500";
 
   // Single large gain-stripped chart, zoomed y-axis
@@ -1381,7 +1401,7 @@ function quoteCard(slide, quote, attribution, opts = {}) {
 // Slide 26 - Extension divider (Agent Traces)
 // ─────────────────────────────────────────────────────────────
 {
-  const s = pres.addSlide();
+  const s = pres.addSlide({ masterName: "MAIN" });
   s.addText("Extension: Agent Traces", {
     x: 0.5, y: 2.2, w: 9, h: 1.2,
     fontSize: 36, bold: true, color: "1A1A1A",
@@ -1393,7 +1413,7 @@ function quoteCard(slide, quote, attribution, opts = {}) {
 // Slide 27 - Agent extension: tool doesn't transfer to agent traces
 // ─────────────────────────────────────────────────────────────
 {
-  const s = pres.addSlide();
+  const s = pres.addSlide({ masterName: "MAIN" });
   s.addText("Tool doesn't transfer cleanly to agent traces", {
     x: 0.5, y: 0.15, w: 9, h: 0.50, fontSize: 24, bold: true, margin: 0, align: "center",
   });
@@ -1406,7 +1426,7 @@ function quoteCard(slide, quote, attribution, opts = {}) {
   // ── LEFT: gain-stripped score chart (group means, same scale as Slide 23) ──
   {
     const LABELS = ["S1", "S2", "S3", "S4", "S5", "S6"];
-    const FB_DARK = "1F3F6F";
+    const FB_DARK = "0000CD";
     const BL_DARK = "B25500";
     const data = [
       { name: "Feedback mean (n=6)", labels: LABELS, values: [36.7, 40.0, 40.0, 50.0, 42.0, 39.7] },
@@ -1488,7 +1508,7 @@ function quoteCard(slide, quote, attribution, opts = {}) {
     const runs = [
       { text: "Score is blind to the difference: ", options: { bold: true } },
       { text: "feedback ΔJ ", options: {} },
-      { text: "+3.0", options: { bold: true, color: "1F3F6F" } },
+      { text: "+3.0", options: { bold: true, color: "0000CD" } },
       { text: " vs baseline ", options: {} },
       { text: "+6.5", options: { bold: true, color: "B25500" } },
       { text: ". Yet 5 of 6 agents wrote explicit \"I'll do X next session\" plans citing prior warnings - the detectors just can't see those changes happen.", options: { breakLine: true, paraSpaceAfter: 6 } },
@@ -1508,7 +1528,7 @@ function quoteCard(slide, quote, attribution, opts = {}) {
 
   s.addText(
     "Process-aware refactoring evaluation is tractable, and a small randomised study gives directional evidence that feedback improves measured process discipline.",
-    { x: 0.5, y: 1.10, w: 9, h: 0.85, fontSize: 15, italic: true, color: "1F3F6F", align: "center", valign: "middle" }
+    { x: 0.5, y: 1.10, w: 9, h: 0.85, fontSize: 15, italic: true, color: "0000CD", align: "center", valign: "middle" }
   );
 
   const conclusionRuns = [
