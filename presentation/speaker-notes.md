@@ -46,11 +46,7 @@ Reference for the **Scoring a trajectory** slide (visible) and the **Cleanliness
 
 ## Part 2 — Ordering DAG: dependency analysis between refactoring steps (Slide 11)
 
-For viva prep — how the Ordering synthesiser builds the dependency DAG before topological enumeration. Code lives in `tool/analysis/.../alternative/reorder/`: `SpecDependencyAnalyzer.kt`, `SpecVersioner.kt`, `SpecEffects.kt` (called from `ReorderSynthesiser.kt:122`).
 
-### What's a "step"?
-
-A `RefactoringSpec` — one of ~30 sealed-interface variants (RenameClass, ExtractMethod, MoveInstanceField, …). Carries FQNs, AST subtree hashes (`declarationSubtreeHash`, `selectionSubtreeHash`), and method/field metadata. **No git Change object, no Eclipse JDT handle — the DAG is built from refactoring metadata alone.**
 
 ### Effects: four sets per step (`SpecEffects.effectsOf`)
 
@@ -76,33 +72,9 @@ If *any* of these fires, add edge i → j:
 
 `SpecVersioner` tracks **live ranges** per entity key. Producing opens a new version; consuming closes the current one. Reads/writes are stamped with the live version. Two reads of "method foo" don't conflate if they refer to *different* live versions — so renaming foo → bar → foo doesn't introduce spurious dependencies.
 
-### What this analysis is NOT
-
-- No AST def-use, no binding-key tracking, no call-site resolution.
-- No conservative "if uncertain, treat as dependent." Edges only added when an effect-set match fires.
-- Parameter types treated as opaque when unknown (this *broadens* method-entity matching, never restricts it).
-
-### Encoding
-
-```
-SpecDag(
-  nodes: List<RefactoringSpec>,
-  edges: Map<Int, Set<Int>>,                  // adjacency: i → successor indices
-  edgeReasons: Map<Pair<Int,Int>, List<...>>  // why each edge exists (for debug / UI)
-)
-```
-
-### Acyclicity
-
-The user's actual trajectory is acyclic by construction (it really happened in some order). SSA discipline prevents the analyser from inventing cycles. No explicit cycle check — `TopologicalEnumerator` uses in-degree DFS and assumes a valid DAG.
-
 ### Why this is "necessary but not sufficient"
 
 The DAG only encodes *known* dependencies from spec metadata. After enumeration, each candidate ordering is replayed on a borrowed git worktree, and the **terminal AST is hashed** against the user's terminal AST (`ReorderSynthesiser.checkTerminalDivergence`). If the hash doesn't match, the ordering is discarded — so a too-permissive DAG (missing a real dependency) is caught at the validation gate, not silently accepted.
-
-### One-line summary for the viva
-
-*"Metadata-driven SSA-versioned dependency graph: each refactoring spec emits four entity effect sets — reads / writes / produces / consumes — and edges are added whenever those sets conflict between an earlier and a later step. Validation by terminal-AST-hash on replay is the safety net for any dependency the metadata can't see."*
 
 ---
 
@@ -156,6 +128,65 @@ So the injection set's privilege is **not** privileged ground-truth provenance. 
 
 The two datasets are not isolated: P1 and P2 labelled the injection set **before** doing their own user-study sessions. The fact that all three raters reach κ ≥ 0.72 on the injection labels is what licenses everything downstream — it shows the labelling protocol is reliable enough that the detector's "ground truth" isn't just one person's opinion.
 
-### One-liner for the viva
+---
 
-*"The injection set is a scenario-curated test bed where I designed sessions to provoke balanced clean instances of each kind so per-kind precision/recall is meaningful; the user-study is unscripted refactoring on a different codebase to measure the behavioural effect of feedback. Labels in both come from the same post-hoc protocol — what differs is whether the underlying scenario was controlled or naturalistic. Merging them would (a) lose balanced kind coverage, (b) use feedback-arm subjects as their own ground truth, and (c) collapse to a single evaluation codebase."*
+## Part 5 — Critical-reflection cues per slide (verbal scripts)
+
+External moderators reward clear claims about what the evidence does and does not establish. Several slides now carry a tiny italic grey cue line that reminds me to deliver the longer verbal qualification below. Goal: turn every quantitative result into a bounded claim that can't be over-read.
+
+**Rule of thumb for delivery:** lead with the result, *then* the bounded reading, *then* what is still missing. Never the other way around — caveat-first reads as apology.
+
+### Slides 10–13 — Per-kind detail slides (the participant-quote cards)
+
+The italic top-right quotes are the visual cues. The longer verbal versions turn each into a design trade-off:
+
+- **Manual-Refactor:** *"P2 found this very actionable — but the detector partly measures IDE fluency, not  just refactoring quality. That's useful for developer feedback, but it's not a universal measure of refactoring quality."*
+- **Ordering:** *"P2's criticism is the honest read: Ordering is most useful retrospectively. It can explain a worse route after the fact, but giving the developer enough information to choose the best order prospectively remains an open interaction-design problem."*
+- **Rework:** *"P1's over-penalisation comment is fair. Not every add-then-remove is waste — undo and short experimentation can be rational. The detector needs semantic filtering or tolerance for short corrective bursts."*
+- **Hygiene:** *"Both participants found this the most actionable kind. But the underlying threshold is approximate: a long stretch without a test may mean risky work, or it may mean a developer is thinking. The signal is useful, not a ground-truth safety failure."*
+
+### Slide 17 — Per-kind decision matrices (precision 1.00)
+
+Cue on slide: *"Controlled-injection: balanced fixture, scripted behaviour — not shown on real-world refactoring sessions."*
+
+Verbal: *"Precision is 1.00 across all four kinds. The right way to read that: the detector reliably recognises the divergence patterns I defined, on the balanced fixture I designed. These are controlled-injection results — they establish internal validity, not that 1.00 precision will transfer unchanged to ordinary mixed-intent industrial refactoring sessions."*
+
+If asked about Ordering recall specifically: *"Ordering is the weakest result: recall is limited by a deliberately conservative validator and a bounded enumeration budget. It is currently a useful diagnostic for short, reproducible windows rather than a complete ordering analyser."*
+
+### Slide 18 — Are the alternatives actually better?
+
+Cue on slide: *"Result under J — not yet independently validated by expert ranking."*
+
+Verbal: *"41 of 66 synthesised alternatives strictly beat the user trajectory — about 62%. Importantly, this is a relative result under the explicit objective I defined. It shows that the synthesisers can construct alternatives that improve the chosen score; it does not yet prove that developers or experts would rank those alternatives in the same order. That construct-validity step — pairwise human ranking of alternatives — is the obvious next experiment."*
+
+### Slide 21 — Score is locally robust
+
+Cue on slide: *"Robustness ≠ calibration. Weights not validated against downstream outcomes."*
+
+Verbal: *"Robustness is not calibration. These experiments show that the recommendation is not fragile around my chosen weights — under both single-knob and multi-knob perturbations, the top-ranked divergence point is overwhelmingly preserved. They do not prove that these weights are uniquely correct, or that the score predicts downstream outcomes such as defect rate, review cost, or time-to-merge. That would need an external dataset of longitudinal code-quality outcomes — which doesn't currently exist for refactoring trajectories."*
+
+### Slides 23–25 — User-study results
+
+Cue: the existing *"n = 3 vs n = 2 — directional finding, not a hypothesis test"* line already carries the headline caveat. The deeper verbal version names the remaining causal ambiguity:
+
+Verbal (after the gain-stripped chart on Slide 25): *"The no-feedback arm makes a pure task-order explanation less convincing, because both groups followed the same playbook in the same order. But it cannot distinguish genuine improvement in refactoring practice from participants learning what this dashboard rewards. So I interpret this as evidence that feedback changed measured process discipline — not yet proof of durable real-world refactoring improvement."*
+
+This sentence is the single most defensible reading of the user-study result. If pushed on n=3 vs n=2, this is where to land.
+
+### Slide 27 — Agent extension
+
+The slide's own framing ("Scope limit by design — adapting detectors for agent traces is future work") already does most of the work. The mature verbal interpretation is:
+
+Verbal: *"This is not evidence that feedback fails for agents. It is evidence that a detector built around human IDE actions does not transfer automatically to a tool-using agent trace. The transcript-level plans suggest some agents responded to feedback — but the present instrumentation was insensitive to the changes they could actually make. A useful failed transfer, not a null behavioural result."*
+
+### Slide 28 — Conclusion (and closing 20 seconds)
+
+The slide headline is now properly qualified, and the bottom italic line states what is not yet established. The closing ~20 seconds to deliver verbatim:
+
+> *"The contribution is not a claim to have solved refactoring quality. It is a working, reproducible method for making the path through a refactoring session observable, comparable, and discussable. The next evidence needed is expert ranking validation, a larger randomised human study, and linkage to downstream engineering outcomes."*
+
+That ending positions the work as ambitious, original, and appropriately bounded — the combination external moderators tend to trust.
+
+### Why these cues exist (meta)
+
+The 70–84 / 85+ reflection descriptors reward clear claims about what the evidence does and does not establish. Adding a dedicated limitations slide would be both clichéd and not feasible in 18 minutes across 28 slides. Instead, each cue is a single italic grey line on the relevant result slide, paired with a longer verbal qualification here. The cue triggers the script; the script protects against over-reading.

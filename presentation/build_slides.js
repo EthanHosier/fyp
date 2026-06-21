@@ -247,7 +247,10 @@ function quoteCard(slide, quote, attribution, opts = {}) {
 {
   const s = pres.addSlide();
   s.addText("Demo", {
-    x: 0.5, y: 2.2, w: 9, h: 1.2, fontSize: 60, bold: true, align: "center", valign: "middle", margin: 0,
+    x: 0.5, y: 1.95, w: 9, h: 1.2, fontSize: 60, bold: true, align: "center", valign: "middle", margin: 0,
+  });
+  s.addText("OrderProcessor: Breaking up a long method into smaller methods", {
+    x: 0.5, y: 3.25, w: 9, h: 0.5, fontSize: 20, italic: true, color: "555555", align: "center", valign: "middle", margin: 0,
   });
 }
 
@@ -690,7 +693,7 @@ function quoteCard(slide, quote, attribution, opts = {}) {
     {
       main: "2 Datasets",
       subs: [
-        ["45-session labelled injection set", "controlled, balanced per-kind coverage; ground-truth labels at κ ≥ 0.72."],
+        ["45-session labelled injection set", "controlled, balanced per-kind coverage."],
         ["30-session randomised user study", "5 MEng participants × 6 sessions, 2 arms (feedback vs no-feedback)."],
       ],
     },
@@ -725,7 +728,19 @@ function quoteCard(slide, quote, attribution, opts = {}) {
     });
   });
 
-  s.addText(runs, { x: 0.5, y: 1.3, w: 9, h: 4.0, fontSize: 16, valign: "top" });
+  s.addText(runs, { x: 0.5, y: 1.3, w: 9, h: 3.5, fontSize: 16, valign: "top" });
+
+  // Footer note (same style as Slide 4's "Gap:" punchline)
+  s.addText(
+    [
+      { text: "Reproducible: ", options: { bold: true } },
+      { text: "every table and figure is regenerated from the Jupyter notebook in the repo.", options: {} },
+    ],
+    {
+      x: 0.5, y: 5.0, w: 9, h: 0.5,
+      fontSize: 14, italic: true, color: "1F3F6F", align: "center", valign: "middle", margin: 0,
+    },
+  );
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -779,14 +794,14 @@ function quoteCard(slide, quote, attribution, opts = {}) {
   // Custom-positioned title (nudged up vs. the shared TITLE constant so the 2×2 grid + footer all fit)
   const s = pres.addSlide();
   s.addText("Decision matrix per divergence kind", {
-    x: 0.5, y: 0.1, w: 9, h: 0.6, fontSize: 28, bold: true, margin: 0,
+    x: 0.5, y: 0.05, w: 9, h: 0.5, fontSize: 28, bold: true, margin: 0,
   });
 
   // Preamble: clarify the unit + scope
   s.addText(
     "Session-level (45 injection sessions).",
     {
-      x: 0.5, y: 0.72, w: 9, h: 0.28,
+      x: 0.5, y: 0.55, w: 9, h: 0.22,
       fontSize: 12, italic: true, color: "555555", align: "center", margin: 0,
     },
   );
@@ -866,18 +881,26 @@ function quoteCard(slide, quote, attribution, opts = {}) {
     );
   }
 
-  // 2×2 grid of mini matrices (top row at 1.0; bottom row pushed to 3.2 for a larger inter-row gap)
-  drawMatrix(0.7,  1.00, "Manual-Refactor", 16,  5, 0, 24, "1.00", "0.76");
-  drawMatrix(5.2,  1.00, "Ordering",        14, 24, 0,  7, "1.00", "0.36");
-  drawMatrix(0.7,  3.20, "Rework",           9,  0, 0, 36, "1.00", "1.00");
-  drawMatrix(5.2,  3.20, "Hygiene",          8,  0, 0, 37, "1.00", "1.00");
+  // 2×2 grid of mini matrices (moved up so content doesn't overlap the footer cues)
+  drawMatrix(0.7,  0.85, "Manual-Refactor", 16,  5, 0, 24, "1.00", "0.76");
+  drawMatrix(5.2,  0.85, "Ordering",        14, 24, 0,  7, "1.00", "0.36");
+  drawMatrix(0.7,  2.95, "Rework",           9,  0, 0, 36, "1.00", "1.00");
+  drawMatrix(5.2,  2.95, "Hygiene",          8,  0, 0, 37, "1.00", "1.00");
 
   // Footer: Ordering scope limit (shortened per request)
   s.addText(
     "Ordering recall is the outlier: the reorder synthesiser's splitOnInvalid validator rejects any window containing a step it cannot safely.",
     {
-      x: 0.4, y: 5.3, w: 9.2, h: 0.28,
+      x: 0.4, y: 5.05, w: 9.2, h: 0.28,
       fontSize: 9, italic: true, color: "555555", align: "center", margin: 0,
+    },
+  );
+  // Critical-reflection cue
+  s.addText(
+    "Controlled-injection: balanced fixture, scripted behaviour - not shown on real-world refactoring sessions.",
+    {
+      x: 0.4, y: 5.33, w: 9.2, h: 0.28,
+      fontSize: 9, italic: true, color: "999999", align: "center", margin: 0,
     },
   );
 }
@@ -985,8 +1008,16 @@ function quoteCard(slide, quote, attribution, opts = {}) {
       },
     ],
     {
-      x: 0.4, y: 4.6, w: 9.2, h: 0.6,
+      x: 0.4, y: 4.55, w: 9.2, h: 0.6,
       fontSize: 10, italic: true, color: "777777", align: "center", margin: 0,
+    },
+  );
+  // Critical-reflection cue
+  s.addText(
+    "Result under J - not yet independently validated by expert ranking.",
+    {
+      x: 0.4, y: 5.20, w: 9.2, h: 0.28,
+      fontSize: 9, italic: true, color: "999999", align: "center", margin: 0,
     },
   );
 }
@@ -1063,50 +1094,86 @@ function quoteCard(slide, quote, attribution, opts = {}) {
   const s = titled("Score is locally robust");
 
   const REF_COLOR = "888888";
-  const SUB_GAP = 6;
-  const GROUP_GAP = 18;
 
-  // Two main questions (echo Slide 19 verbatim), each answered with key numbers + a short sentence.
-  const groups = [
-    {
-      main: "How stable is the score?",
-      subs: [
-        ["Single-knob: 96.5% top-1 preserved", "top-ranked DP rarely changes under any one-weight perturbation. Only 1.8% of cases are clamp-frozen, so this is genuine response - not a clamp artefact."],
-        ["Multi-knob: 84.6% top-1 preserved (τ-b = 0.586)", "when all weights move at once, top-1 holds in ~85% of cases and ~79% of pairs still rank in the same order. Meaningful correlation, not full preservation."],
-      ],
-    },
-    {
-      main: "Does every component of the process score hold weight?",
-      subs: [
-        ["Length is the rank-carrier (LOO τ-b = 0.527)", "removing length reshuffles the per-session ranking more than removing any other process term - the most influential term."],
-        ["Cleanliness sub-weights: ≤ 0.9% top-1 disruption", "perturbing any single one of the 6 cleanliness signals barely shifts the ranking (~10× less than process weights), so equal-weights for the sub-signals is defensible."],
-      ],
-    },
+  // ── Top group: How stable is the score? (kept as bullets) ──
+  const stabilityRuns = [
+    { text: "How stable is the score?", options: { bullet: true, bold: true, breakLine: true, paraSpaceAfter: 6 } },
+    { text: "Single-knob: 96.5% top-1 preserved ", options: { bullet: { indent: 30 }, indentLevel: 1, paraSpaceAfter: 4 } },
+    { text: "- only 1.8% of cases are clamp-frozen.", options: { color: REF_COLOR, breakLine: true, paraSpaceAfter: 4 } },
+    { text: "Multi-knob: 84.6% top-1 preserved ", options: { bullet: { indent: 30 }, indentLevel: 1, paraSpaceAfter: 4 } },
+    { text: "- meaningful correlation, not full preservation.", options: { color: REF_COLOR } },
   ];
+  s.addText(stabilityRuns, { x: 0.5, y: 1.15, w: 9, h: 1.10, fontSize: 13, valign: "top" });
 
-  const runs = [];
-  groups.forEach((g, gIdx) => {
-    const isLastGroup = gIdx === groups.length - 1;
-    // Main bullet (the question, restated from Slide 19)
-    runs.push({
-      text: g.main,
-      options: { bullet: true, bold: true, breakLine: true, paraSpaceAfter: 6 },
-    });
-    g.subs.forEach(([lead, tail], sIdx) => {
-      const isLastSub = sIdx === g.subs.length - 1;
-      const trailingGap = isLastSub && !isLastGroup ? GROUP_GAP : SUB_GAP;
-      runs.push({
-        text: lead + " ",
-        options: { bullet: { indent: 30 }, indentLevel: 1, paraSpaceAfter: trailingGap },
-      });
-      runs.push({
-        text: "- " + tail,
-        options: { color: REF_COLOR, breakLine: !(isLastGroup && isLastSub), paraSpaceAfter: trailingGap },
-      });
-    });
+  // ── Section header: Does every component hold weight? ──
+  s.addText("Does every component of the process score hold weight?", {
+    x: 0.5, y: 2.35, w: 9, h: 0.3,
+    fontSize: 13, bold: true, color: "1A1A1A", margin: 0,
   });
 
-  s.addText(runs, { x: 0.5, y: 1.3, w: 9, h: 4.0, fontSize: 15, valign: "top" });
+  // ── Ablation results table ──
+  // Per-term LOO τ-b on user-study rankable subset (Table 5.6 in report) + single-knob top-1 disruption (Table 5.2).
+  // Sorted by LOO τ-b ascending: smaller = removing the term reshuffles rankings more = more influential.
+  const HEADER_CELL = {
+    bold: true, color: "1A1A1A", fill: { color: "F0F0F0" },
+    align: "center", valign: "middle", margin: 0.06, fontSize: 11,
+  };
+  const TERM_CELL = {
+    bold: true, color: "1A1A1A",
+    align: "left", valign: "middle", margin: 0.06, fontSize: 12,
+  };
+  const NUM_CELL = {
+    color: "333333",
+    align: "center", valign: "middle", margin: 0.06, fontSize: 12,
+  };
+  const NUM_HIGHLIGHT = {
+    bold: true, color: "0A7D2A",
+    align: "center", valign: "middle", margin: 0.06, fontSize: 12,
+  };
+  const NUM_MUTED = {
+    color: "999999", italic: true,
+    align: "center", valign: "middle", margin: 0.06, fontSize: 12,
+  };
+
+  // Each row: [term, LOO τ, top-1 disruption %, isLowestTau, isLag]
+  const ablationRows = [
+    ["length",    "0.527", "6.2%",  true,  false],
+    ["manualIde", "0.588", "7.6%",  false, false],
+    ["broken",    "0.627", "5.3%",  false, false],
+    ["commitGap", "0.655", "6.7%",  false, false],
+    ["skipTests", "0.663", "6.7%",  false, false],
+    ["gain",      "0.683", "10.7%", false, false],
+    ["lag",       "0.784", "0.4%",  false, true],
+  ];
+
+  const tableRows = [
+    [
+      { text: "Removed term", options: HEADER_CELL },
+      { text: "Leave-one-out τ-b (lower = more rank-carrier)", options: HEADER_CELL },
+      { text: "Single-knob top-1 Δ", options: HEADER_CELL },
+    ],
+    ...ablationRows.map(([term, tau, topDelta, isLowest, isLag]) => [
+      { text: term, options: TERM_CELL },
+      { text: tau, options: isLowest ? NUM_HIGHLIGHT : (isLag ? NUM_MUTED : NUM_CELL) },
+      { text: topDelta, options: isLag ? NUM_MUTED : NUM_CELL },
+    ]),
+  ];
+
+  s.addTable(tableRows, {
+    x: 1.0, y: 2.70, w: 8.0,
+    colW: [2.0, 3.6, 2.4],
+    rowH: 0.32,
+    fontFace: "Calibri",
+    border: { type: "solid", pt: 0.5, color: "DDDDDD" },
+  });
+  // Critical-reflection cue
+  s.addText(
+    "Robustness ≠ calibration. Weights not validated against downstream outcomes.",
+    {
+      x: 0.5, y: 5.30, w: 9, h: 0.28,
+      fontSize: 9, italic: true, color: "999999", align: "center", margin: 0,
+    },
+  );
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -1135,7 +1202,7 @@ function quoteCard(slide, quote, attribution, opts = {}) {
     {
       main: "How did we design the study?",
       subs: [
-        ["5 MEng Computing participants, 6 sessions each, on an order-processing codebase", "30 sessions total on user-study-fixture/ (separate from the labelled-injection codebase)."],
+        "5 MEng Computing participants, 6 sessions each, on an order-processing codebase",
         ["Randomised into 2 arms", "P1, P2, P3 see dashboard feedback between sessions; P4 and P5 don't. Same playbook, codebase, instrumentation."],
       ],
     },
@@ -1143,7 +1210,7 @@ function quoteCard(slide, quote, attribution, opts = {}) {
       main: "What did we measure?",
       subs: [
         ["Divergence-point count per session", "does the detector still surface the same kinds of friction over time?"],
-        ["Process score across the arc, two views", "the production score, plus a gain-stripped variant (W_g = W_lag = 0) that isolates how the participant worked from how much cleaner the code ended up."],
+        "Process score across the arc",
       ],
     },
   ];
@@ -1155,17 +1222,26 @@ function quoteCard(slide, quote, attribution, opts = {}) {
       text: g.main,
       options: { bullet: true, bold: true, breakLine: true, paraSpaceAfter: 6 },
     });
-    g.subs.forEach(([lead, tail], sIdx) => {
+    g.subs.forEach((sub, sIdx) => {
       const isLastSub = sIdx === g.subs.length - 1;
       const trailingGap = isLastSub && !isLastGroup ? GROUP_GAP : SUB_GAP;
-      runs.push({
-        text: lead + " ",
-        options: { bullet: { indent: 30 }, indentLevel: 1, paraSpaceAfter: trailingGap },
-      });
-      runs.push({
-        text: "- " + tail,
-        options: { color: REF_COLOR, breakLine: !(isLastGroup && isLastSub), paraSpaceAfter: trailingGap },
-      });
+      const lead = Array.isArray(sub) ? sub[0] : sub;
+      const tail = Array.isArray(sub) ? sub[1] : null;
+      if (tail) {
+        runs.push({
+          text: lead + " ",
+          options: { bullet: { indent: 30 }, indentLevel: 1, paraSpaceAfter: trailingGap },
+        });
+        runs.push({
+          text: "- " + tail,
+          options: { color: REF_COLOR, breakLine: !(isLastGroup && isLastSub), paraSpaceAfter: trailingGap },
+        });
+      } else {
+        runs.push({
+          text: lead,
+          options: { bullet: { indent: 30 }, indentLevel: 1, breakLine: !(isLastGroup && isLastSub), paraSpaceAfter: trailingGap },
+        });
+      }
     });
   });
 
@@ -1431,16 +1507,33 @@ function quoteCard(slide, quote, attribution, opts = {}) {
   const s = titled("Conclusion");
 
   s.addText(
-    "Process-aware refactoring evaluation is tractable, and the resulting feedback shifts developer behaviour.",
-    { x: 0.5, y: 1.15, w: 9, h: 0.75, fontSize: 17, italic: true, color: "1F3F6F", align: "center", valign: "middle" }
+    "Process-aware refactoring evaluation is tractable, and a small randomised study gives directional evidence that feedback improves measured process discipline.",
+    { x: 0.5, y: 1.10, w: 9, h: 0.85, fontSize: 15, italic: true, color: "1F3F6F", align: "center", valign: "middle" }
   );
 
-  bulletText(s, [
-    "A process-quality metric J(τ) combining endpoint, process, and safety signals in one principled score.",
-    "A divergence-point detector with four actionable kinds, each with a per-kind synthesiser that constructs a concrete alternative trajectory.",
-    "Three datasets -45 injection sessions, 30-session user study, 48-session agent extension - with reproducible analysis (Jupyter notebook reproduces every table and figure).",
-    "A deployable end-to-end system: IntelliJ plugin, analysis backend, and dashboard.",
-  ], { y: 2.10, h: 3.3 });
+  const conclusionRuns = [
+    // Bullet 1 with inline italic on "arbitrary sessions"
+    { text: "A process-quality metric on ", options: { bullet: true, paraSpaceAfter: 6 } },
+    { text: "arbitrary sessions", options: { italic: true, paraSpaceAfter: 6 } },
+    { text: " combining endpoint, process, and safety signals in one principled score.", options: { breakLine: true, paraSpaceAfter: 6 } },
+    // Bullets 2-4 plain
+    { text: "A divergence-point detector with four actionable kinds, each with a per-kind synthesiser that constructs a concrete alternative trajectory.", options: { bullet: true, breakLine: true, paraSpaceAfter: 6 } },
+    { text: "Three datasets -45 injection sessions, 30-session user study, 48-session agent extension - with reproducible analysis (Jupyter notebook reproduces every table and figure).", options: { bullet: true, breakLine: true, paraSpaceAfter: 6 } },
+    { text: "A working end-to-end research prototype: IntelliJ plugin, analysis backend, and dashboard.", options: { bullet: true, paraSpaceAfter: 6 } },
+  ];
+  s.addText(conclusionRuns, { ...BODY, y: 2.10, h: 2.9 });
+
+  // Bounded claim: what the evidence does NOT yet establish
+  s.addText(
+    [
+      { text: "Not yet established: ", options: { bold: true } },
+      { text: "externally calibrated measure of refactoring quality, statistically conclusive behavioural effect, or generalisation beyond Java / IntelliJ / human traces.", options: {} },
+    ],
+    {
+      x: 0.5, y: 5.05, w: 9, h: 0.5,
+      fontSize: 11, italic: true, color: "888888", align: "center", valign: "middle", margin: 0,
+    },
+  );
 }
 
 pres.writeFile({ fileName: "slides.pptx" }).then((name) => {
