@@ -106,54 +106,62 @@ function titled(title, subtitle = null) {
     { x: 0.5, y: 1.2, w: 9, h: 0.5, fontSize: 13, italic: true, color: "555555", margin: 0 },
   );
 
-  // Each design requirement: bold title + normal-weight body + grey reference clause
+  // Each design requirement: bold title + normal-weight body + optional superscript footnote marker
   const REF_COLOR = "888888";
   const requirements = [
     {
       title: "Quantifiable + comparable score",
       body: "one number per trajectory so sessions can be compared.",
-      ref: "Builds on composite quality models (Quamoco, QMOOD), adapted from snapshot- to trajectory-level.",
+      mark: "[1]",
     },
     {
       title: "Seamless, in-workflow capture",
       body: "zero extra developer effort to use the tool.",
-      ref: "IDE-event logging is a known-feasible approach (Damevski et al., CodeWatcher).",
+      mark: "[2]",
     },
     {
       title: "Actionable, moment-specific feedback",
       body: 'point to a specific moment AND a "what you could have done instead" alternative.',
-      ref: "Inverts prior refactoring recommenders (ReSynth, Refactoring Navigator, search-based refactoring): the synthesised sequence becomes the comparison point against an observed trace.",
+      mark: "[3]",
     },
     {
       title: "Efficient alternative synthesis",
       body: 'the state-action space over a real codebase is too large to enumerate, so we must find efficient methods of identifying "better" alternatives.',
-      ref: null,
+      mark: null,
     },
   ];
 
   const runs = [];
   requirements.forEach((req, i) => {
     const isLast = i === requirements.length - 1;
-    // Bold title - starts the bullet
     runs.push({
       text: req.title + " ",
       options: { bullet: true, bold: true, paraSpaceAfter: 6 },
     });
-    // Normal-weight body on the same bullet line, with dash separator
     runs.push({
-      text: "- " + req.body + (req.ref ? " " : ""),
-      options: { breakLine: !req.ref, paraSpaceAfter: 6 },
+      text: "- " + req.body,
+      options: { breakLine: !req.mark && isLast ? false : !req.mark, paraSpaceAfter: 6 },
     });
-    // Grey reference clause (where applicable)
-    if (req.ref) {
+    if (req.mark) {
       runs.push({
-        text: req.ref,
+        text: " " + req.mark,
         options: { color: REF_COLOR, breakLine: !isLast, paraSpaceAfter: 6 },
       });
     }
   });
 
-  s.addText(runs, { x: 0.5, y: 1.8, w: 9, h: 3.6, fontSize: 13, valign: "top" });
+  s.addText(runs, { x: 0.5, y: 1.8, w: 9, h: 3.2, fontSize: 14, valign: "top" });
+
+  // Footer references
+  const footerRuns = [
+    { text: "[1] Composite quality models (Quamoco, QMOOD), adapted from snapshot- to trajectory-level.   ", options: {} },
+    { text: "[2] IDE-event logging (Damevski et al., CodeWatcher).   ", options: {} },
+    { text: "[3] Inverts prior refactoring recommenders (ReSynth, Refactoring Navigator, search-based refactoring).", options: {} },
+  ];
+  s.addText(footerRuns, {
+    x: 0.5, y: 5.10, w: 9, h: 0.45,
+    fontSize: 9, italic: true, color: REF_COLOR, align: "left", valign: "top", margin: 0,
+  });
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -289,37 +297,7 @@ function titled(title, subtitle = null) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Slide 7 - Four kinds of divergence (overview)
-// ─────────────────────────────────────────────────────────────
-{
-  const s = titled("Four kinds of divergence");
-
-  // Each kind: name in black + grey description
-  const REF_COLOR = "888888";
-  const kinds = [
-    ["Manual-Refactor", "unnecessary risk (hand-edit when the IDE could have safely done it)."],
-    ["Ordering",        "right refactorings, wrong sequence."],
-    ["Rework",          "unnecessary churn (added then removed)."],
-    ["Hygiene",         "missing safety checkpoints (no tests, no commits)."],
-  ];
-
-  const runs = [];
-  kinds.forEach(([name, desc], i) => {
-    runs.push({
-      text: name + " ",
-      options: { bullet: true, paraSpaceAfter: 10 },
-    });
-    runs.push({
-      text: "- " + desc,
-      options: { color: REF_COLOR, breakLine: i < kinds.length - 1, paraSpaceAfter: 10 },
-    });
-  });
-
-  s.addText(runs, { x: 0.5, y: 1.5, w: 9, h: 3.5, fontSize: 18, valign: "top" });
-}
-
-// ─────────────────────────────────────────────────────────────
-// Slide 8 - Scoring a trajectory
+// Slide 7 - Scoring a trajectory
 // ─────────────────────────────────────────────────────────────
 {
   // Title position is nudged up vs. the shared TITLE constant so the formula has a touch more room
@@ -431,6 +409,36 @@ function titled(title, subtitle = null) {
       margin: 0,
     },
   );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Slide 8 - Four kinds of divergence (overview)
+// ─────────────────────────────────────────────────────────────
+{
+  const s = titled("Four kinds of divergence");
+
+  // Each kind: name in black + grey description
+  const REF_COLOR = "888888";
+  const kinds = [
+    ["Manual-Refactor", "unnecessary risk (hand-edit when the IDE could have safely done it)."],
+    ["Ordering",        "right refactorings, wrong sequence."],
+    ["Rework",          "unnecessary churn (added then removed)."],
+    ["Hygiene",         "missing safety checkpoints (no tests, no commits)."],
+  ];
+
+  const runs = [];
+  kinds.forEach(([name, desc], i) => {
+    runs.push({
+      text: name + " ",
+      options: { bullet: true, paraSpaceAfter: 10 },
+    });
+    runs.push({
+      text: "- " + desc,
+      options: { color: REF_COLOR, breakLine: i < kinds.length - 1, paraSpaceAfter: 10 },
+    });
+  });
+
+  s.addText(runs, { x: 0.5, y: 1.5, w: 9, h: 3.5, fontSize: 18, valign: "top" });
 }
 
 // ─────────────────────────────────────────────────────────────
