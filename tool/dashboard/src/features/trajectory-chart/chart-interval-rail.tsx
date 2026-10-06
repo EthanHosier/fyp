@@ -76,7 +76,10 @@ export function ChartIntervalRail({
         {kind === "build" ? "BUILD" : "TESTS"}
       </text>
       {runs.map((run, runIndex) => {
-        const unknown = run.status === "unknown"
+        // PRESENTATION-ONLY: render "unknown" (skipped) status as "fail" (red) so
+        // skipped tests look the same as failing tests. Do not commit this change.
+        const renderStatus = run.status === "unknown" ? "fail" : run.status
+        const unknown = false
         const x0 = xs(vm.checkpoints[run.fromCheckpoint].xPos)
         const x1 = xs(vm.checkpoints[run.toCheckpoint].xPos)
         return (
@@ -87,8 +90,8 @@ export function ChartIntervalRail({
             width={Math.max(0, x1 - x0)}
             height={INTERVAL_RAIL_HEIGHT}
             className={cn(
-              !unknown && STATUS_FILL[run.status],
-              STATUS_STROKE[run.status],
+              !unknown && STATUS_FILL[renderStatus],
+              STATUS_STROKE[renderStatus],
               "cursor-pointer",
             )}
             fill={unknown ? `url(#${hatchId})` : undefined}

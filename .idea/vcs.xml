@@ -2,5 +2,13 @@
 <project version="4">
   <component name="VcsDirectoryMappings">
     <mapping directory="" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/presentation/fixture" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/tool/fixtures/library-fixture" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/tool/fixtures/sessions/035/shadow-repo" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/tool/fixtures/user-sessions/bobby-01/shadow-repo" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/tool/fixtures/user-sessions/bobby-02/shadow-repo" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/tool/fixtures/user-sessions/bobby-03/shadow-repo" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/tool/fixtures/user-sessions/will-04/shadow-repo" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/tool/fixtures/user-study-fixture" vcs="Git" />
   </component>
 </project>

@@ -42,6 +42,52 @@ public class OrderService {
     }
 
     public Order processOrder(CheckoutRequest req) {
+        List<LineItem> items = validateOrder(req);
+        PaymentProcessor.Result result = chargePayment(req, items);
+        inventory.commit(items);
+        Order order = createOrder(req, items, result);
+        notifier.notifyCustomer(order);
+        if (req.idempotencyKey != null) {
+            submittedIds.add(req.idempotencyKey);
+        }
+        return order;
+    }
+
+    private static Order createOrder(org.orders.OrderService.CheckoutRequest req, List<LineItem> items, PaymentProcessor.Result result) {
+        String billingStreet = req.billingStreet != null ? req.billingStreet : req.shippingStreet;
+        String billingCity = req.billingCity != null ? req.billingCity : req.shippingCity;
+        String billingPostcode = req.billingPostcode != null ? req.billingPostcode : req.shippingPostcode;
+
+        Order order = new Order(
+                UUID.randomUUID().toString(),
+                req.customerEmail,
+                req.customerName,
+                req.shippingStreet, req.shippingCity, req.shippingPostcode,
+                billingStreet, billingCity, billingPostcode,
+                items,
+                Instant.now()
+        );
+        order.setTotalCents(result.chargedCents);
+        order.setStatus(OrderStatus.PAID);
+        return order;
+    }
+
+    private PaymentProcessor.Result chargePayment(org.orders.OrderService.CheckoutRequest req, List<LineItem> items) throws IllegalStateException {
+        long subtotal = req.cart.subtotalCents();
+        long shippingFromCalc = shipping.process(req.cart.totalWeightGrams(), req.shippingPostcode);
+        long preTax = subtotal + shippingFromCalc;
+        long tax = (long) Math.round(preTax * 0.2);
+        long grandTotal = preTax + tax;
+
+        PaymentProcessor.Result result = payments.charge(grandTotal, req.paymentMethod);
+        if (!result.success) {
+            inventory.release(items);
+            throw new IllegalStateException("payment failed: " + result.message);
+        }
+        return result;
+    }
+
+    private List<LineItem> validateOrder(org.orders.OrderService.CheckoutRequest req) throws IllegalArgumentException, IllegalStateException {
         if (req == null) {
             throw new IllegalArgumentException("request is null");
         }
@@ -78,51 +124,7 @@ public class OrderService {
         if (!reserved) {
             throw new IllegalStateException("insufficient stock");
         }
-
-        long subtotal = req.cart.subtotalCents();
-        long shippingCents;
-        if (req.cart.totalWeightGrams() < 500) {
-            shippingCents = 299;
-        } else if (req.cart.totalWeightGrams() < 2000) {
-            shippingCents = 599;
-        } else {
-            shippingCents = 1299;
-        }
-        long shippingFromCalc = shipping.process(req.cart.totalWeightGrams(), req.shippingPostcode);
-        long preTax = subtotal + shippingFromCalc;
-        long tax = (long) Math.round(preTax * 0.2);
-        long grandTotal = preTax + tax;
-
-        PaymentProcessor.Result result = payments.charge(grandTotal, req.paymentMethod);
-        if (!result.success) {
-            inventory.release(items);
-            throw new IllegalStateException("payment failed: " + result.message);
-        }
-
-        inventory.commit(items);
-
-        String billingStreet = req.billingStreet != null ? req.billingStreet : req.shippingStreet;
-        String billingCity = req.billingCity != null ? req.billingCity : req.shippingCity;
-        String billingPostcode = req.billingPostcode != null ? req.billingPostcode : req.shippingPostcode;
-
-        Order order = new Order(
-                UUID.randomUUID().toString(),
-                req.customerEmail,
-                req.customerName,
-                req.shippingStreet, req.shippingCity, req.shippingPostcode,
-                billingStreet, billingCity, billingPostcode,
-                items,
-                Instant.now()
-        );
-        order.setTotalCents(result.chargedCents);
-        order.setStatus(OrderStatus.PAID);
-
-        notifier.notifyCustomer(order);
-
-        if (req.idempotencyKey != null) {
-            submittedIds.add(req.idempotencyKey);
-        }
-        return order;
+        return items;
     }
 
     private void validate(Cart cart, String customerEmail,
